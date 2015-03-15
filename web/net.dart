@@ -60,6 +60,8 @@ abstract class Network {
    * This is checked when a connection is dropped. 
    * Potentially this method will elect a new server.
    * returns true if we became the new server.
+   * TODO(Erik): Conside more factors when electing servers, like number of connected
+   *  peers.
    */
   bool verifyOrTransferServerRole(Map connections) {
     for (var key in connections.keys) {
@@ -85,6 +87,7 @@ abstract class Network {
       for (var id in connections.keys) {
         ConnectionWrapper connection = connections[id];
         connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
+        // TODO(Erik): Change sprite types for players.
       }
       world.hudMessages.display("Server role tranferred to you :)");
       return true;

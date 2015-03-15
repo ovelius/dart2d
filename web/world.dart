@@ -104,12 +104,12 @@ class World {
       if (newSprite.networkId == null) {
         newSprite.networkId = spriteNetworkId++;
         while (sprites.containsKey(newSprite.networkId)) {
-          print("Warning: World contains sprite ${newSprite.networkId}");
+          print("${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
           newSprite.networkId = spriteNetworkId++;
         }
       }
       if (sprites.containsKey(newSprite.networkId)) {
-        print("Warning: World contains sprite ${newSprite.networkId}");
+        print("${this}: Warning: World contains sprite ${newSprite.networkId}. Overwritten!");
       }
       sprites[newSprite.networkId] = newSprite;
     }
@@ -126,7 +126,7 @@ class World {
     serverFrame += frames;
     serverFps.timeWithFrames(duration, frames);
     if (network.isServer()
-      //  && network.hasReadyConnection()
+      //  && network.hasReadyConnection() This is commented out to allow local testing.
         && sprites.length < 40
         && frames > 0
         && new Random().nextDouble() > 0.99) {
@@ -144,7 +144,7 @@ class World {
         sprite.networkId = networkId;
         waitingSprites.add(sprite);
       } else {
-        // TODO: Fix
+        // TODO: Fix forwarding Client -> Server -> Client.
   /*      print("World does not have sprite ${networkId}?  ${network is Server} ${this.sprites}");
         LocalPlayerSprite sprite = new LocalPlayerSprite(
            world, remoteKeyState, info, 0.0, 0.0, spriteId);
@@ -262,6 +262,8 @@ class World {
     sprite.networkType = NetworkType.LOCAL;
     addSprite(sprite);
   }
+  
+  toString() => "World[${peer.id}]";
 }
 
 

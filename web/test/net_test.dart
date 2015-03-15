@@ -26,6 +26,7 @@ void main() {
   setUp(() {
     testConnections.clear();
     testPeers.clear();
+    logConnectionData = true;
     useEmptyImagesForTest();
     remapKeyNamesForTest();
   });
@@ -175,6 +176,7 @@ void main() {
     });
 
     test('TestThreeWorldsServerDies', () {
+      logConnectionData = false;
       print("Testing connecting with three players, server dies so a new server is elected");
       World worldA = testWorld("a"); 
       worldA.startAsServer("nameA");
@@ -202,13 +204,11 @@ void main() {
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
-      logConnectionData = false;
       for (int i = 0; i < 40; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      logConnectionData = true;
     
       expect(worldB, hasSpecifiedConnections({
          'c':ConnectionType.SERVER_TO_CLIENT,
@@ -225,19 +225,15 @@ void main() {
       
       gameState.remove(0);
       expect(worldB, isGameStateOf(gameState));
-      // FIX(erik): Why isn't GameState propagated here?
-      // expect(worldC, isGameStateOf(gameState));
-      // expect(worldD, isGameStateOf(gameState));
+      expect(worldC, isGameStateOf(gameState));
+      expect(worldD, isGameStateOf(gameState));
            
       // Now b is having issues.
       testConnections['b'].forEach((e) { e.dropPackets = 100;});
-      logConnectionData = false;
       for (int i = 0; i < 40; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      logConnectionData = true;
-
       expect(worldC, hasSpecifiedConnections({ 
           'd':ConnectionType.SERVER_TO_CLIENT,
       }));

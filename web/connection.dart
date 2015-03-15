@@ -64,6 +64,10 @@ class ConnectionWrapper {
   Map keyFrameData = {};
   
   ConnectionWrapper(this.world, this.id, this.connection, this.connectionType) {
+    // Client to client connections to not need to shake hands :)
+    // Server knows about both clients anyway.
+    // Changing handshakeReceived should be the first assignment in the constructor.
+    this.handshakeReceived = connectionType == ConnectionType.CLIENT_TO_CLIENT;
     connection.callMethod('on',
         new JsObject.jsify(
             ['data', new JsFunction.withThis(this.receiveData)]));
