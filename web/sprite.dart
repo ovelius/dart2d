@@ -1,0 +1,191 @@
+library dart2d;
+
+import 'imageindex.dart';
+import 'vec2.dart';
+import 'dart:math';
+import 'dart:html';
+
+
+class SpriteType {
+  final value;
+  const SpriteType._internal(this.value);
+  toString() => 'Enum.$value';
+
+  static const IMAGE = const SpriteType._internal(0);
+  static const RECT = const SpriteType._internal(1);
+  static const CIRCLE = const SpriteType._internal(2);
+  
+  SpriteType.fromInt(this.value);
+  operator ==(SpriteType other) {
+    return value == other.value; 
+  }
+}
+
+class NetworkType {
+  final _value;
+  const NetworkType._internal(this._value);
+  toString() => 'Enum.$_value';
+
+  // Network should never touch this sprite.
+  static const LOCAL_ONLY = const NetworkType._internal('LOCAL_ONLY');
+  // Controlled locally - should be sent to peers.
+  static const LOCAL = const NetworkType._internal('LOCAL');
+  // Sprite is controlled remotely.
+  static const REMOTE = const NetworkType._internal('REMOTE');
+  // Sprite is controlled remotely but should be forwarded to other peers.
+  static const REMOTE_FORWARD = const NetworkType._internal('REMOTE_FORWARD');
+  
+  bool remoteControlled() {
+    return _value == 'REMOTE' || _value == 'REMOTE_FORWARD';
+  }
+}
+
+class Sprite {
+  static const int UNLIMITED_LIFETIME = -1;
+  // Position, size, image and rendered angle.
+  Vec2 position;
+  // Access via getRadius()
+  double _radius;
+  Vec2 size;
+  int imageIndex;
+  double angle = 0.0;
+  SpriteType spriteType = SpriteType.IMAGE;
+  // Color
+  int color = 0xffffff;
+  double alpha = 1.0;
+  // Animation data computed in constructor.
+  int frameIndex = 0;
+  int frames = 1;
+
+  // Frame when sprite is remoted from world.
+  int lifeTime = UNLIMITED_LIFETIME;
+
+  int networkId;
+  NetworkType networkType = NetworkType.LOCAL;
+  // Send a coulple of frames of full data for newly added sprites.
+  int fullFramesOverNetwork = 3;
+  // Will be removed by the engine.
+  bool remove = false;
+  
+  Sprite(double x, double y, int imageIndex, [int width, int height, double angle]) {
+    this.position = new Vec2(x, y);
+    var image = images[imageIndex];
+    size = new Vec2();
+    size.x = (width == null ? image.width : width).toDouble();
+    size.y = (height == null ? image.height : height).toDouble();
+    setImage(imageIndex, size.x.toInt());
+    
+    assert(size.x > 0);
+    assert(size.y > 0);
+  }
+  
+  void setImage(int imageIndex, [int frameWidth]) {
+    this.imageIndex = imageIndex;
+    var image = images[imageIndex];
+    if (frameWidth != null) {
+      frames = image.width ~/ frameWidth;
+      if (frames == 0) {
+        print("Sprite frames is zero! ${image.width} ~/ ${frameWidth}");
+        assert(frames !=0);
+      }
+    } else {
+      frames = 1;
+    }
+  }
+  
+  void setCenter(Vec2 center) {
+    position.x = center.x - size.x / 2;
+    position.y = center.y - size.y / 2;
+  }
+
+  double getRadius() {
+    if (_radius == null) {
+      _radius = size.sum() / 2;
+    }
+    return _radius;
+  }
+  
+  void setRadius(double radius) {
+    _radius = radius;
+  }
+
+  Vec2 centerPoint() {
+    return new Vec2(
+        position.x + size.x / 2,
+        position.y + size.y / 2);
+  }
+
+  frame(double duration, int frameStep) {
+    if (frameStep > 0) {
+      frameIndex += frameStep;
+      frameIndex = frameIndex % frames;
+    }
+    if (lifeTime != UNLIMITED_LIFETIME) {
+      lifeTime -= frameStep;
+      if (lifeTime <= 0) {
+        remove = true;
+      }
+    }
+  }
+
+  draw(CanvasRenderingContext2D context, bool debug) {
+    if (spriteType == SpriteType.CIRCLE) {
+      drawCircle(context); 
+    } else if (spriteType == SpriteType.IMAGE) {
+      Vec2 center = centerPoint();
+      context.translate(center.x, center.y);
+      if (debug) {
+        context.setFillColorRgb(255, 255, 255);
+        context.fillRect(-3,  -3, 6, 6);
+      }
+      var image = images[imageIndex];
+      num frameWidth = (image.width / frames); 
+      context.rotate(angle);
+      context.drawImageScaledFromSource(
+          images[imageIndex],
+          frameWidth * frameIndex, 0,
+          frameWidth, image.height,
+          -size.x / 2,  -size.y / 2,
+          size.x, size.y);
+    } else if (spriteType == SpriteType.RECT) {
+      drawRect(context);
+    } else {
+      print("Warning: Can't handle sprite type $spriteType");
+    }
+  }
+  
+  setColor(CanvasRenderingContext2D context) {
+    context.setFillColorRgb(
+        color & 0xff,
+        (color & 0x00ff) << 8,
+        (color & 0x0000ff) << 16,
+        alpha);
+  }
+
+  drawRect(CanvasRenderingContext2D context) {
+    setColor(context);
+    context.fillRect(position.x, position.y, size.x, size.y);
+  }
+
+  drawCircle(CanvasRenderingContext2D context) {
+    setColor(context);
+    context.beginPath();
+    context.arc(
+        position.x - size.x / 2,
+        position.y - size.y / 2,
+        size.sum(),
+        0, PI*2);
+    context.closePath();
+    context.fill();
+  }
+  
+  double distanceTo(Sprite other) {
+    Vec2 center = centerPoint();
+    Vec2 otherCenter = other.centerPoint();
+    return (center - otherCenter).sum();
+  }
+  
+  bool takesDamage() {
+    return false;
+  }
+}

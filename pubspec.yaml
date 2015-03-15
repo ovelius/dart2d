@@ -1,0 +1,7 @@
+name: Dart2d
+description: "Dart2d WebRTC Game"
+dependencies:
+  browser: ">=0.9.0 <0.10.0"
+  unittest: any  
+environment:
+  sdk: ">=0.8.10+6 <2.0.0"

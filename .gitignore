@@ -1,3 +1,7 @@
+packages
+web\img\packages
+.ogg
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
