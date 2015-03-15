@@ -15,7 +15,6 @@ import 'dart:convert';
 class ConnectionType {
   final value;
   const ConnectionType._internal(this.value);
-  toString() => 'Enum.$value';
 
   static const CLIENT_TO_SERVER = const ConnectionType._internal(0);
   static const SERVER_TO_CLIENT = const ConnectionType._internal(1);
@@ -24,6 +23,19 @@ class ConnectionType {
   ConnectionType.fromInt(this.value);
   operator ==(ConnectionType other) {
     return value == other.value; 
+  }
+  
+  toString() {
+    switch (value) {
+      case 0:
+        return "CLIENT_TO_SERVER";
+      case 1:
+        return "SERVER_TO_CLIENT";
+      case 2:
+        return "CLIENT_TO_CLIENT";
+      default:
+        throw new StateError("ConnectionType with invalid value");
+    }
   }
 }
 
@@ -206,5 +218,7 @@ class ConnectionWrapper {
   int keyFramesBehind(int expectedKeyFrame) {
     return expectedKeyFrame - lastLocalPeerKeyFrameVerified;
   }
+  
+  toString() => "${connectionType} to ${id}";
 }
 
