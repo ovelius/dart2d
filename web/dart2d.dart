@@ -34,8 +34,7 @@ void main() {
     var name = (querySelector("#nameInput") as InputElement).value;
     world.startAsServer(name, true); 
   });
-  // createPeerJs()
-  world = new World(WIDTH, HEIGHT, createLocalHostPeerJs());
+  world = new World(WIDTH, HEIGHT,  createPeerJs() /*createLocalHostPeerJs() */);
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
   document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
   
