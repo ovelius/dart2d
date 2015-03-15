@@ -32,6 +32,7 @@ class GameStateMatcher extends Matcher {
     if (item is GameState) {
       gameState = item;
     }
+    matchState["ActualGameState"] = gameState;
     if (gameState.playerInfo.length == _playersWithName.length) {
       for (int id in _playersWithName.keys) {
         bool hasMatch = false;
@@ -50,6 +51,12 @@ class GameStateMatcher extends Matcher {
   
   Description describe(Description description) {
     description.add("GameState of ${_playersWithName}");
+  }
+  
+  /// This builds a textual description of a specific mismatch.
+  Description describeMismatch(item, Description mismatchDescription,
+      Map matchState, bool verbose) {
+    mismatchDescription.add("Actual gameState: ${matchState['ActualGameState']}");
   }
 }
 

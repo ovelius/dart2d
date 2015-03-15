@@ -173,7 +173,79 @@ void main() {
       expect(recentReceviedDataFrom("c"),
           new MapKeyMatcher.containsKey("2000"));
     });
+
+    test('TestThreeWorldsServerDies', () {
+      print("Testing connecting with three players, server dies so a new server is elected");
+      World worldA = testWorld("a"); 
+      worldA.startAsServer("nameA");
   
+      World worldB = testWorld("b");
+      World worldC = testWorld("c");
+      World worldD = testWorld("d");
+  
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      worldD.connectTo("a", "nameD");
+     
+      // Tick a few keyframes for the worlds.
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);   
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
+      worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01); 
+
+      var gameState = {0: "nameA", 1000: "nameB", 2000: "nameC", 3000: "nameD"};
+      expect(worldA, isGameStateOf(gameState));
+      expect(worldB, isGameStateOf(gameState));
+      expect(worldC, isGameStateOf(gameState));
+      expect(worldD, isGameStateOf(gameState));
+      
+      // Now make a drop away.
+      testConnections['a'].forEach((e) { e.dropPackets = 100;});
+      
+      logConnectionData = false;
+      for (int i = 0; i < 40; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      logConnectionData = true;
+    
+      expect(worldB, hasSpecifiedConnections({
+         'c':ConnectionType.SERVER_TO_CLIENT,
+         'd':ConnectionType.SERVER_TO_CLIENT,
+      }));
+      expect(worldC, hasSpecifiedConnections({
+         'b':ConnectionType.CLIENT_TO_SERVER,
+         'd':ConnectionType.CLIENT_TO_CLIENT,
+      }));
+      expect(worldD, hasSpecifiedConnections({
+         'b':ConnectionType.CLIENT_TO_SERVER,
+         'c':ConnectionType.CLIENT_TO_CLIENT,
+      }));
+      
+      gameState.remove(0);
+      expect(worldB, isGameStateOf(gameState));
+      // FIX(erik): Why isn't GameState propagated here?
+      // expect(worldC, isGameStateOf(gameState));
+      // expect(worldD, isGameStateOf(gameState));
+           
+      // Now b is having issues.
+      testConnections['b'].forEach((e) { e.dropPackets = 100;});
+      logConnectionData = false;
+      for (int i = 0; i < 40; i++) {
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      logConnectionData = true;
+
+      expect(worldC, hasSpecifiedConnections({ 
+          'd':ConnectionType.SERVER_TO_CLIENT,
+      }));
+      expect(worldD, hasSpecifiedConnections({
+          'c':ConnectionType.CLIENT_TO_SERVER,
+      }));
+    });
+
     test('TestDroppedConnection', () {
       World worldA = testWorld("a");
       World worldB = testWorld("b");

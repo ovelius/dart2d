@@ -80,6 +80,16 @@ class GameState {
     }
   }
   
+  PlayerInfo playerInfoByConnectionId(var id) {
+    for (int i = playerInfo.length -1; i >= 0; i--) {
+      PlayerInfo info = playerInfo[i];
+      if (info.connectionId == id) {
+        return info;
+      }
+    }
+    throw new ArgumentError("${id} doesn't have a matching player?");
+  }
+  
   bool gameIsFull() {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }

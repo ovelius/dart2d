@@ -112,13 +112,22 @@ class PeerWrapper {
       connection.sendData(data);
     }
     if (closedConnections.length > 0) {
-      Map connections = new Map.from(this.connections);
+      Map connectionsCopy = new Map.from(this.connections);
       for (var key in closedConnections) {
-        print("Removing connection and gamestate for $key");
-        world.network.gameState.removeByConnectionId(key);
-        connections.remove(key);     
+        ConnectionWrapper wrapper = connectionsCopy[key];
+        print("${id}: Removing connection for $key");
+        connectionsCopy.remove(key);
+        if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
+          print("Removing Gamestate for $key");
+          world.network.gameState.removeByConnectionId(key);
+        // The crucial step of verifying we still have a server.
+        } else if (world.network.verifyOrTransferServerRole(connectionsCopy)) {
+          // We got eleceted the new server, first task is to remove the old.
+          print("Removing Gamestate for $key");
+          world.network.gameState.removeByConnectionId(key);
+        }
       }
-      this.connections = connections;
+      this.connections = connectionsCopy;
     }
   }
 }

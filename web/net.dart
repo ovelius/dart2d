@@ -17,16 +17,14 @@ import 'dart:math';
 const KEY_FRAME_DEFAULT = 1.0/2;
 
 class Client extends Network {
-  Client(world, peer) : super(world, peer);
-  bool isServer() {
-    return false;
+  Client(world, peer) : super(world, peer) {
+    _server = false;
   }
 }
 
 class Server extends Network {
-  Server(world, peer) : super(world, peer);
-  bool isServer() {
-    return true;
+  Server(world, peer) : super(world, peer) {
+    _server = true;
   }
 }
 
@@ -37,11 +35,16 @@ abstract class Network {
   PeerWrapper peer;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
+  bool _server = false;
 
   Network(this.world, this.peer) {
     gameState = new GameState(world);
   }
 
+  /**
+   * Ensures that we have a connection to all clients in the game.
+   * This is to be able to elect a new server in case the current server dies.
+   */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in gameState.playerInfo) {
       if (!peer.hasConnectionTo(info.connectionId)) {
@@ -49,6 +52,44 @@ abstract class Network {
         peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
       }
     }
+  }
+  
+  
+  /**
+   * Our goal is to always have a connection to a server.
+   * This is checked when a connection is dropped. 
+   * Potentially this method will elect a new server.
+   * returns true if we became the new server.
+   */
+  bool verifyOrTransferServerRole(Map connections) {
+    for (var key in connections.keys) {
+      ConnectionWrapper connection = connections[key];
+      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        print("${peer.id} has a client to server connection using ${key}");
+        return false;  
+      }
+    }
+    // We don't have a server connection. We need to elect a new one.
+    // We always elect the peer with the highest natural order id.
+    var maxPeerKey = connections.keys.reduce(
+        (value, element) => value.compareTo(element) < 0 ? value : element);
+    if (maxPeerKey.compareTo(peer.id) < 0) {
+      PlayerInfo info = gameState.playerInfoByConnectionId(maxPeerKey);
+      // Start treating the other peer as server.
+      ConnectionWrapper connection = connections[maxPeerKey];
+      connection.connectionType = ConnectionType.CLIENT_TO_SERVER;
+      world.hudMessages.display("Elected new server ${info.name}");
+    } else {
+      // We are becoming server. Gosh.
+      _server = true;
+      for (var id in connections.keys) {
+        ConnectionWrapper connection = connections[id];
+        connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
+      }
+      world.hudMessages.display("Server role tranferred to you :)");
+      return true;
+    }
+    return false;
   }
 
   bool checkForKeyFrame(bool forceKeyFrame, double duration) {
@@ -113,7 +154,9 @@ abstract class Network {
     }
   }
 
-  bool isServer();
+  bool isServer() {
+    return _server;
+  }
 
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {

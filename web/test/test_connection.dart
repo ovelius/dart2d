@@ -12,7 +12,7 @@ Map<dynamic, List<TestConnection>> testConnections = {};
 
 List<int> droppedPacketsNextConnection = [];
 
-bool logData = true;
+bool logConnectionData = true;
 
 class TestConnection {
   int dropPackets = 0;
@@ -40,7 +40,7 @@ class TestConnection {
       throw new StateError('otherEnd is null');
     }
     bool drop = dropPackets > 0;
-    if (logData) {
+    if (logConnectionData) {
       print("Data ${drop ? "DROPPED" : ""} ${otherEnd.id} -> ${id}: ${jsonObject[0]}");
     }
     recentDataSent = jsonObject[0];
@@ -70,11 +70,9 @@ class TestConnection {
   bool bindOnHandler(String methodName, var jsFunction) {
     eventHandlers[methodName] = jsFunction;
     if (methodName == "open") {
-     // if (otherEnd.eventHandlers.containsKey("data")) {
-        // Signal an open connection right away.
-        // But only if the other side has a data handler registered.
-        jsFunction.apply([]); 
-    //  }
+      // Signal an open connection right away.
+      // But only if the other side has a data handler registered.
+      jsFunction.apply([]); 
     }
     return true;
   }
