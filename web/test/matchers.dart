@@ -3,6 +3,7 @@ library matchers;
 import 'package:unittest/unittest.dart';
 import 'dart:convert';
 import '../world.dart';
+import '../connection.dart';
 import '../gamestate.dart';
 import '../sprite.dart';
 
@@ -14,28 +15,37 @@ GameStateMatcher isGameStateOf(data) {
   return new GameStateMatcher(data);
 }
 
+WorldConnectionMatcher hasSpecifiedConnections(Map connections) {
+  return new WorldConnectionMatcher(connections);
+}
+
 class GameStateMatcher extends Matcher {
   Map<int, String> _playersWithName;
   
   GameStateMatcher(this._playersWithName);
 
   bool matches(item, Map matchState) {
+    GameState gameState = null;
+    if (item is World) {
+      gameState = (item as World).network.gameState;
+    }
     if (item is GameState) {
-      if (item.playerInfo.length == _playersWithName.length) {
-        for (int id in _playersWithName.keys) {
-          bool hasMatch = false;
-          for (PlayerInfo info in item.playerInfo) {
-            if (info.spriteId == id && info.name == _playersWithName[id]) {
-              hasMatch = true;
-            }
+      gameState = item;
+    }
+    if (gameState.playerInfo.length == _playersWithName.length) {
+      for (int id in _playersWithName.keys) {
+        bool hasMatch = false;
+        for (PlayerInfo info in gameState.playerInfo) {
+          if (info.spriteId == id && info.name == _playersWithName[id]) {
+            hasMatch = true;
           }
-          if (!hasMatch) {
-            return false;
-          }
+        }
+        if (!hasMatch) {
+          return false;
         }
       }
     }
-    return item.playerInfo.length == _playersWithName.length;
+    return gameState.playerInfo.length == _playersWithName.length;
   }
   
   Description describe(Description description) {
@@ -144,3 +154,42 @@ class MapKeyMatcher extends Matcher {
     }
   }
 }
+
+class WorldConnectionMatcher extends Matcher {
+  Map<String, ConnectionType> _expectedConnections;
+  
+  WorldConnectionMatcher(this._expectedConnections);
+
+  bool matches(item, Map matchState) {
+    if (item is World) {
+      World world = item;
+      Map connections = world.network.peer.connections;
+      for (String id in _expectedConnections.keys) {
+        if (!connections.containsKey(id)) {
+          matchState[id] = "Expected but missing! No such key ${id} in ${connections}";
+        }
+        ConnectionWrapper connection = connections[id];
+        if (connection.connectionType != _expectedConnections[id]) {
+          matchState[id] = "${connection.connectionType} != ${_expectedConnections[id]}";
+        }
+      }
+      for (String id in connections.keys) {
+        if (!_expectedConnections.containsKey(id)) {
+          matchState[id] = "wasn't expected";
+        }
+      }
+    }
+    return matchState.length == 0;
+  }
+  
+  Description describe(Description description) {
+    description.add("World connections of ${_expectedConnections}");
+  }
+  
+  /// This builds a textual description of a specific mismatch.
+  Description describeMismatch(item, Description mismatchDescription,
+      Map matchState, bool verbose) {
+    mismatchDescription.add(matchState);
+  }
+}
+

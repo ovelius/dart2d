@@ -48,7 +48,7 @@ class PeerWrapper {
   /**
    * Called to establish a connection to another peer.
    */
-  void connectTo(id) {
+  void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
     var metaData = new JsObject.jsify({
       'label': 'dart2d',
       'reliable': 'false',
@@ -57,7 +57,7 @@ class PeerWrapper {
     });
     var connection = peer.callMethod('connect', [id, metaData]);
     var peerId = connection['peer'];
-    ConnectionWrapper connectionWrapper = new ConnectionWrapper(world, peerId, connection, ConnectionType.CLIENT_TO_SERVER);
+    ConnectionWrapper connectionWrapper = new ConnectionWrapper(world, peerId, connection, connectionType);
     connections[peerId] = connectionWrapper;
   }
 

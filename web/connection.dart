@@ -84,7 +84,7 @@ class ConnectionWrapper {
   
   void checkForHandshakeData(Map dataMap) {
     if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
-      assert(world.network.isServer());
+      assert(connectionType == ConnectionType.SERVER_TO_CLIENT);
       String name = dataMap[CLIENT_PLAYER_SPEC];
       Server server = world.network as Server;
       int spriteId = server.gameState.getNextUsablePlayerSpriteId();
@@ -106,6 +106,7 @@ class ConnectionWrapper {
         IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
+      assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
       world.hudMessages.display("Got server challenge from ${id}");
       assert(!world.network.isServer());
       world.createLocalClient(dataMap[SERVER_PLAYER_REPLY]);
@@ -124,7 +125,7 @@ class ConnectionWrapper {
   void open(unusedThis) {
     world.hudMessages.display("Connection to ${id} open :)");
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
-    if (!world.network.isServer() /*connectionType == ConnectionType.CLIENT_TO_SERVER*/) {
+    if (connectionType == ConnectionType.CLIENT_TO_SERVER) {
       // Send out local data hello. We don't do this as part of the intial handshake but over
       // the actual connection.
       Map playerData = {

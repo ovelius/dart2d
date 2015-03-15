@@ -46,7 +46,7 @@ abstract class Network {
     for (PlayerInfo info in gameState.playerInfo) {
       if (!peer.hasConnectionTo(info.connectionId)) {
         world.hudMessages.display("Creating neighbour connection to ${info.name}");
-        peer.connectTo(info.connectionId);
+        peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
       }
     }
   }

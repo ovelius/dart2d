@@ -130,21 +130,32 @@ void main() {
       worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
      
-      // This test is failing because the client-client
-      // connection b <-> c isn't happening properly.
-      // TODO(erik): Support client-client connections.
+      // Tick a few keyframes for the worlds.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);   
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01); 
   
       // All worlds should have two connections.
-      expect(testConnections["a"].length, equals(2));
-      expect(testConnections["b"].length, equals(2));
-      expect(testConnections["c"].length, equals(2));
+      expect(worldA, hasSpecifiedConnections({
+          'c':ConnectionType.SERVER_TO_CLIENT,
+          'b':ConnectionType.SERVER_TO_CLIENT,
+      }));
+      expect(worldB, hasSpecifiedConnections({
+          'c':ConnectionType.CLIENT_TO_CLIENT,
+          'a':ConnectionType.CLIENT_TO_SERVER,
+      }));
+      expect(worldC, hasSpecifiedConnections({
+          'b':ConnectionType.CLIENT_TO_CLIENT,
+          'a':ConnectionType.CLIENT_TO_SERVER,
+      }));
 
-      expect((worldA.network as Server).gameState,
+      expect(worldA,
           isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      expect(worldB,
+           isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      expect(worldC,
+              isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
       expect(worldA, hasSpriteWithNetworkId(0));
       expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT));
       
