@@ -281,6 +281,13 @@ void main() {
       expect(worldD, hasSpecifiedConnections({
           'c':ConnectionType.CLIENT_TO_SERVER,
       }));
+      
+      // Finally C is having issues.
+      testConnections['c'].forEach((e) { e.dropPackets = 100;});
+      for (int i = 0; i < 40; i++) {
+        worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      expect(worldD, hasSpecifiedConnections({}));
     });
 
     test('TestDroppedConnection', () {

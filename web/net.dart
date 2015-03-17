@@ -81,9 +81,12 @@ abstract class Network {
     }
     // We don't have a server connection. We need to elect a new one.
     // We always elect the peer with the highest natural order id.
-    var maxPeerKey = connections.keys.reduce(
-        (value, element) => value.compareTo(element) < 0 ? value : element);
-    if (maxPeerKey.compareTo(peer.id) < 0) {
+    var maxPeerKey = null;
+    if (!connections.keys.isEmpty) {
+      maxPeerKey = connections.keys.reduce(
+          (value, element) => value.compareTo(element) < 0 ? value : element);
+    }
+    if (maxPeerKey != null && maxPeerKey.compareTo(peer.id) < 0) {
       PlayerInfo info = gameState.playerInfoByConnectionId(maxPeerKey);
       // Start treating the other peer as server.
       ConnectionWrapper connection = connections[maxPeerKey];
