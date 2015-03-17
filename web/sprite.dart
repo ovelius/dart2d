@@ -32,7 +32,7 @@ class NetworkType {
   static const LOCAL = const NetworkType._internal('LOCAL');
   // Sprite is controlled remotely.
   static const REMOTE = const NetworkType._internal('REMOTE');
-  // Sprite is controlled remotely but should be forwarded to other peers.
+  // Sprite is controlled remotely AND should be forwarded to other peers.
   static const REMOTE_FORWARD = const NetworkType._internal('REMOTE_FORWARD');
   
   bool remoteControlled() {
@@ -62,6 +62,7 @@ class Sprite {
 
   int networkId;
   NetworkType networkType = NetworkType.LOCAL;
+  var ownerId;
   // Send a coulple of frames of full data for newly added sprites.
   int fullFramesOverNetwork = 3;
   // Will be removed by the engine.
@@ -188,4 +189,6 @@ class Sprite {
   bool takesDamage() {
     return false;
   }
+  
+  toString() => "Sprite[${this.networkType}] p:$position";
 }

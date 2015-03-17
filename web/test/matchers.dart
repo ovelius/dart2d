@@ -63,6 +63,7 @@ class GameStateMatcher extends Matcher {
 class WorldSpriteMatcher extends Matcher {
   int _networkId;
   int _imageIndex = null;
+  NetworkType _networkType = null;
   WorldSpriteMatcher(this._networkId);
 
   WorldSpriteMatcher andSpriteId(int id) {
@@ -75,16 +76,25 @@ class WorldSpriteMatcher extends Matcher {
     return this;
   }
 
+  WorldSpriteMatcher andNetworkType(NetworkType networkType) {
+     _networkType = networkType;
+     return this;
+   } 
+
+  bool matchesNetworkType(Sprite sprite) {
+    return _networkType != null ? sprite.networkType == _networkType : true;
+  }
+
+  bool matchesImageIndex(Sprite sprite) {
+    return _imageIndex != null ? sprite.imageIndex == _imageIndex : true;
+  }
+
   bool matches(item, Map matchState) {
     if (item is World) {
       Sprite sprite = item.sprites[_networkId];
       if (sprite != null) {
         if (sprite.networkId == _networkId) {
-          if (_imageIndex == null) {
-            return true;
-          } else {
-            return sprite.imageIndex == _imageIndex;
-          }
+          return matchesNetworkType(sprite) && matchesImageIndex(sprite);
         }
       }
     }
@@ -94,8 +104,11 @@ class WorldSpriteMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      if (!item.sprites.containsKey(_networkId)) {
+      Sprite sprite = item.sprites[_networkId];
+      if (sprite == null) {
         mismatchDescription.add("World sprites ${item.sprites} does not contain key ${_networkId}");
+      } else if (sprite.networkType != _networkType) {
+        mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}");
       }
     } else {
       mismatchDescription.add("Matched item must be World");

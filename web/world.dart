@@ -15,8 +15,10 @@ import 'imageindex.dart';
 import 'keystate.dart';
 import 'dart:math';
 import 'playersprite.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 class World {
+  final Logger log = new Logger('World');
   int width;
   int height;
 
@@ -57,7 +59,7 @@ class World {
     network.peer.connectTo(id);
   }
 
-  void frameDraw(double duration) {
+  void frameDraw([double duration = 0.01]) {
     if (restart) {
       clearScreen();    
     }
@@ -104,12 +106,12 @@ class World {
       if (newSprite.networkId == null) {
         newSprite.networkId = spriteNetworkId++;
         while (sprites.containsKey(newSprite.networkId)) {
-          print("${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
+          log.warning("${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
           newSprite.networkId = spriteNetworkId++;
         }
       }
       if (sprites.containsKey(newSprite.networkId)) {
-        print("${this}: Warning: World contains sprite ${newSprite.networkId}. Overwritten!");
+        log.severe("World ${peer.id} Network controlled sprite ${newSprite}[${newSprite.networkId}] would overwrite existing sprite ${sprites[newSprite.networkId]}");
       }
       sprites[newSprite.networkId] = newSprite;
     }
@@ -142,7 +144,11 @@ class World {
         sprite = new MovingSprite(0.0, 0.0, 0);
         sprite.networkType = NetworkType.REMOTE;
         sprite.networkId = networkId;
-        waitingSprites.add(sprite);
+        // This might not be 100% accurate, since onwer might be:
+        // Client -> Server -> Client.
+        // But if that is the case it will be updated when we parse the GameState.
+        sprite.ownerId = wrapper.id;
+        addSprite(sprite);
       } else {
         // TODO: Fix forwarding Client -> Server -> Client.
   /*      print("World does not have sprite ${networkId}?  ${network is Server} ${this.sprites}");
@@ -165,7 +171,7 @@ class World {
   void createLocalClient(Map dataFromServer) {
     spriteNetworkId = dataFromServer["spriteId"];
     int spriteIndex = dataFromServer["spriteIndex"];
-    waitingSprites.add(
+    addSprite(
         new RemotePlayerSprite(
             this, localKeyState, 400.0, 200.0, spriteIndex));
   }
@@ -234,7 +240,12 @@ class World {
     return sprites.values.where(test);
   }
   
-  void addSprite(var sprite) {
+  void addSprite(Sprite sprite) {
+    if (sprite.networkId != null) {
+      if (sprites.containsKey(sprite.networkId)) {
+        throw new StateError("Network controlled sprite ${sprite}[${sprite.networkId}] would overwrite existing sprite ${sprites[sprite.networkId]}");
+      }
+    }
     waitingSprites.add(sprite);
   }
   

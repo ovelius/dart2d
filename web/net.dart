@@ -12,7 +12,9 @@ import 'vec2.dart';
 import 'world.dart';
 import 'keystate.dart';
 import 'dart:math';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+final Logger log = new Logger('Network');
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0/2;
 
@@ -44,16 +46,22 @@ abstract class Network {
   /**
    * Ensures that we have a connection to all clients in the game.
    * This is to be able to elect a new server in case the current server dies.
+   * 
+   * We also ensure the sprites in the world have consitent owners.
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in gameState.playerInfo) {
+      Sprite sprite = world.sprites[info.spriteId];
+      if (sprite != null) {
+        // Make sure the ownerId is consistent with the connectionId.
+        sprite.ownerId = info.connectionId;
+      }
       if (!peer.hasConnectionTo(info.connectionId)) {
         world.hudMessages.display("Creating neighbour connection to ${info.name}");
         peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
       }
     }
   }
-  
   
   /**
    * Our goal is to always have a connection to a server.
@@ -208,15 +216,16 @@ void parseBundle(World world,
   for (String networkId in bundle.keys) {
     if (!SPECIAL_KEYS.contains(networkId)) {
       int parsedNetworkId = int.parse(networkId);
+      // TODO(erik) Prio data for the owner of the sprite instead.
       Sprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
       if (!sprite.networkType.remoteControlled()) {
-        print("Warning: Attempt to update local sprite ${sprite.networkId} from network.");
+        log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
         continue;
       }
       intListToSpriteProperties(bundle[networkId], sprite);
       // Forward sprite to others.
       if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-        assert(world.network.isServer());
+        log.fine("Forwarding update of ${networkId} from ${connection.id}");
         Map data = {networkId: bundle[networkId]};
         world.network.peer.sendDataWithKeyFramesToAll(data, connection.id);
       }

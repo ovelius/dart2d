@@ -22,6 +22,9 @@ class TestConnection {
   
   var recentDataSent = null;
   var recentDataRecevied = null;
+  
+  bool buffer = false;
+  List dataBuffer = [];
 
   TestConnection(this.id) {
     if (!testConnections.containsKey(id)) {
@@ -34,6 +37,11 @@ class TestConnection {
   }
 
   operator [](index) => id;
+  
+  flushBuffer() {
+    dataBuffer.forEach((e) { sendAndReceivByOtherPeer(e); });
+    dataBuffer.clear();
+  }
   
   sendAndReceivByOtherPeer(var jsonObject) {
     if (otherEnd == null) {
@@ -60,7 +68,11 @@ class TestConnection {
       return "OK";
     }
     if (methodName == "send") {
-      sendAndReceivByOtherPeer(jsonObject);
+      if (buffer) {
+        dataBuffer.add(jsonObject);
+      } else {
+        sendAndReceivByOtherPeer(jsonObject);
+      }
       return "OK";
     }
     print("$this ${methodName} ${jsonObject}");

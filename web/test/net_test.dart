@@ -7,12 +7,14 @@ import 'test_peer.dart';
 import 'matchers.dart';
 import '../rtc.dart';
 import '../connection.dart';
+import '../sprite.dart';
 import '../world.dart';
 import '../gamestate.dart';
 import '../net.dart';
 import '../state_updates.dart';
 import '../imageindex.dart';
 import 'dart:js';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
@@ -24,6 +26,10 @@ World testWorld(var id) {
 void main() {
   useHtmlConfiguration();
   setUp(() {
+    Logger.root.level = Level.ALL;
+    Logger.root.onRecord.listen((LogRecord rec) {
+      print('${rec.level.name}: ${rec.time}: ${rec.message}');
+    });
     testConnections.clear();
     testPeers.clear();
     logConnectionData = true;
@@ -51,6 +57,8 @@ void main() {
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
+      // Make worldB add the player to the world.
+      worldB.frameDraw(0.01);
       
       // Simulate a keyframe from A and verify that it is received.
       expect(worldA.network.currentKeyFrame, equals(0));
@@ -128,20 +136,43 @@ void main() {
       World worldB = testWorld("b");
       World worldC = testWorld("c");
   
+      // b connects to a.
       worldB.connectTo("a", "nameB");
+      worldA.frameDraw(0.01);
+      expect(worldA, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.LOCAL));
+      expect(worldA, hasSpriteWithNetworkId(1000).andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(worldA, isGameStateOf({0: "nameA", 1000: "nameB"}));
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      // After worldAs keyframe worldB has the entire state of the game.
+      worldB.frameDraw(0.01);
+      expect(worldB, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.REMOTE));
+      expect(worldB, hasSpriteWithNetworkId(1000).andNetworkType(NetworkType.LOCAL));
+      expect(worldB, isGameStateOf({0: "nameA", 1000: "nameB"}));
+
+      logConnectionData = true;
+      // now c connects to a.
       worldC.connectTo("a", "nameC");
-     
-      // Tick a few keyframes for the worlds.
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);   
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
+      // run a frame in a to make sure the sprite is processed.
+      worldA.frameDraw(0.01);
+      expect(worldA, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.LOCAL));
+      expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+          .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+          .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(worldA, isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      // Now C runs a keyframe. This will make a forward the local player sprite in c to b. 
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01); 
-  
-      // All worlds should have two connections.
-      expect(worldA, hasSpecifiedConnections({
-          'c':ConnectionType.SERVER_TO_CLIENT,
-          'b':ConnectionType.SERVER_TO_CLIENT,
-      }));
+      worldB.frameDraw(0.01);
+      expect(worldB, hasSpriteWithNetworkId(0)
+          .andNetworkType(NetworkType.REMOTE));
+      expect(worldB, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+          .andNetworkType(NetworkType.LOCAL));
+      expect(worldB, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+          .andNetworkType(NetworkType.REMOTE));
+      // Make server a run a keyframe to ensure gamestate if propagated.
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      expect(worldB, isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      // This also sets up CLIENT_TO_CLIENT connections.
       expect(worldB, hasSpecifiedConnections({
           'c':ConnectionType.CLIENT_TO_CLIENT,
           'a':ConnectionType.CLIENT_TO_SERVER,
@@ -150,29 +181,39 @@ void main() {
           'b':ConnectionType.CLIENT_TO_CLIENT,
           'a':ConnectionType.CLIENT_TO_SERVER,
       }));
-
+      // And of course the server to client connections from A.
+      expect(worldA, hasSpecifiedConnections({
+          'c':ConnectionType.SERVER_TO_CLIENT,
+          'b':ConnectionType.SERVER_TO_CLIENT,
+      }));
+      // Make sure a doesn't deliver things in sync to c from b.
+      // Run a keyframe in B.
+      // TODO(Erik): Make c be smart enough to determine the real source of the sprite.
+      // c should disregard the sprite from a since a direct connection exists to b.
+      testConnections["a"][0].buffer = true;
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldC.frameDraw(0.01); // This adds the sprite from the client to client connection.
+      expect(worldC, hasSpriteWithNetworkId(0)
+          .andNetworkType(NetworkType.REMOTE));
+      expect(worldC, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+          .andNetworkType(NetworkType.REMOTE));
+      expect(worldC, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+          .andNetworkType(NetworkType.LOCAL));
+      
+      testConnections["a"][0].buffer = false;
+      testConnections["a"][0].flushBuffer();
+      
+      worldA.frameDraw(0.01);
+      worldB.frameDraw(0.01);
+      worldC.frameDraw(0.01);
+       
+      // Final GameState should be consitent.
       expect(worldA,
           isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
       expect(worldB,
-           isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+          isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
       expect(worldC,
-              isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
-      expect(worldA, hasSpriteWithNetworkId(0));
-      expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT));
-      
-      expect(recentReceviedDataFrom("a"),
-          new MapKeyMatcher.containsKey("0"));
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(recentSentDataTo("c"),
-          new MapKeyMatcher.containsKey("1000"));
-      worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(recentSentDataTo("b"),
-          new MapKeyMatcher.containsKey("2000"));
-  
-      expect(recentReceviedDataFrom("b"),
-          new MapKeyMatcher.containsKey("1000"));
-      expect(recentReceviedDataFrom("c"),
-          new MapKeyMatcher.containsKey("2000"));
+          isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
     });
 
     test('TestThreeWorldsServerDies', () {
@@ -185,9 +226,9 @@ void main() {
       World worldC = testWorld("c");
       World worldD = testWorld("d");
   
-      worldB.connectTo("a", "nameB");
+      worldB.connectTo("a", "nameB");         
       worldC.connectTo("a", "nameC");
-      worldD.connectTo("a", "nameD");
+      worldD.connectTo("a", "nameD");              
      
       // Tick a few keyframes for the worlds.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);   

@@ -32,6 +32,8 @@ void remapKeyNamesForTest() {
 // We lazily convert doubles to int by multiplying them with this factor.
 const double DOUBLE_INT_CONVERSION = 10000.0;
 
+const int LOCAL_PLAYER_SPRITE_FLAG = 1;
+
 // Keys that should be delivered reliable.
 Map RELIABLE_KEYS = {
     REMOVE_KEY: mergeUniqueList,
@@ -69,8 +71,9 @@ singleTonStoredValue(var a, var b) {
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   List<int> data = [];
+  // Special flag a LocalPlayerSprite because, reasons.
   if (sprite is LocalPlayerSprite) {
-    data.add(1);
+    data.add(LOCAL_PLAYER_SPRITE_FLAG);
   } else {
     data.add(0);
   }

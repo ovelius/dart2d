@@ -112,6 +112,7 @@ class ConnectionWrapper {
           world, remoteKeyState, info, 0.0, 0.0, spriteIndex);
       sprite.networkType =  NetworkType.REMOTE_FORWARD;
       sprite.networkId = spriteId;
+      sprite.ownerId = id;
       world.addSprite(sprite);
 
       world.hudMessages.displayAndSendToNetwork("${name} connected.");
