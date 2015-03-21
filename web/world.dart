@@ -142,25 +142,15 @@ class World {
   MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
     Sprite sprite = sprites[networkId];
     if (sprite == null) {
-      if (true) {
-        sprite = new MovingSprite(0.0, 0.0, 0);
-        sprite.networkType = NetworkType.REMOTE;
-        sprite.networkId = networkId;
-        // This might not be 100% accurate, since onwer might be:
-        // Client -> Server -> Client.
-        // But if that is the case it will be updated when we parse the GameState.
-        sprite.ownerId = wrapper.id;
-        addSprite(sprite);
-      } else {
-        // TODO: Fix forwarding Client -> Server -> Client.
-  /*      print("World does not have sprite ${networkId}?  ${network is Server} ${this.sprites}");
-        LocalPlayerSprite sprite = new LocalPlayerSprite(
-           world, remoteKeyState, info, 0.0, 0.0, spriteId);
-       sprite.networkType =  NetworkType.REMOTE_FORWARD;
-        sprite.networkId = id;
-        world.addSprite(sprite); */
-      }
-    }
+      sprite = new MovingSprite(0.0, 0.0, 0);
+      sprite.networkType = NetworkType.REMOTE;
+      sprite.networkId = networkId;
+      // This might not be 100% accurate, since onwer might be:
+      // Client -> Server -> Client.
+      // But if that is the case it will be updated when we parse the GameState.
+      sprite.ownerId = wrapper.id;
+      addSprite(sprite);
+    } 
     return sprite;
   }
 
