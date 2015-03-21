@@ -4,6 +4,12 @@ import 'test_connection.dart';
 import '../hud_messages.dart';
 import '../world.dart';
 
+World testWorld(var id) {
+  TestPeer peer = new TestPeer(id);
+  World w = new World(400, 600, peer);
+  w.hudMessages = new TestHudMessage(w);
+  return w;
+}
 
 Map testPeers = {};
 

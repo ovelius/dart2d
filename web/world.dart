@@ -86,7 +86,9 @@ class World {
       int id = removeSprites.removeAt(0);
       Sprite sprite = sprites[id];
       sprites.remove(id);
-      if (sprite != null && !sprite.networkType.remoteControlled()) {
+      log.fine("${this}: Removing sprite ${id} from world");
+      if (sprite != null && sprite.networkType != NetworkType.REMOTE) {
+        log.fine("${this}: Removing sprite ${id} from network");
         networkRemovals.add(id);
       }
     }

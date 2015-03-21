@@ -98,7 +98,12 @@ abstract class Network {
       for (var id in connections.keys) {
         ConnectionWrapper connection = connections[id];
         connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
-        // TODO(Erik): Change sprite types for players.
+        PlayerInfo info = gameState.playerInfoByConnectionId(id);
+        // Make it our responsibility to foward data from other players.
+        Sprite sprite = world.sprites[info.spriteId];
+        if (sprite.networkType == NetworkType.REMOTE) {
+          sprite.networkType = NetworkType.REMOTE_FORWARD;
+        }
       }
       world.hudMessages.display("Server role tranferred to you :)");
       return true;
@@ -235,7 +240,6 @@ void parseBundle(World world,
     }
   }
   if (bundle.containsKey(REMOVE_KEY)) {
-    assert(world.network.isServer());
     List<int> removals = bundle[REMOVE_KEY];
     for (int id in removals) {
       world.removeSprite(id);

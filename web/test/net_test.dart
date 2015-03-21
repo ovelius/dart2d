@@ -16,13 +16,6 @@ import '../imageindex.dart';
 import 'dart:js';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-World testWorld(var id) {
-  TestPeer peer = new TestPeer(id);
-  World w = new World(400, 600, peer);
-  w.hudMessages = new TestHudMessage(w);
-  return w;
-}
-
 void main() {
   useHtmlConfiguration();
   setUp(() {
@@ -241,11 +234,12 @@ void main() {
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
+      expect(worldD.sprites.length, equals(4));
       
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
-      for (int i = 0; i < 40; i++) {
+      for (int i = 0; i < 14; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -268,7 +262,10 @@ void main() {
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
-           
+      expect(worldB.sprites.length, equals(3));
+      expect(worldC.sprites.length, equals(3));
+      expect(worldD.sprites.length, equals(3));
+            
       // Now b is having issues.
       testConnections['b'].forEach((e) { e.dropPackets = 100;});
       for (int i = 0; i < 40; i++) {
@@ -281,13 +278,18 @@ void main() {
       expect(worldD, hasSpecifiedConnections({
           'c':ConnectionType.CLIENT_TO_SERVER,
       }));
+      expect(worldC.sprites.length, equals(2));
+      expect(worldD.sprites.length, equals(2));
       
       // Finally C is having issues.
       testConnections['c'].forEach((e) { e.dropPackets = 100;});
       for (int i = 0; i < 40; i++) {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
+      // WorldD is all alone.
       expect(worldD, hasSpecifiedConnections({}));
+      // Make this pass by converting the REMOTE -> REMOTE_FOWARD. 
+      expect(worldD.sprites.length, equals(1));
     });
 
     test('TestDroppedConnection', () {
@@ -305,6 +307,7 @@ void main() {
       
       expect((worldB.network as Server).gameState,
           isGameStateOf({0: "nameB"}));
+      expect(worldB.sprites.length, equals(1));
     });
   }); 
 }

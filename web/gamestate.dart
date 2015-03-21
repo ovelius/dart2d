@@ -2,7 +2,10 @@ library gamestate;
 
 import 'imageindex.dart';
 import 'world.dart';
+import 'sprite.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+final Logger log = new Logger('GameState');
 
 class PlayerInfo {
   String name;
@@ -68,13 +71,23 @@ class GameState {
     map["p"] = players;
     return map;
   }
-
+  
   removeByConnectionId(var id) {
+    assert(world.network.isServer());
     for (int i = playerInfo.length -1; i >= 0; i--) {
       PlayerInfo info = playerInfo[i];
       if (info.connectionId == id) {
         playerInfo.removeAt(i);
         world.network.sendMessage("${info.name} disconnected :/");
+        // This code runs under the assumption that we are acting server.
+        // That means we have to do something about the dead servers sprite.
+        Sprite sprite = world.sprites[info.spriteId];
+        if (sprite != null) {
+          // The game engine will not remove things if the REMOTE NetworkType.
+          // So make the old servers sprite REMOTE_FORWARD.
+          sprite.networkType = NetworkType.REMOTE_FORWARD;
+        }
+        world.removeSprite(info.spriteId);
         return;
       }
     }
