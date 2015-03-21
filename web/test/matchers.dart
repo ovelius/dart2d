@@ -11,6 +11,10 @@ WorldSpriteMatcher hasSpriteWithNetworkId(int id) {
   return new WorldSpriteMatcher(id);
 }
 
+WorldSpriteStateMatcher hasExactSprites(List<WorldSpriteMatcher> matchers) {
+  return new WorldSpriteStateMatcher(matchers);
+}
+
 GameStateMatcher isGameStateOf(data) {
   return new GameStateMatcher(data);
 }
@@ -116,6 +120,36 @@ class WorldSpriteMatcher extends Matcher {
   }
   Description describe(Description description) {
     description.add("World does not contain sprite with networkId ${_networkId}");    
+  }
+}
+
+class WorldSpriteStateMatcher extends Matcher {
+  List<WorldSpriteMatcher> _spriteMatchers;
+  WorldSpriteStateMatcher(this._spriteMatchers);
+
+  bool matches(item, Map matchState) {
+    List<WorldSpriteMatcher> spriteMatchers = new List.from(_spriteMatchers);
+    if (item is World) {
+      for (int i = spriteMatchers.length; i >=0; i--) {
+        if (spriteMatchers[i].matches(item, matchState)) {
+          spriteMatchers.removeAt(i);
+        }
+      }
+      return _spriteMatchers.length == item.sprites.length;
+    }
+    return false;
+  }
+  
+  Description describeMismatch(item, Description mismatchDescription,
+                               var matchState, bool verbose) {
+    if (item is World) {
+      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.sprites}");
+    } else {
+      mismatchDescription.add("Matched item must be World");
+    }
+  }
+  Description describe(Description description) {
+    description.add("World with exactly ${_spriteMatchers}");    
   }
 }
 
