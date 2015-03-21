@@ -23,7 +23,7 @@ void main() {
     });
     testConnections.clear();
     testPeers.clear();
-    logConnectionData = true;
+    logConnectionData = false;
     useEmptyImagesForTest();
     remapKeyNamesForTest();
   });
@@ -32,15 +32,25 @@ void main() {
     test('TestBasicSpriteTransfer', () {
       World worldA = testWorld("a");
       World worldB = testWorld("b");
-      worldA.startAsServer("nameB");
+      worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(0)
           .andNetworkType(NetworkType.LOCAL));
-      worldB.connectTo("b", "nameA");
-      worldA.frameDraw();
-      worldB.frameDraw();
-      expect(worldA, hasSpriteWithNetworkId(0)
-               .andNetworkType(NetworkType.LOCAL));
+      worldB.connectTo("a", "nameA");
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      expect(worldA, hasExactSprites([
+          hasSpriteWithNetworkId(0)
+              .andNetworkType(NetworkType.LOCAL),
+          hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+              .andNetworkType(NetworkType.REMOTE_FORWARD),
+      ]));
+      expect(worldB, hasExactSprites([
+            hasSpriteWithNetworkId(0)
+                .andNetworkType(NetworkType.REMOTE),
+            hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+                .andNetworkType(NetworkType.LOCAL),
+      ]));
     });
   });
 }
