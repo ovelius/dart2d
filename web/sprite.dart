@@ -38,6 +38,9 @@ class NetworkType {
   bool remoteControlled() {
     return _value == 'REMOTE' || _value == 'REMOTE_FORWARD';
   }
+  operator ==(NetworkType other) {
+    return _value == other._value; 
+  }
 }
 
 class Sprite {
