@@ -6,6 +6,7 @@ import 'matchers.dart';
 import '../rtc.dart';
 import '../connection.dart';
 import '../sprite.dart';
+import '../playersprite.dart';
 import '../world.dart';
 import '../gamestate.dart';
 import '../net.dart';
@@ -51,6 +52,14 @@ void main() {
             hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
                 .andNetworkType(NetworkType.LOCAL),
       ]));
+      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('RemotePlayerSprite'));
+      expect(worldA.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('RemotePlayerServerSprite'));
+      expect(worldB.sprites[0],
+          hasType('MovingSprite'));
+      expect(worldA.sprites[0],
+          hasType('LocalPlayerSprite'));
     });
   });
 }

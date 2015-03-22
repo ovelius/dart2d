@@ -15,6 +15,7 @@ import 'dart:html';
 
 /**
  * Created on the server and streamed from the client.
+ * How the servers represents remote clients.
  */
 class RemotePlayerServerSprite extends LocalPlayerSprite {
   RemotePlayerServerSprite(
@@ -28,6 +29,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 
 /**
  * A version of the PlayerSprite created in the client and sent to the server.
+ * How the client represents itself.
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
@@ -38,6 +40,9 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   }
 }
 
+/**
+ * How a server represents itself.
+ */
 class LocalPlayerSprite extends MovingSprite {
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;

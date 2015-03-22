@@ -2,6 +2,7 @@ library matchers;
 
 import 'package:unittest/unittest.dart';
 import 'dart:convert';
+import 'dart:mirrors';
 import '../world.dart';
 import '../connection.dart';
 import '../gamestate.dart';
@@ -21,6 +22,10 @@ GameStateMatcher isGameStateOf(data) {
 
 WorldConnectionMatcher hasSpecifiedConnections(Map connections) {
   return new WorldConnectionMatcher(connections);
+}
+
+TypeMatcher hasType(String type) {
+  return new TypeMatcher(type);
 }
 
 class GameStateMatcher extends Matcher {
@@ -130,12 +135,12 @@ class WorldSpriteStateMatcher extends Matcher {
   bool matches(item, Map matchState) {
     List<WorldSpriteMatcher> spriteMatchers = new List.from(_spriteMatchers);
     if (item is World) {
-      for (int i = spriteMatchers.length; i >=0; i--) {
+      for (int i = spriteMatchers.length - 1; i >=0; i--) {
         if (spriteMatchers[i].matches(item, matchState)) {
           spriteMatchers.removeAt(i);
         }
       }
-      return _spriteMatchers.length == item.sprites.length;
+      return spriteMatchers.isEmpty && _spriteMatchers.length == item.sprites.length;
     }
     return false;
   }
@@ -177,6 +182,20 @@ class MapKeysMatcher extends Matcher {
 
   Description describe(Description description) {
     description.add("Map/Json string not containing all keys ${_keys}");    
+  }
+}
+
+class TypeMatcher extends Matcher {
+  String _type;
+  TypeMatcher(this._type);
+  
+  bool matches(item, Map matchState) {
+    InstanceMirror mirror = reflect(item);
+    return MirrorSystem.getName(mirror.type.simpleName) == _type;
+  }
+
+  Description describe(Description description) {
+    description.add("ClassType is ${_type}");    
   }
 }
 
