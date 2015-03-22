@@ -33,17 +33,24 @@ void main() {
     test('TestBasicSpriteTransfer', () {
       World worldA = testWorld("a");
       World worldB = testWorld("b");
+      World worldC = testWorld("c");
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(0)
           .andNetworkType(NetworkType.LOCAL));
-      worldB.connectTo("a", "nameA");
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
       expect(worldA, hasExactSprites([
           hasSpriteWithNetworkId(0)
               .andNetworkType(NetworkType.LOCAL),
           hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+              .andNetworkType(NetworkType.REMOTE_FORWARD),
+          hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
               .andNetworkType(NetworkType.REMOTE_FORWARD),
       ]));
       expect(worldB, hasExactSprites([
@@ -51,15 +58,30 @@ void main() {
                 .andNetworkType(NetworkType.REMOTE),
             hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
                 .andNetworkType(NetworkType.LOCAL),
+            hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+                .andNetworkType(NetworkType.REMOTE),
       ]));
-      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
-          hasType('RemotePlayerSprite'));
-      expect(worldA.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
-          hasType('RemotePlayerServerSprite'));
-      expect(worldB.sprites[0],
-          hasType('MovingSprite'));
+      // Assert server A representation.
       expect(worldA.sprites[0],
           hasType('LocalPlayerSprite'));
+      expect(worldB.sprites[0],
+          hasType('MovingSprite'));
+      expect(worldC.sprites[0],
+          hasType('MovingSprite'));
+      // Assert client B representation. 
+      expect(worldA.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('RemotePlayerServerSprite'));
+      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('RemotePlayerSprite'));
+      expect(worldC.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('MovingSprite'));
+      // Assert client C representation.
+      expect(worldA.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
+          hasType('RemotePlayerServerSprite'));
+      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
+          hasType('MovingSprite'));
+      expect(worldC.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
+          hasType('RemotePlayerSprite'));  
     });
   });
 }
