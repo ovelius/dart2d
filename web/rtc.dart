@@ -49,6 +49,9 @@ class PeerWrapper {
    * Called to establish a connection to another peer.
    */
   void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
+    if (id == null) {
+      throw new ArgumentError("id can not be null!");
+    }
     var metaData = new JsObject.jsify({
       'label': 'dart2d',
       'reliable': 'false',
@@ -70,6 +73,8 @@ class PeerWrapper {
     var item = querySelector("#peerId");
     if (item != null) {
       querySelector("#peerId").innerHtml = "Your id is: " + id;
+      var name = (querySelector("#nameInput") as InputElement).value;
+      world.startAsServer(name, true); 
     }
   }
 
@@ -86,6 +91,7 @@ class PeerWrapper {
    */
   void connectPeer(unusedThis, connection) {
     var peerId = connection['peer'];
+    assert(peerId != null);
     world.hudMessages.display("Got connection from ${peerId}");
     if (world.network.isServer()) {
       connections[peerId] = new ConnectionWrapper(world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT);

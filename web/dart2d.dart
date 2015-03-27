@@ -31,8 +31,9 @@ World world;
 
 void main() {
   loadImages().then((_) {
-    var name = (querySelector("#nameInput") as InputElement).value;
-    world.startAsServer(name, true); 
+    // Starting the server here will have no peerId.
+    // var name = (querySelector("#nameInput") as InputElement).value;
+    // world.startAsServer(name, true); 
   });
   world = new World(WIDTH, HEIGHT,  createPeerJs() /*createLocalHostPeerJs() */);
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);

@@ -309,5 +309,30 @@ void main() {
           isGameStateOf({0: "nameB"}));
       expect(worldB.sprites.length, equals(1));
     });
+
+    test('TestThreePlayerOneJoinsLater', () {
+      World worldA = testWorld("a"); 
+      worldA.startAsServer("nameA");
+      World worldB = testWorld("b");
+      World worldC = testWorld("c");
+      worldB.connectTo("a", "nameB");
+      for (int i = 0; i < 20; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      
+      // 20 keyframes later another player joins.
+      worldC.connectTo("a", "nameC");
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      for (int i = 0; i < 20; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        expect(worldA.sprites.length, equals(3));
+      }
+      // Should work just fine.
+      expect((worldA.network as Server).gameState,
+          isGameStateOf({0: "nameA", GameState.ID_OFFSET_FOR_NEW_CLIENT: "nameB", GameState.ID_OFFSET_FOR_NEW_CLIENT * 2: "nameC"}));
+    });
   }); 
 }

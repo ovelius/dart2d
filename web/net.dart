@@ -233,7 +233,6 @@ void parseBundle(World world,
       intListToSpriteProperties(bundle[networkId], sprite);
       // Forward sprite to others.
       if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-        log.fine("Forwarding update of ${networkId} from ${connection.id}");
         Map data = {networkId: bundle[networkId]};
         world.network.peer.sendDataWithKeyFramesToAll(data, connection.id);
       }

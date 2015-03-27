@@ -52,7 +52,7 @@ class ConnectionWrapper {
   bool closed = false;
   bool handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
-  int lastRemoteKeyFrame = 0;
+  int lastKeyFrameFromPeer = 0;
   // The last keyframe the peer said it received from us.
   int lastLocalPeerKeyFrameVerified = 0;
   // How many keyframes our remote part has not verified on time.
@@ -64,6 +64,7 @@ class ConnectionWrapper {
   Map keyFrameData = {};
   
   ConnectionWrapper(this.world, this.id, this.connection, this.connectionType) {
+    assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
@@ -84,10 +85,10 @@ class ConnectionWrapper {
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
     if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
-      lastRemoteKeyFrame = dataMap[IS_KEY_FRAME_KEY];
+      lastKeyFrameFromPeer = dataMap[IS_KEY_FRAME_KEY];
     }
     // The server does not need to wait for keyframes.
-    return lastRemoteKeyFrame > 0 || world.network.isServer();
+    return lastKeyFrameFromPeer > 0 || world.network.isServer();
   }
   
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
@@ -100,13 +101,16 @@ class ConnectionWrapper {
   
   void checkForHandshakeData(Map dataMap) {
     if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
+      // Consider the client CLIENT_PLAYER_SPEC as the client having seen
+      // the latest keyframe.
+      lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
       assert(connectionType == ConnectionType.SERVER_TO_CLIENT);
       String name = dataMap[CLIENT_PLAYER_SPEC];
-      Server server = world.network as Server;
-      int spriteId = server.gameState.getNextUsablePlayerSpriteId();
-      int spriteIndex = server.gameState.getNextUsableSpriteImage();
+      int spriteId = world.network.gameState.getNextUsablePlayerSpriteId();
+      int spriteIndex = world.network.gameState.getNextUsableSpriteImage();
       PlayerInfo info = new PlayerInfo(name, id, spriteId);
-      server.gameState.playerInfo.add(info);
+      world.network.gameState.playerInfo.add(info);
+      assert(info.connectionId != null);
       
       LocalPlayerSprite sprite = new RemotePlayerServerSprite(
           world, remoteKeyState, info, 0.0, 0.0, spriteIndex);
@@ -119,7 +123,7 @@ class ConnectionWrapper {
       Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
       sendData({
         SERVER_PLAYER_REPLY: serverData,
-        KEY_FRAME_KEY:lastRemoteKeyFrame, 
+        KEY_FRAME_KEY:lastKeyFrameFromPeer, 
         IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
@@ -141,13 +145,15 @@ class ConnectionWrapper {
   
   void open(unusedThis) {
     world.hudMessages.display("Connection to ${id} open :)");
+    // Set the connection to current keyframe.
+    // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     if (connectionType == ConnectionType.CLIENT_TO_SERVER) {
       // Send out local data hello. We don't do this as part of the intial handshake but over
       // the actual connection.
       Map playerData = {
           CLIENT_PLAYER_SPEC: world.network.localPlayerName,
-          KEY_FRAME_KEY:lastRemoteKeyFrame,
+          KEY_FRAME_KEY:lastKeyFrameFromPeer,
           IS_KEY_FRAME_KEY: world.network.currentKeyFrame,
       };
       sendData(playerData);
@@ -198,14 +204,14 @@ class ConnectionWrapper {
   }
   
   void sendData(data) {
-    data[KEY_FRAME_KEY] = lastRemoteKeyFrame;
+    data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
       if (keyFramesBehind(data[IS_KEY_FRAME_KEY]) > ALLOWED_KEYFRAMES_BEHIND) {
         opened = false;
         closed = true;
-        print("Connection to $id too many keyframes behind, dropping");
+        print("${world}: Connection to $id too many keyframes behind current: ${data[IS_KEY_FRAME_KEY]} connection:${lastLocalPeerKeyFrameVerified}, dropping");
         return;
       }
       // Make a defensive copy in case of keyframe.
