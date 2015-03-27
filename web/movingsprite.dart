@@ -17,6 +17,9 @@ class MovingSprite extends Sprite {
 
   MovingSprite(double x, double y, int imageIndex, [int width, int height])
       : super(x, y, imageIndex, width, height);
+  
+  MovingSprite.withVecPosition(Vec2 position, int imageIndex, [Vec2 size])
+       : super.withVec2(position, imageIndex, size);
 
   frame(double duration, int frames) {
     assert(duration != null);

@@ -71,7 +71,20 @@ class Sprite {
   // Will be removed by the engine.
   bool remove = false;
   
-  Sprite(double x, double y, int imageIndex, [int width, int height, double angle]) {
+  Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
+    var image = images[imageIndex];
+    if (size == null) {
+      size = new Vec2();
+      size.x = (image.width).toDouble();
+      size.y = (image.height).toDouble();
+    }
+    setImage(imageIndex, size.x.toInt());
+      
+    assert(size.x > 0);
+    assert(size.y > 0);
+  }
+
+  Sprite(double x, double y, int imageIndex, [int width, int height]) {
     this.position = new Vec2(x, y);
     var image = images[imageIndex];
     size = new Vec2();

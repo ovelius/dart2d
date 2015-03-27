@@ -40,7 +40,7 @@ void main() {
           .andNetworkType(NetworkType.LOCAL));
       worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 5; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -98,7 +98,21 @@ void main() {
               .andNetworkType(NetworkType.REMOTE_FORWARD),
       ]));
       expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
-               hasType('LocalPlayerSprite'));
+          hasType('LocalPlayerSprite'));
+      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
+          hasType('RemotePlayerServerSprite'));
+      
+      expect(worldC.sprites.length, equals(2));
+          expect(worldC, hasExactSprites([
+              hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+                  .andNetworkType(NetworkType.REMOTE),
+              hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+                  .andNetworkType(NetworkType.LOCAL),
+          ]));
+      expect(worldC.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+          hasType('MovingSprite'));
+      expect(worldC.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
+          hasType('RemotePlayerSprite'));
     });
   });
 }

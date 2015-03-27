@@ -21,6 +21,17 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
   RemotePlayerServerSprite(
       World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(world, keyState, info, x, y, imageIndex);
+  
+  RemotePlayerServerSprite.copyFromMovingSprite(
+      World world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
+      : super.copyFromMovingSprite(sprite) {
+    this.world = world;
+    this.info = info;
+    this.keyState = keystate;
+    this.collision = this.inGame;
+    this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
+    this.networkId = sprite.networkId;
+  }
 
   void checkControlKeys(double duration) {
     // Don't execute remote movements on the server.
@@ -61,17 +72,25 @@ class LocalPlayerSprite extends MovingSprite {
   bool inGame = true;
   double spawnIn = 0.0;
 
-  LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite)
-      : super(convertSprite.position.x, convertSprite.position.y, convertSprite.imageIndex) {
-    this.world = convertSprite.world;
-    this.info = convertSprite.info;
-    this.keyState = convertSprite.keyState;
-    this.collision = inGame;
-    this.size = DEFAULT_PLAYER_SIZE;
-    this.health = convertSprite.health;
-    this.networkId = convertSprite.networkId;
-    this.networkType = NetworkType.LOCAL;
+  factory LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
+    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite);
+    sprite.world = convertSprite.world;
+    sprite.info = convertSprite.info;
+    sprite.keyState = convertSprite.keyState;
+    sprite.collision = convertSprite.inGame;
+    sprite.health = convertSprite.health;
+    sprite.networkId = convertSprite.networkId;
+    sprite.networkType = NetworkType.LOCAL;
+    return sprite;
   }
+  
+  LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
+       : super.withVecPosition(convertSprite.position, convertSprite.imageIndex) {
+     this.collision = inGame;
+     this.size = convertSprite.size;
+     this.networkId = convertSprite.networkId;
+     this.networkType = convertSprite.networkType;
+   }
   
   LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(x, y, imageIndex) {

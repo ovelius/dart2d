@@ -3,6 +3,8 @@ library gamestate;
 import 'imageindex.dart';
 import 'world.dart';
 import 'sprite.dart';
+import 'movingsprite.dart';
+import 'keystate.dart';
 import 'playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -106,7 +108,12 @@ class GameState {
         playerSprite.setImage(oldSprite.imageIndex);
         world.replaceSprite(info.spriteId, playerSprite);
       } else {
-        //...
+        MovingSprite oldSprite = world.sprites[info.spriteId];
+        KeyState remoteKeyState = world.peer.connections[info.connectionId].remoteKeyState;
+        RemotePlayerServerSprite remotePlayerSprite = new RemotePlayerServerSprite.copyFromMovingSprite(
+            world, remoteKeyState, info, oldSprite);
+        remotePlayerSprite.setImage(oldSprite.imageIndex);
+        world.replaceSprite(info.spriteId, remotePlayerSprite);
       }
     }
   }
