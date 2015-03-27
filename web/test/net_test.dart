@@ -209,7 +209,7 @@ void main() {
           isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
     });
 
-    test('TestThreeWorldsServerDies', () {
+    test('TestFourWorldsServerDies', () {
       logConnectionData = false;
       print("Testing connecting with three players, server dies so a new server is elected");
       World worldA = testWorld("a"); 
@@ -239,7 +239,7 @@ void main() {
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
-      for (int i = 0; i < 14; i++) {
+      for (int i = 0; i < 18; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -268,7 +268,7 @@ void main() {
             
       // Now b is having issues.
       testConnections['b'].forEach((e) { e.dropPackets = 100;});
-      for (int i = 0; i < 40; i++) {
+      for (int i = 0; i < 18; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
@@ -283,7 +283,7 @@ void main() {
       
       // Finally C is having issues.
       testConnections['c'].forEach((e) { e.dropPackets = 100;});
-      for (int i = 0; i < 40; i++) {
+      for (int i = 0; i < 18; i++) {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // WorldD is all alone.
@@ -301,7 +301,7 @@ void main() {
       expect((worldB.network as Server).gameState,
           isGameStateOf({0: "nameB", 1000: "nameA"}));
       
-      for (int i = 0; i < 40; i++) {
+      for (int i = 0; i < 18; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       
