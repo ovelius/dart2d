@@ -81,7 +81,24 @@ void main() {
       expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
           hasType('MovingSprite'));
       expect(worldC.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT * 2],
-          hasType('RemotePlayerSprite'));  
+          hasType('RemotePlayerSprite'));
+
+      testConnections['a'].forEach((e) { e.dropPackets = 100;});
+      
+      for (int i = 0; i < 20; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+
+      expect(worldB.sprites.length, equals(2));
+      expect(worldB, hasExactSprites([
+          hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+              .andNetworkType(NetworkType.LOCAL),
+          hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+              .andNetworkType(NetworkType.REMOTE_FORWARD),
+      ]));
+      expect(worldB.sprites[GameState.ID_OFFSET_FOR_NEW_CLIENT],
+               hasType('LocalPlayerSprite'));
     });
   });
 }

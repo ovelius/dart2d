@@ -44,6 +44,7 @@ class RemotePlayerSprite extends LocalPlayerSprite {
  * How a server represents itself.
  */
 class LocalPlayerSprite extends MovingSprite {
+  static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(40.0, 40.0);
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;
   static const MAX_SPEED = 500.0;
@@ -60,13 +61,25 @@ class LocalPlayerSprite extends MovingSprite {
   bool inGame = true;
   double spawnIn = 0.0;
 
+  LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite)
+      : super(convertSprite.position.x, convertSprite.position.y, convertSprite.imageIndex) {
+    this.world = convertSprite.world;
+    this.info = convertSprite.info;
+    this.keyState = convertSprite.keyState;
+    this.collision = inGame;
+    this.size = DEFAULT_PLAYER_SIZE;
+    this.health = convertSprite.health;
+    this.networkId = convertSprite.networkId;
+    this.networkType = NetworkType.LOCAL;
+  }
+  
   LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(x, y, imageIndex) {
     this.world = world;
     this.info = info;
     this.keyState = keyState;
     this.collision = inGame;
-    this.size = new Vec2(40.0, 40.0);
+    this.size = DEFAULT_PLAYER_SIZE;
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {

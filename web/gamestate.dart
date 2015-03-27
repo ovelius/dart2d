@@ -3,6 +3,7 @@ library gamestate;
 import 'imageindex.dart';
 import 'world.dart';
 import 'sprite.dart';
+import 'playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 final Logger log = new Logger('GameState');
@@ -89,6 +90,23 @@ class GameState {
         }
         world.removeSprite(info.spriteId);
         return;
+      }
+    }
+  }
+  
+  /**
+   * Converts the world sprite state for us to become server.
+   */
+  convertToServer(var selfConnectionId) {
+    for (PlayerInfo info in playerInfo) {
+      if (info.connectionId == selfConnectionId) {
+        RemotePlayerSprite oldSprite = world.sprites[info.spriteId];
+        LocalPlayerSprite playerSprite =
+            new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
+        playerSprite.setImage(oldSprite.imageIndex);
+        world.replaceSprite(info.spriteId, playerSprite);
+      } else {
+        //...
       }
     }
   }

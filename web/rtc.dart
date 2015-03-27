@@ -125,6 +125,7 @@ class PeerWrapper {
           // We got eleceted the new server, first task is to remove the old.
           print("Removing Gamestate for $key");
           world.network.gameState.removeByConnectionId(key);
+          world.network.gameState.convertToServer(this.id);
         }
       }
       this.connections = connectionsCopy;

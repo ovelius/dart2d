@@ -33,6 +33,8 @@ class World {
   List<int> networkRemovals = [];
   // Spritest that will be removed from the world next frame;
   List<int> removeSprites = [];
+  // Sprites that will replace the current world sprites next frame.
+  Map<int, Sprite> _replaceSprite = {};
 
   HudMessages hudMessages;
   KeyState localKeyState;
@@ -117,6 +119,9 @@ class World {
       }
       sprites[newSprite.networkId] = newSprite;
     }
+    for (int id in new List.from(_replaceSprite.keys)) {
+      sprites[id] = _replaceSprite.remove(id);
+    }
   }
   
   int advanceFrames(double duration) {
@@ -194,7 +199,7 @@ class World {
   addLocalPlayerSprite(String name) {
     Server server = network as Server;
     int id = server.gameState.getNextUsablePlayerSpriteId();
-    int spriteId = server.gameState.getNextUsableSpriteImage();
+    int imageId = server.gameState.getNextUsableSpriteImage();
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
     LocalPlayerSprite playerSprite = new LocalPlayerSprite(
         this, localKeyState, info,
@@ -202,7 +207,7 @@ class World {
         new Random().nextInt(WIDTH).toDouble(),
         imageByName["shipg01.png"]);
     playerSprite.networkId = id;
-    playerSprite.setImage(spriteId);
+    playerSprite.setImage(imageId);
     server.gameState.playerInfo.add(info);
     addSprite(playerSprite);
   }
@@ -243,6 +248,10 @@ class World {
   
   void removeSprite(int networkId) {
     removeSprites.add(networkId);
+  }
+  
+  void replaceSprite(int id, Sprite sprite) {
+    _replaceSprite[id] = sprite;
   }
   
   num negate(Random r) {
