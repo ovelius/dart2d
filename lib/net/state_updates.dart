@@ -1,4 +1,4 @@
-library dart2d;
+library state_updates;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';

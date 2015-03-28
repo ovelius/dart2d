@@ -1,4 +1,4 @@
-library dart2d;
+library stickysprite;
 
 import 'movingsprite.dart';
 import 'sprite.dart';

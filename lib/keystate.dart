@@ -1,4 +1,4 @@
-library dart2d;
+library keystate;
 
 import 'dart:html';
 import 'world.dart';

@@ -1,4 +1,4 @@
-library dart2d;
+library movingsprite;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/vec2.dart';

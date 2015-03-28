@@ -1,4 +1,4 @@
-library dart2d;
+library hud;
 
 import 'dart:html';
 import 'dart:math';

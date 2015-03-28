@@ -1,4 +1,4 @@
-library dart2d;
+library phys;
 
 import 'dart:math';
 import 'package:dart2d/sprites/movingsprite.dart';
