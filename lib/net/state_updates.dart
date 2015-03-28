@@ -1,9 +1,9 @@
 library dart2d;
 
-import 'sprite.dart';
-import 'movingsprite.dart';
-import 'playersprite.dart';
-import 'vec2.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 
 String REMOVE_KEY = "_r";

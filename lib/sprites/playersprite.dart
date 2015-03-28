@@ -1,16 +1,15 @@
 library dart2d;
 
 import 'sprite.dart';
-import 'movingsprite.dart';
-import 'gamestate.dart';
-import 'damage_projectile.dart';
-import 'dart2d.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/sprites/damage_projectile.dart';
 import 'dart:math';
-import 'world.dart';
-import 'imageindex.dart';
-import 'keystate.dart';
-import 'stickysprite.dart';
-import 'vec2.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/keystate.dart';
+import 'package:dart2d/sprites/stickysprite.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
 
 /**
@@ -112,11 +111,11 @@ class LocalPlayerSprite extends MovingSprite {
   _drawHealthBar(CanvasRenderingContext2D context) {
     double healthFactor = health/MAX_HEALTH;
     context.resetTransform();
-    var grad = context.createLinearGradient(0, 0, 3*world.width*healthFactor, 10);
+    var grad = context.createLinearGradient(0, 0, 3*WIDTH*healthFactor, 10);
     grad.addColorStop(0, "#00ff00");
     grad.addColorStop(1, "#FF0000");
     context.fillStyle = grad;
-    context.fillRect(0, world.height - 10, world.width, 10);
+    context.fillRect(0, HEIGHT - 10, WIDTH, 10);
   }
 
   frame(double duration, int frames) {

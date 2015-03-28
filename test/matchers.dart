@@ -3,10 +3,10 @@ library matchers;
 import 'package:unittest/unittest.dart';
 import 'dart:convert';
 import 'dart:mirrors';
-import '../world.dart';
-import '../connection.dart';
-import '../gamestate.dart';
-import '../sprite.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/sprites/sprite.dart';
 
 WorldSpriteMatcher hasSpriteWithNetworkId(int id) {
   return new WorldSpriteMatcher(id);

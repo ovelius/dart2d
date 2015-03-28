@@ -1,7 +1,7 @@
 library dart2d;
 
 import 'dart:math';
-import 'movingsprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
 import 'vec2.dart';
 
 const double MIN =  0.000001;

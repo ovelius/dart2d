@@ -5,20 +5,21 @@ import 'package:unittest/html_config.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
-import '../rtc.dart';
-import '../connection.dart';
-import '../sprite.dart';
-import '../world.dart';
-import '../gamestate.dart';
-import '../net.dart';
-import '../state_updates.dart';
-import '../imageindex.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'dart:html';
 import 'dart:js';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
   useHtmlConfiguration();
   setUp(() {
+    canvas = (querySelector("#canvas") as CanvasElement).context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');
@@ -239,7 +240,7 @@ void main() {
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
-      for (int i = 0; i < 18; i++) {
+      for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -308,7 +309,7 @@ void main() {
       // B hasn't responded in a long time.
       expect(worldA.network.hasNetworkProblem(), equals(true));
 
-      for (int i = 0; i < 18; i++) {
+      for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       
@@ -334,8 +335,16 @@ void main() {
       for (int i = 0; i < 20; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         expect(worldA.sprites.length, equals(3));
+        expect(worldB, hasSpecifiedConnections({
+            'a':ConnectionType.CLIENT_TO_SERVER,
+            'c':ConnectionType.CLIENT_TO_CLIENT,
+        }));
+        expect(worldC, hasSpecifiedConnections({
+            'a':ConnectionType.CLIENT_TO_SERVER,
+            'b':ConnectionType.CLIENT_TO_CLIENT,
+        }));
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
       expect((worldA.network as Server).gameState,

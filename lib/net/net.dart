@@ -1,16 +1,15 @@
-library dart2d;
+library net;
 
-import 'sprite.dart';
-import 'movingsprite.dart';
-import 'playersprite.dart';
-import 'connection.dart';
-import 'gamestate.dart';
-import 'state_updates.dart';
-import 'dart2d.dart';
-import 'rtc.dart';
-import 'vec2.dart';
-import 'world.dart';
-import 'keystate.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/keystate.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 

@@ -3,21 +3,23 @@ import 'package:unittest/html_config.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
-import '../rtc.dart';
-import '../connection.dart';
-import '../sprite.dart';
-import '../playersprite.dart';
-import '../world.dart';
-import '../gamestate.dart';
-import '../net.dart';
-import '../state_updates.dart';
-import '../imageindex.dart';
+import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'dart:js';
+import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
   useHtmlConfiguration();
   setUp(() {
+    canvas = (querySelector("#canvas") as CanvasElement).context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');

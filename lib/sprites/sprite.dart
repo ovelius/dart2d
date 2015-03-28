@@ -1,7 +1,7 @@
 library dart2d;
 
-import 'imageindex.dart';
-import 'vec2.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 import 'dart:html';
 

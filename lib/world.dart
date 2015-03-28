@@ -1,26 +1,33 @@
 library dart2d;
 
-import 'sprite.dart';
-import 'movingsprite.dart';
-import 'connection.dart';
-import 'dart2d.dart';
-import 'phys.dart';
-import 'gamestate.dart';
-import 'vec2.dart';
-import 'astroid.dart';
-import 'net.dart';
-import 'rtc.dart';
-import 'hud_messages.dart';
-import 'imageindex.dart';
-import 'keystate.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/phys/phys.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/sprites/astroid.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/keystate.dart';
 import 'dart:math';
-import 'playersprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+
+int WIDTH;
+int HEIGHT;
+
+int serverFrame = 0;
+// 25 server frames per second.
+const FRAME_SPEED = 1.0/25;
+double untilNextFrame = FRAME_SPEED;
+
+var canvas = null;
 
 class World {
   final Logger log = new Logger('World');
-  int width;
-  int height;
 
   PeerWrapper peer; 
   // Current sprites in our world.
@@ -47,8 +54,8 @@ class World {
   Network network;
   
   World(int width, int height, var jsPeer) {
-    this.width = width;
-    this.height = height;
+    WIDTH = width;
+    HEIGHT = height;
     localKeyState = new KeyState(this);
     peer = new PeerWrapper(this, jsPeer);
     hudMessages = new HudMessages(this);
@@ -69,18 +76,18 @@ class World {
  
     putPendingSpritesInWorld();
 
-    context.clearRect(0, 0, WIDTH, HEIGHT);
-    context.setFillColorRgb(0, 0, 0);
-    context.fillRect(0, 0, WIDTH, HEIGHT);
-    context.save();
+    canvas.clearRect(0, 0, WIDTH, HEIGHT);
+    canvas.setFillColorRgb(0, 0, 0);
+    canvas.fillRect(0, 0, WIDTH, HEIGHT);
+    canvas.save();
   
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
-      context.resetTransform();
+      canvas.resetTransform();
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames);
       }
-      sprite.draw(context, localKeyState.debug);
+      sprite.draw(canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
         removeSprites.add(sprite.networkId);
@@ -105,8 +112,8 @@ class World {
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
-    hudMessages.render(context, duration);
-    context.restore();
+    hudMessages.render(canvas, duration);
+    canvas.restore();
   }
   
   void putPendingSpritesInWorld() {
@@ -226,14 +233,14 @@ class World {
 
   void drawFpsCounters() {
     if (localKeyState.debug) {
-      var font = context.font;
-      context.font = '16pt Calibri';
-      context.fillText("DrawFps: $drawFps", 0, 20);
-      context.fillText("ServerFps: $serverFps", 0, 40);
-      context.fillText("NetworkFps: $networkFps", 0, 60);
-      context.fillText("Sprites: ${sprites.length}", 0, 80);
-      context.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);
-      context.font = font;
+      var font = canvas.font;
+      canvas.font = '16pt Calibri';
+      canvas.fillText("DrawFps: $drawFps", 0, 20);
+      canvas.fillText("ServerFps: $serverFps", 0, 40);
+      canvas.fillText("NetworkFps: $networkFps", 0, 60);
+      canvas.fillText("Sprites: ${sprites.length}", 0, 80);
+      canvas.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);
+      canvas.font = font;
     }
   }
 

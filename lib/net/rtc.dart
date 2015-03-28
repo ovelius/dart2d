@@ -1,13 +1,12 @@
-library dart2d;
+library rtc;
 
 import 'dart:js';
 import 'dart:html';
-import 'keystate.dart';
-import 'world.dart';
+import '../keystate.dart';
+import '../world.dart';
 import 'net.dart';
 import 'connection.dart';
 import 'state_updates.dart';
-import 'dart:convert';
 
 createLocalHostPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
@@ -72,7 +71,7 @@ class PeerWrapper {
     if (item != null) {
       querySelector("#peerId").innerHtml = "Your id is: " + id;
       var name = (querySelector("#nameInput") as InputElement).value;
-      world.startAsServer(name, true); 
+      world.startAsServer(name, false); // true for two players. 
     }
   }
 

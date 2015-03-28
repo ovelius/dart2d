@@ -1,8 +1,8 @@
 library test_peer;
 
 import 'test_connection.dart';
-import '../hud_messages.dart';
-import '../world.dart';
+import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/world.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);

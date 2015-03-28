@@ -1,15 +1,15 @@
-library dart2d;
+library connection;
 
 import 'dart:js';
 import 'dart:html';
-import 'keystate.dart';
-import 'world.dart';
-import 'gamestate.dart';
-import 'net.dart';
-import 'sprite.dart';
-import 'playersprite.dart';
-import 'rtc.dart';
-import 'state_updates.dart';
+import 'package:dart2d/keystate.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
 
 class ConnectionType {

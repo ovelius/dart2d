@@ -1,4 +1,4 @@
-library dart2d;
+library vec2;
 
 import 'dart:math';
 

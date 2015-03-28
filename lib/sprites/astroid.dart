@@ -1,11 +1,11 @@
 library asteroid;
 
 import 'movingsprite.dart';
-import 'world.dart';
-import 'sprite.dart';
-import 'playersprite.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/playersprite.dart';
 import 'dart:math';
-import 'imageindex.dart';
+import 'package:dart2d/res/imageindex.dart';
 
 class Astroid extends MovingSprite {
   

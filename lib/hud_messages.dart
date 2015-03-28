@@ -2,12 +2,12 @@ library dart2d;
 
 import 'dart:html';
 import 'dart:math';
-import 'world.dart';
-import 'playersprite.dart';
-import 'movingsprite.dart';
-import 'vec2.dart';
-import 'sprite.dart';
-import 'gamestate.dart';
+import 'package:dart2d/world.dart';
+import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/gamestate.dart';
 
 class _HudMessage {
   final String message;

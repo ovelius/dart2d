@@ -1,4 +1,4 @@
-name: Dart2d
+name: dart2d
 description: Dart2d WebRTC Game
 environment:
   sdk: '>=0.8.10+6 <2.0.0'
