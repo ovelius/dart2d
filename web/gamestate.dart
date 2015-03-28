@@ -107,6 +107,7 @@ class GameState {
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
         playerSprite.setImage(oldSprite.imageIndex);
         world.replaceSprite(info.spriteId, playerSprite);
+        oldSprite.info = info;
       } else {
         MovingSprite oldSprite = world.sprites[info.spriteId];
         KeyState remoteKeyState = world.peer.connections[info.connectionId].remoteKeyState;

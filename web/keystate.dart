@@ -15,6 +15,9 @@ class KeyState {
     if (e.keyCode == KeyCode.F2) {
       debug = !debug;
     }
+    if (e.keyCode == KeyCode.F4) {
+      world.freeze = !world.freeze;
+    }
     // If this a newly pushed key, send it to the network right away.
     if (world != null && !keysDown.containsKey(e.keyCode)) {
       world.network.maybeSendLocalKeyStateUpdate();

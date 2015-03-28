@@ -301,6 +301,13 @@ void main() {
       expect((worldB.network as Server).gameState,
           isGameStateOf({0: "nameB", 1000: "nameA"}));
       
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      
+      // B hasn't responded in a long time.
+      expect(worldA.network.hasNetworkProblem(), equals(true));
+
       for (int i = 0; i < 18; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }

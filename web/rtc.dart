@@ -49,9 +49,7 @@ class PeerWrapper {
    * Called to establish a connection to another peer.
    */
   void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
-    if (id == null) {
-      throw new ArgumentError("id can not be null!");
-    }
+    assert(id != null);
     var metaData = new JsObject.jsify({
       'label': 'dart2d',
       'reliable': 'false',

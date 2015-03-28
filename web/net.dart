@@ -17,6 +17,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 final Logger log = new Logger('Network');
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0/2;
+const PROBLEMATIC_FRAMES_BEHIND = 2;
 
 class Client extends Network {
   Client(world, peer) : super(world, peer) {
@@ -38,6 +39,9 @@ abstract class Network {
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
   bool _server = false;
+  // If we are client, this indicates that the server
+  // is unable to ack our data.
+  int serverFramesBehind = 0;
 
   Network(this.world, this.peer) {
     gameState = new GameState(world);
@@ -129,7 +133,17 @@ abstract class Network {
   void registerDroppedFrames(var data) {
     for (ConnectionWrapper connection in peer.connections.values) {
       connection.registerDroppedKeyFrames(currentKeyFrame - 1);
+      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
+      }
     }
+  }
+  
+  /**
+   * Returns true if the network is in such a problemetic state we should notify the user.
+   */
+  bool hasNetworkProblem() {
+    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND;
   }
 
   void sendMessage(String message) {
@@ -149,6 +163,7 @@ abstract class Network {
 
   void frame(double duration, List<int> removals) {
     if (!hasReadyConnection()) {
+      serverFramesBehind = 0;
       return;
     }
     bool keyFrame = checkForKeyFrame(!removals.isEmpty, duration);

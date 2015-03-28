@@ -37,13 +37,13 @@ class World {
   Map<int, Sprite> _replaceSprite = {};
 
   HudMessages hudMessages;
-  KeyState localKeyState;
+  KeyState localKeyState; 
   // For debuggging.
   FpsCounter drawFps = new FpsCounter();
   FpsCounter serverFps = new FpsCounter();
   
-  bool loading = true;
   bool restart = false;
+  bool freeze = false;
   Network network;
   
   World(int width, int height, var jsPeer) {
@@ -65,18 +65,21 @@ class World {
     if (restart) {
       clearScreen();    
     }
+    int frames = advanceFrames(duration);
+ 
     putPendingSpritesInWorld();
+
     context.clearRect(0, 0, WIDTH, HEIGHT);
     context.setFillColorRgb(0, 0, 0);
     context.fillRect(0, 0, WIDTH, HEIGHT);
     context.save();
   
-    int frames = advanceFrames(duration);
-  
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
       context.resetTransform();
-      sprite.frame(duration, frames);
+      if (!freeze && !network.hasNetworkProblem()) {
+        sprite.frame(duration, frames);
+      }
       sprite.draw(context, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
@@ -95,9 +98,11 @@ class World {
       }
     }
   
+    // Only send to network if server frames has passed.
     if (frames > 0) {
       network.frame(duration, networkRemovals);
     }
+    // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
     hudMessages.render(context, duration);
@@ -213,7 +218,6 @@ class World {
   }
 
   startAsServer(String name, [bool forTest = false]) {
-    loading = false;
     addLocalPlayerSprite(name);
     if (forTest == true) {
       addLocalPlayerSprite(name);
