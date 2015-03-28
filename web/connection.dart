@@ -68,7 +68,12 @@ class ConnectionWrapper {
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
-    this.handshakeReceived = connectionType == ConnectionType.CLIENT_TO_CLIENT;
+    if ( connectionType == ConnectionType.CLIENT_TO_CLIENT) {
+      this.handshakeReceived = true;
+      // Mark connection as having recieved our keyframes up to this point.
+      // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
+      lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+    }
     connection.callMethod('on',
         new JsObject.jsify(
             ['data', new JsFunction.withThis(this.receiveData)]));
@@ -103,6 +108,7 @@ class ConnectionWrapper {
     if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
       // Consider the client CLIENT_PLAYER_SPEC as the client having seen
       // the latest keyframe.
+      // It will anyway get the keyframe from our response.
       lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
       assert(connectionType == ConnectionType.SERVER_TO_CLIENT);
       String name = dataMap[CLIENT_PLAYER_SPEC];

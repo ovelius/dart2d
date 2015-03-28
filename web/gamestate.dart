@@ -110,6 +110,7 @@ class GameState {
         oldSprite.info = info;
       } else {
         MovingSprite oldSprite = world.sprites[info.spriteId];
+        // TODO: Handle case of connection being gone here.
         KeyState remoteKeyState = world.peer.connections[info.connectionId].remoteKeyState;
         RemotePlayerServerSprite remotePlayerSprite = new RemotePlayerServerSprite.copyFromMovingSprite(
             world, remoteKeyState, info, oldSprite);

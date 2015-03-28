@@ -61,8 +61,11 @@ abstract class Network {
         sprite.ownerId = info.connectionId;
       }
       if (!peer.hasConnectionTo(info.connectionId)) {
-        world.hudMessages.display("Creating neighbour connection to ${info.name}");
-        peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
+        // Decide if I'm responsible for the connection.
+        if (peer.id.compareTo(info.connectionId) < 0) {
+          world.hudMessages.display("Creating neighbour connection to ${info.name}");
+          peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
+        }
       }
     }
   }
