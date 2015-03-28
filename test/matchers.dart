@@ -59,13 +59,13 @@ class GameStateMatcher extends Matcher {
   }
   
   Description describe(Description description) {
-    description.add("GameState of ${_playersWithName}");
+    return description.add("GameState of ${_playersWithName}");
   }
   
   /// This builds a textual description of a specific mismatch.
   Description describeMismatch(item, Description mismatchDescription,
       Map matchState, bool verbose) {
-    mismatchDescription.add("Actual gameState: ${matchState['ActualGameState']}");
+    return mismatchDescription.add("Actual gameState: ${matchState['ActualGameState']}");
   }
 }
 
@@ -122,9 +122,10 @@ class WorldSpriteMatcher extends Matcher {
     } else {
       mismatchDescription.add("Matched item must be World");
     }
+    return mismatchDescription;
   }
   Description describe(Description description) {
-    description.add("World does not contain sprite with networkId ${_networkId}");    
+    return description.add("World does not contain sprite with networkId ${_networkId}");    
   }
 }
 
@@ -152,9 +153,10 @@ class WorldSpriteStateMatcher extends Matcher {
     } else {
       mismatchDescription.add("Matched item must be World");
     }
+    return mismatchDescription;
   }
   Description describe(Description description) {
-    description.add("World with exactly ${_spriteMatchers}");    
+    return description.add("World with exactly ${_spriteMatchers}");    
   }
 }
 
@@ -181,7 +183,7 @@ class MapKeysMatcher extends Matcher {
   }
 
   Description describe(Description description) {
-    description.add("Map/Json string not containing all keys ${_keys}");    
+    return description.add("Map/Json string not containing all keys ${_keys}");    
   }
 }
 
@@ -195,7 +197,7 @@ class TypeMatcher extends Matcher {
   }
 
   Description describe(Description description) {
-    description.add("ClassType is ${_type}");    
+    return description.add("ClassType is ${_type}");    
   }
 }
 
@@ -225,6 +227,7 @@ class MapKeyMatcher extends Matcher {
     } else {
       description.add("Map/Json string not containing key ${_key} with value ${_value}");
     }
+    return description;
   }
 }
 
@@ -256,13 +259,13 @@ class WorldConnectionMatcher extends Matcher {
   }
   
   Description describe(Description description) {
-    description.add("World connections of ${_expectedConnections}");
+    return description.add("World connections of ${_expectedConnections}");
   }
   
   /// This builds a textual description of a specific mismatch.
   Description describeMismatch(item, Description mismatchDescription,
       Map matchState, bool verbose) {
-    mismatchDescription.add(matchState);
+    return mismatchDescription.add(matchState);
   }
 }
 
