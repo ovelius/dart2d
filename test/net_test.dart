@@ -13,7 +13,6 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:html';
-import 'dart:js';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {

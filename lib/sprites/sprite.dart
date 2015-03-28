@@ -1,4 +1,4 @@
-library dart2d;
+library sprite;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';

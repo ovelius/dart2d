@@ -1,4 +1,4 @@
-library dart2d;
+library imageindex;
 
 import 'dart:html';
 import 'dart:async';

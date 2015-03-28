@@ -1,4 +1,4 @@
-library dart2d;
+library playersprites;
 
 import 'sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';

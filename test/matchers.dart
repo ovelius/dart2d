@@ -265,7 +265,7 @@ class WorldConnectionMatcher extends Matcher {
   /// This builds a textual description of a specific mismatch.
   Description describeMismatch(item, Description mismatchDescription,
       Map matchState, bool verbose) {
-    return mismatchDescription.add(matchState);
+    return mismatchDescription.add("$matchState");
   }
 }
 

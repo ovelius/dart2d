@@ -52,7 +52,7 @@ class HudMessages {
         PlayerInfo info = gameState.playerInfo[i];
         MovingSprite sprite = world.sprites[info.spriteId];
         Vec2 middle = sprite.centerPoint();
-        int x = world.width ~/ 3;
+        int x = WIDTH ~/ 3;
         int y = 40 + i*40;
         context.fillText("${info.name} ${info.score} ${info.deaths}", x, y);
         // TODO: Check that sprite is alive.
