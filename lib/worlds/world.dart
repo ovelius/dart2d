@@ -53,12 +53,15 @@ abstract class World {
   bool freeze = false;
   Network network;
   
-  World(int width, int height, var jsPeer) {
+  World(int width, int height) {
     WIDTH = width;
     HEIGHT = height;
     localKeyState = new KeyState(this);
-    peer = new PeerWrapper(this, jsPeer);
     hudMessages = new HudMessages(this);
+  }
+  
+  setJsPeer(var jsPeer) {
+    peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
   }
   

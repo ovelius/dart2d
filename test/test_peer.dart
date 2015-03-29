@@ -7,7 +7,8 @@ import 'package:dart2d/worlds/space_world.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
-  World w = new SpaceWorld(400, 600, peer);
+  World w = new SpaceWorld(400, 600);
+  w.setJsPeer(peer);
   w.hudMessages = new TestHudMessage(w);
   return w;
 }
