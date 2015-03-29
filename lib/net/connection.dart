@@ -104,8 +104,20 @@ class ConnectionWrapper {
     }
   }
   
+  /**
+   * Covers server <-> client handshake.
+   */
   void checkForHandshakeData(Map dataMap) {
     if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
+      if (world.network.gameState.gameIsFull()) {
+        sendData({
+          SERVER_PLAYER_REJECT: 'Game full',
+          KEY_FRAME_KEY: lastKeyFrameFromPeer, 
+          IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
+        // Mark as closed.
+        this.closed = true;
+        return;
+      }
       // Consider the client CLIENT_PLAYER_SPEC as the client having seen
       // the latest keyframe.
       // It will anyway get the keyframe from our response.
@@ -137,6 +149,11 @@ class ConnectionWrapper {
       world.hudMessages.display("Got server challenge from ${id}");
       assert(!world.network.isServer());
       world.createLocalClient(dataMap[SERVER_PLAYER_REPLY]);
+    }
+    if (dataMap.containsKey(SERVER_PLAYER_REJECT)) {
+      world.hudMessages.display("Game is full :/");
+      this.closed = true;
+      return;
     }
     if (!handshakeReceived) {
       handshakeReceived = dataMap.containsKey(CLIENT_PLAYER_SPEC)

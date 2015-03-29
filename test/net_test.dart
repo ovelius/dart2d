@@ -349,5 +349,33 @@ void main() {
       expect((worldA.network as Server).gameState,
           isGameStateOf({0: "nameA", GameState.ID_OFFSET_FOR_NEW_CLIENT: "nameB", GameState.ID_OFFSET_FOR_NEW_CLIENT * 2: "nameC"}));
     });
+    
+    test('TestMaxPlayers', () {
+        logConnectionData = false;
+        World worldA = testWorld("a"); 
+        worldA.startAsServer("nameA");
+    
+        World worldB = testWorld("b");
+        World worldC = testWorld("c");
+        World worldD = testWorld("d");
+        World worldE = testWorld("e");
+    
+        worldB.connectTo("a", "nameB");         
+        worldC.connectTo("a", "nameC");
+        worldD.connectTo("a", "nameD");
+        
+        worldE.connectTo("a", "nameE");
+        expect(recentSentDataTo("e"),
+                 new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
+        
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldE.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+        expect(worldA, hasSpecifiedConnections({
+            'b':ConnectionType.SERVER_TO_CLIENT ,
+            'c':ConnectionType.SERVER_TO_CLIENT ,
+            'd':ConnectionType.SERVER_TO_CLIENT ,
+        }));
+    });
   }); 
 }

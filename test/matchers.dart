@@ -217,6 +217,7 @@ class MapKeyMatcher extends Matcher {
     }
     bool containsKey = data != null && data.containsKey(_key);
     if (containsKey) {
+      // If _value is null always match.
       return _value == null ? true : data[_key] == _value;
     }
     return false;

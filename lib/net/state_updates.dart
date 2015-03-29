@@ -13,6 +13,7 @@ String MESSAGE_KEY = "_s";
 String KEY_STATE_KEY = "-k";
 String CLIENT_PLAYER_SPEC = "_c";
 String SERVER_PLAYER_REPLY = "-c";
+String SERVER_PLAYER_REJECT = "-r";
 String GAME_STATE = "-g";
 
 /**
@@ -26,6 +27,7 @@ void remapKeyNamesForTest() {
   KEY_STATE_KEY = "key_state";
   CLIENT_PLAYER_SPEC = "client_spec";
   SERVER_PLAYER_REPLY = "server_client_reply";
+  SERVER_PLAYER_REJECT = "server_client_reject";
   GAME_STATE = "game_state";
 }
 

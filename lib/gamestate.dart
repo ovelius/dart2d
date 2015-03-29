@@ -44,8 +44,12 @@ class GameState {
   static final List<String> USEABLE_SPRITES =
       ["shipg01.png", "shipr01.png", "shipb01.png",  "shipy01.png"];
 
+  DateTime startedAt;
+  List<PlayerInfo> playerInfo = [];
+  int level = 0;
+  
   bool isAtMaxPlayers() {
-    return false;
+    return playerInfo.length >= USEABLE_SPRITES.length;
   }
 
   World world;
@@ -139,9 +143,6 @@ class GameState {
   int getNextUsableSpriteImage() {
     return imageByName[USEABLE_SPRITES[playerInfo.length]];
   }
-  DateTime startedAt;
-  List<PlayerInfo> playerInfo = [];
-  int level = 0;
   
   String toString() {
     return "${playerInfo}";
