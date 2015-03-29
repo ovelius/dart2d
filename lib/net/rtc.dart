@@ -2,8 +2,7 @@ library rtc;
 
 import 'dart:js';
 import 'dart:html';
-import '../keystate.dart';
-import '../world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'net.dart';
 import 'connection.dart';
 import 'state_updates.dart';

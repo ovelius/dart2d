@@ -2,7 +2,7 @@ library hud;
 
 import 'dart:html';
 import 'dart:math';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/sprites/playersprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';

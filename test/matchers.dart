@@ -3,7 +3,7 @@ library matchers;
 import 'package:unittest/unittest.dart';
 import 'dart:convert';
 import 'dart:mirrors';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/sprite.dart';

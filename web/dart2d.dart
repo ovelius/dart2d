@@ -10,7 +10,8 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/space_world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'dart:html';
 import 'dart:math';
 import 'dart:async';
@@ -30,7 +31,7 @@ void main() {
     // var name = (querySelector("#nameInput") as InputElement).value;
     // world.startAsServer(name, true); 
   });
-  world = new World(WIDTH, HEIGHT,  createPeerJs() /*createLocalHostPeerJs() */);
+  world = new SpaceWorld(WIDTH, HEIGHT,  createPeerJs() /*createLocalHostPeerJs() */);
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
   document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
   

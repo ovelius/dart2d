@@ -1,7 +1,7 @@
 library asteroid;
 
 import 'movingsprite.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/playersprite.dart';
 import 'dart:math';

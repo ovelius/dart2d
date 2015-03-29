@@ -4,7 +4,7 @@ import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
 import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';

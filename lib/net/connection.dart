@@ -3,7 +3,7 @@ library connection;
 import 'dart:js';
 import 'dart:html';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';

@@ -2,7 +2,7 @@ library movingsprite;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'dart:math';
 import 'dart:html';
 

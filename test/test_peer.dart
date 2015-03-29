@@ -2,11 +2,12 @@ library test_peer;
 
 import 'test_connection.dart';
 import 'package:dart2d/hud_messages.dart';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/space_world.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
-  World w = new World(400, 600, peer);
+  World w = new SpaceWorld(400, 600, peer);
   w.hudMessages = new TestHudMessage(w);
   return w;
 }

@@ -1,7 +1,7 @@
 library keystate;
 
 import 'dart:html';
-import 'world.dart';
+import 'package:dart2d/worlds/world.dart';
 
 class KeyState {
   World world;

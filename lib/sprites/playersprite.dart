@@ -5,7 +5,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/damage_projectile.dart';
 import 'dart:math';
-import 'package:dart2d/world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/stickysprite.dart';

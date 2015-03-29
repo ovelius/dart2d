@@ -26,7 +26,7 @@ double untilNextFrame = FRAME_SPEED;
 
 var canvas = null;
 
-class World {
+abstract class World {
   final Logger log = new Logger('World');
 
   PeerWrapper peer; 
@@ -67,6 +67,8 @@ class World {
     network.localPlayerName = name;
     network.peer.connectTo(id);
   }
+  
+  operator [](id) => sprites[id];
 
   void frameDraw([double duration = 0.01]) {
     if (restart) {
