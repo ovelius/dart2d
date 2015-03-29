@@ -66,6 +66,7 @@ abstract class World {
   }
   
   void connectTo(var id, String name) {
+    hudMessages.display("Connecting to ${id}");
     network = new Client(this, peer);
     network.localPlayerName = name;
     network.peer.connectTo(id);

@@ -1,3 +1,5 @@
+library spaceworld;
+
 import 'package:dart2d/worlds/world.dart';
 
 class SpaceWorld extends World {
