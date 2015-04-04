@@ -71,6 +71,8 @@ class Sprite {
   // Will be removed by the engine.
   bool remove = false;
   
+  bool invert = false;
+  
   Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
     var image = images[imageIndex];
     if (size == null) {
@@ -132,7 +134,7 @@ class Sprite {
         position.y + size.y / 2);
   }
 
-  frame(double duration, int frameStep) {
+  frame(double duration, int frameStep, [Vec2 gravity]) {
     if (frameStep > 0) {
       frameIndex += frameStep;
       frameIndex = frameIndex % frames;
@@ -145,7 +147,10 @@ class Sprite {
     }
   }
 
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
+    if (translate != null) {
+      context.translate(translate.x, translate.y);
+    }
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
@@ -157,6 +162,9 @@ class Sprite {
       }
       var image = images[imageIndex];
       num frameWidth = (image.width / frames); 
+      if (this.invert) {
+        context.scale(-1, 1);
+      }
       context.rotate(angle);
       context.drawImageScaledFromSource(
           images[imageIndex],

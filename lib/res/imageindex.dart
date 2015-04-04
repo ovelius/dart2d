@@ -3,7 +3,7 @@ library imageindex;
 import 'dart:html';
 import 'dart:async';
 
-var imageSources = [
+List<String> imageSources = [
     "shipg01.png",
     "shield.png",
     "shipr01.png",
@@ -13,6 +13,7 @@ var imageSources = [
     "astroid.png",
     "astroid2.png",
     "astroid3.png",
+    "duck.png",
 ];  
 
 var _EMPTY_IMAGE = new CanvasElement(width:100, height:100);

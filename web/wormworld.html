@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>SpaceWorld RTC</title>
+  </head>
+  <body>
+    <h1>Dart + WebRTC</h1>
+
+    <p id="peerId"><p>
+    <input id="nameInput" value="TestName1" />
+    <input id="clientId" />
+    <input type="button" id="clientBtn" value="Client" />
+    
+    <div id="container">
+      <canvas id="canvas" width="800" height="600" class="center"></canvas>
+      <br/>
+    </div>
+    
+    <input id="chatMsg" />
+    <input type="button" id="sendMsg" value="Send" />
+
+    <script type="application/dart" src="wormworld.dart"></script>
+    <script src="packages/browser/dart.js"></script>
+    <script src="packages/browser/interop.js"></script>
+    <script src="/peer.js"></script>
+  </body>
+</html>

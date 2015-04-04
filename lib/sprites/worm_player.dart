@@ -9,7 +9,10 @@ import 'dart:math';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
+import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/stickysprite.dart';
+import 'package:dart2d/sprites/rope.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
 
@@ -17,7 +20,7 @@ import 'dart:html';
  * Created on the server and streamed from the client.
  * How the servers represents remote clients.
  */
-class RemotePlayerServerSprite extends LocalPlayerSprite {
+class RemotePlayerServerSprite extends WormLocalPlayerSprite {
   RemotePlayerServerSprite(
       World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(world, keyState, info, x, y, imageIndex);
@@ -42,7 +45,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  * A version of the PlayerSprite created in the client and sent to the server.
  * How the client represents itself.
  */
-class RemotePlayerSprite extends LocalPlayerSprite {
+class RemotePlayerSprite extends WormLocalPlayerSprite {
   RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
       : super(world, keyState, null, x, y, imageIndex);
   
@@ -54,7 +57,8 @@ class RemotePlayerSprite extends LocalPlayerSprite {
 /**
  * How a server represents itself.
  */
-class LocalPlayerSprite extends MovingSprite {
+class WormLocalPlayerSprite extends MovingSprite {
+  static const BOUCHYNESS = 0.3;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(40.0, 40.0);
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;
@@ -64,16 +68,21 @@ class LocalPlayerSprite extends MovingSprite {
   int health = MAX_HEALTH;
   PlayerInfo info;
   Sprite damageSprite;
+  Rope rope;
   KeyState keyState;
   
-  static const fireDelay = 5;
+  bool onGround = false;
+  
+  bool facingRight = false;
+  
+  static const fireDelay = 10;
   int nextFireFrame = 0;
   
   bool inGame = true;
   double spawnIn = 0.0;
 
-  factory LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
-    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite);
+  factory WormLocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
+    WormLocalPlayerSprite sprite = new WormLocalPlayerSprite.copyFromMovingSprite(convertSprite);
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;
@@ -84,7 +93,7 @@ class LocalPlayerSprite extends MovingSprite {
     return sprite;
   }
   
-  LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
+  WormLocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
        : super.withVecPosition(convertSprite.position, convertSprite.imageIndex) {
      this.collision = inGame;
      this.size = convertSprite.size;
@@ -92,7 +101,7 @@ class LocalPlayerSprite extends MovingSprite {
      this.networkType = convertSprite.networkType;
    }
   
-  LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
+  WormLocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(x, y, imageIndex) {
     this.world = world;
     this.info = info;
@@ -101,11 +110,15 @@ class LocalPlayerSprite extends MovingSprite {
     this.size = DEFAULT_PLAYER_SIZE;
   }
 
-  draw(CanvasRenderingContext2D context, bool debug) {
+  collide(MovingSprite other, ByteWorld world) {
+
+  }
+  
+  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
     if (!inGame) {
       return;
     }
-    super.draw(context, debug);
+    super.draw(context, debug, translate);
     _drawHealthBar(context);
   }
 
@@ -119,7 +132,37 @@ class LocalPlayerSprite extends MovingSprite {
     context.fillRect(0, HEIGHT - 10, WIDTH, 10);
   }
 
-  frame(double duration, int frames) {
+  checkCollision(ByteWorld byteWorld) {
+    if (byteWorld.isCanvasCollide(position.x + 1, position.y + size.y, size.x - 1, 1)) {
+      onGround = true;
+      if (velocity.y > 0) {
+        velocity.y = -velocity.y * BOUCHYNESS;
+      }
+      // Check one more time, but y -1.
+      while (byteWorld.isCanvasCollide(position.x + 1, position.y + size.y - 1.0, size.x -1, 1)) {
+        position.y--;
+      }
+    } else if (byteWorld.isCanvasCollide(position.x, position.y, size.x, 1)) {
+      if (velocity.y < 0) {
+        velocity.y = -velocity.y * BOUCHYNESS;
+      }
+    }
+    
+    if (byteWorld.isCanvasCollide(position.x, position.y, 1, size.y - 1.0)) {
+      if (velocity.x < 0) {
+        velocity.x = -velocity.x * BOUCHYNESS;
+        position.x++;
+      }
+    }
+    if (byteWorld.isCanvasCollide(position.x + size.x, position.y, 1, size.y - 1.0)) {
+      if (velocity.x > 0) {
+        velocity.x = -velocity.x * BOUCHYNESS;
+        position.x--;
+      }
+    }
+  }
+  
+  frame(double duration, int frames, [Vec2 gravity]) {
     if (!inGame) {
       spawnIn-= duration;
       if (spawnIn < 0) {
@@ -131,40 +174,71 @@ class LocalPlayerSprite extends MovingSprite {
       }
       return;
     }
-    if (velocity.x > 10.0) {
-      this.frames = 2;
-    } else {
-      this.frames = 1;
-    }
-    checkControlKeys(duration);
-    checkForFireFrame(duration);
-    super.frame(duration, frames);
     double vsum = velocity.sum();
     if (vsum > MAX_SPEED) {
       velocity = velocity.normalize().multiply(MAX_SPEED);
-    } else {
-      velocity = velocity.multiply(0.99); 
+    }
+    checkControlKeys(duration);
+    checkForFireFrame(duration);
+    super.frame(duration, frames, gravity);
+    
+    
+    if (velocity.x.abs() < 10.0) {
+      this.frameIndex = 0;
+    }
+    
+    if (world is WormWorld) {
+      WormWorld w = world;
+      checkCollision(w.byteWorld);
     }
   }
 
   void checkControlKeys(double duration) {
     if (keyState.keyIsDown(KeyCode.LEFT)) {
-      angle-= 5.0 * duration;
+      if (velocity.x > -100) {
+        velocity.x -= 20.0;
+      } if (velocity.x < -100) {
+        velocity.x = -100.0;
+      }
+      invert = true;
+      facingRight = false;
+    } else if (keyState.keyIsDown(KeyCode.RIGHT)) {
+      if (velocity.x < 100) {
+        velocity.x += 20.0;
+      } if (velocity.x > 100) {
+        velocity.x = 100.0;
+      }
+      invert = false;
+      facingRight = true;
+    } else {
+      velocity.x = velocity.x * 0.94; 
     }
-    if (keyState.keyIsDown(KeyCode.RIGHT)) {
-      angle+= 5.0 * duration;
-    }
-    if (keyState.keyIsDown(KeyCode.UP)) {
-      acceleration = new Vec2.fromAngle(angle, duration * 10000.0); 
+    
+    if (keyState.keyIsDown(KeyCode.F) && onGround) {
+      this.velocity.y -= 200.0; 
+      this.onGround = false;
     } else if (keyState.keyIsDown(KeyCode.DOWN)) {
-      acceleration = new Vec2.fromAngle(angle, -duration * 10000.0); 
+      if (facingRight) {
+        angle -= duration * 2.0;
+      } else {
+        angle += duration * 2.0;    
+      }
+    } else if (keyState.keyIsDown(KeyCode.UP)) {
+      if (facingRight) {
+        angle += duration * 2.0;
+      } else {
+        angle -= duration * 2.0;    
+      }
     } else {
       acceleration = new Vec2();
+    }
+    if (keyState.keyIsDown(KeyCode.G)) {
+      fireRope();
     }
   }
 
   void checkForFireFrame(double duration) {
-    if (keyState.keyIsDown(KeyCode.SPACE)) {
+    if (keyState.keyIsDown(KeyCode.D)) {
       if (nextFireFrame <= 0) {
         fire();
         nextFireFrame += fireDelay;
@@ -174,8 +248,17 @@ class LocalPlayerSprite extends MovingSprite {
       nextFireFrame -= frames;  
     }
   }
+  
+  void fireRope() {
+    if (rope != null) {
+      world.removeSprite(rope.networkId);
+    }
+    rope = new Rope.createWithOwner(this, 400.0);
+    world.addSprite(rope);
+  }
+  
   void fire() {
-    Sprite sprite = new WorldDamageProjectile.createWithOwner(this, 3); // new DamageProjectile.createWithOwner(this, 3);
+    Sprite sprite = new WorldDamageProjectile.createWithOwner(this, 3);
     world.addSprite(sprite);
   }
   bool hasValidDamageSprite() {

@@ -20,11 +20,12 @@ DateTime lastStep;
 World world;
 
 void bootstrapWorld(World world) {
-  loadImages();
-  var peer = createPeerJs() /*createLocalHostPeerJs() */;
-  world.setJsPeer(peer);
-  lastStep = new DateTime.now();
-  new Timer(TIMEOUT, step);
+  loadImages().then( (items) {
+    var peer = createPeerJs() /*createLocalHostPeerJs() */;
+    world.setJsPeer(peer);
+    lastStep = new DateTime.now();
+    new Timer(TIMEOUT, step);
+  });
 }
 
 void step() {

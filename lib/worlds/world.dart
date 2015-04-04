@@ -2,7 +2,7 @@ library world;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import 'package:dart2d/net/connection.dart';
+import '../net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -13,6 +13,7 @@ import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
 import 'dart:math';
+import 'dart:html';
 import 'package:dart2d/sprites/playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -24,7 +25,7 @@ int serverFrame = 0;
 const FRAME_SPEED = 1.0/25;
 double untilNextFrame = FRAME_SPEED;
 
-var canvas = null;
+CanvasRenderingContext2D canvas = null;
 
 abstract class World {
   final Logger log = new Logger('World');
@@ -190,24 +191,23 @@ abstract class World {
   }
 
   addLocalPlayerSprite(String name) {
-    Server server = network as Server;
-    int id = server.gameState.getNextUsablePlayerSpriteId();
-    int imageId = server.gameState.getNextUsableSpriteImage();
+    int id = network.gameState.getNextUsablePlayerSpriteId();
+    int imageId = network.gameState.getNextUsableSpriteImage();
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
     LocalPlayerSprite playerSprite = new LocalPlayerSprite(
         this, localKeyState, info,
         new Random().nextInt(WIDTH).toDouble(),
-        new Random().nextInt(WIDTH).toDouble(),
+        new Random().nextInt(HEIGHT).toDouble(),
         imageByName["shipg01.png"]);
     playerSprite.networkId = id;
     playerSprite.setImage(imageId);
-    server.gameState.playerInfo.add(info);
+    network.gameState.playerInfo.add(info);
     addSprite(playerSprite);
   }
 
   startAsServer(String name, [bool forTest = false]) {
     addLocalPlayerSprite(name);
-    if (forTest == true) {
+    if (forTest) {
       addLocalPlayerSprite(name);
     }
   }

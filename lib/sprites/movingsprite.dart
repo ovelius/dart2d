@@ -3,6 +3,7 @@ library movingsprite;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 import 'dart:math';
 import 'dart:html';
 
@@ -21,7 +22,7 @@ class MovingSprite extends Sprite {
   MovingSprite.withVecPosition(Vec2 position, int imageIndex, [Vec2 size])
        : super.withVec2(position, imageIndex, size);
 
-  frame(double duration, int frames) {
+  frame(double duration, int frames, [Vec2 gravity]) {
     assert(duration != null);
     assert(duration >= .0);
 
@@ -30,23 +31,27 @@ class MovingSprite extends Sprite {
     
     position = position.add(
         velocity.multiply(duration));
+    
+    if (gravity != null) {
+      velocity = velocity.add(gravity.multiply(duration));
+    }
 
     angle += rotationVelocity * duration;
 
-    if (outOfBoundsCheck() && outOfBoundsMovesRemaining > 0) {
-      outOfBoundsMovesRemaining--;
-      remove = outOfBoundsMovesRemaining == 0;
-    }
+    //if (outOfBoundsCheck() && outOfBoundsMovesRemaining > 0) {
+  //    outOfBoundsMovesRemaining--;
+  //    remove = outOfBoundsMovesRemaining == 0;
+  //  }
 
-    super.frame(duration, frames);
+    super.frame(duration, frames, gravity);
   }
  
-  collide(MovingSprite other) {
+  collide(MovingSprite other, ByteWorld world) {
  
   }
 
-  draw(CanvasRenderingContext2D context, bool debug) {
-    super.draw(context, debug);
+  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
+    super.draw(context, debug, translate);
     if (debug) {
       context.resetTransform();
       context.setFillColorRgb(255, 255, 255);
