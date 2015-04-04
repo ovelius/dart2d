@@ -217,6 +217,10 @@ class WormLocalPlayerSprite extends MovingSprite {
     if (keyState.keyIsDown(KeyCode.F) && onGround) {
       this.velocity.y -= 200.0; 
       this.onGround = false;
+      if (rope != null) {
+        world.removeSprite(rope.networkId);
+        rope = null;
+      }
     } else if (keyState.keyIsDown(KeyCode.DOWN)) {
       if (facingRight) {
         angle -= duration * 2.0;
@@ -253,7 +257,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     if (rope != null) {
       world.removeSprite(rope.networkId);
     }
-    rope = new Rope.createWithOwner(this, 400.0);
+    rope = new Rope.createWithOwner(this, 600.0);
     world.addSprite(rope);
   }
   

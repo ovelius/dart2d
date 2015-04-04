@@ -3,13 +3,13 @@ import 'sprite.dart';
 import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/worlds/byteworld.dart';
+import 'dart:html';
 
-/*
- * A sprite that follows the position of another sprite. 
- */
 class Rope extends MovingSprite {
  
-  Sprite owner;
+  bool locked = false;
+  MovingSprite owner;
 
   Rope.createWithOwner(MovingSprite owner, double velocity)
        : super(0.0, 0.0, imageByName["fire.png"]) {
@@ -26,5 +26,41 @@ class Rope extends MovingSprite {
       
       this.velocity = this.velocity.multiply(velocity);
       this.velocity = owner.velocity + this.velocity;
+  }
+  
+  
+  collide(MovingSprite other, ByteWorld world) {
+    if (other == null) {
+      locked = true;
+      this.velocity = new Vec2();
     }
+  }
+  
+  dragOwner(double duration) {
+    Vec2 delta = position - owner.position;
+    delta = delta.multiply(duration * 3.0);
+    owner.velocity += delta;
+  }
+  
+  frame(double duration, int frames, [Vec2 gravity]) {
+    if (locked) {
+      // When locked we have no gravity.
+      dragOwner(duration);
+      super.frame(duration, frames);
+    } else {
+      super.frame(duration, frames, gravity);
+    }
+  }
+  
+  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
+    super.draw(context, debug, translate);
+    context.setFillColorRgb(200, 0, 0);
+    context.setStrokeColorRgb(200, 0, 0);
+    context.lineWidth = 2;
+    context.beginPath();
+    Vec2 ownerCenter = owner.centerPoint();
+    context.moveTo(ownerCenter.x, ownerCenter.y);
+    context.lineTo(position.x, position.y);
+    context.stroke();
+  }
 }
