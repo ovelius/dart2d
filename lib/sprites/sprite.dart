@@ -14,6 +14,7 @@ class SpriteType {
   static const IMAGE = const SpriteType._internal(0);
   static const RECT = const SpriteType._internal(1);
   static const CIRCLE = const SpriteType._internal(2);
+  static const CUSTOM = const SpriteType._internal(3);
   
   SpriteType.fromInt(this.value);
   operator ==(SpriteType other) {
@@ -70,9 +71,7 @@ class Sprite {
   int fullFramesOverNetwork = 3;
   // Will be removed by the engine.
   bool remove = false;
-  
-  bool invert = false;
-  
+
   Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
     var image = images[imageIndex];
     if (size == null) {
@@ -162,7 +161,7 @@ class Sprite {
       }
       var image = images[imageIndex];
       num frameWidth = (image.width / frames); 
-      if (this.invert) {
+      if (this.angle > PI * 2) {
         context.scale(-1, 1);
       }
       context.rotate(angle);

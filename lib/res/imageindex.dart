@@ -14,6 +14,10 @@ List<String> imageSources = [
     "astroid2.png",
     "astroid3.png",
     "duck.png",
+    "manhattan2.png",
+    "cake.png",
+    "banana.png",
+    "zooka.png",
 ];  
 
 var _EMPTY_IMAGE = new CanvasElement(width:100, height:100);

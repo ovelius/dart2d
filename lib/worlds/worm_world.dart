@@ -31,17 +31,29 @@ class WormWorld extends World {
     Sprite sprite = sprites[networkId];
     if(sprite is MovingSprite) {
       if (sprite.collision) {
-        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y)) {
-          sprite.collide(null, byteWorld);
+        // Above.
+        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y, sprite.size.x, 1)) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
         }
-        if (byteWorld.isCanvasCollide(sprite.position.x + sprite.size.x, sprite.position.y)) {
-          sprite.collide(null, byteWorld);
+        // Below.
+        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y + sprite.size.y, sprite.size.x, 1)) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
         }
-        if (byteWorld.isCanvasCollide(sprite.position.x + sprite.size.x, sprite.position.y + sprite.size.y)) {
-          sprite.collide(null, byteWorld);
+        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y, 1, sprite.size.y)) {
+         sprite.collide(null, byteWorld, MovingSprite.DIR_LEFT);
         }
-        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y + sprite.size.y)) {
-          sprite.collide(null, byteWorld);
+        if (byteWorld.isCanvasCollide(sprite.position.x + sprite.size.x, sprite.position.y, 1, sprite.size.y)) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
+        }
+        
+        if (sprite.position.x + sprite.size.x > byteWorld.width) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
+        }
+        if (sprite.position.x < 0) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_LEFT);
+        }
+        if (sprite.position.y + sprite.size.y > byteWorld.height) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
         }
       }
     }
@@ -52,7 +64,7 @@ class WormWorld extends World {
   }
   
   setJsPeer(var jsPeer) {
-    byteWorld = new ByteWorld(imageByName['stolen_level.png'], new Vec2(WIDTH * 1.0,  HEIGHT * 1.0));
+    byteWorld = new ByteWorld(imageByName['manhattan2.png'], new Vec2(WIDTH * 1.0,  HEIGHT * 1.0));
     peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
   }
@@ -66,7 +78,7 @@ class WormWorld extends World {
     putPendingSpritesInWorld();
 
     canvas.clearRect(0, 0, WIDTH, HEIGHT);
-    canvas.setFillColorRgb(0, 0, 0);
+    canvas.setFillColorRgb(135, 206, 250);
     canvas.fillRect(0, 0, WIDTH, HEIGHT);
     canvas.save();
     
@@ -88,12 +100,14 @@ class WormWorld extends World {
     }
    
    byteWorld.drawAt(canvas, centerView.x, centerView.y);
+   canvas.globalAlpha = 0.7;
+   byteWorld.drawAsMiniMap(canvas, 0, 0);
    canvas.restore();
   
    
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
-      canvas.resetTransform();
+      canvas.save();
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
@@ -102,6 +116,7 @@ class WormWorld extends World {
       if (sprite.remove) {
         removeSprites.add(sprite.networkId);
       }
+      canvas.restore();
     }
   
     while (removeSprites.length > 0) {
@@ -140,39 +155,6 @@ class WormWorld extends World {
     playerSprite.setImage(imageByName["duck.png"], 24);
     network.gameState.playerInfo.add(info);
     addSprite(playerSprite);
-  }
-
-  drawCustomImage() {
-      // create a new pixel array
-      var imageData = canvas.createImageData(100, 100);
-
-      int pos = 0; // index position into imagedata array
-      var xoff = 100 /  3; // offsets to "center"
-      var yoff = 100 / 3;
-      var x= 0;
-      var y= 0;
-
-      for (y = 0; y < 100; y++) {
-          for (x = 0; x < 100; x++) {
-              // calculate sine based on distance
-             var x2 = x - xoff;
-              var y2 = y - yoff;
-             var  d = sqrt(x2 * x2 + y2 * y2);
-             var t = sin(d / 6.0);
-
-              // calculate RGB values based on sine
-              var r = t * 200;
-             var  g = 125 + t * 80;
-            var   b = 235 + t * 20;
-
-              // set red, green, blue, and alpha:
-              imageData.data[pos++] = max(0, min(255, r)).toInt();
-              imageData.data[pos++] = max(0, min(255, g)).toInt();
-              imageData.data[pos++] = max(0, min(255, b)).toInt();
-              imageData.data[pos++] = 255; // opaque alpha
-          }
-      }
-      return imageData;
   }
   
 }

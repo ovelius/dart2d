@@ -8,11 +8,16 @@ import 'dart:math';
 import 'dart:html';
 
 class MovingSprite extends Sprite {
- 
+  static const int DIR_ABOVE = 0;
+  static const int DIR_BELOW = 1;
+  static const int DIR_LEFT = 2;
+  static const int DIR_RIGHT = 3;
+
   Vec2 velocity = new Vec2();
   double rotationVelocity = 0.0;
   Vec2 acceleration = new Vec2();
 
+  double gravityAffect = 1.0;
   bool collision = true;
   int outOfBoundsMovesRemaining = -1;
 
@@ -33,20 +38,15 @@ class MovingSprite extends Sprite {
         velocity.multiply(duration));
     
     if (gravity != null) {
-      velocity = velocity.add(gravity.multiply(duration));
+      velocity = velocity.add(gravity.multiply(duration * gravityAffect));
     }
 
     angle += rotationVelocity * duration;
 
-    //if (outOfBoundsCheck() && outOfBoundsMovesRemaining > 0) {
-  //    outOfBoundsMovesRemaining--;
-  //    remove = outOfBoundsMovesRemaining == 0;
-  //  }
-
     super.frame(duration, frames, gravity);
   }
  
-  collide(MovingSprite other, ByteWorld world) {
+  collide(MovingSprite other, ByteWorld world, int direction) {
  
   }
 
@@ -54,6 +54,9 @@ class MovingSprite extends Sprite {
     super.draw(context, debug, translate);
     if (debug) {
       context.resetTransform();
+      if (translate != null) {
+        context.translate(translate.x, translate.y);
+      }
       context.setFillColorRgb(255, 255, 255);
       context.fillText("vel: ${velocity}", position.x, position.y);
       context.beginPath();
@@ -64,26 +67,5 @@ class MovingSprite extends Sprite {
       context.strokeStyle = '#ffffff';
       context.stroke();
     }
-  }
-
-  bool outOfBoundsCheck() {
-    bool outOfBounds = false;
-    if (position.x > WIDTH) {
-      position.x = -size.x;
-      outOfBounds = true;
-    }
-    if (position.x < -size.x ) {
-      position.x = WIDTH.toDouble();
-      outOfBounds = true;
-    }
-    if (position.y > HEIGHT) {
-      position.y = -size.y;
-      outOfBounds = true;
-    }
-    if (position.y < -size.y) {
-      position.y = HEIGHT.toDouble();
-      outOfBounds = true;
-    }
-    return outOfBounds;
   }
 }

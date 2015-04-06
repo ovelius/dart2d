@@ -28,6 +28,14 @@ class ByteWorld {
        0, 0, viewSize.x , viewSize.y);
   }
   
+  void drawAsMiniMap(CanvasRenderingContext2D canvas, x, y, [width = 100, height = 100]) {
+    canvas.drawImageScaledFromSource(
+       this.canvas,
+       0, 0, // Source
+       this.width, this.height, // width.
+       x, y, width , height);
+  }
+  
   bool isCanvasCollide(num x, num y, [num width = 1, num height = 1]) {
     List<int> data = canvas.context2D.getImageData(x, y, 1, 1).data;
     for (int i = 0; i < data.length / 4; i++) {

@@ -8,11 +8,13 @@ import 'dart:html';
 
 class Rope extends MovingSprite {
  
+  ByteWorld world;
   bool locked = false;
   MovingSprite owner;
 
-  Rope.createWithOwner(MovingSprite owner, double velocity)
+  Rope.createWithOwner(ByteWorld world, MovingSprite owner, double velocity)
        : super(0.0, 0.0, imageByName["fire.png"]) {
+      this.world = world;
       this.owner = owner;
       Vec2 ownerCenter = owner.centerPoint();
       this.size = new Vec2(5.0, 5.0);
@@ -29,7 +31,7 @@ class Rope extends MovingSprite {
   }
   
   
-  collide(MovingSprite other, ByteWorld world) {
+  collide(MovingSprite other, ByteWorld world, int direction) {
     if (other == null) {
       locked = true;
       this.velocity = new Vec2();
@@ -38,7 +40,7 @@ class Rope extends MovingSprite {
   
   dragOwner(double duration) {
     Vec2 delta = position - owner.position;
-    delta = delta.multiply(duration * 3.0);
+    delta = delta.multiply(duration * 5.0);
     owner.velocity += delta;
   }
   
@@ -54,11 +56,17 @@ class Rope extends MovingSprite {
   
   draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
     super.draw(context, debug, translate);
-    context.setFillColorRgb(200, 0, 0);
-    context.setStrokeColorRgb(200, 0, 0);
-    context.lineWidth = 2;
-    context.beginPath();
+  //  context.setFillColorRgb(200, 0, 0);
+  //  context.setStrokeColorRgb(200, 0, 0);
     Vec2 ownerCenter = owner.centerPoint();
+    context.lineWidth = 2;
+    var grad= context.createLinearGradient(ownerCenter.x, ownerCenter.y, position.x, position.y);
+    grad.addColorStop(0, "red");
+    grad.addColorStop(1, "green");
+
+    context.strokeStyle = grad;
+
+    context.beginPath();
     context.moveTo(ownerCenter.x, ownerCenter.y);
     context.lineTo(position.x, position.y);
     context.stroke();
