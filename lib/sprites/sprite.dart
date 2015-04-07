@@ -146,10 +146,7 @@ class Sprite {
     }
   }
 
-  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
-    if (translate != null) {
-      context.translate(translate.x, translate.y);
-    }
+  draw(CanvasRenderingContext2D context, bool debug) {
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {

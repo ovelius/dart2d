@@ -3,7 +3,7 @@ library phys;
 import 'dart:math';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/sprite.dart';
-import 'vec2.dart';
+import 'package:dart2d/phys/vec2.dart';
 
 const double MIN =  0.000001;
 

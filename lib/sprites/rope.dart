@@ -54,8 +54,8 @@ class Rope extends MovingSprite {
     }
   }
   
-  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
-    super.draw(context, debug, translate);
+  draw(CanvasRenderingContext2D context, bool debug) {
+    super.draw(context, debug);
   //  context.setFillColorRgb(200, 0, 0);
   //  context.setStrokeColorRgb(200, 0, 0);
     Vec2 ownerCenter = owner.centerPoint();

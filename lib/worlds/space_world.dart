@@ -2,7 +2,6 @@ library spaceworld;
 
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import 'package:dart2d/sprites/astroid.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/phys.dart';

@@ -5,7 +5,6 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/sprites/playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 final Logger log = new Logger('GameState');

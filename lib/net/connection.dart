@@ -7,7 +7,6 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/playersprite.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';

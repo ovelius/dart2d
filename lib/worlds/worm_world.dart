@@ -3,7 +3,6 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import 'package:dart2d/sprites/astroid.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
@@ -112,7 +111,8 @@ class WormWorld extends World {
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
-      sprite.draw(canvas, localKeyState.debug, centerView.multiply(-1.0));
+      canvas.translate(-centerView.x, -centerView.y);
+      sprite.draw(canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
         removeSprites.add(sprite.networkId);

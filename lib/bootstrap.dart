@@ -1,5 +1,4 @@
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/sprites/playersprite.dart';
 import 'package:dart2d/sprites/stickysprite.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/keystate.dart';

@@ -50,13 +50,10 @@ class MovingSprite extends Sprite {
  
   }
 
-  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
-    super.draw(context, debug, translate);
+  draw(CanvasRenderingContext2D context, bool debug) {
+    super.draw(context, debug);
     if (debug) {
       context.resetTransform();
-      if (translate != null) {
-        context.translate(translate.x, translate.y);
-      }
       context.setFillColorRgb(255, 255, 255);
       context.fillText("vel: ${velocity}", position.x, position.y);
       context.beginPath();

@@ -33,7 +33,7 @@ class RemotePlayerServerSprite extends WormLocalPlayerSprite {
     this.info = info;
     this.keyState = keystate;
     this.collision = this.inGame;
-    this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
+    this.health = WormLocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
     this.networkId = sprite.networkId;
   }
 
@@ -141,11 +141,11 @@ class WormLocalPlayerSprite extends MovingSprite {
     }
   }
   
-  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     if (!inGame) {
       return;
     }
-    super.draw(context, debug, translate);
+    super.draw(context, debug);
   //  _drawHealthBar(context);
   }
 

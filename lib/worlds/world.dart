@@ -6,7 +6,6 @@ import '../net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/sprites/astroid.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/hud_messages.dart';
@@ -14,7 +13,6 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
 import 'dart:math';
 import 'dart:html';
-import 'package:dart2d/sprites/playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 int WIDTH;
