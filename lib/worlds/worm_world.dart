@@ -6,6 +6,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/astroid.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/gamestate.dart';
@@ -157,4 +158,22 @@ class WormWorld extends World {
     addSprite(playerSprite);
   }
   
+  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius) {
+    byteWorld.clearAt(location, radius);
+    addSprite(new Particles(null, location, velocity, radius));
+  }
+  
+  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius) {
+    byteWorld.clearAt(sprite.centerPoint(), radius);
+    addSprite(new Particles(null, sprite.position, velocity, radius));
+  }
+  
+  void addVelocityFromExplosion(Vec2 location, Vec2 velocity, int damage, double radius) {
+    for (int networkId in sprites.keys) {
+      Sprite sprite = sprites[networkId];
+      if (sprite is MovingSprite && sprite.collision) {
+        
+      }
+    }
+  }
 }

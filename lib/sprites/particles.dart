@@ -10,15 +10,16 @@ class Particles extends Sprite {
   int particleLifeTime;
   List<_Particle> particles;
   Sprite follow;
+  Vec2 location;
 
-  Particles(this.follow, this.velocityBase, [double radius = 10.0, int count = 30, int lifeTime = 35]) :
+  Particles(this.follow, this.location, this.velocityBase, [double radius = 10.0, int count = 30, int lifeTime = 35]) :
       super(0.0, 0.0, 0, 1, 1) {
     this.lifeTime = lifeTime;
     Random r = new Random();
     particles = new List();
     for (int i = 0; i < count; i++) {
       _Particle p = new _Particle();
-      p.setToRandom(r, radius, follow, velocityBase, lifeTime);
+      p.setToRandom(r, radius, follow, location, velocityBase, lifeTime);
       particles.add(p);
     }
     this.radius = radius;
@@ -51,8 +52,8 @@ class Particles extends Sprite {
       
       //regenerate particles
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
-        if (!follow.remove) {
-          p.setToRandom(r, radius, follow, velocityBase, this.particleLifeTime);
+        if (follow != null && !follow.remove) {
+          p.setToRandom(r, radius, follow, location, velocityBase, this.particleLifeTime);
         } else {
           dead++;
         }
@@ -87,12 +88,16 @@ class _Particle {
   int r, g, b;
   int radius;
   
-  setToRandom(Random ra, double radius, Sprite follow, Vec2 velocityBase, int lifeTime) {
+  setToRandom(Random ra, double radius, Sprite follow, Vec2 location, Vec2 velocityBase, int lifeTime) {
     r = ra.nextInt(255);
     g = ra.nextInt(255);
     b = ra.nextInt(255);
     this.radius = (radius * ra.nextDouble()).toInt();
-    location = follow.centerPoint();
+    if (follow != null) {
+      this.location = follow.centerPoint();
+    } else {
+      this.location = location;
+    }
     speed = new Vec2(ra.nextDouble() * velocityBase.x, ra.nextDouble() * velocityBase.y);
     lifeTimeRemaining = ra.nextInt(lifeTime);
   }

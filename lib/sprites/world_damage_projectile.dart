@@ -34,8 +34,7 @@ class BananaCake extends WorldDamageProjectile {
     }
   
   explode() {
-    world.byteWorld.clearAt(centerPoint(), radius);
-    world.addSprite(new Particles(this, this.velocity.multiply(0.2), radius));
+    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);    
     Random r = new Random();
     for (int i = 0; i < 5; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 3);
@@ -112,18 +111,8 @@ class WorldDamageProjectile extends MovingSprite {
     }
   }
 
-  double piOffsetDelta(double angle) {
-    if (angle > PI) {
-      return -2*PI + angle; 
-    } if (angle < PI) {
-      return 2*PI + angle;
-    }
-  }
-
   explode() {
-    world.byteWorld.clearAt(centerPoint(), radius);
-    Particles p = new Particles(this, this.velocity.multiply(0.2), this.radius);
-    world.addSprite(p);
+    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);    
     this.remove = true;
   }
   

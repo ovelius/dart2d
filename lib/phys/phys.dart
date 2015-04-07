@@ -2,6 +2,7 @@ library phys;
 
 import 'dart:math';
 import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/sprite.dart';
 import 'vec2.dart';
 
 const double MIN =  0.000001;
@@ -44,3 +45,12 @@ bool collision(MovingSprite sprite1, MovingSprite sprite2, double duration) {
   }
   return false;
 }
+
+void velocityForSingleSprite(
+  MovingSprite sprite, Vec2 location, double radius, double radiusDamage) {
+  Vec2 angle = location - sprite.centerPoint();
+  double distance = angle.sum();
+  double damage = distance * radiusDamage;
+  sprite.velocity += angle.multiply(damage);
+}
+

@@ -48,7 +48,7 @@ class WeaponState {
         // sprite.velocity = sprite.velocity.multiply(0.2);
          sprite.setImage(imageByName["zooka.png"]);
          weaponState.world.addSprite(sprite);
-         Particles p = new Particles(sprite, sprite.velocity.multiply(0.2));
+         Particles p = new Particles(sprite, sprite.position, sprite.velocity.multiply(0.2));
          weaponState.world.addSprite(p);
        },
   ];
