@@ -1,24 +1,28 @@
-abstract class AbstractWeapon {
+import 'package:dart2d/weapons/weapon_state.dart';
+
+class Weapon {
   // Static setup.
+  String name;
   int shotsPerClip = 5;
   double reloadTime = 5.0;
   double fireDelay = 0.5;
+  dynamic fire;
   // Instance state.
   double untilReload = 0.0;
   double untilNextFire = 0.0;
   int shotsLeft;
   
-  AbstractWeapon(this.shotsPerClip, this.reloadTime, this.fireDelay) {
+  Weapon(this.name, this.shotsPerClip, this.reloadTime, this.fireDelay, this.fire) {
     shotsLeft = shotsPerClip;
   }
   
-  void fireButton(double duration) {
+  void fireButton(double duration, WeaponState weaponState) {
     if (shotsLeft > 0) {
       untilNextFire -= duration;
       if (untilNextFire <= 0) {
         untilNextFire += fireDelay;
         shotsLeft--;
-        fire();
+        fire(weaponState);
         if (shotsLeft <= 0) {
           untilReload += reloadTime;
         }
@@ -31,6 +35,4 @@ abstract class AbstractWeapon {
       }
     }
   }
-  
-  void fire();
 }
