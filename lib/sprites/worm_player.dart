@@ -1,6 +1,6 @@
 library playersprites;
 
-import 'sprite.dart';
+import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/damage_projectile.dart';
@@ -68,7 +68,7 @@ class WormLocalPlayerSprite extends MovingSprite {
   WormWorld world;
   int health = MAX_HEALTH;
   PlayerInfo info;
-  Sprite damageSprite;
+  MovingSprite damageSprite;
   Rope rope;
   KeyState keyState;
   WeaponState weaponState;
@@ -77,6 +77,8 @@ class WormLocalPlayerSprite extends MovingSprite {
     
   bool inGame = true;
   double spawnIn = 0.0;
+  
+  MovingSprite gun;
 
   factory WormLocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
     WormLocalPlayerSprite sprite = new WormLocalPlayerSprite.copyFromMovingSprite(convertSprite);
@@ -105,7 +107,10 @@ class WormLocalPlayerSprite extends MovingSprite {
     this.keyState = keyState;
     this.collision = inGame;
     this.size = DEFAULT_PLAYER_SIZE;
-    this.weaponState = new WeaponState(world, keyState, this);
+    this.gun = new StickySprite(this, 0, Sprite.UNLIMITED_LIFETIME, 35, 2);
+    this.weaponState = new WeaponState(world, keyState, this, this.gun);
+    gun.spriteType = SpriteType.RECT;
+    gun.color = 0xffffff;
   }
 
   collide(MovingSprite other, ByteWorld world, int direction) {
@@ -146,7 +151,7 @@ class WormLocalPlayerSprite extends MovingSprite {
       return;
     }
     super.draw(context, debug);
-  //  _drawHealthBar(context);
+    _drawHealthBar(context);
   }
 
   _drawHealthBar(CanvasRenderingContext2D context) {
@@ -155,8 +160,10 @@ class WormLocalPlayerSprite extends MovingSprite {
     var grad = context.createLinearGradient(0, 0, 3*WIDTH*healthFactor, 10);
     grad.addColorStop(0, "#00ff00");
     grad.addColorStop(1, "#FF0000");
+    context.globalAlpha = 0.5;
     context.fillStyle = grad;
     context.fillRect(0, HEIGHT - 10, WIDTH, 10);
+    context.globalAlpha = 1.0;
   }
   
   frame(double duration, int frames, [Vec2 gravity]) {
@@ -192,12 +199,14 @@ class WormLocalPlayerSprite extends MovingSprite {
       } if (velocity.x < -100) {
         velocity.x = -100.0;
       }
+      this.angle = PI * 2 + 0.01;
     } else if (keyState.keyIsDown(KeyCode.RIGHT)) {
       if (velocity.x < 100) {
         velocity.x += 20.0;
       } if (velocity.x > 100) {
         velocity.x = 100.0;
       }
+      this.angle = 0.0; 
     } else {
       velocity.x = velocity.x * 0.94; 
     }
@@ -212,9 +221,9 @@ class WormLocalPlayerSprite extends MovingSprite {
       this.onGround = false;
      
     } else if (keyState.keyIsDown(KeyCode.DOWN)) {
-      angle -= duration * 2.0;
+      gun.angle -= duration * 2.0;
     } else if (keyState.keyIsDown(KeyCode.UP)) {
-      angle += duration * 2.0;
+      gun.angle += duration * 2.0;
     }
     
     if (keyState.keyIsDown(KeyCode.G)) {
@@ -238,7 +247,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     if (rope != null) {
       world.removeSprite(rope.networkId);
     }
-    rope = new Rope.createWithOwner(this.world.byteWorld, this, 600.0);
+    rope = new Rope.createWithOwner(this.world.byteWorld, this, this.gun.angle, 600.0);
     world.addSprite(rope);
   }
 
@@ -248,7 +257,7 @@ class WormLocalPlayerSprite extends MovingSprite {
   bool takesDamage() {
     return true;
   }
-  void takeDamage(Sprite sprite, int damage) {
+  void takeDamage(int damage) {
     health -= damage;
     if (health <= 0) {
       world.hudMessages.displayAndSendToNetwork("${info.name} died!");
@@ -263,6 +272,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     } else {
       if (!hasValidDamageSprite()) {
         damageSprite = new StickySprite(this, imageByName["shield.png"], 40, 80);
+        damageSprite.rotationVelocity = new Random().nextDouble() * 10000;
         world.addSprite(damageSprite);
       } else {
         damageSprite.lifeTime = 40;

@@ -156,23 +156,29 @@ class WormWorld extends World {
     playerSprite.setImage(imageByName["duck.png"], 24);
     network.gameState.playerInfo.add(info);
     addSprite(playerSprite);
+    addSprite(playerSprite.gun);
   }
   
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius) {
     byteWorld.clearAt(location, radius);
     addSprite(new Particles(null, location, velocity, radius));
+    addVelocityFromExplosion(location, velocity, damage, radius);
   }
   
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius) {
     byteWorld.clearAt(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius));
+    addVelocityFromExplosion(sprite.position, velocity, damage, radius);
   }
   
   void addVelocityFromExplosion(Vec2 location, Vec2 velocity, int damage, double radius) {
     for (int networkId in sprites.keys) {
       Sprite sprite = sprites[networkId];
       if (sprite is MovingSprite && sprite.collision) {
-        
+        int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
+        if (damageTaken > 0 && sprite.takesDamage()) {
+          sprite.takeDamage(damageTaken.toInt());
+        }
       }
     }
   }

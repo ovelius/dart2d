@@ -12,6 +12,7 @@ class WeaponState {
   World world;
   KeyState keyState;
   Sprite owner;
+  Sprite gun;
   
   double fireRate = 0.5;
   double untilNextFire = 0.0;
@@ -20,7 +21,7 @@ class WeaponState {
   
   List<dynamic> weapons = [
     (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world, weaponState.owner, 3);
+      WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world, weaponState.gun, 50);
       sprite.explodeAfter = 4.0;
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
@@ -28,7 +29,7 @@ class WeaponState {
     (WeaponState weaponState) {
       Random r = new Random();
       for (int i = 0; i < 10; i++) {
-        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 3);
+        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
         sprite.spriteType = SpriteType.RECT;
         double sum = sprite.velocity.sum();
         sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
@@ -42,7 +43,7 @@ class WeaponState {
       }
     },
     (WeaponState weaponState) {
-         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 3);
+         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
          sprite.radius = 30.0;
          sprite.gravityAffect = 0.0;
         // sprite.velocity = sprite.velocity.multiply(0.2);
@@ -53,7 +54,7 @@ class WeaponState {
        },
   ];
   
-  WeaponState(this.world, this.keyState, this.owner);
+  WeaponState(this.world, this.keyState, this.owner, this.gun);
   
   nextWeapon() {
     weaponIndex++;

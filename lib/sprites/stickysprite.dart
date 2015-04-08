@@ -2,6 +2,7 @@ library stickysprite;
 
 import 'movingsprite.dart';
 import 'sprite.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 
 /*
@@ -11,16 +12,15 @@ class StickySprite extends MovingSprite {
  
   Sprite stickTo;
 
-  StickySprite(Sprite stickTo, int imageIndex, int lifeTime, int width) :
-      super(stickTo.position.x, stickTo.position.y, imageIndex, width, width) {
+  StickySprite(Sprite stickTo, int imageIndex, int lifeTime, int width, [int height]) :
+      super(stickTo.position.x, stickTo.position.y, imageIndex, width, height == null ? width : height) {
     this.stickTo = stickTo;
     this.collision = false;
     this.lifeTime = lifeTime;
   }
 
-  frame(double duration, int frames) {
+  frame(double duration, int frames, [Vec2 gravity]) {
     setCenter(stickTo.centerPoint());
-    rotationVelocity = new Random().nextDouble() * 10000;
     super.frame(duration, frames);
   }
 }

@@ -184,8 +184,12 @@ class Sprite {
   }
 
   drawRect(CanvasRenderingContext2D context) {
+    context.translate(position.x + size.x, position.y + size.y);
+    context.rotate(angle);
     setColor(context);
-    context.fillRect(position.x, position.y, size.x, size.y);
+    int x2 = size.x ~/ 2;
+    int y2 = size.y ~/ 2;
+    context.fillRect(-x2, -y2, x2, y2);
   }
 
   drawCircle(CanvasRenderingContext2D context) {

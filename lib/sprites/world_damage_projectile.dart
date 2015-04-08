@@ -30,14 +30,13 @@ class BananaCake extends WorldDamageProjectile {
       this.outOfBoundsMovesRemaining = 2;
       this.velocity = this.velocity.multiply(200.0);
       this.velocity = owner.velocity + this.velocity;
-      this.homingFactor = homingFactor;
     }
   
   explode() {
     world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);    
     Random r = new Random();
     for (int i = 0; i < 5; i++) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 3);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 30);
       sprite.setImage(imageByName["banana.png"]);
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
@@ -59,7 +58,6 @@ class WorldDamageProjectile extends MovingSprite {
   MovingSprite owner;
   int damage = 1;
 
-  double homingFactor = null;
   double bounche = 0.5;
   
   double radius = 15.0;
@@ -126,7 +124,7 @@ class WorldDamageProjectile extends MovingSprite {
     super.frame(duration, frames, gravity);
   }
 
-  WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+  WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)
      : super(0.0, 0.0, imageByName["fire.png"]) {
     this.world = world;
     this.owner = owner;
@@ -142,6 +140,5 @@ class WorldDamageProjectile extends MovingSprite {
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);
     this.velocity = owner.velocity + this.velocity;
-    this.homingFactor = homingFactor;
   }
 }

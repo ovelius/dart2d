@@ -12,7 +12,7 @@ class Rope extends MovingSprite {
   bool locked = false;
   MovingSprite owner;
 
-  Rope.createWithOwner(ByteWorld world, MovingSprite owner, double velocity)
+  Rope.createWithOwner(ByteWorld world, MovingSprite owner, double angle, double velocity)
        : super(0.0, 0.0, imageByName["fire.png"]) {
       this.world = world;
       this.owner = owner;
@@ -23,8 +23,8 @@ class Rope extends MovingSprite {
       this.spriteType = SpriteType.RECT;
       
       this.angle = owner.angle;
-      this.velocity.x = cos(owner.angle);
-      this.velocity.y = sin(owner.angle);
+      this.velocity.x = cos(angle);
+      this.velocity.y = sin(angle);
       
       this.velocity = this.velocity.multiply(velocity);
       this.velocity = owner.velocity + this.velocity;
@@ -49,6 +49,9 @@ class Rope extends MovingSprite {
       // When locked we have no gravity.
       dragOwner(duration);
       super.frame(duration, frames);
+      if (this.velocity.sum() > 0.01) {
+        locked = false;
+      }
     } else {
       super.frame(duration, frames, gravity);
     }
