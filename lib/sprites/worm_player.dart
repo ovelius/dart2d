@@ -64,6 +64,18 @@ class WormLocalPlayerSprite extends MovingSprite {
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;
   static const MAX_SPEED = 500.0;
+  
+  Map<String, int> _controls = {
+      "Left": KeyCode.LEFT,
+      "Right": KeyCode.RIGHT,
+      "Aim up": KeyCode.UP,
+      "Aim down": KeyCode.DOWN,
+      "Jump": KeyCode.D,
+      "Fire": KeyCode.F,
+      "Rope": KeyCode.R,
+      "Next weapon": KeyCode.G,
+      "Prev weapon": KeyCode.B,
+  };
 
   WormWorld world;
   int health = MAX_HEALTH;
@@ -111,6 +123,12 @@ class WormLocalPlayerSprite extends MovingSprite {
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
     gun.spriteType = SpriteType.RECT;
     gun.color = 0xffffff;
+    this.listenFor("Next weapon", () {
+      weaponState.nextWeapon();
+    });
+    this.listenFor("Prev weapon", () {
+      weaponState.prevWeapon();
+    });
   }
 
   collide(MovingSprite other, ByteWorld world, int direction) {
@@ -193,14 +211,14 @@ class WormLocalPlayerSprite extends MovingSprite {
   }
 
   void checkControlKeys(double duration) {
-    if (keyState.keyIsDown(KeyCode.LEFT)) {
+    if (keyIsDown("Left")) {
       if (velocity.x > -100) {
         velocity.x -= 20.0;
       } if (velocity.x < -100) {
         velocity.x = -100.0;
       }
       this.angle = PI * 2 + 0.01;
-    } else if (keyState.keyIsDown(KeyCode.RIGHT)) {
+    } else if (keyIsDown("Right")) {
       if (velocity.x < 100) {
         velocity.x += 20.0;
       } if (velocity.x > 100) {
@@ -220,13 +238,13 @@ class WormLocalPlayerSprite extends MovingSprite {
       this.velocity.y -= 200.0; 
       this.onGround = false;
      
-    } else if (keyState.keyIsDown(KeyCode.DOWN)) {
+    } else if (keyIsDown("Aim down")) {
       gun.angle -= duration * 2.0;
-    } else if (keyState.keyIsDown(KeyCode.UP)) {
+    } else if (keyIsDown("Aim up")) {
       gun.angle += duration * 2.0;
     }
     
-    if (keyState.keyIsDown(KeyCode.G)) {
+    if (keyIsDown("Rope")) {
       fireRope();
     }
   }
@@ -234,12 +252,6 @@ class WormLocalPlayerSprite extends MovingSprite {
   void checkForFireFrame(double duration) {
     if (keyState.keyIsDown(KeyCode.D)) {
       weaponState.fire(duration);
-    }
-    if (keyState.keyIsDown(KeyCode.T)) {
-      weaponState.prevWeapon();
-    }
-    if (keyState.keyIsDown(KeyCode.Y)) {
-      weaponState.prevWeapon();
     }
   }
   
@@ -278,5 +290,15 @@ class WormLocalPlayerSprite extends MovingSprite {
         damageSprite.lifeTime = 40;
       }
     }
+  }
+  
+  void listenFor(String key, dynamic f) {
+    assert(_controls.containsKey(key));
+    keyState.registerListener(_controls[key], f);
+  }
+  
+  bool keyIsDown(String key) {
+    assert(_controls.containsKey(key));
+    return keyState.keyIsDown(_controls[key]);
   }
 }
