@@ -8,6 +8,7 @@ class KeyState {
   bool debug = false;
   
   Map<int, bool> keysDown = new Map<int, bool>();
+  Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
   
   KeyState(this.world);
   
@@ -18,9 +19,14 @@ class KeyState {
     if (e.keyCode == KeyCode.F4) {
       world.freeze = !world.freeze;
     }
-    // If this a newly pushed key, send it to the network right away.
-    if (world != null && !keysDown.containsKey(e.keyCode)) {
-      world.network.maybeSendLocalKeyStateUpdate();
+    if (!keysDown.containsKey(e.keyCode)) {
+      // If this a newly pushed key, send it to the network right away.
+      if (world != null) {
+        world.network.maybeSendLocalKeyStateUpdate();
+      }
+      if (_listeners.containsKey(e.keyCode)) {
+        _listeners[e.keyCode].forEach((f) { f(); });
+      }
     }
     keysDown[e.keyCode] = true;
   }
@@ -48,5 +54,13 @@ class KeyState {
       }
     }
     return keys;
+  }
+  
+  registerListener(int key, dynamic f) {
+    if (!_listeners.containsKey(key)) {
+      _listeners[key] = new List<dynamic>();
+    }
+    List<dynamic> listeners = _listeners[key];
+    listeners.add(f);
   }
 }
