@@ -62,11 +62,22 @@ class Particles extends Sprite {
       
       context.beginPath();
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
-      var gradient = context.createRadialGradient(p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);
-      var color = "rgba(${p.r}, ${p.g}, ${p.b}, ${opacity})";
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(0.5, color);
-      gradient.addColorStop(1, "rgba(${p.r}, ${p.g}, ${p.b}, 0)");
+      CanvasGradient gradient = context.createRadialGradient(p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);
+      StringBuffer buffer = new StringBuffer("rgba(");
+      buffer..write(p.r)
+        ..write(",")
+        ..write(p.g)
+        ..write(",")
+        ..write(p.b)
+        ..write(",");
+      
+      StringBuffer bufferNoOpacity = new StringBuffer(buffer);
+      buffer..write(opacity)..write(")");
+      bufferNoOpacity.write("0)");
+                
+      gradient.addColorStop(0, buffer.toString());
+      gradient.addColorStop(0.5, buffer.toString());
+      gradient.addColorStop(1, bufferNoOpacity.toString());
       context.fillStyle = gradient;
       context.arc(p.location.x, p.location.y, p.radius, 0, PI*2.0);
       context.fill();

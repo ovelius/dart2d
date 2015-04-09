@@ -122,7 +122,6 @@ class WormLocalPlayerSprite extends MovingSprite {
     this.gun = new StickySprite(this, 0, Sprite.UNLIMITED_LIFETIME, 35, 2);
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
     gun.spriteType = SpriteType.RECT;
-    gun.color = 0xffffff;
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
     });

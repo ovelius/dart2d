@@ -55,8 +55,7 @@ class Sprite {
   double angle = 0.0;
   SpriteType spriteType = SpriteType.IMAGE;
   // Color
-  int color = 0xffffff;
-  double alpha = 1.0;
+  String color = "rgba(255, 255, 255, 1.0)";
   // Animation data computed in constructor.
   int frameIndex = 0;
   int frames = 1;
@@ -176,11 +175,7 @@ class Sprite {
   }
   
   setColor(CanvasRenderingContext2D context) {
-    context.setFillColorRgb(
-        color & 0xff,
-        (color & 0x00ff) << 8,
-        (color & 0x0000ff) << 16,
-        alpha);
+    context.fillStyle = color;
   }
 
   drawRect(CanvasRenderingContext2D context) {
