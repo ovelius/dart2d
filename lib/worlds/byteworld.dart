@@ -37,7 +37,7 @@ class ByteWorld {
   }
   
   bool isCanvasCollide(num x, num y, [num width = 1, num height = 1]) {
-    List<int> data = canvas.context2D.getImageData(x, y, 1, 1).data;
+    List<int> data = canvas.context2D.getImageData(x, y, width, height).data;
     for (int i = 0; i < data.length / 4; i++) {
       if (data[i*4 + 3] > 0) {
         return true;
