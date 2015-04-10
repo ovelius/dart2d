@@ -54,12 +54,12 @@ class MovingSprite extends Sprite {
     super.draw(context, debug);
     if (debug) {
       context.resetTransform();
-      context.setFillColorRgb(255, 255, 255);
-      context.fillText("vel: ${velocity}", position.x, position.y);
+      context.translate(position.x, position.y);
+      context.fillStyle = "#ffffff";
+      context.fillText("vel: ${velocity}", 0, 0);
       context.beginPath();
-      Vec2 center = centerPoint();
-      context.arc(center.x, center.y, getRadius(), 0, 2 * PI, false);
-      context.rect(position.x, position.y, size.x, size.y);
+      context.arc(size.x / 2, size.y /2, getRadius(), 0, 2 * PI, false);
+      context.rect(0, 0, size.x, size.y);
       context.lineWidth = 1;
       context.strokeStyle = '#ffffff';
       context.stroke();

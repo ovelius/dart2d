@@ -20,7 +20,7 @@ int HEIGHT;
 
 int serverFrame = 0;
 // 25 server frames per second.
-const FRAME_SPEED = 1.0/25;
+const FRAME_SPEED = 1.0/15;
 double untilNextFrame = FRAME_SPEED;
 
 CanvasRenderingContext2D canvas = null;
@@ -213,6 +213,7 @@ abstract class World {
   void drawFpsCounters() {
     if (localKeyState.debug) {
       var font = canvas.font;
+      canvas.fillStyle = "#ffffff";
       canvas.font = '16pt Calibri';
       canvas.fillText("DrawFps: $drawFps", 0, 20);
       canvas.fillText("ServerFps: $serverFps", 0, 40);

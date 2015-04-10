@@ -59,8 +59,6 @@ class Rope extends MovingSprite {
   
   draw(CanvasRenderingContext2D context, bool debug) {
     super.draw(context, debug);
-  //  context.setFillColorRgb(200, 0, 0);
-  //  context.setStrokeColorRgb(200, 0, 0);
     Vec2 ownerCenter = owner.centerPoint();
     context.lineWidth = 2;
     var grad= context.createLinearGradient(ownerCenter.x, ownerCenter.y, position.x, position.y);

@@ -108,10 +108,10 @@ class WormWorld extends World {
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
       canvas.save();
+      canvas.translate(-centerView.x, -centerView.y);
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
-      canvas.translate(-centerView.x, -centerView.y);
       sprite.draw(canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {

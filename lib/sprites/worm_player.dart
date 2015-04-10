@@ -70,8 +70,8 @@ class WormLocalPlayerSprite extends MovingSprite {
       "Right": KeyCode.RIGHT,
       "Aim up": KeyCode.UP,
       "Aim down": KeyCode.DOWN,
-      "Jump": KeyCode.D,
-      "Fire": KeyCode.F,
+      "Jump": KeyCode.F,
+      "Fire": KeyCode.D,
       "Rope": KeyCode.R,
       "Next weapon": KeyCode.G,
       "Prev weapon": KeyCode.B,
@@ -169,6 +169,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     }
     super.draw(context, debug);
     _drawHealthBar(context);
+    weaponState.draw(context);
   }
 
   _drawHealthBar(CanvasRenderingContext2D context) {
@@ -200,10 +201,9 @@ class WormLocalPlayerSprite extends MovingSprite {
       velocity = velocity.normalize().multiply(MAX_SPEED);
     }
     checkControlKeys(duration);
-    checkForFireFrame(duration);
     super.frame(duration, frames, gravity);
     
-    
+    weaponState.think(duration);
     if (velocity.x.abs() < 10.0) {
       this.frameIndex = 0;
     }
@@ -243,14 +243,12 @@ class WormLocalPlayerSprite extends MovingSprite {
       gun.angle += duration * 2.0;
     }
     
+    if (keyIsDown("Fire")) {
+      weaponState.fire();
+    }
+    
     if (keyIsDown("Rope")) {
       fireRope();
-    }
-  }
-
-  void checkForFireFrame(double duration) {
-    if (keyState.keyIsDown(KeyCode.D)) {
-      weaponState.fire(duration);
     }
   }
   

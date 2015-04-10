@@ -16,23 +16,33 @@ class Weapon {
     shotsLeft = shotsPerClip;
   }
   
-  void fireButton(double duration, WeaponState weaponState) {
+  void fireButton(WeaponState weaponState) {
     if (shotsLeft > 0) {
-      untilNextFire -= duration;
       if (untilNextFire <= 0) {
-        untilNextFire += fireDelay;
+        untilNextFire = fireDelay;
         shotsLeft--;
         fire(weaponState);
         if (shotsLeft <= 0) {
-          untilReload += reloadTime;
+          untilReload = reloadTime;
         }
       }
-    } else {
-      untilReload -= duration;
-      if (untilReload < 0) {
-        shotsLeft = shotsPerClip;
-        untilNextFire = 0.0;
-      }
     }
+  }
+  
+  void think (double duration) {
+    untilNextFire -= duration;
+    untilReload -= duration;
+    if (shotsLeft <= 0 && untilReload < 0) {
+      shotsLeft = shotsPerClip;
+      untilNextFire = 0.0;
+    }
+  }
+  
+  bool reloading() {
+    return untilReload > 0; 
+  }
+  
+  int reloadPercent() {
+    return (untilReload * 100 ~/ reloadTime);
   }
 }

@@ -146,11 +146,10 @@ class Sprite {
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.translate(position.x + size.x / 2, position.y + size.y / 2);
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
-      Vec2 center = centerPoint();
-      context.translate(center.x, center.y);
       if (debug) {
         context.setFillColorRgb(255, 255, 255);
         context.fillRect(-3,  -3, 6, 6);
@@ -179,7 +178,6 @@ class Sprite {
   }
 
   drawRect(CanvasRenderingContext2D context) {
-    context.translate(position.x + size.x, position.y + size.y);
     context.rotate(angle);
     setColor(context);
     int x2 = size.x ~/ 2;

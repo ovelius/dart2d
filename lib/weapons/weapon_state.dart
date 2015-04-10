@@ -10,11 +10,13 @@ import 'dart:html';
 import 'package:dart2d/phys/vec2.dart';
 
 class WeaponState {
+  static const double SHOW_WEAPON_NAME_TIME = 0.5;
   World world;
   KeyState keyState;
   Sprite owner;
   Sprite gun;
   
+  double changeTime = 0.0;
   int weaponIndex = 2;
   
   List<Weapon> weapons = [
@@ -57,6 +59,7 @@ class WeaponState {
   nextWeapon() {
     weaponIndex++;
     weaponIndex = weaponIndex % weapons.length;
+    changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
   prevWeapon() {
@@ -64,9 +67,27 @@ class WeaponState {
     if (weaponIndex < 0) {
       weaponIndex = weapons.length - 1;
     }
+    changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
-  fire(double duration) {
-    weapons[weaponIndex].fireButton(duration, this);
+  fire() {
+    weapons[weaponIndex].fireButton(this);
   }
+  
+  think(double duration) {
+    changeTime -= duration;
+    weapons[weaponIndex].think(duration);
+  }
+  
+  draw(CanvasRenderingContext2D context) {
+    context.fillStyle = "#ffffff";
+    Vec2 center = owner.centerPoint();
+    if (changeTime > 0) {
+      context.fillText(weapons[weaponIndex].name, center.x, center.y);
+    }
+    if (weapons[weaponIndex].reloading()) {
+      context.fillText(weapons[weaponIndex].reloadPercent().toString(), center.x, center.y);
+    }
+  }
+  
 }
