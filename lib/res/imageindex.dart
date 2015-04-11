@@ -18,6 +18,7 @@ List<String> imageSources = [
     "cake.png",
     "banana.png",
     "zooka.png",
+    "box.png",
 ];  
 
 var _EMPTY_IMAGE = new CanvasElement(width:100, height:100);

@@ -169,7 +169,7 @@ class WormWorld extends World {
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius) {
     byteWorld.clearAt(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius));
-    addVelocityFromExplosion(sprite.position, damage, radius);
+    addVelocityFromExplosion(sprite.centerPoint(), damage, radius);
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius) {

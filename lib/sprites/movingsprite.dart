@@ -49,20 +49,4 @@ class MovingSprite extends Sprite {
   collide(MovingSprite other, ByteWorld world, int direction) {
  
   }
-
-  draw(CanvasRenderingContext2D context, bool debug) {
-    super.draw(context, debug); /*
-    if (debug) {
-      context.resetTransform();
-      context.translate(position.x, position.y);
-      context.fillStyle = "#ffffff";
-      context.fillText("vel: ${velocity}", 0, 0);
-      context.beginPath();
-      context.arc(size.x / 2, size.y /2, getRadius(), 0, 2 * PI, false);
-      context.rect(0, 0, size.x, size.y);
-      context.lineWidth = 1;
-      context.strokeStyle = '#ffffff';
-      context.stroke();
-    } */
-  }
 }

@@ -50,9 +50,9 @@ double velocityForSingleSprite(
   MovingSprite sprite, Vec2 location, double radius, int radiusDamage) {
   Vec2 angle = sprite.centerPoint() - location;
   double distance = angle.sum();
-  if (distance < radius) {
-    double damage = radiusDamage / distance;
-    sprite.velocity += angle.multiply(damage * 2.0);
+  if (distance < radius && distance > 0.0) {
+    double damage = radiusDamage / (distance / 10.0);
+    sprite.velocity += angle.multiply(damage);
     return damage;
   }
   return 0.0;

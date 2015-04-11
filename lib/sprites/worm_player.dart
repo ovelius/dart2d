@@ -180,7 +180,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     grad.addColorStop(1, "#FF0000");
     context.globalAlpha = 0.5;
     context.fillStyle = grad;
-    context.fillRect(0, HEIGHT - 10, WIDTH, 10);
+    context.fillRect(0, HEIGHT - 10, WIDTH * healthFactor, 10);
     context.globalAlpha = 1.0;
   }
   

@@ -8,6 +8,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'dart:html';
 import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
@@ -35,7 +36,7 @@ class BananaCake extends WorldDamageProjectile {
   explode() {
     world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);
     Random r = new Random();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 30);
       sprite.setImage(imageByName["banana.png"]);
       sprite.velocity.x = -PI * 2; 
@@ -122,6 +123,16 @@ class WorldDamageProjectile extends MovingSprite {
       }
     }
     super.frame(duration, frames, gravity);
+  }
+  
+  draw(CanvasRenderingContext2D context, bool debug) {
+    if (explodeAfter != null) {
+      context.fillStyle = "#ffffff";
+      context.fillText(
+        explodeAfter.toInt().toString(), position.x, position.y - size.y);
+    }
+    super.draw(context, debug);
+   
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)

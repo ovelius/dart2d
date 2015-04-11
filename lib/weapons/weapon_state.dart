@@ -51,6 +51,16 @@ class WeaponState {
       p.damage = 22;
       weaponState.world.addSprite(p);
     }),
+    new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 100);
+      sprite.radius = 150.0;
+      sprite.explodeAfter = 5.0;
+      sprite.size = new Vec2(140.0 * 0.3, 129.0 * 0.3);
+      sprite.angle = 0.0;
+      sprite.velocity = sprite.velocity.multiply(0.2);
+      sprite.setImage(imageByName["box.png"], 140);
+      weaponState.world.addSprite(sprite);
+    }),
     new Weapon("Zooka", 3, 5.0, 1.0, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
       sprite.radius = 30.0;

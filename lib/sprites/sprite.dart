@@ -148,17 +148,14 @@ class Sprite {
   draw(CanvasRenderingContext2D context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     if (debug) {
-       //  context.resetTransform();
-         // context.translate(position.x, position.y);
-         context.fillStyle = "#ffffff";
-        // context.fillText("vel: ${velocity}", 0, 0);
-         context.beginPath();
-         context.arc(0, 0, getRadius(), 0, 2 * PI, false);
-         context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
-         context.lineWidth = 1;
-         context.strokeStyle = '#ffffff';
-         context.stroke();
-       }
+      context.fillStyle = "#ffffff";
+      context.beginPath();
+      context.arc(0, 0, getRadius(), 0, 2 * PI, false);
+      context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
+      context.lineWidth = 1;
+      context.strokeStyle = '#ffffff';
+      context.stroke();
+    }
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
