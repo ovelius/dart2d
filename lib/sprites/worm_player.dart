@@ -167,9 +167,9 @@ class WormLocalPlayerSprite extends MovingSprite {
     if (!inGame) {
       return;
     }
+    weaponState.draw(context);
     super.draw(context, debug);
     _drawHealthBar(context);
-    weaponState.draw(context);
   }
 
   _drawHealthBar(CanvasRenderingContext2D context) {

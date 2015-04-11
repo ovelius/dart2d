@@ -147,13 +147,21 @@ class Sprite {
 
   draw(CanvasRenderingContext2D context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
+    if (debug) {
+       //  context.resetTransform();
+         // context.translate(position.x, position.y);
+         context.fillStyle = "#ffffff";
+        // context.fillText("vel: ${velocity}", 0, 0);
+         context.beginPath();
+         context.arc(0, 0, getRadius(), 0, 2 * PI, false);
+         context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
+         context.lineWidth = 1;
+         context.strokeStyle = '#ffffff';
+         context.stroke();
+       }
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
-      if (debug) {
-        context.setFillColorRgb(255, 255, 255);
-        context.fillRect(-3,  -3, 6, 6);
-      }
       var image = images[imageIndex];
       num frameWidth = (image.width / frames); 
       if (this.angle > PI * 2) {
@@ -171,6 +179,7 @@ class Sprite {
     } else {
       print("Warning: Can't handle sprite type $spriteType");
     }
+
   }
   
   setColor(CanvasRenderingContext2D context) {

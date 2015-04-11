@@ -26,7 +26,7 @@ class WeaponState {
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Shotgun", 4, 2.0, .5, (WeaponState weaponState) {
+    new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       Random r = new Random();
       for (int i = 0; i < 10; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
@@ -37,10 +37,19 @@ class WeaponState {
            
         sprite.gravityAffect = 0.5;
         
-        sprite.size = new Vec2(2.0, 2.0);
+        sprite.size = new Vec2(8.0, 8.0);
         sprite.radius = 8.0;
         weaponState.world.addSprite(sprite);
       }
+    }),
+    new Weapon("Cofee Burn", 150, 2.0, .05, (WeaponState weaponState) {
+      Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
+      Particles p = new Particles(
+          null, weaponState.owner.position, vel.multiply(200.0),
+          8.0, 5, 45, -0.3, Particles.FIRE);
+      p.world = weaponState.world;
+      p.damage = 22;
+      weaponState.world.addSprite(p);
     }),
     new Weapon("Zooka", 3, 5.0, 1.0, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
@@ -83,10 +92,13 @@ class WeaponState {
     context.fillStyle = "#ffffff";
     Vec2 center = owner.centerPoint();
     if (changeTime > 0) {
-      context.fillText(weapons[weaponIndex].name, center.x, center.y);
+      TextMetrics metrics = 
+        context.measureText(weapons[weaponIndex].name);
+      context.fillText(weapons[weaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
     }
     if (weapons[weaponIndex].reloading()) {
-      context.fillText(weapons[weaponIndex].reloadPercent().toString(), center.x, center.y);
+      context.fillText(weapons[weaponIndex].reloadPercent().toString(),
+          center.x, center.y - owner.size.y);
     }
   }
   

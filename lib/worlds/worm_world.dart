@@ -103,7 +103,6 @@ class WormWorld extends World {
    canvas.globalAlpha = 0.7;
    byteWorld.drawAsMiniMap(canvas, 0, 0);
    canvas.restore();
-  
    
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
@@ -159,19 +158,21 @@ class WormWorld extends World {
     addSprite(playerSprite.gun);
   }
   
-  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius) {
+  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool particles]) {
     byteWorld.clearAt(location, radius);
-    addSprite(new Particles(null, location, velocity, radius));
-    addVelocityFromExplosion(location, velocity, damage, radius);
+    if (particles) {
+      addSprite(new Particles(null, location, velocity, radius));
+    }
+    addVelocityFromExplosion(location, damage, radius);
   }
   
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius) {
     byteWorld.clearAt(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius));
-    addVelocityFromExplosion(sprite.position, velocity, damage, radius);
+    addVelocityFromExplosion(sprite.position, damage, radius);
   }
   
-  void addVelocityFromExplosion(Vec2 location, Vec2 velocity, int damage, double radius) {
+  void addVelocityFromExplosion(Vec2 location, int damage, double radius) {
     for (int networkId in sprites.keys) {
       Sprite sprite = sprites[networkId];
       if (sprite is MovingSprite && sprite.collision) {

@@ -51,7 +51,7 @@ class MovingSprite extends Sprite {
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {
-    super.draw(context, debug);
+    super.draw(context, debug); /*
     if (debug) {
       context.resetTransform();
       context.translate(position.x, position.y);
@@ -63,6 +63,6 @@ class MovingSprite extends Sprite {
       context.lineWidth = 1;
       context.strokeStyle = '#ffffff';
       context.stroke();
-    }
+    } */
   }
 }

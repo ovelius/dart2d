@@ -16,6 +16,11 @@ class Vec2 {
     this.y = y == null ? 0.0 : y;
   }
 
+  Vec2.copy(Vec2 other) {
+      this.x = other.x;
+      this.y = other.y;
+  }
+  
   Vec2.random([xmax, ymax]) {
     x = new Random().nextDouble() * xmax;
     y = new Random().nextDouble() * ymax;

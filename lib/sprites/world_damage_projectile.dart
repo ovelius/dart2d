@@ -33,7 +33,7 @@ class BananaCake extends WorldDamageProjectile {
     }
   
   explode() {
-    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);    
+    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);
     Random r = new Random();
     for (int i = 0; i < 5; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 30);
