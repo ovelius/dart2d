@@ -194,10 +194,6 @@ class WormLocalPlayerSprite extends MovingSprite {
       }
       return;
     }
-    double vsum = velocity.sum();
-    if (vsum > MAX_SPEED) {
-      velocity = velocity.normalize().multiply(MAX_SPEED);
-    }
     checkControlKeys(duration);
     super.frame(duration, frames, gravity);
     

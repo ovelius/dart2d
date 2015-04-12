@@ -3,7 +3,6 @@ library world_damage_projectile;
 import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
-import 'package:dart2d/sprites/animation.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
