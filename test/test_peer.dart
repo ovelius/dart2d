@@ -7,7 +7,7 @@ import 'package:dart2d/worlds/worm_world.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
-  World w = new SpaceWorld(400, 600);
+  World w = new WormWorld(400, 600);
   w.setJsPeer(peer);
   w.hudMessages = new TestHudMessage(w);
   return w;

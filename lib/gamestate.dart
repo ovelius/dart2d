@@ -138,10 +138,12 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
   int getNextUsablePlayerSpriteId() {
-    return world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+    return ID_OFFSET_FOR_NEW_CLIENT + 
+        world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
   }
   int getNextUsableSpriteImage() {
-    return imageByName[USEABLE_SPRITES[playerInfo.length]];
+    return imageByName["duck.png"];
+//    return imageByName[USEABLE_SPRITES[playerInfo.length]];
   }
   
   String toString() {

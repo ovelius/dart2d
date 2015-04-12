@@ -5,7 +5,7 @@ import 'package:unittest/html_config.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
-import '../lib/net/connection.dart';
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
@@ -37,7 +37,7 @@ void main() {
       // 
       worldB.startAsServer("nameB");
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldB, hasSpriteWithNetworkId(0));
+      expect(worldB, hasSpriteWithNetworkId(playerId(0)));
   
       worldA.connectTo("b", "nameA");
       // ClientSpec was sent to b from a:
@@ -70,16 +70,16 @@ void main() {
       worldA.frameDraw(0.01);
       worldB.frameDraw(0.01);
   
-      expect(worldA, hasSpriteWithNetworkId(0));
-      expect(worldA, hasSpriteWithNetworkId(1000));
-      expect(worldB, hasSpriteWithNetworkId(0));
-      expect(worldB, hasSpriteWithNetworkId(1000));
+      expect(worldA, hasSpriteWithNetworkId(playerId(0)));
+      expect(worldA, hasSpriteWithNetworkId(playerId(1)));
+      expect(worldB, hasSpriteWithNetworkId(playerId(0)));
+      expect(worldB, hasSpriteWithNetworkId(playerId(1)));
 
       // Both worlds are in the same gamestate.
       expect(worldB.network.gameState,
-          isGameStateOf({0: "nameB", 1000: "nameA"}));
+          isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
       expect(worldA.network.gameState,
-          isGameStateOf({0: "nameB", 1000: "nameA"}));
+          isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
     });
 
     test('TestDroppedKeyFrame', () {
@@ -132,39 +132,39 @@ void main() {
       // b connects to a.
       worldB.connectTo("a", "nameB");
       worldA.frameDraw(0.01);
-      expect(worldA, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.LOCAL));
-      expect(worldA, hasSpriteWithNetworkId(1000).andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, isGameStateOf({0: "nameA", 1000: "nameB"}));
+      expect(worldA, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.LOCAL));
+      expect(worldA, hasSpriteWithNetworkId(playerId(1)).andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       // After worldAs keyframe worldB has the entire state of the game.
       worldB.frameDraw(0.01);
-      expect(worldB, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.REMOTE));
-      expect(worldB, hasSpriteWithNetworkId(1000).andNetworkType(NetworkType.LOCAL));
-      expect(worldB, isGameStateOf({0: "nameA", 1000: "nameB"}));
+      expect(worldB, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.REMOTE));
+      expect(worldB, hasSpriteWithNetworkId(playerId(1)).andNetworkType(NetworkType.LOCAL));
+      expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
 
       logConnectionData = true;
       // now c connects to a.
       worldC.connectTo("a", "nameC");
       // run a frame in a to make sure the sprite is processed.
       worldA.frameDraw(0.01);
-      expect(worldA, hasSpriteWithNetworkId(0).andNetworkType(NetworkType.LOCAL));
-      expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+      expect(worldA, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.LOCAL));
+      expect(worldA, hasSpriteWithNetworkId(playerId(1))
           .andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+      expect(worldA, hasSpriteWithNetworkId(playerId(2))
           .andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      expect(worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       // Now C runs a keyframe. This will make a forward the local player sprite in c to b. 
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(0.01);
-      expect(worldB, hasSpriteWithNetworkId(0)
+      expect(worldB, hasSpriteWithNetworkId(playerId(0))
           .andNetworkType(NetworkType.REMOTE));
-      expect(worldB, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+      expect(worldB, hasSpriteWithNetworkId(playerId(1))
           .andNetworkType(NetworkType.LOCAL));
-      expect(worldB, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+      expect(worldB, hasSpriteWithNetworkId(playerId(2))
           .andNetworkType(NetworkType.REMOTE));
       // Make server a run a keyframe to ensure gamestate if propagated.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldB, isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+      expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       // This also sets up CLIENT_TO_CLIENT connections.
       expect(worldB, hasSpecifiedConnections({
           'c':ConnectionType.CLIENT_TO_CLIENT,
@@ -186,11 +186,11 @@ void main() {
       testConnections["a"][0].buffer = true;
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldC.frameDraw(0.01); // This adds the sprite from the client to client connection.
-      expect(worldC, hasSpriteWithNetworkId(0)
+      expect(worldC, hasSpriteWithNetworkId(playerId(0))
           .andNetworkType(NetworkType.REMOTE));
-      expect(worldC, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT)
+      expect(worldC, hasSpriteWithNetworkId(playerId(1))
           .andNetworkType(NetworkType.REMOTE));
-      expect(worldC, hasSpriteWithNetworkId(GameState.ID_OFFSET_FOR_NEW_CLIENT * 2)
+      expect(worldC, hasSpriteWithNetworkId(playerId(2))
           .andNetworkType(NetworkType.LOCAL));
       
       testConnections["a"][0].buffer = false;
@@ -202,11 +202,11 @@ void main() {
        
       // Final GameState should be consitent.
       expect(worldA,
-          isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       expect(worldB,
-          isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       expect(worldC,
-          isGameStateOf({0: "nameA", 1000: "nameB", 2000: "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
 
     test('TestFourWorldsServerDies', () {
@@ -229,7 +229,7 @@ void main() {
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01); 
 
-      var gameState = {0: "nameA", 1000: "nameB", 2000: "nameC", 3000: "nameD"};
+      var gameState = {playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC", playerId(3): "nameD"};
       expect(worldA, isGameStateOf(gameState));
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
@@ -258,7 +258,7 @@ void main() {
          'c':ConnectionType.CLIENT_TO_CLIENT,
       }));
       
-      gameState.remove(0);
+      gameState.remove(playerId(0));
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
@@ -299,7 +299,7 @@ void main() {
       worldA.connectTo("b", "nameA");
   
       expect((worldB.network as Server).gameState,
-          isGameStateOf({0: "nameB", 1000: "nameA"}));
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"}));
       
       for (int i = 0; i < 4; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -313,7 +313,7 @@ void main() {
       }
       
       expect((worldB.network as Server).gameState,
-          isGameStateOf({0: "nameB"}));
+          isGameStateOf({playerId(0): "nameB"}));
       expect(worldB.sprites.length, equals(1));
     });
 
@@ -347,7 +347,7 @@ void main() {
       }
       // Should work just fine.
       expect((worldA.network as Server).gameState,
-          isGameStateOf({0: "nameA", GameState.ID_OFFSET_FOR_NEW_CLIENT: "nameB", GameState.ID_OFFSET_FOR_NEW_CLIENT * 2: "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
     
     test('TestMaxPlayers', () {

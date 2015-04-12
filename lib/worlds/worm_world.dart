@@ -149,13 +149,13 @@ class WormWorld extends World {
         this, localKeyState, info,
         new Random().nextInt(WIDTH).toDouble(),
         new Random().nextInt(HEIGHT).toDouble(),
-        imageByName["duck.png"]);
+        imageId);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.networkId = id;
-    playerSprite.setImage(imageByName["duck.png"], 24);
+    playerSprite.setImage(imageId, 24);
     network.gameState.playerInfo.add(info);
     addSprite(playerSprite);
-    addSprite(playerSprite.gun);
+    // addSprite(playerSprite.gun);
   }
   
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool particles]) {

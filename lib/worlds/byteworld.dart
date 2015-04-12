@@ -12,7 +12,7 @@ class ByteWorld {
   
   CanvasElement canvas;
   ByteWorld(int imageId, Vec2 viewSize) {
-    ImageElement image = images[imageId];
+    var image = images[imageId];
     canvas = new CanvasElement(width: image.width, height: image.height);
     this.width = canvas.width;
     this.height = canvas.height;

@@ -5,6 +5,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';

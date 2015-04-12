@@ -163,7 +163,9 @@ class LocalPlayerSprite extends MovingSprite {
     if (!inGame) {
       return;
     }
-    weaponState.draw(context);
+    if (weaponState != null) {
+      weaponState.draw(context);
+    }
     super.draw(context, debug);
     _drawHealthBar(context);
   }
@@ -195,7 +197,9 @@ class LocalPlayerSprite extends MovingSprite {
     checkControlKeys(duration);
     super.frame(duration, frames, gravity);
     
-    weaponState.think(duration);
+    if (weaponState != null) {
+      weaponState.think(duration);
+    }
     if (velocity.x.abs() < 10.0) {
       this.frameIndex = 0;
     }
