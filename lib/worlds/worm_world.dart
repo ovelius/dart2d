@@ -64,7 +64,7 @@ class WormWorld extends World {
   }
   
   setJsPeer(var jsPeer) {
-    byteWorld = new ByteWorld(imageByName['manhattan2.png'], new Vec2(WIDTH * 1.0,  HEIGHT * 1.0));
+    byteWorld = new ByteWorld(imageByName['mattehorn.png'], new Vec2(WIDTH * 1.0,  HEIGHT * 1.0));
     peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
   }
