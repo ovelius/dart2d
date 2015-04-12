@@ -3,7 +3,7 @@ library test_peer;
 import 'test_connection.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/worlds/space_world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);

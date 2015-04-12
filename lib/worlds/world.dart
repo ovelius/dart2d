@@ -2,7 +2,7 @@ library world;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import '../net/connection.dart';
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/phys/vec2.dart';

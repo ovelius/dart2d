@@ -20,7 +20,7 @@ import 'dart:html';
 class WormWorld extends World {
   Vec2 centerView = new Vec2();
   Vec2 halfWorld;
-  Sprite playerSprite;
+  WormLocalPlayerSprite playerSprite;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
   WormWorld(int width, int height) : super(width, height) {
@@ -123,9 +123,9 @@ class WormWorld extends World {
       int id = removeSprites.removeAt(0);
       Sprite sprite = sprites[id];
       sprites.remove(id);
-      log.fine("${this}: Removing sprite ${id} from world");
+      this.log.fine("${this}: Removing sprite ${id} from world");
       if (sprite != null && sprite.networkType != NetworkType.REMOTE) {
-        log.fine("${this}: Removing sprite ${id} from network");
+        this.log.fine("${this}: Removing sprite ${id} from network");
         networkRemovals.add(id);
       }
     }

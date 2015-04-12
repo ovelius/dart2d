@@ -1,3 +1,5 @@
+library weapon_state;
+
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';

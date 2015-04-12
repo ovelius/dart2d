@@ -3,7 +3,6 @@ library playersprites;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/sprites/damage_projectile.dart';
 import 'package:dart2d/sprites/world_damage_projectile.dart';
 import 'dart:math';
 import 'package:dart2d/worlds/world.dart';

@@ -1,3 +1,5 @@
+library particles;
+
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/worm_world.dart';

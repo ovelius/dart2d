@@ -1,3 +1,5 @@
+library rope;
+
 import 'movingsprite.dart';
 import 'sprite.dart';
 import 'dart:math';
