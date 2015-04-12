@@ -49,7 +49,7 @@ bool collision(MovingSprite sprite1, MovingSprite sprite2, double duration) {
 double velocityForSingleSprite(
   MovingSprite sprite, Vec2 location, double radius, int radiusDamage) {
   Vec2 angle = sprite.centerPoint() - location;
-  double distance = angle.sum();
+  double distance = angle.sum() - sprite.size.sum() / 2;
   if (distance < radius && distance > 0.0) {
     double damage = radiusDamage / (distance / 10.0);
     sprite.velocity += angle.multiply(damage);

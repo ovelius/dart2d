@@ -119,9 +119,8 @@ class WormLocalPlayerSprite extends MovingSprite {
     this.keyState = keyState;
     this.collision = inGame;
     this.size = DEFAULT_PLAYER_SIZE;
-    this.gun = new StickySprite(this, 0, Sprite.UNLIMITED_LIFETIME, 35, 2);
+    this.gun = new StickySprite(this, imageByName["gun.png"], Sprite.UNLIMITED_LIFETIME, 30, 7);
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
-    gun.spriteType = SpriteType.RECT;
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
     });
@@ -216,14 +215,20 @@ class WormLocalPlayerSprite extends MovingSprite {
       } if (velocity.x < -100) {
         velocity.x = -100.0;
       }
-      this.angle = PI * 2 + 0.01;
+      if (angle <  PI * 2) {
+        gun.angle -= (gun.angle + PI / 2) * 2;
+        angle = PI * 2 + 0.01;
+      }
     } else if (keyIsDown("Right")) {
       if (velocity.x < 100) {
         velocity.x += 20.0;
       } if (velocity.x > 100) {
         velocity.x = 100.0;
       }
-      this.angle = 0.0; 
+      if (angle != 0.0) {
+        angle = 0.0;
+        gun.angle -= (gun.angle + PI / 2) * 2;
+      }
     } else {
       velocity.x = velocity.x * 0.94; 
     }
@@ -238,9 +243,9 @@ class WormLocalPlayerSprite extends MovingSprite {
       this.onGround = false;
      
     } else if (keyIsDown("Aim down")) {
-      gun.angle -= duration * 2.0;
+      gunDown(duration);
     } else if (keyIsDown("Aim up")) {
-      gun.angle += duration * 2.0;
+      gunUp(duration);
     }
     
     if (keyIsDown("Fire")) {
@@ -249,6 +254,35 @@ class WormLocalPlayerSprite extends MovingSprite {
     
     if (keyIsDown("Rope")) {
       fireRope();
+    }
+  }
+  
+  void gunDown(double duration) {
+    if (angle != 0.0) {
+      gun.angle -= duration * 2.0;
+      if (gun.angle < -(PI + PI/3)) {
+        gun.angle = -(PI + PI/3);
+      }
+    } else {
+      gun.angle += duration * 2.0;
+      if (gun.angle > PI/3) {
+        gun.angle = PI / 3;
+      }
+    }
+  }
+  
+  void gunUp(double duration) {
+    // Diffent if facing left or right.
+    if (angle != 0.0) {
+      gun.angle += duration * 2.0;
+      if (gun.angle > -PI/2) {
+        gun.angle = -PI/2;
+      }
+    } else {
+      gun.angle -= duration * 2.0;
+      if (gun.angle < -PI/2) {
+        gun.angle = -PI/2;
+      }
     }
   }
   

@@ -142,8 +142,9 @@ class WorldDamageProjectile extends MovingSprite {
     this.damage = damage;
     Vec2 ownerCenter = owner.centerPoint();
     this.size = new Vec2(15.0, 7.0);
-    this.position.x = ownerCenter.x - size.x / 2;
-    this.position.y = ownerCenter.y - size.y / 2;
+    double ownerSize = owner.size.sum() / 2;
+    this.position.x = ownerCenter.x + cos(owner.angle) * ownerSize;
+    this.position.y = ownerCenter.y + sin(owner.angle) * ownerSize;
     this.spriteType = SpriteType.IMAGE;
     this.velocity.x = cos(owner.angle);
     this.angle = owner.angle;

@@ -44,8 +44,12 @@ class WeaponState {
     }),
     new Weapon("Cofee Burn", 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
+      Vec2 position = weaponState.gun.centerPoint();
+      double gunRadius = weaponState.gun.size.sum() / 2;
+      position.x += cos(weaponState.gun.angle) * gunRadius;
+      position.y += sin(weaponState.gun.angle) * gunRadius;
       Particles p = new Particles(
-          null, weaponState.owner.position, vel.multiply(200.0),
+          null, position, vel.multiply(200.0),
           8.0, 5, 45, -0.3, Particles.FIRE);
       p.world = weaponState.world;
       p.damage = 22;
@@ -61,9 +65,9 @@ class WeaponState {
       sprite.setImage(imageByName["box.png"], 140);
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Zooka", 3, 5.0, 1.0, (WeaponState weaponState) {
+    new Weapon("Zooka", 3, 3.0, 1.0, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
-      sprite.radius = 30.0;
+      sprite.radius = 40.0;
       sprite.gravityAffect = 0.0;
       // sprite.velocity = sprite.velocity.multiply(0.2);
       sprite.setImage(imageByName["zooka.png"]);
