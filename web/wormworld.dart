@@ -15,7 +15,6 @@ void main() {
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
   document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
   
-  imageSources.add("stolen_level.png");
   bootstrapWorld(world);
   
   querySelector("#clientBtn").onClick.listen((e) {
