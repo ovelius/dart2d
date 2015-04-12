@@ -3,7 +3,6 @@ library playersprites;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/sprites/world_damage_projectile.dart';
 import 'dart:math';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
@@ -20,7 +19,7 @@ import 'dart:html';
  * Created on the server and streamed from the client.
  * How the servers represents remote clients.
  */
-class RemotePlayerServerSprite extends WormLocalPlayerSprite {
+class RemotePlayerServerSprite extends LocalPlayerSprite {
   RemotePlayerServerSprite(
       World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(world, keyState, info, x, y, imageIndex);
@@ -32,7 +31,7 @@ class RemotePlayerServerSprite extends WormLocalPlayerSprite {
     this.info = info;
     this.keyState = keystate;
     this.collision = this.inGame;
-    this.health = WormLocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
+    this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
     this.networkId = sprite.networkId;
   }
 
@@ -45,7 +44,7 @@ class RemotePlayerServerSprite extends WormLocalPlayerSprite {
  * A version of the PlayerSprite created in the client and sent to the server.
  * How the client represents itself.
  */
-class RemotePlayerSprite extends WormLocalPlayerSprite {
+class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
       : super(world, keyState, null, x, y, imageIndex);
   
@@ -57,7 +56,7 @@ class RemotePlayerSprite extends WormLocalPlayerSprite {
 /**
  * How a server represents itself.
  */
-class WormLocalPlayerSprite extends MovingSprite {
+class LocalPlayerSprite extends MovingSprite {
   static const BOUCHYNESS = 0.3;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(40.0, 40.0);
   static int MAX_HEALTH = 100;
@@ -90,8 +89,8 @@ class WormLocalPlayerSprite extends MovingSprite {
   
   MovingSprite gun;
 
-  factory WormLocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
-    WormLocalPlayerSprite sprite = new WormLocalPlayerSprite.copyFromMovingSprite(convertSprite);
+  factory LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
+    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite);
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;
@@ -102,7 +101,7 @@ class WormLocalPlayerSprite extends MovingSprite {
     return sprite;
   }
   
-  WormLocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
+  LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
        : super.withVecPosition(convertSprite.position, convertSprite.imageIndex) {
      this.collision = inGame;
      this.size = convertSprite.size;
@@ -110,7 +109,7 @@ class WormLocalPlayerSprite extends MovingSprite {
      this.networkType = convertSprite.networkType;
    }
   
-  WormLocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
+  LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
       : super(x, y, imageIndex) {
     this.world = world;
     this.info = info;

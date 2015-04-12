@@ -24,6 +24,7 @@ List<String> imageSources = [
 
 var _EMPTY_IMAGE = new CanvasElement(width:100, height:100);
 
+// Item 0 is always empty image.
 var images = [_EMPTY_IMAGE];
 
 var imageFutures = [];

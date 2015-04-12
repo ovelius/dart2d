@@ -1,15 +1,11 @@
 library net;
 
 import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
 import 'connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
-import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/keystate.dart';
-import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 final Logger log = new Logger('Network');

@@ -20,7 +20,7 @@ import 'dart:html';
 class WormWorld extends World {
   Vec2 centerView = new Vec2();
   Vec2 halfWorld;
-  WormLocalPlayerSprite playerSprite;
+  LocalPlayerSprite playerSprite;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
   WormWorld(int width, int height) : super(width, height) {
@@ -145,7 +145,7 @@ class WormWorld extends World {
     int id = network.gameState.getNextUsablePlayerSpriteId();
     int imageId = network.gameState.getNextUsableSpriteImage();
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
-    playerSprite = new WormLocalPlayerSprite(
+    playerSprite = new LocalPlayerSprite(
         this, localKeyState, info,
         new Random().nextInt(WIDTH).toDouble(),
         new Random().nextInt(HEIGHT).toDouble(),
