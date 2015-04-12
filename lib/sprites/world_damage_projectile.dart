@@ -45,7 +45,7 @@ class BananaCake extends WorldDamageProjectile {
       sprite.velocity = sprite.velocity.normalize().multiply(500.0);
       sprite.velocity = velocity + sprite.velocity;
       sprite.rotationVelocity = r.nextDouble() * 200.1;
-      sprite.radius = 30.0;
+      sprite.radius = 40.0;
       world.addSprite(sprite);
     }
     this.remove = true;
