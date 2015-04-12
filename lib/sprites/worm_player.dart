@@ -79,7 +79,6 @@ class WormLocalPlayerSprite extends MovingSprite {
   WormWorld world;
   int health = MAX_HEALTH;
   PlayerInfo info;
-  MovingSprite damageSprite;
   Rope rope;
   KeyState keyState;
   WeaponState weaponState;
@@ -289,12 +288,10 @@ class WormLocalPlayerSprite extends MovingSprite {
     world.addSprite(rope);
   }
 
-  bool hasValidDamageSprite() {
-    return damageSprite != null && damageSprite.lifeTime >  0;
-  }
   bool takesDamage() {
     return true;
   }
+  
   void takeDamage(int damage) {
     health -= damage;
     if (health <= 0) {
@@ -303,18 +300,6 @@ class WormLocalPlayerSprite extends MovingSprite {
       inGame = false;
       collision = false;
       spawnIn = RESPAWN_TIME;  
-      if (hasValidDamageSprite()) {
-        damageSprite.remove = true;
-        damageSprite = null;
-      }
-    } else {
-      if (!hasValidDamageSprite()) {
-        damageSprite = new StickySprite(this, imageByName["shield.png"], 40, 80);
-        damageSprite.rotationVelocity = new Random().nextDouble() * 10000;
-        world.addSprite(damageSprite);
-      } else {
-        damageSprite.lifeTime = 40;
-      }
     }
   }
   
