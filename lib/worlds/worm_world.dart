@@ -147,6 +147,8 @@ class WormWorld extends World {
     int spriteIndex = dataFromServer["spriteIndex"];
     playerSprite = new RemotePlayerSprite(
         this, localKeyState, 400.0, 200.0, spriteIndex);
+    playerSprite.size = new Vec2(24.0, 24.0);
+    playerSprite.setImage(spriteIndex, 24);
     addSprite(playerSprite);
   }
   
@@ -166,24 +168,24 @@ class WormWorld extends World {
     addSprite(playerSprite);
   }
   
-  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool sendTonetwork = true]) {
+  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {
       addSprite(new Particles(null, location, velocity, radius));
     }
-    addVelocityFromExplosion(location, damage, radius);
-    if (sendTonetwork) {
-      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(location, velocity, radius)};
+    addVelocityFromExplosion(location, damage, radius, !fromNetwork);
+    if (!fromNetwork) {
+      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(location, velocity, radius, damage)};
       network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
   
-  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool sendTonetwork = true]) {
+  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius * 1.5));
-    addVelocityFromExplosion(sprite.centerPoint(), damage, radius);
-    if (sendTonetwork) {
-      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius)};
+    addVelocityFromExplosion(sprite.centerPoint(), damage, radius, !fromNetwork);
+    if (!fromNetwork) {
+      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
       network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
@@ -195,18 +197,20 @@ class WormWorld extends World {
   clearFromNetworkUpdate(List<int> data) {
     Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
     double radius = data[2] / DOUBLE_INT_CONVERSION;
+    int damage = data[3];
     Vec2 velocity = null;
-    if (data.length > 3) {
-      velocity = new Vec2(data[3] / DOUBLE_INT_CONVERSION, data[4] / DOUBLE_INT_CONVERSION);
+    if (data.length > 4) {
+      velocity = new Vec2(data[4] / DOUBLE_INT_CONVERSION, data[5] / DOUBLE_INT_CONVERSION);
     }
-    explosionAt(pos, velocity, 0, radius, false);
+    explosionAt(pos, velocity, damage, radius, true);
   }
   
-  List<int> asNetworkUpdate(Vec2 pos, Vec2 velocity, double radius) {
+  List<int> asNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
     List<int> base = [
       (pos.x * DOUBLE_INT_CONVERSION).toInt(), 
       (pos.y * DOUBLE_INT_CONVERSION).toInt(),      
-      (radius * DOUBLE_INT_CONVERSION).toInt()];
+      (radius * DOUBLE_INT_CONVERSION).toInt(),
+      damage];
     if (velocity != null) {
      base.addAll([
          (velocity.x * DOUBLE_INT_CONVERSION).toInt(), 
@@ -215,12 +219,12 @@ class WormWorld extends World {
     return base;
   }
   
-  void addVelocityFromExplosion(Vec2 location, int damage, double radius) {
+  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage) {
     for (int networkId in sprites.keys) {
       Sprite sprite = sprites[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
-        if (damageTaken > 0 && sprite.takesDamage()) {
+        if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
           sprite.takeDamage(damageTaken.toInt());
         }
       }
