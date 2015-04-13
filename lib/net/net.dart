@@ -1,10 +1,12 @@
 library net;
 
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
 import 'connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -27,7 +29,7 @@ class Server extends Network {
 
 abstract class Network {
   GameState gameState;
-  World world;
+  WormWorld world;
   String localPlayerName;
   PeerWrapper peer;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
@@ -230,14 +232,14 @@ void dataReceived() {
   lastNetworkFrameReceived = now;
 }
 
-void parseBundle(World world,
+void parseBundle(WormWorld world,
     ConnectionWrapper connection, Map<String, List<int>> bundle) {
   dataReceived();
   for (String networkId in bundle.keys) {
     if (!SPECIAL_KEYS.contains(networkId)) {
       int parsedNetworkId = int.parse(networkId);
       // TODO(erik) Prio data for the owner of the sprite instead.
-      Sprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
+      MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
       if (!sprite.networkType.remoteControlled()) {
         log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
         continue;
@@ -260,6 +262,9 @@ void parseBundle(World world,
     for (String message in bundle[MESSAGE_KEY]) {
       world.hudMessages.display(message);
     }
+  }
+  if (bundle.containsKey(WORLD_DESTRUCTION)) {
+    world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
   }
   if (bundle.containsKey(GAME_STATE)) {
     assert(!world.network.isServer());

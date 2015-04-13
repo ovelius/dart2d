@@ -11,6 +11,7 @@ import 'package:dart2d/keystate.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/res/imageindex.dart'; 
@@ -141,6 +142,14 @@ class WormWorld extends World {
     canvas.restore();
   }
   
+  void createLocalClient(Map dataFromServer) {
+    spriteNetworkId = dataFromServer["spriteId"];
+    int spriteIndex = dataFromServer["spriteIndex"];
+    playerSprite = new RemotePlayerSprite(
+        this, localKeyState, 400.0, 200.0, spriteIndex);
+    addSprite(playerSprite);
+  }
+  
   addLocalPlayerSprite(String name) {
     int id = network.gameState.getNextUsablePlayerSpriteId();
     int imageId = network.gameState.getNextUsableSpriteImage();
@@ -157,18 +166,53 @@ class WormWorld extends World {
     addSprite(playerSprite);
   }
   
-  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool particles]) {
-    byteWorld.clearAt(location, radius);
-    if (particles) {
+  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool sendTonetwork = true]) {
+    clearWorldArea(location, radius);
+    if (velocity != null) {
       addSprite(new Particles(null, location, velocity, radius));
     }
     addVelocityFromExplosion(location, damage, radius);
+    if (sendTonetwork) {
+      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(location, velocity, radius)};
+      network.peer.sendDataWithKeyFramesToAll(data);
+    }
   }
   
-  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius) {
-    byteWorld.clearAt(sprite.centerPoint(), radius);
+  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool sendTonetwork = true]) {
+    clearWorldArea(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius * 1.5));
     addVelocityFromExplosion(sprite.centerPoint(), damage, radius);
+    if (sendTonetwork) {
+      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius)};
+      network.peer.sendDataWithKeyFramesToAll(data);
+    }
+  }
+  
+  void clearWorldArea(Vec2 location, double radius) {
+    byteWorld.clearAt(location, radius);
+  }
+
+  clearFromNetworkUpdate(List<int> data) {
+    Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
+    double radius = data[2] / DOUBLE_INT_CONVERSION;
+    Vec2 velocity = null;
+    if (data.length > 3) {
+      velocity = new Vec2(data[3] / DOUBLE_INT_CONVERSION, data[4] / DOUBLE_INT_CONVERSION);
+    }
+    explosionAt(pos, velocity, 0, radius, false);
+  }
+  
+  List<int> asNetworkUpdate(Vec2 pos, Vec2 velocity, double radius) {
+    List<int> base = [
+      (pos.x * DOUBLE_INT_CONVERSION).toInt(), 
+      (pos.y * DOUBLE_INT_CONVERSION).toInt(),      
+      (radius * DOUBLE_INT_CONVERSION).toInt()];
+    if (velocity != null) {
+     base.addAll([
+         (velocity.x * DOUBLE_INT_CONVERSION).toInt(), 
+         (velocity.y * DOUBLE_INT_CONVERSION).toInt()]);
+    }
+    return base;
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius) {

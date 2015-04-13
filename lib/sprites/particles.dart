@@ -21,23 +21,6 @@ class Particles extends Sprite {
   // If we should explode.
   int damage = null;
   WormWorld world;
-
-  Particles.fire(this.follow, this.location,
-      [double radius = 20.0, int count = 30, int lifeTime = 35]) :
-      super(0.0, 0.0, 0, 1, 1) {
-    this.lifeTime = lifeTime;
-    this.particleType = FIRE;
-    this.velocityBase = new Vec2(0.0, -100.0);
-    Random r = new Random();
-    particles = new List();
-    for (int i = 0; i < count; i++) {
-      _Particle p = new _Particle();
-      p.setToRandom(r, radius, follow, location, velocityBase, lifeTime);
-      particles.add(p);
-    }
-    this.radius = radius;
-    this.particleLifeTime = lifeTime;
-  }
   
   Particles(this.follow, this.location, this.velocityBase,
       [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
@@ -45,6 +28,7 @@ class Particles extends Sprite {
     this.lifeTime = lifeTime;
     this.particleType = particleType;
     this.shrinkPerStep = shrinkPerStep;
+    this.networkType = NetworkType.LOCAL_ONLY;
     Random r = new Random();
     particles = new List();
     for (int i = 0; i < count; i++) {
@@ -70,7 +54,7 @@ class Particles extends Sprite {
       }
       if (damage != null) {
         if (world.byteWorld.isCanvasCollide(p.location.x, p.location.y)) {
-          world.explosionAt(p.location, null, damage, radius, false);
+          world.explosionAt(p.location, null, damage, radius);
           p.lifeTimeRemaining = 0;
         }
       }

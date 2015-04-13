@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:html';
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart'; 
 
 class ByteWorld {
@@ -46,7 +47,7 @@ class ByteWorld {
     return  false;
   }
   
-  clearAt(Vec2 pos, radius) {
+  clearAt(Vec2 pos, double radius) {
     canvas.context2D
         ..save()
         ..beginPath()

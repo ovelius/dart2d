@@ -15,6 +15,8 @@ String CLIENT_PLAYER_SPEC = "_c";
 String SERVER_PLAYER_REPLY = "-c";
 String SERVER_PLAYER_REJECT = "-r";
 String GAME_STATE = "-g";
+String WORLD_DESTRUCTION = "_w";
+String WORLD_PARTICLE = "_p";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -29,17 +31,20 @@ void remapKeyNamesForTest() {
   SERVER_PLAYER_REPLY = "server_client_reply";
   SERVER_PLAYER_REJECT = "server_client_reject";
   GAME_STATE = "game_state";
+  // World.
+  WORLD_DESTRUCTION = "world_destruction";
+  WORLD_PARTICLE = "world_particles";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
 const double DOUBLE_INT_CONVERSION = 10000.0;
 
-const int LOCAL_PLAYER_SPRITE_FLAG = 1;
-
 // Keys that should be delivered reliable.
+// Mapped to the function how old and new data should be merged.
 Map RELIABLE_KEYS = {
     REMOVE_KEY: mergeUniqueList,
     MESSAGE_KEY: mergeUniqueList,
+    WORLD_DESTRUCTION: mergeUniqueList,
     CLIENT_PLAYER_SPEC: singleTonStoredValue,
     SERVER_PLAYER_REPLY: singleTonStoredValue,
     };
@@ -52,7 +57,9 @@ Set<String> SPECIAL_KEYS = new Set.from(
      KEY_STATE_KEY,
      KEY_FRAME_KEY,
      IS_KEY_FRAME_KEY,
-     MESSAGE_KEY]);
+     MESSAGE_KEY,
+     WORLD_DESTRUCTION,
+     WORLD_PARTICLE]);
 
 List mergeUniqueList(List list1, List list2) {
   Set merged = new Set();
@@ -73,22 +80,20 @@ singleTonStoredValue(var a, var b) {
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   List<int> data = [];
-  // Special flag a LocalPlayerSprite because, reasons.
-  if (sprite is LocalPlayerSprite) {
-    data.add(LOCAL_PLAYER_SPRITE_FLAG);
-  } else {
-    data.add(0);
-  }
+  
+  // Any special sauce flags needed.
+  data.add(sprite.sendFlags());
+    
   data.add(sprite.position.x.toInt());
   data.add(sprite.position.y.toInt());
-  int deg = (sprite.angle/(2 * PI) * 360).toInt();
-  data.add(deg);
+  data.add((sprite.angle * DOUBLE_INT_CONVERSION).toInt());
+  
+  Vec2 velocityScaled = sprite.velocity.multiply(DOUBLE_INT_CONVERSION);
+  data.add(velocityScaled.x.toInt());
+  data.add(velocityScaled.y.toInt());
 
   if (keyFrame || sprite.fullFramesOverNetwork > 0) {
     data.add(sprite.imageIndex);
-    Vec2 velocityScaled = sprite.velocity.multiply(DOUBLE_INT_CONVERSION);
-    data.add(velocityScaled.x.toInt());
-    data.add(velocityScaled.y.toInt());
     data.add(sprite.spriteType.value);
     
     data.add(sprite.size.x.toInt());
@@ -103,17 +108,17 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 // Set all the properties to the sprite availble in the list.
 void intListToSpriteProperties(
     List<int> data, MovingSprite sprite) {
+  sprite.flags = data[0];
   sprite.position.x = data[1].toDouble();
   sprite.position.y = data[2].toDouble();
-  double rad = (data[3] / 360.0) * (2*PI);
-  sprite.angle = rad;
+  sprite.angle = data[3] / DOUBLE_INT_CONVERSION;
+
+  sprite.velocity.x = data[4] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.y = data[5] / DOUBLE_INT_CONVERSION;
   
-  if (data.length > 4) {
-    sprite.setImage(data[4]);
-  
-    sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
-    sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
-      
+  if (data.length > 6) {
+    sprite.setImage(data[6]);
+ 
     SpriteType type = new SpriteType.fromInt(data[7]);
     sprite.spriteType = type;
     

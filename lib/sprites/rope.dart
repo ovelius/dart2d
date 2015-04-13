@@ -74,4 +74,11 @@ class Rope extends MovingSprite {
     context.stroke();
     super.draw(context, debug);
   }
+  
+  int sendFlags() {
+    if (locked) {
+      return MovingSprite.FLAG_NO_GRAVITY;
+    }
+    return 0;
+  }
 }

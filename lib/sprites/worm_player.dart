@@ -319,4 +319,8 @@ class LocalPlayerSprite extends MovingSprite {
     assert(_controls.containsKey(key));
     return keyState.keyIsDown(_controls[key]);
   }
+  
+  int sendFlags() {
+    return 0;//MovingSprite.FLAG_NO_GRAVITY + MovingSprite.FLAG_NO_MOVEMENTS;
+  }
 }

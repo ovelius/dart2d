@@ -8,6 +8,9 @@ import 'dart:math';
 import 'dart:html';
 
 class MovingSprite extends Sprite {
+  static const int FLAG_NO_GRAVITY = 1;
+  static const int FLAG_NO_MOVEMENTS = 2;
+  
   static const int DIR_ABOVE = 0;
   static const int DIR_BELOW = 1;
   static const int DIR_LEFT = 2;
@@ -20,6 +23,9 @@ class MovingSprite extends Sprite {
   double gravityAffect = 1.0;
   bool collision = true;
   int outOfBoundsMovesRemaining = -1;
+  
+  // Set from network. See static FLAG_ fields above.
+  int flags = 0;
 
   MovingSprite(double x, double y, int imageIndex, [int width, int height])
       : super(x, y, imageIndex, width, height);
@@ -30,14 +36,16 @@ class MovingSprite extends Sprite {
   frame(double duration, int frames, [Vec2 gravity]) {
     assert(duration != null);
     assert(duration >= .0);
-
-    velocity = velocity.add(
-        acceleration.multiply(duration));
+        
+    if (flags & FLAG_NO_MOVEMENTS == 0) {
+      velocity = velocity.add(
+          acceleration.multiply(duration));
     
-    position = position.add(
-        velocity.multiply(duration));
+      position = position.add(
+          velocity.multiply(duration));
+    }
     
-    if (gravity != null) {
+    if (gravity != null && (flags & FLAG_NO_GRAVITY) == 0) {
       velocity = velocity.add(gravity.multiply(duration * gravityAffect));
     }
 
@@ -48,5 +56,9 @@ class MovingSprite extends Sprite {
  
   collide(MovingSprite other, ByteWorld world, int direction) {
  
+  }
+  
+  int sendFlags() {
+    return 0;
   }
 }
