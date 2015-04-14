@@ -53,6 +53,7 @@ class WeaponState {
       Particles p = new Particles(
           null, position, vel.multiply(200.0),
           8.0, 5, 45, -0.3, Particles.FIRE);
+      p.sendToNetwork = true;
       p.world = weaponState.world;
       p.damage = 22;
       weaponState.world.addSprite(p);
@@ -73,9 +74,10 @@ class WeaponState {
       sprite.gravityAffect = 0.0;
       // sprite.velocity = sprite.velocity.multiply(0.2);
       sprite.setImage(imageByName["zooka.png"]);
-      weaponState.world.addSprite(sprite);
       Particles p = new Particles(sprite, sprite.position, sprite.velocity.multiply(0.2));
+      p.sendToNetwork = true;
       weaponState.world.addSprite(p);
+      weaponState.world.addSprite(sprite);
     }),
   ];
   
