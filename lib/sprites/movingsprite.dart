@@ -53,7 +53,7 @@ class MovingSprite extends Sprite {
 
     super.frame(duration, frames, gravity);
   }
- 
+
   collide(MovingSprite other, ByteWorld world, int direction) {
  
   }

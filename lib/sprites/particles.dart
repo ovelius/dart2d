@@ -3,6 +3,7 @@ library particles;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
 import 'dart:html';
 
@@ -21,6 +22,8 @@ class Particles extends Sprite {
   // If we should explode.
   int damage = null;
   WormWorld world;
+  // We got it from network.
+  bool sendToNetwork = false;
   
   Particles(this.follow, this.location, this.velocityBase,
       [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
@@ -38,6 +41,47 @@ class Particles extends Sprite {
     }
     this.radius = radius;
     this.particleLifeTime = lifeTime;
+  }
+  
+  Particles.fromNetworkUpdate(List<int> data, WormWorld world) : super(0.0, 0.0, 0, 1, 1) {
+    this.location = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
+    this.velocityBase = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
+    this.radius = data[4] / DOUBLE_INT_CONVERSION;
+    this.particleLifeTime = data[5];
+    this.particleType = data[6];
+    this.shrinkPerStep = data[7] / DOUBLE_INT_CONVERSION;
+    int count = data[8];
+    this.lifeTime = data[9];
+    if (data.length > 10) {
+      this.follow = world.sprites[data[10]];
+    }
+    this.networkType = NetworkType.LOCAL_ONLY;
+    Random r = new Random();
+    particles = new List();
+    for (int i = 0; i < count; i++) {
+       _Particle p = new _Particle();
+       p.setToRandom(r, radius, follow, location, velocityBase, lifeTime);
+       particles.add(p);
+    }
+  }
+  
+  List<int> toNetworkUpdate() {
+    List<int> list = [
+        location.x * DOUBLE_INT_CONVERSION,
+        location.y * DOUBLE_INT_CONVERSION,
+        velocityBase.x * DOUBLE_INT_CONVERSION,
+        velocityBase.y * DOUBLE_INT_CONVERSION,
+        radius * DOUBLE_INT_CONVERSION,
+        particleLifeTime,
+        particleType, 
+        shrinkPerStep * DOUBLE_INT_CONVERSION,
+        particles.length,
+        lifeTime,
+      ];
+    if (follow != null) {
+      list.add(follow.networkId);
+    }
+    return list;
   }
 
   frame(double duration, int frames, [Vec2 gravity]) {

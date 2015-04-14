@@ -168,6 +168,10 @@ class WormWorld extends World {
     addSprite(playerSprite);
   }
   
+  void addParticlesFromNetworkData(List<int> data) {
+    addSprite(new Particles.fromNetworkUpdate(data, this));
+  }
+  
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {

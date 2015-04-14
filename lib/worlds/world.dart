@@ -6,6 +6,8 @@ import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/worm_player.dart';
+import 'package:dart2d/sprites/particles.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
@@ -136,6 +138,10 @@ abstract class World {
       }
       if (sprites.containsKey(newSprite.networkId)) {
         log.severe("World ${peer.id} Network controlled sprite ${newSprite}[${newSprite.networkId}] would overwrite existing sprite ${sprites[newSprite.networkId]}");
+      }
+      if (newSprite is Particles && newSprite.sendToNetwork) {
+        Map data = {WORLD_PARTICLE: newSprite.toNetworkUpdate()};
+        network.peer.sendDataWithKeyFramesToAll(data);
       }
       sprites[newSprite.networkId] = newSprite;
     }

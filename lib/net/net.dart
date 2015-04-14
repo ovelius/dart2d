@@ -266,6 +266,9 @@ void parseBundle(WormWorld world,
   if (bundle.containsKey(WORLD_DESTRUCTION)) {
     world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
   }
+  if (bundle.containsKey(WORLD_PARTICLE)) {
+    world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
+  }
   if (bundle.containsKey(GAME_STATE)) {
     assert(!world.network.isServer());
     Map gameStateMap = bundle[GAME_STATE];
