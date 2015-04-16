@@ -31,8 +31,26 @@ class WormWorld extends World {
   
   void collisionCheck(int networkId, duration) {
     Sprite sprite = sprites[networkId];
+    
     if(sprite is MovingSprite) {
       if (sprite.collision) {
+        if (network.isServer()) {
+          for (int id in sprites.keys) {
+            // Avoid duplicate checks.
+            if (networkId >= id) {
+              continue;
+            }
+            var otherSprite = sprites[id];
+            if (otherSprite is MovingSprite) {
+              if (!otherSprite.collision) continue;
+              if (collision(sprite, otherSprite, duration)) {
+                sprite.collide(otherSprite, null, null);
+                otherSprite.collide(sprite, null, null);
+              }
+            }
+          }
+        }
+        
         // Above.
         if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y, sprite.size.x, 1)) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
@@ -48,6 +66,7 @@ class WormWorld extends World {
           sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
         }
         
+        // Out of bounds check.
         if (sprite.position.x + sprite.size.x > byteWorld.width) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
         }
@@ -56,6 +75,9 @@ class WormWorld extends World {
         }
         if (sprite.position.y + sprite.size.y > byteWorld.height) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
+        }
+        if (sprite.position.y - sprite.size.y < 0) {
+          sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
         }
       }
     }

@@ -69,20 +69,14 @@ class WorldDamageProjectile extends MovingSprite {
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     assert(owner != null);
-    if (other == null) {
-      // World collide.
-      
-    }
-    if (other != null && other != owner && other.takesDamage()) {
-      other.takeDamage(this.owner, damage);
-      this.remove = true;
+    if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
+      other.takeDamage(/*this.owner,*/ damage);
+      explode();
     }
      
     if (world != null && other == null) {
       handleWorldCollide(world, direction);
     }
-    // Do animation stuff.
-
   }
   
   handleWorldCollide(ByteWorld world, int direction) {
