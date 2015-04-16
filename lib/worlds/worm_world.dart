@@ -2,6 +2,7 @@ library wormworld;
 
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -85,7 +86,8 @@ class WormWorld extends World {
     
     
     if (playerSprite != null) {
-      centerView = playerSprite.position - halfWorld;
+      centerView.x = playerSprite.position.x - halfWorld.x;
+      centerView.y = playerSprite.position.y - halfWorld.y;
       if (centerView.x < 0) {
         centerView.x = 0.0;
       } 
@@ -196,6 +198,8 @@ class WormWorld extends World {
   
   void clearWorldArea(Vec2 location, double radius) {
     byteWorld.clearAt(location, radius);
+    // Breaking away stuff is too slow :(
+    // WorldPhys.lookAround(this, location.x, location.y, radius);
   }
 
   clearFromNetworkUpdate(List<int> data) {

@@ -21,6 +21,13 @@ class ByteWorld {
     this.viewSize = viewSize;
   }
   
+  ByteWorld.fromCanvas(CanvasElement canvas, Vec2 viewSize) {
+    this.canvas = canvas;
+    this.width = canvas.width;
+    this.height = canvas.height;
+    this.viewSize = viewSize;
+  }
+  
   void drawAt(CanvasRenderingContext2D canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,
@@ -45,6 +52,10 @@ class ByteWorld {
       }
     }
     return  false;
+  }
+  
+  clearAtRect(int x, int y, int width, int height) {
+    canvas.context2D.clearRect(x, y, width, height);
   }
   
   clearAt(Vec2 pos, double radius) {
