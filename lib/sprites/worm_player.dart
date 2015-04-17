@@ -318,7 +318,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (rope != null) {
       world.removeSprite(rope.networkId);
     }
-    rope = new Rope.createWithOwner(this.world.byteWorld, this, this.gun.angle, 600.0);
+    rope = new Rope.createWithOwner(this.world, this, this.gun.angle, 600.0);
     world.addSprite(rope);
   }
 
