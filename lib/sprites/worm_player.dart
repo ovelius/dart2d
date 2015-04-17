@@ -5,6 +5,8 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
 import 'dart:math';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
@@ -16,8 +18,29 @@ import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
 
 /**
- * Created on the server and streamed from the client.
- * How the servers represents remote clients.
+ * Created on the server to represent other players.
+ */
+class RemotePlayerClientSprite extends LocalPlayerSprite {
+  RemotePlayerClientSprite(World world)
+      : super(world, null, null, 0.0, 0.0, 0);
+
+  /**
+   * This sprite should not execute controls.
+   */
+  void checkControlKeys(double duration) {
+  }
+  
+  
+  /**
+   * This sprite should not execute controls.
+   */
+  void listenFor(String key, dynamic f) {
+    
+  }
+}
+
+/**
+ * Created on the server to represent clients.
  */
 class RemotePlayerServerSprite extends LocalPlayerSprite {
   RemotePlayerServerSprite(
@@ -41,8 +64,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 }
 
 /**
- * A version of the PlayerSprite created in the client and sent to the server.
- * How the client represents itself.
+ * Created on the client and streamed to the Server.
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
@@ -107,6 +129,7 @@ class LocalPlayerSprite extends MovingSprite {
      this.size = convertSprite.size;
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
+     this.gun = _createGun();
    }
   
   LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
@@ -116,7 +139,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.keyState = keyState;
     this.collision = inGame;
     this.size = DEFAULT_PLAYER_SIZE;
-    this.gun = new StickySprite(this, imageByName["gun.png"], Sprite.UNLIMITED_LIFETIME, 30, 7);
+    this.gun = _createGun();
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
@@ -124,6 +147,10 @@ class LocalPlayerSprite extends MovingSprite {
     this.listenFor("Prev weapon", () {
       weaponState.prevWeapon();
     });
+  }
+  
+  StickySprite _createGun() {
+    return new StickySprite(this, imageByName["gun.png"], Sprite.UNLIMITED_LIFETIME, 30, 7);
   }
 
   collide(MovingSprite other, ByteWorld world, int direction) {
@@ -320,7 +347,19 @@ class LocalPlayerSprite extends MovingSprite {
     return keyState.keyIsDown(_controls[key]);
   }
   
+  void addExtraNetworkData(List<int> data) {
+    data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
+  }
+   
+  void parseExtraNetworkData(List<int> data, int startAt) {
+    gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
+  }
+  
   int sendFlags() {
     return 0;//MovingSprite.FLAG_NO_GRAVITY + MovingSprite.FLAG_NO_MOVEMENTS;
+  }
+  
+  int remoteRepresentation() {
+    return SpriteIndex.REMOTE_PLAYER_CLIENT_SPRITE;
   }
 }

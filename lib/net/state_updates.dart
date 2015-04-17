@@ -82,6 +82,7 @@ singleTonStoredValue(var a, var b) {
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   List<int> data = [];
   
+  data.add(sprite.remoteRepresentation());
   // Any special sauce flags needed.
   data.add(sprite.sendFlags());
     
@@ -103,29 +104,35 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
     data.add((sprite.rotationVelocity * DOUBLE_INT_CONVERSION).toInt());
     sprite.fullFramesOverNetwork --;
   }
+  sprite.addExtraNetworkData(data);
   return data;
 }
 
 // Set all the properties to the sprite availble in the list.
 void intListToSpriteProperties(
     List<int> data, MovingSprite sprite) {
-  sprite.flags = data[0];
-  sprite.position.x = data[1].toDouble();
-  sprite.position.y = data[2].toDouble();
-  sprite.angle = data[3] / DOUBLE_INT_CONVERSION;
+  sprite.flags = data[1];
+  sprite.position.x = data[2].toDouble();
+  sprite.position.y = data[3].toDouble();
+  sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
 
-  sprite.velocity.x = data[4] / DOUBLE_INT_CONVERSION;
-  sprite.velocity.y = data[5] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
   
-  if (data.length > 6) {
-    sprite.setImage(data[6]);
+  // At least two more items.
+  // TODO: Figure out exact increase.
+  if (data.length > 10) {
+    sprite.setImage(data[7]);
  
-    SpriteType type = new SpriteType.fromInt(data[7]);
+    SpriteType type = new SpriteType.fromInt(data[8]);
     sprite.spriteType = type;
     
-    sprite.size.x = data[8].toDouble();
-    sprite.size.y = data[9].toDouble();
-    sprite.frames = data[10];
-    sprite.rotationVelocity = data[11] / DOUBLE_INT_CONVERSION;
+    sprite.size.x = data[9].toDouble();
+    sprite.size.y = data[10].toDouble();
+    sprite.frames = data[11];
+    sprite.rotationVelocity = data[12] / DOUBLE_INT_CONVERSION;
+    sprite.parseExtraNetworkData(data, 13);
+  } else {
+    sprite.parseExtraNetworkData(data, 7);
   }
 }

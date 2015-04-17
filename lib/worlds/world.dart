@@ -7,6 +7,7 @@ import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/particles.dart';
+import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
@@ -169,7 +170,7 @@ abstract class World {
   MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
     Sprite sprite = sprites[networkId];
     if (sprite == null) {
-      sprite = new MovingSprite(0.0, 0.0, 0);
+      sprite = SpriteIndex.fromWorldByIndex(this, flags);
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;
       // This might not be 100% accurate, since onwer might be:

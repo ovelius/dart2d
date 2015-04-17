@@ -71,6 +71,8 @@ class Sprite {
   // Will be removed by the engine.
   bool remove = false;
 
+  Sprite.empty() { }
+
   Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
     var image = images[imageIndex];
     if (size == null) {
@@ -84,6 +86,7 @@ class Sprite {
     assert(size.y > 0);
   }
 
+  
   Sprite(double x, double y, int imageIndex, [int width, int height]) {
     this.position = new Vec2(x, y);
     var image = images[imageIndex];
@@ -211,6 +214,14 @@ class Sprite {
   
   bool takesDamage() {
     return false;
+  }
+  
+  void addExtraNetworkData(List<int> data) {
+    
+  }
+  
+  void parseExtraNetworkData(List<int> data, int startAt) {
+    
   }
   
   toString() => "Sprite[${this.networkType}] p:$position";
