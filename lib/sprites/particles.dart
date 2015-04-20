@@ -16,6 +16,7 @@ class Particles extends Sprite {
   int particleLifeTime;
   List<_Particle> particles;
   Sprite follow;
+  int followId;
   Vec2 location;
   int particleType;
   double shrinkPerStep;
@@ -53,7 +54,7 @@ class Particles extends Sprite {
     int count = data[8];
     this.lifeTime = data[9];
     if (data.length > 10) {
-      this.follow = world.sprites[data[10]];
+      this.followId = data[10];
     }
     this.networkType = NetworkType.LOCAL_ONLY;
     Random r = new Random();
@@ -63,6 +64,7 @@ class Particles extends Sprite {
        p.setToRandom(r, radius, follow, location, velocityBase, lifeTime);
        particles.add(p);
     }
+    this.world = world;
   }
   
   List<int> toNetworkUpdate() {
@@ -104,10 +106,11 @@ class Particles extends Sprite {
       }
     }
   }
-  draw(CanvasRenderingContext2D context, bool debug, [Vec2 translate]) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     int dead = 0;
-    if (translate != null) {
-      context.translate(translate.x, translate.y);
+    if (followId != null && follow == null) {
+      follow = world.sprites[followId];
+      followId = null;
     }
     Random r = new Random();
     context.globalCompositeOperation = "lighter";
