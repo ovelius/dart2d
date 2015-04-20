@@ -350,6 +350,32 @@ void main() {
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
     
+    test('TestReliableMessage', () {
+        logConnectionData = true;
+        World worldA = testWorld("a"); 
+        worldA.startAsServer("nameA");
+        World worldB = testWorld("b");
+        worldB.connectTo("a", "nameB");
+        
+        testConnections['b'].forEach((e) { e.dropPackets = 1;});
+        
+        worldA.network.sendMessage("test me");
+        
+        // This got dropped.
+        expect(recentReceviedDataFrom("a"),
+               new MapKeysMatcher.containsKeys(
+                   [SERVER_PLAYER_REPLY]));
+        
+        worldA.frameDraw();
+        worldB.frameDraw();
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        
+        // After the next keyframe it gets sent.
+        expect(recentReceviedDataFrom("a"),
+             new MapKeysMatcher.containsKeys(
+                 [MESSAGE_KEY]));
+    });
+    
     test('TestMaxPlayers', () {
         logConnectionData = false;
         World worldA = testWorld("a"); 
