@@ -18,7 +18,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
 
 /**
- * Created on the server to represent other players.
+ * Created on clients to represent other players.
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
   RemotePlayerClientSprite(World world)
@@ -36,6 +36,10 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
    */
   void listenFor(String key, dynamic f) {
     
+  }
+  
+  void checkShouldFire() {
+    // Leave this empty.
   }
 }
 
@@ -70,8 +74,9 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
       : super(world, keyState, null, x, y, imageIndex);
   
-  void fire() {
+  void checkShouldFire() {
     // Don't do anything in the local client.
+    // The server triggers this.
   }
 }
 
@@ -225,6 +230,7 @@ class LocalPlayerSprite extends MovingSprite {
       return;
     }
     checkControlKeys(duration);
+    checkShouldFire();
     super.frame(duration, frames, gravity);
     gun.frame(duration, frames, gravity);
     
@@ -276,13 +282,16 @@ class LocalPlayerSprite extends MovingSprite {
       gunUp(duration);
     }
     
-    if (keyIsDown("Fire")) {
-      weaponState.fire();
-    }
-    
+   
     if (keyIsDown("Rope")) {
       fireRope();
     }
+  }
+  
+  void checkShouldFire() {
+    if (keyIsDown("Fire")) {
+      weaponState.fire();
+    } 
   }
   
   void gunDown(double duration) {
@@ -349,10 +358,12 @@ class LocalPlayerSprite extends MovingSprite {
   
   void addExtraNetworkData(List<int> data) {
     data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
+    data.add(weaponState.selectedWeaponIndex);
   }
    
   void parseExtraNetworkData(List<int> data, int startAt) {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
+    weaponState.selectedWeaponIndex = data[startAt + 1];
   }
   
   int sendFlags() {

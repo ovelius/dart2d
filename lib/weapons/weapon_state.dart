@@ -19,7 +19,7 @@ class WeaponState {
   Sprite gun;
   
   double changeTime = 0.0;
-  int weaponIndex = 2;
+  int selectedWeaponIndex = 2;
   
   List<Weapon> weapons = [
     new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
@@ -80,34 +80,35 @@ class WeaponState {
       sprite.setImage(imageByName["zooka.png"]);
       Particles p = new Particles(sprite, sprite.position, sprite.velocity.multiply(0.2));
       p.sendToNetwork = true;
-      weaponState.world.addSprite(p);
+      // The order is important here.
       weaponState.world.addSprite(sprite);
+      weaponState.world.addSprite(p);
     }),
   ];
   
   WeaponState(this.world, this.keyState, this.owner, this.gun);
   
   nextWeapon() {
-    weaponIndex++;
-    weaponIndex = weaponIndex % weapons.length;
+    selectedWeaponIndex++;
+    selectedWeaponIndex = selectedWeaponIndex % weapons.length;
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
   prevWeapon() {
-    weaponIndex--;
-    if (weaponIndex < 0) {
-      weaponIndex = weapons.length - 1;
+    selectedWeaponIndex--;
+    if (selectedWeaponIndex < 0) {
+      selectedWeaponIndex = weapons.length - 1;
     }
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
   fire() {
-    weapons[weaponIndex].fireButton(this);
+    weapons[selectedWeaponIndex].fireButton(this);
   }
   
   think(double duration) {
     changeTime -= duration;
-    weapons[weaponIndex].think(duration);
+    weapons[selectedWeaponIndex].think(duration);
   }
   
   draw(CanvasRenderingContext2D context) {
@@ -115,11 +116,11 @@ class WeaponState {
     Vec2 center = owner.centerPoint();
     if (changeTime > 0) {
       TextMetrics metrics = 
-        context.measureText(weapons[weaponIndex].name);
-      context.fillText(weapons[weaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
+        context.measureText(weapons[selectedWeaponIndex].name);
+      context.fillText(weapons[selectedWeaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
     }
-    if (weapons[weaponIndex].reloading()) {
-      context.fillText(weapons[weaponIndex].reloadPercent().toString(),
+    if (weapons[selectedWeaponIndex].reloading()) {
+      context.fillText(weapons[selectedWeaponIndex].reloadPercent().toString(),
           center.x, center.y - owner.size.y);
     }
   }
