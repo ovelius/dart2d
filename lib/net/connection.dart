@@ -213,7 +213,7 @@ class ConnectionWrapper {
     parseBundle(world, this, dataMap);
   }
 
-  void mergeWithStoredData(var data) {
+  void alsoSendWithStoredData(var data) {
     for (String key in RELIABLE_KEYS.keys) {
       // Use the merge function specified to merge any previosly stored data
       // with the data being sent in this frame.
@@ -225,7 +225,18 @@ class ConnectionWrapper {
     }
   }
   
-  void sendData(data) {
+  void storeAwayReliableData(var data) {
+    RELIABLE_KEYS.keys.forEach((String reliableKey) {
+      if (data.containsKey(reliableKey)) {
+        var mergedData = RELIABLE_KEYS[reliableKey](data[reliableKey], keyFrameData[reliableKey]);
+        if (mergedData != null) {
+          keyFrameData[reliableKey] = mergedData;
+        }
+      }
+    }); 
+  }
+  
+  void sendData(Map data) {
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
@@ -237,8 +248,12 @@ class ConnectionWrapper {
         return;
       }
       // Make a defensive copy in case of keyframe.
+      // Then add previous data to it.
       data = new Map.from(data);
-      mergeWithStoredData(data);
+      alsoSendWithStoredData(data);
+    } else {
+      // Store away any reliable data sent.
+      storeAwayReliableData(data);
     }
     var jsonData = JSON.encode(data);
     connection.callMethod('send', [jsonData]);

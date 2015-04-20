@@ -117,6 +117,7 @@ abstract class World {
     // Only send to network if server frames has passed.
     if (frames > 0) {
       network.frame(duration, networkRemovals);
+      networkRemovals.clear();
     }
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);

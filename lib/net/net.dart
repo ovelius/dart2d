@@ -114,13 +114,8 @@ abstract class Network {
     return false;
   }
 
-  bool checkForKeyFrame(bool forceKeyFrame, double duration) {
+  bool checkForKeyFrame(double duration) {
     untilNextKeyFrame -= duration;
-    if (forceKeyFrame) {
-      currentKeyFrame++;
-      untilNextKeyFrame = KEY_FRAME_DEFAULT;
-      return true;
-    }
     if (untilNextKeyFrame < 0) {
       currentKeyFrame++;
       untilNextKeyFrame += KEY_FRAME_DEFAULT;
@@ -165,7 +160,8 @@ abstract class Network {
       serverFramesBehind = 0;
       return;
     }
-    bool keyFrame = checkForKeyFrame(!removals.isEmpty, duration);
+    // This doesnät make sense.
+    bool keyFrame = checkForKeyFrame(duration);
     Map data = stateBundle(world.sprites, keyFrame);
     // A keyframe indicates that we are sending data with garantueed delivery.
     if (keyFrame) {
@@ -173,8 +169,7 @@ abstract class Network {
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
     }
     if (removals.length > 0) {
-      data[REMOVE_KEY] = new List.from(removals, growable:false);
-      removals.clear();
+      data[REMOVE_KEY] = removals;
     }
     if (!isServer()) {
       data[KEY_STATE_KEY] = world.localKeyState.getEnabledState();
