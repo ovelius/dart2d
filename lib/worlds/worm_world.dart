@@ -25,6 +25,9 @@ class WormWorld extends World {
   LocalPlayerSprite playerSprite;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
+  
+  double explosionFlash = 0.0;
+  
   WormWorld(int width, int height) : super(width, height) {
     halfWorld = new Vec2(width / 2, height / 2 );
   }
@@ -143,6 +146,12 @@ class WormWorld extends World {
       }
       canvas.restore();
     }
+    
+    if (explosionFlash > 0) {
+      canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
+      canvas.fillRect(0, 0, WIDTH, HEIGHT);
+      explosionFlash -= duration * 5;
+    }
   
     while (removeSprites.length > 0) {
       int id = removeSprites.removeAt(0);
@@ -256,6 +265,10 @@ class WormWorld extends World {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
           sprite.takeDamage(damageTaken.toInt());
+          if (sprite == this.playerSprite) {
+            Random r = new Random();
+            this.explosionFlash += r.nextDouble() * 1.5;
+          }
         }
       }
     }

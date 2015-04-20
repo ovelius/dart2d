@@ -367,7 +367,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   int sendFlags() {
-    return 0;//MovingSprite.FLAG_NO_GRAVITY + MovingSprite.FLAG_NO_MOVEMENTS;
+    return 0;
   }
   
   int remoteRepresentation() {
