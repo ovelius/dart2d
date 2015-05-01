@@ -39,6 +39,7 @@ class PeerWrapper {
 
   PeerWrapper(this.world, this.peer) {
     peer.callMethod('on', new JsObject.jsify(['open', new JsFunction.withThis(this.openPeer)]));
+    peer.callMethod('on', new JsObject.jsify(['receiveActivePeers', new JsFunction.withThis(this.receivePeers)]));
     peer.callMethod('on', new JsObject.jsify(['connection', new JsFunction.withThis(this.connectPeer)]));
     peer.callMethod('on', new JsObject.jsify(['error', new JsFunction.withThis(this.error)]));
   }
@@ -70,8 +71,23 @@ class PeerWrapper {
     if (item != null) {
       querySelector("#peerId").innerHtml = "Your id is: " + id;
       var name = (querySelector("#nameInput") as InputElement).value;
+      log.info("Got id ${id}");
       world.startAsServer(name, false); // true for two players. 
     }
+  }
+  
+  /**
+   * Receive list of peers from server. Automatically connect 
+   */
+  void receivePeers(unusedThis, List<String> ids) {
+    ids.forEach((String id) {
+      if (id != this.id) {
+        log.info("Auto connecting to id ${id}");
+        this.world.restart = true;
+        this.world.connectTo(id, "Auto connect name");
+        return;
+      }
+    });
   }
 
   bool hasConnections() {

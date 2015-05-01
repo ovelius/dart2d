@@ -176,6 +176,9 @@ Peer.prototype._handleMessage = function(message) {
       this.emit('open', this.id);
       this.open = true;
       break;
+    case 'ACTIVE_IDS':
+      this.emit('receiveActivePeers', message.ids);
+      break;
     case 'ERROR': // Server error.
       this._abort('server-error', payload.msg);
       break;
@@ -294,8 +297,12 @@ Peer.prototype.connect = function(peer, options) {
   return connection;
 }
 
+/*
+* Send abitrary data to server.
+* data is string.
+*/
 Peer.prototype.sendToServer = function(data) {
-  // Send data to server.
+  this.socket.send(data);
 }
 
 /**
