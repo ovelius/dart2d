@@ -56,10 +56,14 @@ class Rope extends MovingSprite {
   }
   
   frame(double duration, int frames, [Vec2 gravity]) {
-    if (locked) {
+    if (locked && owner != null) {
       // When locked we have no gravity.
       if (lockedOnOther != null) {
         this.setCenter(lockedOnOther.centerPoint());
+        if (lockedOnOther.remove) {
+          locked = false;
+          lockedOnOther = null;
+        }
       }
       dragOwner(duration);
       super.frame(duration, frames);
@@ -73,6 +77,9 @@ class Rope extends MovingSprite {
   }
   
   draw(CanvasRenderingContext2D context, bool debug) {
+    if (owner == null) {
+      return;
+    }
     Vec2 ownerCenter = owner.centerPoint();
     context.lineWidth = 2;
     var grad= context.createLinearGradient(ownerCenter.x, ownerCenter.y, position.x, position.y);
