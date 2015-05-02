@@ -125,6 +125,8 @@ class LocalPlayerSprite extends MovingSprite {
     sprite.health = convertSprite.health;
     sprite.networkId = convertSprite.networkId;
     sprite.networkType = NetworkType.LOCAL;
+    sprite.weaponState = new WeaponState(
+        sprite.world, sprite.keyState, sprite, sprite.gun);
     return sprite;
   }
   
@@ -363,7 +365,9 @@ class LocalPlayerSprite extends MovingSprite {
    
   void parseExtraNetworkData(List<int> data, int startAt) {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
-    weaponState.selectedWeaponIndex = data[startAt + 1];
+    if(weaponState != null) {
+      weaponState.selectedWeaponIndex = data[startAt + 1];
+    }
   }
   
   int sendFlags() {
