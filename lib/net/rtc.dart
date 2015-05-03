@@ -33,6 +33,7 @@ createPeerJs() {
 
 class PeerWrapper {
   World world;
+  bool autoConnect = true;
   var peer;
   var id;
   Map connections = {};
@@ -77,15 +78,17 @@ class PeerWrapper {
   }
   
   /**
-   * Receive list of peers from server. Automatically connect 
+   * Receive list of peers from server. Automatically connect. 
    */
   void receivePeers(unusedThis, List<String> ids) {
     ids.forEach((String id) {
       if (id != this.id) {
-        log.info("Auto connecting to id ${id}");
-        this.world.restart = true;
-        this.world.connectTo(id, "Auto connect name");
-        return;
+        if (autoConnect) {
+          log.info("Auto connecting to id ${id}");
+          this.world.restart = true;
+          this.world.connectTo(id, "Auto connect name");
+          return;
+        }
       }
     });
   }
