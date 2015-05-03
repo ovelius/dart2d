@@ -96,9 +96,10 @@ class ConnectionWrapper {
   }
   
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
-    lastLocalPeerKeyFrameVerified = dataMap[KEY_FRAME_KEY];
-    if (lastLocalPeerKeyFrameVerified >= world.network.currentKeyFrame) {
+    int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
+    if (receivedKeyFrameAck > lastLocalPeerKeyFrameVerified) {
       // Cool we just got some reliable data verified :)
+      lastLocalPeerKeyFrameVerified = receivedKeyFrameAck;
       keyFrameData = {};
     }
   }
