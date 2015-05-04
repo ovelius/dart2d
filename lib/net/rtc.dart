@@ -23,7 +23,7 @@ createLocalHostPeerJs() {
 createPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
     'key': 'peerconfig', // TODO: Change this.
-    'host': '45.56.104.227', // ng.locutus.se
+    'host': 'ng.locutus.se',
     'port': 8089,
     'debug': 7,
     'config': {
