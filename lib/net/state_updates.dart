@@ -18,6 +18,8 @@ String SERVER_PLAYER_REJECT = "-r";
 String GAME_STATE = "-g";
 String WORLD_DESTRUCTION = "_w";
 String WORLD_PARTICLE = "_p";
+String IMAGE_DATA_REQUEST = "_i";
+String IMAGE_DATA_RESPONSE = "-i";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -35,6 +37,8 @@ void remapKeyNamesForTest() {
   // World.
   WORLD_DESTRUCTION = "world_destruction";
   WORLD_PARTICLE = "world_particles";
+  IMAGE_DATA_REQUEST = "image_request";
+  IMAGE_DATA_REQUEST = "image_response";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
@@ -60,7 +64,9 @@ Set<String> SPECIAL_KEYS = new Set.from(
      IS_KEY_FRAME_KEY,
      MESSAGE_KEY,
      WORLD_DESTRUCTION,
-     WORLD_PARTICLE]);
+     WORLD_PARTICLE,
+     IMAGE_DATA_REQUEST,
+     IMAGE_DATA_RESPONSE]);
 
 List mergeUniqueList(List list1, List list2) {
   Set merged = new Set();

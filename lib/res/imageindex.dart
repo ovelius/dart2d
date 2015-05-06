@@ -23,18 +23,32 @@ List<String> imageSources = [
     "gun.png",
 ];  
 
-var _EMPTY_IMAGE = new CanvasElement(width:100, height:100);
-
+var _EMPTY_IMAGE = () {
+  ImageElement img = new ImageElement(width:100, height:100);
+  img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
+  return img;
+};
 // Item 0 is always empty image.
-var images = [_EMPTY_IMAGE];
+List<ImageElement> images = [_EMPTY_IMAGE()];
 
 var imageFutures = [];
 
 var imageByName = new Map<String, int>();
 
+/**
+ * Return and an img.src represenation of this image.
+ */
+String getImageDataUrl(String name) {
+  int index = imageByName[name];
+  ImageElement image = images[index];
+  CanvasElement canvas = new CanvasElement(width:image.width, height:image.height);
+  canvas.context2D.drawImage(image, 0, 0);
+  return canvas.toDataUrl("image/png");
+}
+
 useEmptyImagesForTest() {
   for (var img in imageSources) {
-    images.add(_EMPTY_IMAGE);
+    images.add(_EMPTY_IMAGE());
     imageByName[img] = images.length - 1;
   }
 }
