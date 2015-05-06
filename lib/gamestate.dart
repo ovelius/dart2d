@@ -42,7 +42,7 @@ class PlayerInfo {
 class GameState {
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
-      ["shipg01.png", "shipr01.png", "shipb01.png",  "shipy01.png"];
+      ["duck.png", "dragon.png", "duck.png",  "dragon.png"];
 
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
@@ -142,8 +142,7 @@ class GameState {
         world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
   }
   int getNextUsableSpriteImage() {
-    return imageByName["duck.png"];
-//    return imageByName[USEABLE_SPRITES[playerInfo.length]];
+    return imageByName[USEABLE_SPRITES[playerInfo.length]];
   }
   
   String toString() {

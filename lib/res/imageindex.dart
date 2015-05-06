@@ -14,6 +14,7 @@ List<String> imageSources = [
     "astroid2.png",
     "astroid3.png",
     "duck.png",
+    "dragon.png",
     "mattehorn.png",
     "cake.png",
     "banana.png",
