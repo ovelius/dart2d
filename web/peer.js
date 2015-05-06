@@ -643,12 +643,12 @@ DataConnection.prototype._handleDataMessage = function(e) {
 
 /** Allows user to close connection. */
 DataConnection.prototype.close = function() {
+  this.emit('close');
   if (!this.open) {
     return;
   }
   this.open = false;
   Negotiator.cleanup(this);
-  this.emit('close');
 }
 
 /** Allows user to send data. */

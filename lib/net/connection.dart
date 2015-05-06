@@ -162,6 +162,7 @@ class ConnectionWrapper {
   }
 
   void close(unusedThis) {
+    world.hudMessages.display("Connection to ${id} closed :(");
     opened = false;
     closed = true;
   }
