@@ -5,6 +5,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
@@ -38,6 +39,9 @@ abstract class Network {
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
+  // Store active ids from the server to connect to.
+  List<String> activeIds = new List();
+  Set<String> blackListedIds = new Set();
 
   Network(this.world, this.peer) {
     gameState = new GameState(world);
@@ -109,6 +113,7 @@ abstract class Network {
         }
       }
       world.hudMessages.display("Server role tranferred to you :)");
+      // TODO: Add self sprite.
       return true;
     }
     return false;
@@ -176,7 +181,6 @@ abstract class Network {
     } else if (keyFrame) {
       data[GAME_STATE] = gameState.toMap();
     }
-
     if (data.length > 0) {
       peer.sendDataWithKeyFramesToAll(data);
     }
@@ -269,5 +273,10 @@ void parseBundle(WormWorld world,
     Map gameStateMap = bundle[GAME_STATE];
     world.network.gameState = new GameState.fromMap(world, gameStateMap);
     world.network.connectToAllPeersInGameState();
+  }
+  // Just respond with the requested image data.
+  if (bundle.containsKey(IMAGE_DATA_REQUEST)) {
+    String data = getImageDataUrl(bundle[IMAGE_DATA_REQUEST]);
+    connection.sendData({IMAGE_DATA_RESPONSE: data});
   }
 }

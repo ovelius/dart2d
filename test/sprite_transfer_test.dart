@@ -4,6 +4,7 @@ import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
@@ -15,7 +16,8 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 void main() {
   useHtmlConfiguration();
   setUp(() {
-    canvas = (querySelector("#canvas") as CanvasElement).context2D;
+    canvasElement = (querySelector("#canvas") as CanvasElement);
+    canvas = canvasElement.context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');
@@ -86,8 +88,7 @@ void main() {
       for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      }
-
+      }      
       expect(worldB.sprites.length, equals(2));
       expect(worldB, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
@@ -111,6 +112,54 @@ void main() {
           hasType('RemotePlayerClientSprite'));
       expect(worldC.sprites[playerId(2)],
           hasType('RemotePlayerSprite'));
+      
+      // Now test transferring a sprite over the network.
+      MovingSprite sprite = new MovingSprite(1.0, 2.0, imageByName['fire.png']);
+      worldB.addSprite(sprite);
+      worldB.frameDraw();
+      expect(worldB, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(1))
+            .andNetworkType(NetworkType.LOCAL),
+        hasSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.REMOTE_FORWARD),
+        hasSpriteWithNetworkId(sprite.networkId)
+            .andNetworkType(NetworkType.LOCAL),
+      ]));
+      worldB.frameDraw();
+      worldC.frameDraw();
+      // Sprite gets added to worldC the next frame.
+      expect(worldC, hasExactSprites([
+         hasSpriteWithNetworkId(playerId(1))
+             .andNetworkType(NetworkType.REMOTE),
+         hasSpriteWithNetworkId(playerId(2))
+             .andNetworkType(NetworkType.LOCAL),
+         hasSpriteWithNetworkId(sprite.networkId)
+             .andNetworkType(NetworkType.REMOTE),
+      ]));
+      // Now remove the sprite.
+      sprite.remove = true;
+      for (int i = 0; i < 9; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      
+      expect(worldB, hasExactSprites([
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.LOCAL),
+          hasSpriteWithNetworkId(playerId(2))
+             .andNetworkType(NetworkType.REMOTE_FORWARD),
+      ]));
+      expect(worldC, hasExactSprites([
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE),
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.LOCAL),
+      ]));
+      
+      expect(recentReceviedDataFrom("b", 1),
+          new MapKeyMatcher.doesNotContain(REMOVE_KEY));
+      expect(recentReceviedDataFrom("c", 1),
+          new MapKeyMatcher.doesNotContain(REMOVE_KEY));
     });
   });
 }

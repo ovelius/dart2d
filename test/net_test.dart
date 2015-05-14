@@ -18,7 +18,8 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 void main() {
   useHtmlConfiguration();
   setUp(() {
-    canvas = (querySelector("#canvas") as CanvasElement).context2D;
+    canvasElement = (querySelector("#canvas") as CanvasElement);
+    canvas = canvasElement.context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');
@@ -34,7 +35,7 @@ void main() {
     test('TestBasicSmokeConnection', () {
       World worldA = testWorld("a");
       World worldB = testWorld("b");
-      // 
+      
       worldB.startAsServer("nameB");
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));

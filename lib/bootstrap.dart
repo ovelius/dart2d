@@ -12,18 +12,17 @@ import 'dart:html';
 import 'dart:math';
 import 'dart:async';
 
+const bool USE_LOCAL_HOST_PEER = false;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 DateTime lastStep;
 
 World world;
 
 void bootstrapWorld(World world) {
-  loadImages().then( (items) {
-    var peer = createPeerJs() /*createLocalHostPeerJs() */;
-    world.setJsPeer(peer);
-    lastStep = new DateTime.now();
-    new Timer(TIMEOUT, step);
-  });
+  var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
+  world.setJsPeer(peer);
+  lastStep = new DateTime.now();
+  new Timer(TIMEOUT, step);
 }
 
 void step() {

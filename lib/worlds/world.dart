@@ -12,6 +12,7 @@ import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
@@ -28,6 +29,7 @@ const FRAME_SPEED = 1.0/15;
 double untilNextFrame = FRAME_SPEED;
 
 CanvasRenderingContext2D canvas = null;
+CanvasElement canvasElement = null;
 
 abstract class World {
   final Logger log = new Logger('World');
@@ -56,11 +58,14 @@ abstract class World {
   bool freeze = false;
   Network network;
   
+  Loader loader;
+  
   World(int width, int height) {
     WIDTH = width;
     HEIGHT = height;
     localKeyState = new KeyState(this);
     hudMessages = new HudMessages(this);
+    loader = new Loader(canvasElement, this);
   }
   
   setJsPeer(var jsPeer) {
@@ -79,7 +84,8 @@ abstract class World {
 
   void frameDraw([double duration = 0.01]) {
     if (restart) {
-      clearScreen();    
+      clearScreen();
+      restart = false;
     }
     int frames = advanceFrames(duration);
  
@@ -116,6 +122,10 @@ abstract class World {
   
     // Only send to network if server frames has passed.
     if (frames > 0) {
+      if (networkRemovals.length > 0) {
+                     /// why why 
+                     print("WORLD RTC RTC OOGA BOOGA INCOMING RELIABLE DATA WITH REMOVE KEY??? ${removals}");
+                   }
       network.frame(duration, networkRemovals);
       networkRemovals.clear();
     }
@@ -186,7 +196,6 @@ abstract class World {
   void clearScreen() {
     sprites = {};
     waitingSprites = [];
-    restart = false;
   }
 
   void createLocalClient(Map dataFromServer) {
@@ -238,6 +247,9 @@ abstract class World {
   }
   
   void addSprite(Sprite sprite) {
+    if (!this.network.isServer()) {
+      print("addSprite called for ${sprite}, waiting : ${waitingSprites.length}");
+    }
     if (sprite.networkId != null) {
       if (sprites.containsKey(sprite.networkId)) {
         throw new StateError("Network controlled sprite ${sprite}[${sprite.networkId}] would overwrite existing sprite ${sprites[sprite.networkId]}");

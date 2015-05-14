@@ -100,6 +100,7 @@ class Sprite {
   }
   
   void setImage(int imageIndex, [int frameWidth]) {
+    assert(imageIndex < images.length);
     this.imageIndex = imageIndex;
     var image = images[imageIndex];
     if (frameWidth != null) {

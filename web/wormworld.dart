@@ -10,7 +10,8 @@ final int WIDTH = (querySelector("#canvas") as CanvasElement).width;
 final int HEIGHT = (querySelector("#canvas") as CanvasElement).height;
 
 void main() {
-  canvas = (querySelector("#canvas") as CanvasElement).context2D;
+  canvasElement = (querySelector("#canvas") as CanvasElement);
+  canvas = canvasElement.context2D;
   world = new WormWorld(WIDTH, HEIGHT);
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
   document.window.addEventListener("keyup", world.localKeyState.onKeyUp);

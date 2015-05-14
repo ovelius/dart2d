@@ -4,8 +4,8 @@ recentSentDataTo(id) {
   return testConnections[id][0].recentDataSent;
 }
 
-recentReceviedDataFrom(id) {
-  return testConnections[id][0].recentDataRecevied;
+recentReceviedDataFrom(id, [int index = 0]) {
+  return testConnections[id][index].recentDataRecevied;
 }
 
 Map<dynamic, List<TestConnection>> testConnections = {};

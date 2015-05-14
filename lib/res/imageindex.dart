@@ -31,9 +31,18 @@ var _EMPTY_IMAGE = () {
 // Item 0 is always empty image.
 List<ImageElement> images = [_EMPTY_IMAGE()];
 
-var imageFutures = [];
+List<Future> imageFutures = [];
 
-var imageByName = new Map<String, int>();
+Map imageByName = new Map<String, int>();
+Map loadedImages = new Map<String, bool>();
+
+bool finishedLoadingImages() {
+  return loadedImages.length == imageSources.length;
+}
+
+String imagesLoadedString() {
+  return "${loadedImages.length}/${imageSources.length}";
+}
 
 /**
  * Return and an img.src represenation of this image.
@@ -46,10 +55,15 @@ String getImageDataUrl(String name) {
   return canvas.toDataUrl("image/png");
 }
 
+void addFromImageData(String name, String data) {
+  imageByName[name].src = data;
+}
+
 useEmptyImagesForTest() {
   for (var img in imageSources) {
     images.add(_EMPTY_IMAGE());
     imageByName[img] = images.length - 1;
+    loadedImages[img] = true;
   }
 }
 
@@ -58,6 +72,9 @@ loadImages([String path = "./img/"]) {
     ImageElement element = new ImageElement(src: path + img);
     images.add(element);
     imageFutures.add(element.onLoad.first);
+    element.onLoad.first.then((e) {
+      loadedImages[img] = true;
+    });
     imageByName[img] = images.length - 1;
   }
   return Future.wait(imageFutures);

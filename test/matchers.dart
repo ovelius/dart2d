@@ -131,6 +131,8 @@ class WorldSpriteMatcher extends Matcher {
   Description describe(Description description) {
     return description.add("World does not contain sprite with networkId ${_networkId}");    
   }
+  
+  toString() => "SpriteMatcher for networkId ${_networkId}";
 }
 
 class WorldSpriteStateMatcher extends Matcher {
@@ -206,12 +208,18 @@ class TypeMatcher extends Matcher {
 }
 
 class MapKeyMatcher extends Matcher {
+  MapKeyMatcher.doesNotContain(this._key) {
+    this._value = null;
+    this._invert = true;
+  }
   MapKeyMatcher.containsKey(this._key) {
     this._value = null;
   }
   MapKeyMatcher.containsKeyWithValue(this._key, this._value);
   final String _key;
   var _value;
+  bool _invert = false;
+  
   bool matches(item, Map matchState) {
     Map data = null;
     if (item is String) {
@@ -219,7 +227,13 @@ class MapKeyMatcher extends Matcher {
     } else if (item is Map) {
       data = item;
     }
+
     bool containsKey = data != null && data.containsKey(_key);
+    
+    if (_invert) {
+      return !containsKey;
+    }
+    
     if (containsKey) {
       // If _value is null always match.
       return _value == null ? true : data[_key] == _value;
@@ -227,6 +241,10 @@ class MapKeyMatcher extends Matcher {
     return false;
   }
   Description describe(Description description) {
+    if (_invert) {
+      description.add("Map/Json that DOES NOT contain key ${_key}");
+      return description;
+    }
     if (_value == null) {
       description.add("Map/Json string not containing key ${_key}");
     } else {

@@ -48,7 +48,7 @@ class PeerWrapper {
   World world;
   bool autoConnect = true;
   var peer;
-  var id;
+  var id = null;
   Map connections = {};
 
   PeerWrapper(this.world, this.peer) {
@@ -86,7 +86,6 @@ class PeerWrapper {
       querySelector("#peerId").innerHtml = "Your id is: " + id;
       var name = (querySelector("#nameInput") as InputElement).value;
       log.info("Got id ${id}");
-      world.startAsServer(name, false); // true for two players. 
     }
   }
   
@@ -94,6 +93,7 @@ class PeerWrapper {
    * Receive list of peers from server. Automatically connect. 
    */
   void receivePeers(unusedThis, List<String> ids) {
+    this.world.network.activeIds = ids;        
     ids.forEach((String id) {
       if (id != this.id) {
         if (autoConnect) {

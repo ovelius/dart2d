@@ -91,14 +91,17 @@ class WormWorld extends World {
   }
   
   setJsPeer(var jsPeer) {
-    byteWorld = new ByteWorld(imageByName['mattehorn.png'], new Vec2(WIDTH * 1.0,  HEIGHT * 1.0));
     peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
   }
   
   void frameDraw([double duration = 0.01]) {
+    if (!loader.frameDraw(duration)) {
+      return;
+    }
     if (restart) {
-      clearScreen();    
+      clearScreen();
+      restart = false;
     }
     int frames = advanceFrames(duration);
  
@@ -167,6 +170,7 @@ class WormWorld extends World {
     // Only send to network if server frames has passed.
     if (frames > 0) {
       network.frame(duration, networkRemovals);
+      networkRemovals.clear();
     }
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);

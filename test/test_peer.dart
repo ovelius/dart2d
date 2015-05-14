@@ -4,12 +4,17 @@ import 'test_connection.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/phys/vec2.dart';
 
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
-  World w = new WormWorld(400, 600);
+  WormWorld w = new WormWorld(400, 600);
+  w.byteWorld = new ByteWorld(imageByName['mattehorn.png'], new Vec2(400 * 1.0,  600 * 1.0));
   w.setJsPeer(peer);
   w.hudMessages = new TestHudMessage(w);
+  w.loader.completed_ = true;
   return w;
 }
 
