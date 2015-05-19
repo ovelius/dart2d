@@ -5,7 +5,6 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
@@ -40,13 +39,13 @@ abstract class Network {
   // is unable to ack our data.
   int serverFramesBehind = 0;
   // Store active ids from the server to connect to.
-  List<String> activeIds = new List();
+  List<String> activeIds = null;
   Set<String> blackListedIds = new Set();
 
   Network(this.world, this.peer) {
     gameState = new GameState(world);
   }
-
+  
   /**
    * Ensures that we have a connection to all clients in the game.
    * This is to be able to elect a new server in case the current server dies.
@@ -68,6 +67,16 @@ abstract class Network {
         }
       }
     }
+  }
+  
+  /**
+   * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
+   */
+  bool connectionsExhausted() {
+    if (activeIds == null) {
+      return false;
+    }
+    return activeIds.length - blackListedIds.length == 0;
   }
   
   /**
@@ -136,6 +145,19 @@ abstract class Network {
         serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
       }
     }
+  }
+  
+  /**
+   * Return a list of connections garantueed to be active.
+   */
+  List<ConnectionWrapper> safeActiveConnections() {
+    List<ConnectionWrapper> activeConnections = new List();
+    for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
+      if (!wrapper.closed && wrapper.opened) {
+        activeConnections.add(wrapper);
+      }
+    }
+    return activeConnections;
   }
   
   /**
@@ -273,10 +295,5 @@ void parseBundle(WormWorld world,
     Map gameStateMap = bundle[GAME_STATE];
     world.network.gameState = new GameState.fromMap(world, gameStateMap);
     world.network.connectToAllPeersInGameState();
-  }
-  // Just respond with the requested image data.
-  if (bundle.containsKey(IMAGE_DATA_REQUEST)) {
-    String data = getImageDataUrl(bundle[IMAGE_DATA_REQUEST]);
-    connection.sendData({IMAGE_DATA_RESPONSE: data});
   }
 }

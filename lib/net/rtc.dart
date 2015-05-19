@@ -93,15 +93,14 @@ class PeerWrapper {
    * Receive list of peers from server. Automatically connect. 
    */
   void receivePeers(unusedThis, List<String> ids) {
+    ids.remove(this.id);
     this.world.network.activeIds = ids;        
     ids.forEach((String id) {
-      if (id != this.id) {
-        if (autoConnect) {
-          log.info("Auto connecting to id ${id}");
-          this.world.restart = true;
-          this.world.connectTo(id, "Auto connect name");
-          return;
-        }
+      if (autoConnect) {
+        log.info("Auto connecting to id ${id}");
+        this.world.restart = true;
+        this.world.connectTo(id, "Auto connect name");
+        return;
       }
     });
   }

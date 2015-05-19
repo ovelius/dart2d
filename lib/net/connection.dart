@@ -7,6 +7,7 @@ import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
@@ -163,6 +164,10 @@ class ConnectionWrapper {
 
   void close(unusedThis) {
     world.hudMessages.display("Connection to ${id} closed :(");
+    // Connection was never open, blacklist the id.
+    if (!opened) {
+      world.network.blackListedIds.add(this.id);
+    }
     opened = false;
     closed = true;
   }
@@ -172,6 +177,12 @@ class ConnectionWrapper {
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+    opened = true;
+    // TODO: Do this manually for data only connections.
+    connectToGame();
+  }
+  
+  void connectToGame() {
     if (connectionType == ConnectionType.CLIENT_TO_SERVER) {
       // Send out local data hello. We don't do this as part of the intial handshake but over
       // the actual connection.
@@ -182,12 +193,15 @@ class ConnectionWrapper {
       };
       sendData(playerData);
     }
-    opened = true;
   }
   
   void error(unusedThis, error) {
     print("error ${error}");
     world.hudMessages.display("Connection: ${error}");
+    // Connection was never open, blacklist the id.
+    if (!opened) {
+      world.network.blackListedIds.add(this.id);
+    }
     opened = false;
     closed = true;
   }
@@ -196,6 +210,21 @@ class ConnectionWrapper {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     verifyLastKeyFrameHasBeenReceived(dataMap);
+    
+    // Allow sending and parsing imageData regardless of state.
+    if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
+      String name = dataMap[IMAGE_DATA_REQUEST]['name'];
+      String data = getImageDataUrl(name,0, 213131213);
+      print("Sending data of length ${data.length} for ${name}");
+      sendData({IMAGE_DATA_RESPONSE: {'name':name, 'data':data}});
+    }
+    if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
+      String name = dataMap[IMAGE_DATA_RESPONSE]['name'];
+      String data = dataMap[IMAGE_DATA_RESPONSE]['data'];
+      print("Successfully got data of length ${data.length} for ${name}");
+      addFromImageData(name, data);
+    }
+    
     if (!handshakeReceived) {
       // Try to handle the intial connection handshake.
       checkForHandshakeData(dataMap);

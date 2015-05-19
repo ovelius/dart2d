@@ -1,6 +1,7 @@
 library imageindex;
 
 import 'dart:html';
+import 'dart:math';
 import 'dart:async';
 
 List<String> imageSources = [
@@ -33,6 +34,7 @@ List<ImageElement> images = [_EMPTY_IMAGE()];
 
 List<Future> imageFutures = [];
 
+// Map ImageName -> ImageId.
 Map imageByName = new Map<String, int>();
 Map loadedImages = new Map<String, bool>();
 
@@ -47,16 +49,27 @@ String imagesLoadedString() {
 /**
  * Return and an img.src represenation of this image.
  */
-String getImageDataUrl(String name) {
+String getImageDataUrl(String name, int start, int length) {
   int index = imageByName[name];
   ImageElement image = images[index];
   CanvasElement canvas = new CanvasElement(width:image.width, height:image.height);
   canvas.context2D.drawImage(image, 0, 0);
-  return canvas.toDataUrl("image/png");
+  String data = canvas.toDataUrl("image/png");
+  int end = min(start + length, data.length);
+  return data.substring(start, end);
 }
 
 void addFromImageData(String name, String data) {
-  imageByName[name].src = data;
+  images[imageByName[name]].src = data;
+  loadedImages[name] = true;
+}
+
+loadImagesFromNetwork() {
+  for (var img in imageSources) {
+    ImageElement element = new ImageElement();
+    images.add(element);
+    imageByName[img] = images.length - 1;
+  }
 }
 
 useEmptyImagesForTest() {
@@ -67,7 +80,11 @@ useEmptyImagesForTest() {
   }
 }
 
-loadImages([String path = "./img/"]) {
+bool imagesIndexed() {
+  return imageByName.length >= imageSources.length;
+}
+
+loadImagesFromServer([String path = "./img/"]) {
   for (var img in imageSources) {
     ImageElement element = new ImageElement(src: path + img);
     images.add(element);
