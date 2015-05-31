@@ -75,7 +75,7 @@ class PeerWrapper {
     connections[peerId] = connectionWrapper;
   }
 
-  void error(e) {
+  void error(unusedThis, e) {
     world.hudMessages.display("Peer error: ${e}");
   }
 

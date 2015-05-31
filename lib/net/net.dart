@@ -2,12 +2,14 @@ library net;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 final Logger log = new Logger('Network');
@@ -54,10 +56,13 @@ abstract class Network {
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in gameState.playerInfo) {
-      Sprite sprite = world.sprites[info.spriteId];
+      LocalPlayerSprite sprite = world.sprites[info.spriteId];
       if (sprite != null) {
         // Make sure the ownerId is consistent with the connectionId.
         sprite.ownerId = info.connectionId;
+        sprite.info = info;
+      } else {
+        log.warning("No matching sprite found for ${info}");
       }
       if (!peer.hasConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.

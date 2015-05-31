@@ -16,6 +16,7 @@ class PlayerInfo {
   int spriteId;
   int score = 0;
   int deaths = 0;
+  bool inGame = true;
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
   PlayerInfo.fromMap(Map map) {
@@ -24,6 +25,7 @@ class PlayerInfo {
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
+    inGame = map.containsKey("g");
   }
 
   Map toMap() {
@@ -33,10 +35,13 @@ class PlayerInfo {
     map["cid"] = connectionId;
     map["s"] = score;
     map["d"] = deaths;
+    if (inGame) {
+      map["g"] = inGame;
+    }
     return map;
   }
 
-  String toString() => "${spriteId} ${name}";  
+  String toString() => "${spriteId} ${name} ${inGame}";  
 }
 
 class GameState {

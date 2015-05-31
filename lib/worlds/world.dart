@@ -149,7 +149,8 @@ abstract class World {
         }
       }
       if (sprites.containsKey(newSprite.networkId)) {
-        log.severe("World ${peer.id} Network controlled sprite ${newSprite}[${newSprite.networkId}] would overwrite existing sprite ${sprites[newSprite.networkId]}");
+        log.severe("World ${peer.id} Network controlled sprite ${newSprite}[${newSprite.networkId}] would overwrite existing sprite ${sprites[newSprite.networkId]} not adding it!");
+        continue;
       }
       if (newSprite is Particles && newSprite.sendToNetwork) {
         Map data = {WORLD_PARTICLE: newSprite.toNetworkUpdate()};
@@ -247,9 +248,6 @@ abstract class World {
   }
   
   void addSprite(Sprite sprite) {
-    if (!this.network.isServer()) {
-      print("addSprite called for ${sprite}, waiting : ${waitingSprites.length}");
-    }
     if (sprite.networkId != null) {
       if (sprites.containsKey(sprite.networkId)) {
         throw new StateError("Network controlled sprite ${sprite}[${sprite.networkId}] would overwrite existing sprite ${sprites[sprite.networkId]}");

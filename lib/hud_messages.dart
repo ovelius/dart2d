@@ -50,6 +50,9 @@ class HudMessages {
       for (int i = gameState.playerInfo.length - 1; i >= 0; i--) {
         PlayerInfo info = gameState.playerInfo[i];
         MovingSprite sprite = world.sprites[info.spriteId];
+        if (sprite == null) {
+          continue;
+        }
         Vec2 middle = sprite.centerPoint();
         int x = WIDTH ~/ 3;
         int y = 40 + i*40;

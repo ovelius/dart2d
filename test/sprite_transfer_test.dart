@@ -4,6 +4,7 @@ import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/gamestate.dart';
@@ -160,6 +161,52 @@ void main() {
           new MapKeyMatcher.doesNotContain(REMOVE_KEY));
       expect(recentReceviedDataFrom("c", 1),
           new MapKeyMatcher.doesNotContain(REMOVE_KEY));
+    });
+    
+    test('TestGameStateTransfer', () {
+      World worldA = testWorld("a");
+      World worldB = testWorld("b");
+      worldA.startAsServer("nameA");
+     
+      worldB.connectTo("a", "nameB");
+
+      logConnectionData = true;
+      for (int i = 0; i < 3; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // Both worlds are in the same gamestate.
+      expect(worldB.network.gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+      expect(worldA.network.gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+
+      // The player B sprite is hooked up to the gameState.
+      LocalPlayerSprite playerBSprite = worldB.sprites[playerId(1)];
+      expect(playerBSprite.info.name, equals("nameB"));
+      playerBSprite = worldA.sprites[playerId(1)];;
+      expect(playerBSprite.info.name, equals("nameB"));
+      
+      LocalPlayerSprite playerASprite = worldB.sprites[playerId(0)];
+      expect(playerASprite.info.name, equals("nameA"));
+      playerBSprite = worldA.sprites[playerId(0)];
+      expect(playerASprite.info.name, equals("nameA"));
+      
+      // Now kill one player.
+      playerBSprite = worldA.sprites[playerId(1)];
+      playerBSprite.takeDamage(playerBSprite.health);
+      expect(playerBSprite.collision, equals(false));
+      expect(playerBSprite.inGame(), equals(false));
+      
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
+      // Now look how worldB views this sprite.
+      playerBSprite = worldB.sprites[playerId(1)];
+      playerBSprite.takeDamage(playerBSprite.health);
+      expect(playerBSprite.collision, equals(false));
+      expect(playerBSprite.inGame(), equals(false));
     });
   });
 }

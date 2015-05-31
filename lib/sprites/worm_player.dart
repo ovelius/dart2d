@@ -41,6 +41,10 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   void checkShouldFire() {
     // Leave this empty.
   }
+  
+  maybeRespawn(double duration) {
+   // Client should not control this. 
+  }
 }
 
 /**
@@ -57,7 +61,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
     this.world = world;
     this.info = info;
     this.keyState = keystate;
-    this.collision = this.inGame;
+    this.collision = this.inGame();
     this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
     this.networkId = sprite.networkId;
   }
@@ -77,6 +81,10 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   void checkShouldFire() {
     // Don't do anything in the local client.
     // The server triggers this.
+  }
+  
+  maybeRespawn(double duration) {
+   // Client should not control this. 
   }
 }
 
@@ -111,7 +119,6 @@ class LocalPlayerSprite extends MovingSprite {
   
   bool onGround = false;
     
-  bool inGame = true;
   double spawnIn = 0.0;
   
   MovingSprite gun;
@@ -121,7 +128,6 @@ class LocalPlayerSprite extends MovingSprite {
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;
-    sprite.collision = convertSprite.inGame;
     sprite.health = convertSprite.health;
     sprite.networkId = convertSprite.networkId;
     sprite.networkType = NetworkType.LOCAL;
@@ -132,7 +138,6 @@ class LocalPlayerSprite extends MovingSprite {
   
   LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
        : super.withVecPosition(convertSprite.position, convertSprite.imageIndex) {
-     this.collision = inGame;
      this.size = convertSprite.size;
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
@@ -144,7 +149,6 @@ class LocalPlayerSprite extends MovingSprite {
     this.world = world;
     this.info = info;
     this.keyState = keyState;
-    this.collision = inGame;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun();
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
@@ -193,8 +197,12 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
   
+  bool inGame() {
+    return info != null && info.inGame;
+  }
+  
   draw(CanvasRenderingContext2D context, bool debug) {
-    if (!inGame) {
+    if (!inGame()) {
       return;
     }
     if (weaponState != null) {
@@ -219,18 +227,22 @@ class LocalPlayerSprite extends MovingSprite {
     context.globalAlpha = 1.0;
   }
   
-  frame(double duration, int frames, [Vec2 gravity]) {
-    if (!inGame) {
+  maybeRespawn(double duration) {
+    if (info != null && !inGame()) {
       spawnIn-= duration;
       if (spawnIn < 0) {
         velocity = new Vec2();
         world.hudMessages.displayAndSendToNetwork("${info.name} is back!");
-        inGame = true;
+        info.inGame = true;
         collision = true;
         health = MAX_HEALTH;
       }
       return;
-    }
+    }  
+  }
+  
+  frame(double duration, int frames, [Vec2 gravity]) {
+    maybeRespawn(duration);
     checkControlKeys(duration);
     checkShouldFire();
     super.frame(duration, frames, gravity);
@@ -342,7 +354,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (health <= 0) {
       world.hudMessages.displayAndSendToNetwork("${info.name} died!");
       info.deaths++;
-      inGame = false;
+      info.inGame = false;
       collision = false;
       spawnIn = RESPAWN_TIME;  
     }
