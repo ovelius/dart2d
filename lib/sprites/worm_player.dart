@@ -99,15 +99,15 @@ class LocalPlayerSprite extends MovingSprite {
   static const MAX_SPEED = 500.0;
   
   Map<String, int> _controls = {
-      "Left": KeyCode.LEFT,
-      "Right": KeyCode.RIGHT,
+      "Left": KeyCode.A,
+      "Right": KeyCode.D,
       "Aim up": KeyCode.UP,
       "Aim down": KeyCode.DOWN,
-      "Jump": KeyCode.F,
-      "Fire": KeyCode.D,
-      "Rope": KeyCode.R,
-      "Next weapon": KeyCode.G,
-      "Prev weapon": KeyCode.B,
+      "Jump": KeyCode.W,
+      "Fire": KeyCode.F,
+      "Rope": KeyCode.S,
+      "Next weapon": KeyCode.E,
+      "Prev weapon": KeyCode.Q,
   };
 
   WormWorld world;
@@ -281,12 +281,12 @@ class LocalPlayerSprite extends MovingSprite {
       velocity.x = velocity.x * 0.94; 
     }
     
-    if (keyState.keyIsDown(KeyCode.F) && rope != null) {
+    if (keyIsDown("Jump") && rope != null) {
       world.removeSprite(rope.networkId);
       rope = null;
     }
     
-    if (keyState.keyIsDown(KeyCode.F) && onGround) {
+    if (keyIsDown("Jump") && onGround) {
       this.velocity.y -= 200.0; 
       this.onGround = false;
      
