@@ -142,7 +142,8 @@ class WormWorld extends World {
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
-      sprite.draw(canvas, localKeyState.debug);
+      if(shouldDraw(sprite))
+        sprite.draw(canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
         removeSprites.add(sprite.networkId);
@@ -177,6 +178,31 @@ class WormWorld extends World {
     drawFpsCounters();
     hudMessages.render(canvas, duration);
     canvas.restore();
+  }
+  
+  bool shouldDraw(Sprite sprite){
+    double xMin = viewPoint.x;                        //leftest x-value
+    double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
+    double yMin = viewPoint.y;                        //highest y-value
+    double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
+    
+    double spriteX = sprite.position.x;   //sprite most left x-value
+    double spriteY = sprite.position.y;   //sprite most top x-value
+    double spriteWidth = sprite.size.x;   //sprite width
+    double spriteHeight = sprite.size.y;  //sprite height
+    
+    bool shouldDraw = true;
+    
+    if(spriteX > xMax)
+      shouldDraw = false;
+    if(spriteX + spriteWidth < xMin)
+      shouldDraw = false;
+    if(spriteY > yMax)
+      shouldDraw = false;
+    if(spriteY + spriteHeight < yMin)
+      shouldDraw = false;
+    
+    return shouldDraw;
   }
   
   void createLocalClient(Map dataFromServer) {
