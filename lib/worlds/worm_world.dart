@@ -18,6 +18,7 @@ import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/res/imageindex.dart'; 
 import 'dart:math';
 import 'dart:html';
+import 'dart:mirrors';
 
 class WormWorld extends World {
   Vec2 viewPoint = new Vec2();
@@ -186,13 +187,25 @@ class WormWorld extends World {
     double yMin = viewPoint.y;                        //highest y-value
     double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
     
-    double spriteX = sprite.position.x;   //sprite most left x-value
-    double spriteY = sprite.position.y;   //sprite most top x-value
-    double spriteWidth = sprite.size.x;   //sprite width
-    double spriteHeight = sprite.size.y;  //sprite height
+    double spriteX, spriteY, spriteWidth, spriteHeight;
+    
+    InstanceMirror mirror = reflect(sprite);  //TODO Fix particles so this can be removed
+    if(MirrorSystem.getName(mirror.type.simpleName)!="Particles"){
+      spriteX = sprite.position.x;   //sprite most left x-value
+      spriteY = sprite.position.y;   //sprite most top x-value
+      spriteWidth = sprite.size.x;   //sprite width
+      spriteHeight = sprite.size.y;  //sprite height
+    }
+    
+    if(MirrorSystem.getName(mirror.type.simpleName)=="Particles"){
+          spriteX = sprite.location.x;   //sprite most left x-value
+          spriteY = sprite.location.y;   //sprite most top x-value
+          spriteWidth = sprite.size.x;   //sprite width
+          spriteHeight = sprite.size.y;  //sprite height
+    }
     
     bool shouldDraw = true;
-    
+        
     if(spriteX > xMax)
       shouldDraw = false;
     if(spriteX + spriteWidth < xMin)
@@ -201,7 +214,7 @@ class WormWorld extends World {
       shouldDraw = false;
     if(spriteY + spriteHeight < yMin)
       shouldDraw = false;
-    
+      
     return shouldDraw;
   }
   
