@@ -256,6 +256,9 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
+  bool downKeyIsPressed = false;
+  bool upKeyIsPressed = false;
+  
   void checkControlKeys(double duration) {
     if (keyIsDown("Left")) {
       if (velocity.x > -100) {
@@ -290,11 +293,16 @@ class LocalPlayerSprite extends MovingSprite {
       this.velocity.y -= 200.0; 
       this.onGround = false;
      
-    } else if (keyIsDown("Aim down")) {
-      gunDown(duration);
-    } else if (keyIsDown("Aim up")) {
-      gunUp(duration);
-    }
+    } if (keyIsDown("Aim down") && !downKeyIsPressed) {
+      gunDown();
+      downKeyIsPressed = true;
+    }else if(!keyIsDown("Aim down"))
+      downKeyIsPressed = false;
+    if (keyIsDown("Aim up") && !upKeyIsPressed) {
+      gunUp();
+      upKeyIsPressed = true;
+    } else if(!keyIsDown("Aim up"))
+      upKeyIsPressed = false;
     
    
     if (keyIsDown("Rope")) {
@@ -308,29 +316,29 @@ class LocalPlayerSprite extends MovingSprite {
     } 
   }
   
-  void gunDown(double duration) {
-    if (angle != 0.0) {
-      gun.angle -= duration * 4.0;
+  void gunDown() {
+    if (angle != 0.0) {           //left
+      gun.angle -= PI/5;
       if (gun.angle < -(PI + PI/3)) {
         gun.angle = -(PI + PI/3);
       }
-    } else {
-      gun.angle += duration * 4.0;
+    } else {                      //right
+      gun.angle += PI/5;
       if (gun.angle > PI/3) {
-        gun.angle = PI / 3;
+        gun.angle = PI/3;
       }
     }
   }
   
-  void gunUp(double duration) {
+  void gunUp() {
     // Diffent if facing left or right.
     if (angle != 0.0) {
-      gun.angle += duration * 4.0;
+      gun.angle += PI/5;
       if (gun.angle > -PI/2) {
         gun.angle = -PI/2;
       }
     } else {
-      gun.angle -= duration * 4.0;
+      gun.angle -= PI/5;
       if (gun.angle < -PI/2) {
         gun.angle = -PI/2;
       }
