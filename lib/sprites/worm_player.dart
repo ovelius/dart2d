@@ -310,12 +310,12 @@ class LocalPlayerSprite extends MovingSprite {
   
   void gunDown(double duration) {
     if (angle != 0.0) {
-      gun.angle -= duration * 2.0;
+      gun.angle -= duration * 4.0;
       if (gun.angle < -(PI + PI/3)) {
         gun.angle = -(PI + PI/3);
       }
     } else {
-      gun.angle += duration * 2.0;
+      gun.angle += duration * 4.0;
       if (gun.angle > PI/3) {
         gun.angle = PI / 3;
       }
@@ -325,12 +325,12 @@ class LocalPlayerSprite extends MovingSprite {
   void gunUp(double duration) {
     // Diffent if facing left or right.
     if (angle != 0.0) {
-      gun.angle += duration * 2.0;
+      gun.angle += duration * 4.0;
       if (gun.angle > -PI/2) {
         gun.angle = -PI/2;
       }
     } else {
-      gun.angle -= duration * 2.0;
+      gun.angle -= duration * 4.0;
       if (gun.angle < -PI/2) {
         gun.angle = -PI/2;
       }
