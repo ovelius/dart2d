@@ -20,7 +20,7 @@ import 'dart:math';
 import 'dart:html';
 
 class WormWorld extends World {
-  Vec2 centerView = new Vec2();
+  Vec2 viewPoint = new Vec2();
   Vec2 halfWorld;
   LocalPlayerSprite playerSprite;
   ByteWorld byteWorld;
@@ -114,23 +114,23 @@ class WormWorld extends World {
     
     
     if (playerSprite != null) {
-      centerView.x = playerSprite.position.x - halfWorld.x;
-      centerView.y = playerSprite.position.y - halfWorld.y;
-      if (centerView.x < 0) {
-        centerView.x = 0.0;
+      viewPoint.x = playerSprite.position.x - halfWorld.x;
+      viewPoint.y = playerSprite.position.y - halfWorld.y;
+      if (viewPoint.x < 0) {
+        viewPoint.x = 0.0;
       } 
-      if (centerView.y < 0) {
-        centerView.y = 0.0;
+      if (viewPoint.y < 0) {
+        viewPoint.y = 0.0;
       }
-      if (centerView.y > byteWorld.height - HEIGHT) {
-        centerView.y = byteWorld.height * 1.0 - HEIGHT;
+      if (viewPoint.y > byteWorld.height - HEIGHT) {
+        viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
       }
-      if (centerView.x > byteWorld.width - WIDTH) {
-        centerView.x = byteWorld.width * 1.0 - WIDTH;
+      if (viewPoint.x > byteWorld.width - WIDTH) {
+        viewPoint.x = byteWorld.width * 1.0 - WIDTH;
       }
     }
    
-   byteWorld.drawAt(canvas, centerView.x, centerView.y);
+   byteWorld.drawAt(canvas, viewPoint.x, viewPoint.y);
    canvas.globalAlpha = 0.7;
    byteWorld.drawAsMiniMap(canvas, 0, 0);
    canvas.restore();
@@ -138,7 +138,7 @@ class WormWorld extends World {
     for (int networkId in sprites.keys) {
       var sprite = sprites[networkId];
       canvas.save();
-      canvas.translate(-centerView.x, -centerView.y);
+      canvas.translate(-viewPoint.x, -viewPoint.y);
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
