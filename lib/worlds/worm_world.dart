@@ -214,7 +214,11 @@ class WormWorld extends World {
       shouldDraw = false;
     if(spriteY + spriteHeight < yMin)
       shouldDraw = false;
-      
+    
+    //TODO Fix rope not drawing when shot out of frame.
+    if(MirrorSystem.getName(mirror.type.simpleName)=="Rope")
+      shouldDraw = true;
+    
     return shouldDraw;
   }
   
