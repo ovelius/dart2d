@@ -56,6 +56,9 @@ class Sprite {
   SpriteType spriteType = SpriteType.IMAGE;
   // Color
   String color = "rgba(255, 255, 255, 1.0)";
+  //True if sprite doesn't have to be drawn when outside of canvas.
+  //Default is true.
+  bool invisibleOutsideCanvas = true;
   // Animation data computed in constructor.
   int frameIndex = 0;
   int frames = 1;

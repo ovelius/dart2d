@@ -182,6 +182,9 @@ class WormWorld extends World {
   }
   
   bool shouldDraw(Sprite sprite){
+    bool shouldDraw = true;
+    
+    if(sprite.invisibleOutsideCanvas) {
     double xMin = viewPoint.x;                        //leftest x-value
     double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
     double yMin = viewPoint.y;                        //highest y-value
@@ -203,9 +206,7 @@ class WormWorld extends World {
           spriteWidth = sprite.size.x;   //sprite width
           spriteHeight = sprite.size.y;  //sprite height
     }
-    
-    bool shouldDraw = true;
-        
+            
     if(spriteX > xMax)
       shouldDraw = false;
     if(spriteX + spriteWidth < xMin)
@@ -214,10 +215,7 @@ class WormWorld extends World {
       shouldDraw = false;
     if(spriteY + spriteHeight < yMin)
       shouldDraw = false;
-    
-    //TODO Fix rope not drawing when shot out of frame.
-    if(MirrorSystem.getName(mirror.type.simpleName)=="Rope")
-      shouldDraw = true;
+    }
     
     return shouldDraw;
   }
