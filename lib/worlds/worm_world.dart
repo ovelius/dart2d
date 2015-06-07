@@ -192,15 +192,14 @@ class WormWorld extends World {
     
     double spriteX, spriteY, spriteWidth, spriteHeight;
     
-    InstanceMirror mirror = reflect(sprite);  //TODO Fix particles so this can be removed
-    if(MirrorSystem.getName(mirror.type.simpleName)!="Particles"){
+    if(!(sprite is Particles)){
       spriteX = sprite.position.x;   //sprite most left x-value
       spriteY = sprite.position.y;   //sprite most top x-value
       spriteWidth = sprite.size.x;   //sprite width
       spriteHeight = sprite.size.y;  //sprite height
     }
     
-    if(MirrorSystem.getName(mirror.type.simpleName)=="Particles"){
+    if(sprite is Particles){
           spriteX = sprite.location.x;   //sprite most left x-value
           spriteY = sprite.location.y;   //sprite most top x-value
           spriteWidth = sprite.size.x;   //sprite width
