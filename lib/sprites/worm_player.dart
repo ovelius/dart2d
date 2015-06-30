@@ -203,6 +203,8 @@ class LocalPlayerSprite extends MovingSprite {
   
   draw(CanvasRenderingContext2D context, bool debug) {
     if (!inGame()) {
+      this.velocity.x = 0.0;
+      this.velocity.y = 0.0;
       return;
     }
     if (weaponState != null) {
@@ -233,6 +235,7 @@ class LocalPlayerSprite extends MovingSprite {
       if (spawnIn < 0) {
         velocity = new Vec2();
         world.hudMessages.displayAndSendToNetwork("${info.name} is back!");
+        world.network.gameState.urgentData = true;
         info.inGame = true;
         collision = true;
         health = MAX_HEALTH;
@@ -353,6 +356,7 @@ class LocalPlayerSprite extends MovingSprite {
     health -= damage;
     if (health <= 0) {
       world.hudMessages.displayAndSendToNetwork("${info.name} died!");
+      world.network.gameState.urgentData = true;
       info.deaths++;
       info.inGame = false;
       collision = false;

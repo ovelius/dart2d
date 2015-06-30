@@ -205,7 +205,7 @@ abstract class Network {
     }
     if (!isServer()) {
       data[KEY_STATE_KEY] = world.localKeyState.getEnabledState();
-    } else if (keyFrame) {
+    } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
       data[GAME_STATE] = gameState.toMap();
     }
     if (data.length > 0) {

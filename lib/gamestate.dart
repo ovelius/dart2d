@@ -52,6 +52,14 @@ class GameState {
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
   int level = 0;
+  // True if we have urgent data for the network.
+  bool urgentData = false;
+  
+  bool retrieveAndResetUrgentData() {
+    bool tUrgentData = urgentData;
+    urgentData = false;
+    return tUrgentData;
+  }
   
   bool isAtMaxPlayers() {
     return playerInfo.length >= USEABLE_SPRITES.length;
