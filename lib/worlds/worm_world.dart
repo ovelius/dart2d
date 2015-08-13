@@ -18,6 +18,7 @@ import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/res/imageindex.dart'; 
 import 'dart:math';
 import 'dart:html';
+import 'dart:mirrors';
 
 class WormWorld extends World {
   Vec2 viewPoint = new Vec2();
@@ -114,19 +115,20 @@ class WormWorld extends World {
     
     
     if (playerSprite != null) {
-      viewPoint.x = playerSprite.position.x - halfWorld.x;
-      viewPoint.y = playerSprite.position.y - halfWorld.y;
-      if (viewPoint.x < 0) {
-        viewPoint.x = 0.0;
-      } 
-      if (viewPoint.y < 0) {
-        viewPoint.y = 0.0;
-      }
+      Vec2 playerCenter = playerSprite.centerPoint();
+      viewPoint.x = playerCenter.x - halfWorld.x;
+      viewPoint.y = playerCenter.y - halfWorld.y;
       if (viewPoint.y > byteWorld.height - HEIGHT) {
         viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
       }
       if (viewPoint.x > byteWorld.width - WIDTH) {
         viewPoint.x = byteWorld.width * 1.0 - WIDTH;
+      }
+      if (viewPoint.x < 0) {
+        viewPoint.x = 0.0;
+      } 
+      if (viewPoint.y < 0) {
+        viewPoint.y = 0.0;
       }
     }
    
@@ -142,7 +144,8 @@ class WormWorld extends World {
       if (!freeze && !network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
-      sprite.draw(canvas, localKeyState.debug);
+      if(shouldDraw(sprite))
+        sprite.draw(canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
         removeSprites.add(sprite.networkId);
@@ -177,6 +180,32 @@ class WormWorld extends World {
     drawFpsCounters();
     hudMessages.render(canvas, duration);
     canvas.restore();
+  }
+  
+  bool shouldDraw(Sprite sprite){
+    if(sprite.invisibleOutsideCanvas) {
+      double xMin = viewPoint.x;                        //leftest x-value
+      double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
+      double yMin = viewPoint.y;                        //highest y-value
+      double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
+      
+      double spriteX, spriteY, spriteWidth, spriteHeight;
+      
+      spriteX = sprite.position.x;   //sprite most left x-value
+      spriteY = sprite.position.y;   //sprite most top x-value
+      spriteWidth = sprite.size.x;   //sprite width
+      spriteHeight = sprite.size.y;  //sprite height
+             
+      if(spriteX > xMax)
+        return false;
+      if(spriteX + spriteWidth < xMin)
+        return false;
+      if(spriteY > yMax)
+        return false;
+      if(spriteY + spriteHeight < yMin)
+        return false;
+    }
+    return true;
   }
   
   void createLocalClient(Map dataFromServer) {

@@ -13,6 +13,7 @@ import 'dart:html';
 class Rope extends MovingSprite {
   World world;
   bool locked = false;
+  bool invisibleOutsideCanvas = false;
   MovingSprite owner;
   MovingSprite lockedOnOther = null;
 
