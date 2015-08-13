@@ -115,19 +115,20 @@ class WormWorld extends World {
     
     
     if (playerSprite != null) {
-      viewPoint.x = playerSprite.position.x - halfWorld.x;
-      viewPoint.y = playerSprite.position.y - halfWorld.y;
-      if (viewPoint.x < 0) {
-        viewPoint.x = 0.0;
-      } 
-      if (viewPoint.y < 0) {
-        viewPoint.y = 0.0;
-      }
+      Vec2 playerCenter = playerSprite.centerPoint();
+      viewPoint.x = playerCenter.x - halfWorld.x;
+      viewPoint.y = playerCenter.y - halfWorld.y;
       if (viewPoint.y > byteWorld.height - HEIGHT) {
         viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
       }
       if (viewPoint.x > byteWorld.width - WIDTH) {
         viewPoint.x = byteWorld.width * 1.0 - WIDTH;
+      }
+      if (viewPoint.x < 0) {
+        viewPoint.x = 0.0;
+      } 
+      if (viewPoint.y < 0) {
+        viewPoint.y = 0.0;
       }
     }
    
@@ -182,41 +183,29 @@ class WormWorld extends World {
   }
   
   bool shouldDraw(Sprite sprite){
-    bool shouldDraw = true;
-    
     if(sprite.invisibleOutsideCanvas) {
-    double xMin = viewPoint.x;                        //leftest x-value
-    double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
-    double yMin = viewPoint.y;                        //highest y-value
-    double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
-    
-    double spriteX, spriteY, spriteWidth, spriteHeight;
-    
-    if(!(sprite is Particles)){
+      double xMin = viewPoint.x;                        //leftest x-value
+      double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
+      double yMin = viewPoint.y;                        //highest y-value
+      double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
+      
+      double spriteX, spriteY, spriteWidth, spriteHeight;
+      
       spriteX = sprite.position.x;   //sprite most left x-value
       spriteY = sprite.position.y;   //sprite most top x-value
       spriteWidth = sprite.size.x;   //sprite width
       spriteHeight = sprite.size.y;  //sprite height
+             
+      if(spriteX > xMax)
+        return false;
+      if(spriteX + spriteWidth < xMin)
+        return false;
+      if(spriteY > yMax)
+        return false;
+      if(spriteY + spriteHeight < yMin)
+        return false;
     }
-    
-    if(sprite is Particles){
-          spriteX = sprite.location.x;   //sprite most left x-value
-          spriteY = sprite.location.y;   //sprite most top x-value
-          spriteWidth = sprite.size.x;   //sprite width
-          spriteHeight = sprite.size.y;  //sprite height
-    }
-            
-    if(spriteX > xMax)
-      shouldDraw = false;
-    if(spriteX + spriteWidth < xMin)
-      shouldDraw = false;
-    if(spriteY > yMax)
-      shouldDraw = false;
-    if(spriteY + spriteHeight < yMin)
-      shouldDraw = false;
-    }
-    
-    return shouldDraw;
+    return true;
   }
   
   void createLocalClient(Map dataFromServer) {
