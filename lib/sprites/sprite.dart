@@ -82,6 +82,8 @@ class Sprite {
       size = new Vec2();
       size.x = (image.width).toDouble();
       size.y = (image.height).toDouble();
+    } else {
+      this.size = size;
     }
     setImage(imageIndex, size.x.toInt());
       
