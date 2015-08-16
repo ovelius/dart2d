@@ -49,14 +49,12 @@ String imagesLoadedString() {
 /**
  * Return and an img.src represenation of this image.
  */
-String getImageDataUrl(String name, int start, int length) {
+String getImageDataUrl(String name) {
   int index = imageByName[name];
   ImageElement image = images[index];
   CanvasElement canvas = new CanvasElement(width:image.width, height:image.height);
   canvas.context2D.drawImage(image, 0, 0);
-  String data = canvas.toDataUrl("image/png");
-  int end = min(start + length, data.length);
-  return data.substring(start, end);
+  return canvas.toDataUrl("image/png");
 }
 
 void addFromImageData(String name, String data) {

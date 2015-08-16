@@ -58,6 +58,10 @@ class ByteWorld {
     canvas.context2D.clearRect(x, y, width, height);
   }
   
+  String asDataUrl() {
+    return canvas.toDataUrl();
+  }
+  
   clearAt(Vec2 pos, double radius) {
     canvas.context2D
         ..save()

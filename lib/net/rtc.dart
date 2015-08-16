@@ -6,6 +6,7 @@ import 'package:dart2d/worlds/world.dart';
 import 'net.dart';
 import 'connection.dart';
 import 'state_updates.dart';
+import 'package:dart2d/net/chunk_helper.dart';
 
 createLocalHostPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
@@ -46,6 +47,7 @@ createPeerJsOrig() {
 
 class PeerWrapper {
   World world;
+  ChunkHelper chunkHelper = new ChunkHelper();
   bool autoConnect = true;
   var peer;
   var id = null;

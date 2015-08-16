@@ -9,6 +9,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
 
@@ -213,16 +214,10 @@ class ConnectionWrapper {
     
     // Allow sending and parsing imageData regardless of state.
     if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
-      String name = dataMap[IMAGE_DATA_REQUEST]['name'];
-      String data = getImageDataUrl(name,0, 213131213);
-      print("Sending data of length ${data.length} for ${name}");
-      sendData({IMAGE_DATA_RESPONSE: {'name':name, 'data':data}});
+      world.peer.chunkHelper.replyWithImageData(dataMap, this);
     }
     if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
-      String name = dataMap[IMAGE_DATA_RESPONSE]['name'];
-      String data = dataMap[IMAGE_DATA_RESPONSE]['data'];
-      print("Successfully got data of length ${data.length} for ${name}");
-      addFromImageData(name, data);
+      world.peer.chunkHelper.parseImageChunkResponse(dataMap);
     }
     
     if (!handshakeReceived) {
@@ -243,7 +238,7 @@ class ConnectionWrapper {
     }
     parseBundle(world, this, dataMap);
   }
-
+ 
   void alsoSendWithStoredData(var data) {
     for (String key in RELIABLE_KEYS.keys) {
       // Use the merge function specified to merge any previosly stored data
