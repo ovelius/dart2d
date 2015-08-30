@@ -24,6 +24,8 @@ ByteWorld byteWorld;
 void main() {
   useHtmlConfiguration();
   setUp(() {
+    testConnections.clear();
+    testPeers.clear();
     canvasElement = (querySelector("#canvas") as CanvasElement);
     canvas = canvasElement.context2D;
     canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);

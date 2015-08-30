@@ -14,33 +14,39 @@ class ChunkHelper {
   
   ChunkHelper([this.chunkSize = DEFAULT_CHUNK_SIZE]);
   
-  void replyWithImageData(Map dataMap, ConnectionWrapper connection) {
+  /**
+   * Send a reply with the requested image data.
+   */
+  void replyWithImageData(Map dataMap, var connection) {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
     String name = imageDataRequest['name'];
     String data = getImageDataUrl(name);
     int start = imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
-    int end = imageDataRequest.containsKey("end") ? imageDataRequest["end"] : 0;
+    int end = imageDataRequest.containsKey("end") 
+        ? imageDataRequest["end"]
+        : start + chunkSize;
     end = min(end, data.length);
-    
+
+    assert(start < end);
     String chunk = data.substring(start, end);
-  
-    print("Sending data of length ${chunk.length} for ${name}");
     connection.sendData({IMAGE_DATA_RESPONSE: 
         {'name':name, 'data':chunk, 'start':start, 'size':data.length}});
   }
   
+  /**
+   * Parse response with imageData.
+   */
   void parseImageChunkResponse(Map dataMap) {
     Map imageDataResponse = dataMap[IMAGE_DATA_RESPONSE];
     String name = imageDataResponse['name'];
     String data = imageDataResponse['data'];
     int start = imageDataResponse['start'];
-    // Final expected size.
+    // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
     if (start == imageBuffer[name].length) {
-      print("Successfully got data of length ${data.length} for ${name}");
       imageBuffer[name] = imageBuffer[name] + data;
     } else {
-      print("Dropping datat for ${name}, out of order??");
+      print("Dropping data for ${name}, out of order??");
     }
 
     // Image complete.

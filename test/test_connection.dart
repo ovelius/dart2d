@@ -91,3 +91,12 @@ class TestConnection {
   
   toString() => "TestConnection $id -> ${otherEnd.id}";
 }
+
+class TestConnectionWrapper {
+
+  Map lastDataSent = null;
+  
+  void sendData(Map data) {
+    this.lastDataSent = data;
+  }
+}
