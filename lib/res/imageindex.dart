@@ -46,15 +46,21 @@ String imagesLoadedString() {
   return "${loadedImages.length}/${imageSources.length}";
 }
 
+Map<String, String> dataUrlCache_ = new Map();
 /**
  * Return and an img.src represenation of this image.
  */
 String getImageDataUrl(String name) {
+  if (dataUrlCache_.containsKey(name)) {
+    return dataUrlCache_[name];
+  }
   int index = imageByName[name];
   ImageElement image = images[index];
   CanvasElement canvas = new CanvasElement(width:image.width, height:image.height);
   canvas.context2D.drawImage(image, 0, 0);
-  return canvas.toDataUrl("image/png");
+  String data = canvas.toDataUrl("image/png");
+  dataUrlCache_[name] = data;
+  return data;
 }
 
 void addFromImageData(String name, String data) {
@@ -83,6 +89,8 @@ bool imagesIndexed() {
 }
 
 loadImagesFromServer([String path = "./img/"]) {
+  // TODO: What if partially loaded from client? 
+  // loadedImages[name] will be true then.
   for (var img in imageSources) {
     ImageElement element = new ImageElement(src: path + img);
     images.add(element);

@@ -6,6 +6,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 
 class ChunkHelper {
+  _DataCounter counter = new _DataCounter(3);
   static const int DEFAULT_CHUNK_SIZE = 512;
   static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 3000);
   final int chunkSize;
@@ -40,11 +41,18 @@ class ChunkHelper {
     Map imageDataResponse = dataMap[IMAGE_DATA_RESPONSE];
     String name = imageDataResponse['name'];
     String data = imageDataResponse['data'];
+    counter.collect(data.length);
     int start = imageDataResponse['start'];
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
+    if (!imageBuffer.containsKey(name)) {
+      print("Got image data for ${name}, excpected any of ${imageBuffer.keys}");
+      return;
+    }
     if (start == imageBuffer[name].length) {
+      print("${name} [${(100*imageBuffer[name].length/size).toStringAsFixed(1)}]");
       imageBuffer[name] = imageBuffer[name] + data;
+      lastImageRequest.remove(name);
     } else {
       print("Dropping data for ${name}, out of order??");
     }
@@ -53,6 +61,7 @@ class ChunkHelper {
     if (imageBuffer[name].length == size) {
       addFromImageData(name, imageBuffer[name]); 
       imageBuffer.remove(name);
+      print("Image complete ${name} :)");
     }
   }
   
@@ -93,16 +102,54 @@ class ChunkHelper {
    * Request image data from a random connection.
    */
   bool requestImageData(String name, List<ConnectionWrapper> connections) {
-    print("requesting image ${name}");
+    // print("requesting image ${name}");
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
-      print("got these ${connections}");
       ConnectionWrapper connection = connections[r.nextInt(connections.length)];
       connection.sendData({IMAGE_DATA_REQUEST:buildImageChunkRequest(name)});
       lastImageRequest[name] = new DateTime.now();
       return true;
     }
     return false;
+  }
+  
+  String getTransferSpeed() {
+    return counter.format();
+  }
+}
+
+class _DataCounter {
+  _DataCounter(this.secondsInterval);
+
+  int secondsInterval;
+  int bytesPerSecond = 0;
+  
+  int bytesSinceLast = 0;
+  DateTime lastCheck = new DateTime.now();
+
+  collect(int bytes) {
+    bytesSinceLast += bytes;
+  }
+  
+  int getBytes() {
+    Duration diff = new DateTime.now().difference(lastCheck);
+    if (diff.inSeconds >= secondsInterval) {
+      lastCheck = new DateTime.now();
+      bytesPerSecond = bytesSinceLast ~/ diff.inSeconds;
+      bytesSinceLast = 0;
+    }
+    return bytesPerSecond;
+  }
+  
+  String format() {
+    int bytesPerSecond = getBytes();
+    if (bytesPerSecond > 2*1024*1024) {
+      return "${bytesPerSecond ~/ (1024 * 1024)} MB";
+    }
+    if (bytesPerSecond > 2*1024) {
+      return "${bytesPerSecond ~/ 1024} kB";
+    }
+    return "${bytesPerSecond} B";
   }
 }

@@ -11,6 +11,7 @@ import 'package:dart2d/phys/vec2.dart';
 World testWorld(var id) {
   TestPeer peer = new TestPeer(id);
   WormWorld w = new WormWorld(400, 600);
+  w.connectOnOpenConnection = true;
   w.byteWorld = new ByteWorld(imageByName['mattehorn.png'], new Vec2(400 * 1.0,  600 * 1.0));
   w.setJsPeer(peer);
   w.hudMessages = new TestHudMessage(w);

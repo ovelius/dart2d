@@ -166,6 +166,19 @@ abstract class Network {
   }
   
   /**
+   * Return the connection to the server.
+   */
+  ConnectionWrapper getServerConnection() {
+    for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
+      if (!wrapper.closed && wrapper.opened
+          && wrapper.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        return wrapper;
+      }
+    }
+    return null;
+  }
+  
+  /**
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
   bool hasNetworkProblem() {
@@ -220,6 +233,13 @@ abstract class Network {
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {
       return true;
+    }
+    return false;
+  }
+  
+  bool hasOpenConnection() {
+    if (hasReadyConnection()) {
+      return safeActiveConnections().length > 0;
     }
     return false;
   }

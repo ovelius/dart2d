@@ -45,7 +45,6 @@ class ConnectionWrapper {
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
   ConnectionType connectionType;
   World world;
-  PeerWrapper peerWrapper;
   var id;
   var connection;
   // True if connection was successfully opened.
@@ -69,7 +68,7 @@ class ConnectionWrapper {
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
-    if ( connectionType == ConnectionType.CLIENT_TO_CLIENT) {
+    if (connectionType == ConnectionType.CLIENT_TO_CLIENT) {
       this.handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
@@ -179,8 +178,9 @@ class ConnectionWrapper {
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     opened = true;
-    // TODO: Do this manually for data only connections.
-    connectToGame();
+    if (world.connectOnOpenConnection) {
+      connectToGame();
+    }
   }
   
   void connectToGame() {
@@ -218,6 +218,9 @@ class ConnectionWrapper {
     }
     if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
       world.peer.chunkHelper.parseImageChunkResponse(dataMap);
+      // Request new data right away.
+      world.peer.chunkHelper.requestNetworkData(
+          world.network.safeActiveConnections());
     }
     
     if (!handshakeReceived) {
