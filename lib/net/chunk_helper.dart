@@ -8,8 +8,9 @@ import 'dart:math';
 class ChunkHelper {
   _DataCounter counter = new _DataCounter(3);
   static const int DEFAULT_CHUNK_SIZE = 512;
-  static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 3000);
-  final int chunkSize;
+  static const int MAX_CHUNK_SIZE = 65000;
+  static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 2000);
+  int chunkSize;
   Map<String, DateTime> lastImageRequest = new Map();
   Map<String, String> imageBuffer = new Map();
   
@@ -83,9 +84,15 @@ class ChunkHelper {
     DateTime now = new DateTime.now();
     if (loadedImages[name] != true) {
       DateTime lastRequest = lastImageRequest[name];
-      if (lastRequest == null || now.difference(lastRequest).inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
+      if (lastRequest == null) {
+        // Request larger chunk.
+        this.chunkSize = min(MAX_CHUNK_SIZE, (this.chunkSize * 1.25).toInt());
         return requestImageData(name, connections);
-      }
+      } else if (now.difference(lastRequest).inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
+        // Request smaller chunk.
+        this.chunkSize = (this.chunkSize * 0.3).toInt();
+        return requestImageData(name, connections);
+      }     
     }
     return false;
   }

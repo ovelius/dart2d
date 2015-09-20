@@ -220,7 +220,7 @@ class ConnectionWrapper {
       world.peer.chunkHelper.parseImageChunkResponse(dataMap);
       // Request new data right away.
       world.peer.chunkHelper.requestNetworkData(
-          world.network.safeActiveConnections());
+          new List.filled(1, this));
     }
     
     if (!handshakeReceived) {
