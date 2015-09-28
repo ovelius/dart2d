@@ -122,16 +122,20 @@ class GameState {
         RemotePlayerSprite oldSprite = world.sprites[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
-        playerSprite.setImage(oldSprite.imageIndex);
+        playerSprite.setImage(oldSprite.imageIndex, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, playerSprite);
         oldSprite.info = info;
+        world.playerSprite = playerSprite;
       } else {
         MovingSprite oldSprite = world.sprites[info.spriteId];
         // TODO: Handle case of connection being gone here.
-        KeyState remoteKeyState = world.peer.connections[info.connectionId].remoteKeyState;
-        RemotePlayerServerSprite remotePlayerSprite = new RemotePlayerServerSprite.copyFromMovingSprite(
-            world, remoteKeyState, info, oldSprite);
-        remotePlayerSprite.setImage(oldSprite.imageIndex);
+        KeyState remoteKeyState =
+            world.peer.connections[info.connectionId].remoteKeyState;
+        RemotePlayerServerSprite remotePlayerSprite = 
+            new RemotePlayerServerSprite.copyFromMovingSprite(
+                world, remoteKeyState, info, oldSprite);
+        remotePlayerSprite.setImage(
+            oldSprite.imageIndex, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, remotePlayerSprite);
       }
     }

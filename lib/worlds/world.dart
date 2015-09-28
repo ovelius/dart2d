@@ -37,6 +37,8 @@ abstract class World {
   PeerWrapper peer; 
   // Current sprites in our world.
   Map<int, Sprite> sprites = {};
+  // Representing the player in the world.
+  LocalPlayerSprite playerSprite;
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
   // Sprites that will be added to the world next frame.
@@ -124,10 +126,6 @@ abstract class World {
   
     // Only send to network if server frames has passed.
     if (frames > 0) {
-      if (networkRemovals.length > 0) {
-                     /// why why 
-                     print("WORLD RTC RTC OOGA BOOGA INCOMING RELIABLE DATA WITH REMOVE KEY??? ${removals}");
-                   }
       network.frame(duration, networkRemovals);
       networkRemovals.clear();
     }

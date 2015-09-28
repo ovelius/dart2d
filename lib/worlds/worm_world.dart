@@ -23,7 +23,6 @@ import 'dart:mirrors';
 class WormWorld extends World {
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld;
-  LocalPlayerSprite playerSprite;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
   

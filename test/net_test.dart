@@ -211,6 +211,8 @@ void main() {
     });
 
     test('TestFourWorldsServerDies', () {
+      int PLAYER_TWO_SPRITE_FRAMES = 4;
+      
       logConnectionData = false;
       print("Testing connecting with three players, server dies so a new server is elected");
       World worldA = testWorld("a"); 
@@ -240,6 +242,10 @@ void main() {
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
+      expect(worldB[playerId(1)].frames,
+          equals(PLAYER_TWO_SPRITE_FRAMES));
+      // TODO: Check type of playerId(1).
+
       for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -266,6 +272,10 @@ void main() {
       expect(worldB.sprites.length, equals(3));
       expect(worldC.sprites.length, equals(3));
       expect(worldD.sprites.length, equals(3));
+      
+      expect(worldB.sprites[playerId(1)].frames,
+          equals(PLAYER_TWO_SPRITE_FRAMES));
+      // TODO: Check type of playerId(1).
             
       // Now b is having issues.
       testConnections['b'].forEach((e) { e.dropPackets = 100;});
