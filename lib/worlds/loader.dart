@@ -75,7 +75,7 @@ class Loader {
         // Connect to the actual game.
         serverConnection.connectToGame();
       }
-      wormWorld_.byteWorld = new ByteWorld(imageByName['mattehorn.png'], new Vec2(width * 1.0,  height * 1.0));
+      wormWorld_.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(width * 1.0,  height * 1.0));
       completed_ = true;
       return true;
     }
