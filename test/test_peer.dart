@@ -66,6 +66,7 @@ class TestHudMessage extends HudMessages {
 
   void displayAndSendToNetwork(String message, [double period]) {
      print("HUD(${world.peer.id})_NET: $message");
+     world.network.sendMessage(message);
    }
 
    void display(String message, [double period]) {

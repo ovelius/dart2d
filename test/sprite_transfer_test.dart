@@ -21,7 +21,7 @@ void main() {
     canvas = canvasElement.context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
-      print('${rec.level.name}: ${rec.time}: ${rec.message}');
+      print('${rec.loggerName} ${rec.level.name}: ${rec.time}: ${rec.message}');
     });
     testConnections.clear();
     testPeers.clear();
@@ -207,6 +207,39 @@ void main() {
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
+    });
+    
+    test('TestPlayerDeath', () {
+      World worldA = testWorld("a");
+      World worldB = testWorld("b");
+      worldA.startAsServer("nameA");
+      worldA.frameDraw();
+      worldB.connectTo("a", "nameB");
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      
+      expect(worldA, hasExactSprites([
+             hasSpriteWithNetworkId(playerId(0))
+                 .andNetworkType(NetworkType.LOCAL),
+             hasSpriteWithNetworkId(playerId(1))
+                 .andNetworkType(NetworkType.REMOTE_FORWARD),
+          ]));
+      expect(worldB, hasExactSprites([
+               hasSpriteWithNetworkId(playerId(0))
+                   .andNetworkType(NetworkType.REMOTE),
+               hasSpriteWithNetworkId(playerId(1))
+                   .andNetworkType(NetworkType.LOCAL),
+            ]));
+
+      LocalPlayerSprite playerBSprite = worldA.sprites[playerId(1)];
+      playerBSprite.takeDamage(playerBSprite.health);
+      expect(playerBSprite.inGame(), equals(false));
+
+      expect(recentReceviedDataFrom("a"), 
+          new MapKeysMatcher.containsKeys([MESSAGE_KEY]));
     });
   });
 }
