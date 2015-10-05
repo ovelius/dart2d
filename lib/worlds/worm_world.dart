@@ -157,6 +157,11 @@ class WormWorld extends World {
       canvas.fillRect(0, 0, WIDTH, HEIGHT);
       explosionFlash -= duration * 5;
     }
+    
+    if (controlHelperTime > 0) {
+      drawControlHelper(canvas);
+      controlHelperTime -= duration;
+    }
   
     while (removeSprites.length > 0) {
       int id = removeSprites.removeAt(0);

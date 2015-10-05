@@ -31,7 +31,15 @@ double untilNextFrame = FRAME_SPEED;
 CanvasRenderingContext2D canvas = null;
 CanvasElement canvasElement = null;
 
+Map<int, String> KEY_TO_NAME = {
+  KeyCode.LEFT: "Left",
+  KeyCode.RIGHT: "Right",
+  KeyCode.DOWN: "Down",
+  KeyCode.UP: "Up",   
+};
+
 abstract class World {
+  int invalidKeysPressed = 0;
   final Logger log = new Logger('World');
 
   PeerWrapper peer; 
@@ -64,10 +72,22 @@ abstract class World {
   
   Loader loader;
   
+  double controlHelperTime = 0.0;
+  
   World(int width, int height) {
     WIDTH = width;
     HEIGHT = height;
     localKeyState = new KeyState(this);
+    localKeyState.registerGenericListener((e) {
+      if (!playerSprite.isMappedKey(e)) {
+        invalidKeysPressed++;
+        if (invalidKeysPressed > 2) {
+          controlHelperTime = 4.0;
+        }
+      } else {
+        invalidKeysPressed = 0;
+      }
+    });
     hudMessages = new HudMessages(this);
     loader = new Loader(canvasElement, this);
   }
@@ -75,6 +95,30 @@ abstract class World {
   setJsPeer(var jsPeer) {
     peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
+  }
+  
+  String toKey(int code) {
+    if (KeyCode.isCharacterKey(code)) {
+      return new String.fromCharCode(code);
+    } else {
+      return KEY_TO_NAME[code];
+    }
+  }
+  
+  void drawControlHelper(CanvasRenderingContext2D context) {
+    if (controlHelperTime > 0) {
+      context.setFillColorRgb(255, 255, 255);
+      context.setStrokeColorRgb(255, 255, 255);
+      context.fillText("Controls are:", WIDTH ~/ 3, 40);
+      int i = LocalPlayerSprite.controls.length;
+      for (String key in LocalPlayerSprite.controls.keys) {
+        int x = WIDTH ~/ 3;
+        int y = 70 + i*30;
+        String current = toKey(LocalPlayerSprite.controls[key]);
+        context.fillText("${key}: ${current}", x, y);
+        i--;
+      }
+    }    
   }
   
   void connectTo(var id, String name) {

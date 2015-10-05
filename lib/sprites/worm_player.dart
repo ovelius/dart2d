@@ -98,7 +98,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const double RESPAWN_TIME = 3.0;
   static const MAX_SPEED = 500.0;
   
-  static Map<String, int> _controls = {
+  static Map<String, int> controls = {
       "Left": KeyCode.A,
       "Right": KeyCode.D,
       "Aim up": KeyCode.UP,
@@ -110,7 +110,7 @@ class LocalPlayerSprite extends MovingSprite {
       "Prev weapon": KeyCode.Q,
   };
   
-  static Set<int> _mappedControls = new Set.from(_controls.values);
+  static Set<int> _mappedControls = new Set.from(controls.values);
   
   bool isMappedKey(int code) {
     return _mappedControls.contains(code);
@@ -371,13 +371,13 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   void listenFor(String key, dynamic f) {
-    assert(_controls.containsKey(key));
-    keyState.registerListener(_controls[key], f);
+    assert(controls.containsKey(key));
+    keyState.registerListener(controls[key], f);
   }
   
   bool keyIsDown(String key) {
-    assert(_controls.containsKey(key));
-    return keyState.keyIsDown(_controls[key]);
+    assert(controls.containsKey(key));
+    return keyState.keyIsDown(controls[key]);
   }
   
   void addExtraNetworkData(List<int> data) {
