@@ -9,6 +9,7 @@ class KeyState {
   
   Map<int, bool> keysDown = new Map<int, bool>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
+  List<dynamic> _genericListeners = new List();
   
   KeyState(this.world);
   
@@ -27,6 +28,7 @@ class KeyState {
       if (_listeners.containsKey(e.keyCode)) {
         _listeners[e.keyCode].forEach((f) { f(); });
       }
+      _genericListeners.forEach((f) { f(e.keyCode); });
     }
     keysDown[e.keyCode] = true;
   }
@@ -62,5 +64,9 @@ class KeyState {
     }
     List<dynamic> listeners = _listeners[key];
     listeners.add(f);
+  }
+  
+  registerGenericListener(dynamic f) {
+    _genericListeners.add(f);
   }
 }
