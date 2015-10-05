@@ -90,6 +90,11 @@ class Particles extends Sprite {
 
   frame(double duration, int frames, [Vec2 gravity]) {
     Vec2 g = gravity.multiply(duration * 0.1);
+    if (followId != null && follow == null
+        && world.sprites.containsKey(followId)) {
+      follow = world.sprites[followId];
+      followId = null;
+    }
     for(var i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
@@ -106,14 +111,12 @@ class Particles extends Sprite {
           p.lifeTimeRemaining = 0;
         }
       }
+      p.lifeTimeRemaining--;
+      p.radius-=shrinkPerStep;
     }
   }
   draw(CanvasRenderingContext2D context, bool debug) {
     int dead = 0;
-    if (followId != null && follow == null) {
-      follow = world.sprites[followId];
-      followId = null;
-    }
     Random r = new Random();
     context.globalCompositeOperation = "lighter";
     for(var i = 0; i < particles.length; i++) {
@@ -130,12 +133,7 @@ class Particles extends Sprite {
       context.beginPath();
       setFillStyle(context, p);
       context.arc(p.location.x, p.location.y, p.radius, 0, PI*2.0);
-      context.fill();
-      
-      // TODO: Double and decrement in world loop.
-      p.lifeTimeRemaining--;
-      p.radius-=shrinkPerStep;
-     
+      context.fill();  
     }
     if (dead == particles.length) {
       this.remove = true;
