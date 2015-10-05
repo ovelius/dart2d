@@ -98,7 +98,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const double RESPAWN_TIME = 3.0;
   static const MAX_SPEED = 500.0;
   
-  Map<String, int> _controls = {
+  static Map<String, int> _controls = {
       "Left": KeyCode.A,
       "Right": KeyCode.D,
       "Aim up": KeyCode.UP,
@@ -109,6 +109,12 @@ class LocalPlayerSprite extends MovingSprite {
       "Next weapon": KeyCode.E,
       "Prev weapon": KeyCode.Q,
   };
+  
+  static Set<int> _mappedControls = new Set.from(_controls.values);
+  
+  bool isMappedKey(int code) {
+    return _mappedControls.contains(code);
+  }
 
   WormWorld world;
   int health = MAX_HEALTH;
@@ -306,7 +312,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   void checkShouldFire() {
-    if (keyIsDown("Fire")) {
+    if (keyIsDown("Fire") && inGame()) {
       weaponState.fire();
     } 
   }
