@@ -39,8 +39,10 @@ Map<int, String> KEY_TO_NAME = {
 };
 
 abstract class World {
-  int invalidKeysPressed = 0;
   final Logger log = new Logger('World');
+  
+  String playerName = "Unkown";
+  int invalidKeysPressed = 0;
 
   PeerWrapper peer; 
   // Current sprites in our world.
@@ -121,10 +123,13 @@ abstract class World {
     }    
   }
   
-  void connectTo(var id, String name) {
+  void connectTo(var id, [String name = null]) {
+    if (name != null) {
+      this.playerName = name;
+    }
     hudMessages.display("Connecting to ${id}");
     network = new Client(this, peer);
-    network.localPlayerName = name;
+    network.localPlayerName = this.playerName;
     network.peer.connectTo(id);
   }
   
