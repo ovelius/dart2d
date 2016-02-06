@@ -315,7 +315,10 @@ abstract class World {
   
   num negate(Random r) {
     return r.nextBool() ? 1 : -1;    
-  }  
+  }
+
+  num width() => WIDTH;
+  num height() => HEIGHT;
   toString() => "World[${peer.id}]";
 }
 
