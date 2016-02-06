@@ -9,7 +9,7 @@ class ChunkHelper {
   _DataCounter counter = new _DataCounter(3);
   static const int DEFAULT_CHUNK_SIZE = 512;
   static const int MAX_CHUNK_SIZE = 65000;
-  static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 2000);
+  static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 1000);
   int chunkSize;
   Map<String, DateTime> lastImageRequest = new Map();
   Map<String, String> imageBuffer = new Map();
