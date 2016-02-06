@@ -168,9 +168,14 @@ class WormWorld extends World {
       Sprite sprite = sprites[id];
       sprites.remove(id);
       this.log.fine("${this}: Removing sprite ${id} from world");
-      if (sprite != null && sprite.networkType != NetworkType.REMOTE) {
-        this.log.fine("${this}: Removing sprite ${id} from network");
-        networkRemovals.add(id);
+      if (sprite != null) {
+        // Explicitly mark as remove.
+        sprite.remove = true;
+        if (sprite.networkType != NetworkType.REMOTE
+            && sprite.networkType != NetworkType.LOCAL_ONLY) {
+          this.log.fine("${this}: Removing sprite ${id} from network");
+          networkRemovals.add(id);
+        }
       }
     }
   
