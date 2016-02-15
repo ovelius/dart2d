@@ -91,8 +91,8 @@ class Particles extends Sprite {
   frame(double duration, int frames, [Vec2 gravity]) {
     Vec2 g = gravity.multiply(duration * 0.1);
     if (followId != null && follow == null
-        && world.sprites.containsKey(followId)) {
-      follow = world.sprites[followId];
+        && world.spriteIndex[followId] != null) {
+      follow = world.spriteIndex[followId];
       followId = null;
     }
     for(var i = 0; i < particles.length; i++) {

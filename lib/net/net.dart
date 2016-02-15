@@ -6,6 +6,7 @@ import 'package:dart2d/sprites/worm_player.dart';
 import 'connection.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/fps_counter.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/worlds/worm_world.dart';

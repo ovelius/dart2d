@@ -5,6 +5,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/fps_counter.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
@@ -287,35 +288,3 @@ abstract class World {
 }
 
 
-class FpsCounter extends FrameTrigger {
-  FpsCounter() : super(1.0);
-}
-
-class FrameTrigger {
-  double period = 1.0;
-  double fps = 0.0;
-
-  double nextTriggerIn = 1.0;
-  int frames = 0;
-
-  FrameTrigger(double period) {
-    this.period = period;
-    this.nextTriggerIn = period;
-  }
-
-  bool timeWithFrames(double time, int framesPassed) {
-    this.frames += framesPassed;
-    nextTriggerIn -= time;
-    if (nextTriggerIn < 0.0) {
-      fps = frames / (1.0 - nextTriggerIn); 
-      frames = 0;
-      nextTriggerIn += period;
-      return true;
-    }
-    return false;
-  }
-  
-  String toString() {
-    return fps.toStringAsFixed(2);
-  }
-}

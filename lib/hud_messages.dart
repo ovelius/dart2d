@@ -49,7 +49,7 @@ class HudMessages {
       context.setStrokeColorRgb(200, 0, 0);
       for (int i = gameState.playerInfo.length - 1; i >= 0; i--) {
         PlayerInfo info = gameState.playerInfo[i];
-        MovingSprite sprite = world.sprites[info.spriteId];
+        MovingSprite sprite = world.spriteIndex[info.spriteId];
         if (sprite == null) {
           continue;
         }

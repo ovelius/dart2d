@@ -103,7 +103,7 @@ class Rope extends MovingSprite {
   }
    
   void parseExtraNetworkData(List<int> data, int startAt) {
-    this.owner = world.sprites[data[startAt]];
+    this.owner = world.spriteIndex[data[startAt]];
   }
   
   int sendFlags() {
