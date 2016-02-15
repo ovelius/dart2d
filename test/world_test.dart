@@ -1,5 +1,4 @@
-import 'package:unittest/unittest.dart';
-import 'package:unittest/html_config.dart';
+import 'package:test/test.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
@@ -22,7 +21,6 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 ByteWorld byteWorld;
 
 void main() {
-  useHtmlConfiguration();
   setUp(() {
     testConnections.clear();
     testPeers.clear();
@@ -44,7 +42,7 @@ void main() {
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
       worldA.frameDraw();
-      worldA.sprites[playerId(0)].position = new Vec2();
+      worldA.spriteIndex[playerId(0)].position = new Vec2();
       
       _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2(), imageByName['fire.png']);
       

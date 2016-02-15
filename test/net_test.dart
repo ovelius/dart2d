@@ -1,7 +1,6 @@
 library dart2d;
 
-import 'package:unittest/unittest.dart';
-import 'package:unittest/html_config.dart';
+import 'package:test/test.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
@@ -16,7 +15,6 @@ import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
-  useHtmlConfiguration();
   setUp(() {
     canvasElement = (querySelector("#canvas") as CanvasElement);
     canvas = canvasElement.context2D;
@@ -117,8 +115,8 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       
       // Game has started.
-      expect(worldA.sprites.length, equals(1));
-      expect(worldB.sprites.length, equals(1));
+      expect(worldA.spriteIndex.count(), equals(1));
+      expect(worldB.spriteIndex.count(), equals(1));
     });
   
   
@@ -237,12 +235,12 @@ void main() {
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
-      expect(worldD.sprites.length, equals(4));
+      expect(worldD.spriteIndex.count(), equals(4));
       
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
-      expect(worldB[playerId(1)].frames,
+      expect(worldB.spriteIndex[playerId(1)].frames,
           equals(PLAYER_TWO_SPRITE_FRAMES));
       // TODO: Check type of playerId(1).
 
@@ -269,11 +267,11 @@ void main() {
       expect(worldB, isGameStateOf(gameState));
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
-      expect(worldB.sprites.length, equals(3));
-      expect(worldC.sprites.length, equals(3));
-      expect(worldD.sprites.length, equals(3));
+      expect(worldB.spriteIndex.count(), equals(3));
+      expect(worldC.spriteIndex.count(), equals(3));
+      expect(worldD.spriteIndex.count(), equals(3));
       
-      expect(worldB.sprites[playerId(1)].frames,
+      expect(worldB.spriteIndex[playerId(1)].frames,
           equals(PLAYER_TWO_SPRITE_FRAMES));
       // TODO: Check type of playerId(1).
             
@@ -289,8 +287,8 @@ void main() {
       expect(worldD, hasSpecifiedConnections({
           'c':ConnectionType.CLIENT_TO_SERVER,
       }));
-      expect(worldC.sprites.length, equals(2));
-      expect(worldD.sprites.length, equals(2));
+      expect(worldC.spriteIndex.count(), equals(2));
+      expect(worldD.spriteIndex.count(), equals(2));
       
       // Finally C is having issues.
       testConnections['c'].forEach((e) { e.dropPackets = 100;});
@@ -300,7 +298,7 @@ void main() {
       // WorldD is all alone.
       expect(worldD, hasSpecifiedConnections({}));
       // Make this pass by converting the REMOTE -> REMOTE_FOWARD. 
-      expect(worldD.sprites.length, equals(1));
+      expect(worldD.spriteIndex.count(), equals(1));
     });
 
     test('TestDroppedConnection', () {
@@ -325,7 +323,7 @@ void main() {
       
       expect((worldB.network as Server).gameState,
           isGameStateOf({playerId(0): "nameB"}));
-      expect(worldB.sprites.length, equals(1));
+      expect(worldB.spriteIndex.count(), equals(1));
     });
 
     test('TestThreePlayerOneJoinsLater', () {
@@ -345,7 +343,7 @@ void main() {
       for (int i = 0; i < 20; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-        expect(worldA.sprites.length, equals(3));
+        expect(worldA.spriteIndex.count(), equals(3));
         expect(worldB, hasSpecifiedConnections({
             'a':ConnectionType.CLIENT_TO_SERVER,
             'c':ConnectionType.CLIENT_TO_CLIENT,

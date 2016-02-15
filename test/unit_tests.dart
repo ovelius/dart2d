@@ -1,7 +1,6 @@
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'package:unittest/html_config.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/connection.dart';
 import 'test_connection.dart';
@@ -12,7 +11,6 @@ void main() {
   TestConnectionWrapper connection2;
   ChunkHelper helper; 
   setUp(() {
-    useHtmlConfiguration();
     useEmptyImagesForTest();
     connection1 = new TestConnectionWrapper();
     connection2 = new TestConnectionWrapper();

@@ -104,7 +104,7 @@ class WorldSpriteMatcher extends Matcher {
 
   bool matches(item, Map matchState) {
     if (item is World) {
-      Sprite sprite = item.sprites[_networkId];
+      Sprite sprite = item.spriteIndex[_networkId];
       if (sprite != null) {
         if (sprite.networkId == _networkId) {
           return matchesNetworkType(sprite) && matchesImageIndex(sprite);
@@ -147,7 +147,7 @@ class WorldSpriteStateMatcher extends Matcher {
           spriteMatchers.removeAt(i);
         }
       }
-      return spriteMatchers.isEmpty && _spriteMatchers.length == item.sprites.length;
+      return spriteMatchers.isEmpty && _spriteMatchers.length == item.spriteIndex.count();
     }
     return false;
   }

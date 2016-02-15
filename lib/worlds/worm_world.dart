@@ -27,23 +27,23 @@ class WormWorld extends World {
   Vec2 gravity = new Vec2(0.0, 300.0);
   
   double explosionFlash = 0.0;
-  
+    
   WormWorld(int width, int height) : super(width, height) {
     halfWorld = new Vec2(width / 2, height / 2 );
   }
   
   void collisionCheck(int networkId, duration) {
-    Sprite sprite = sprites[networkId];
+    Sprite sprite = spriteIndex[networkId];
     
     if(sprite is MovingSprite) {
       if (sprite.collision) {
         if (network.isServer()) {
-          for (int id in sprites.keys) {
+          for (int id in spriteIndex.spriteIds()) {
             // Avoid duplicate checks.
             if (networkId >= id) {
               continue;
             }
-            var otherSprite = sprites[id];
+            var otherSprite = spriteIndex[id];
             if (otherSprite is MovingSprite) {
               if (!otherSprite.collision) continue;
               if (collision(sprite, otherSprite, duration)) {
@@ -94,66 +94,71 @@ class WormWorld extends World {
     peer = new PeerWrapper(this, jsPeer);
     network = new Server(this, peer);
   }
-  
-  void frameDraw([double duration = 0.01]) {
-    if (!loader.frameDraw(duration)) {
-      return;
-    }
-    if (restart) {
-      clearScreen();
-      restart = false;
-    }
-    int frames = advanceFrames(duration);
- 
-    putPendingSpritesInWorld();
 
-    canvas.clearRect(0, 0, WIDTH, HEIGHT);
-    canvas.setFillColorRgb(135, 206, 250);
-    canvas.fillRect(0, 0, WIDTH, HEIGHT);
-    canvas.save();
-    
-    
-    if (playerSprite != null) {
-      Vec2 playerCenter = playerSprite.centerPoint();
-      viewPoint.x = playerCenter.x - halfWorld.x;
-      viewPoint.y = playerCenter.y - halfWorld.y;
-      if (viewPoint.y > byteWorld.height - HEIGHT) {
-        viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
+  void frameDraw([double duration = 0.01]) {
+      if (!loader.frameDraw(duration)) {
+        return;
       }
-      if (viewPoint.x > byteWorld.width - WIDTH) {
-        viewPoint.x = byteWorld.width * 1.0 - WIDTH;
+      if (restart) {
+        clearScreen();
+        restart = false;
       }
-      if (viewPoint.x < 0) {
-        viewPoint.x = 0.0;
-      } 
-      if (viewPoint.y < 0) {
-        viewPoint.y = 0.0;
-      }
-    }
+      int frames = advanceFrames(duration);
    
-   byteWorld.drawAt(canvas, viewPoint.x, viewPoint.y);
-   canvas.globalAlpha = 0.7;
-   byteWorld.drawAsMiniMap(canvas, 0, 0);
-   canvas.restore();
-   
-    for (int networkId in sprites.keys) {
-      var sprite = sprites[networkId];
+      for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
+       if (sprite is Particles && sprite.sendToNetwork) {
+         Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
+         network.peer.sendDataWithKeyFramesToAll(data);
+       } 
+      }
+  
+      canvas.clearRect(0, 0, WIDTH, HEIGHT);
+      canvas.setFillColorRgb(135, 206, 250);
+      canvas.fillRect(0, 0, WIDTH, HEIGHT);
       canvas.save();
-      canvas.translate(-viewPoint.x, -viewPoint.y);
-      if (!freeze && !network.hasNetworkProblem()) {
-        sprite.frame(duration, frames, gravity);
+      
+      
+      if (playerSprite != null) {
+        Vec2 playerCenter = playerSprite.centerPoint();
+        viewPoint.x = playerCenter.x - halfWorld.x;
+        viewPoint.y = playerCenter.y - halfWorld.y;
+        if (viewPoint.y > byteWorld.height - HEIGHT) {
+          viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
+        }
+        if (viewPoint.x > byteWorld.width - WIDTH) {
+          viewPoint.x = byteWorld.width * 1.0 - WIDTH;
+        }
+        if (viewPoint.x < 0) {
+          viewPoint.x = 0.0;
+        } 
+        if (viewPoint.y < 0) {
+          viewPoint.y = 0.0;
+        }
       }
-      if(shouldDraw(sprite))
-        sprite.draw(canvas, localKeyState.debug);
-      collisionCheck(networkId, duration);
-      if (sprite.remove) {
-        removeSprites.add(sprite.networkId);
+     
+     byteWorld.drawAt(canvas, viewPoint.x, viewPoint.y);
+     canvas.globalAlpha = 0.7;
+     byteWorld.drawAsMiniMap(canvas, 0, 0);
+     canvas.restore();
+     
+      for (int networkId in spriteIndex.spriteIds()) {
+        var sprite = spriteIndex[networkId];
+        canvas.save();
+        canvas.translate(-viewPoint.x, -viewPoint.y);
+        if (!freeze && !network.hasNetworkProblem()) {
+          sprite.frame(duration, frames, gravity);
+        }
+        if(shouldDraw(sprite))
+          sprite.draw(canvas, localKeyState.debug);
+        collisionCheck(networkId, duration);
+        if (sprite.remove) {
+          spriteIndex.removeSprite(sprite.networkId);
+        }
+        canvas.restore();
       }
-      canvas.restore();
-    }
-    
-    if (explosionFlash > 0) {
-      canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
+      
+      if (explosionFlash > 0) {
+        canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
       canvas.fillRect(0, 0, WIDTH, HEIGHT);
       explosionFlash -= duration * 5;
     }
@@ -163,26 +168,11 @@ class WormWorld extends World {
       controlHelperTime -= duration;
     }
   
-    while (removeSprites.length > 0) {
-      int id = removeSprites.removeAt(0);
-      Sprite sprite = sprites[id];
-      sprites.remove(id);
-      this.log.fine("${this}: Removing sprite ${id} from world");
-      if (sprite != null) {
-        // Explicitly mark as remove.
-        sprite.remove = true;
-        if (sprite.networkType != NetworkType.REMOTE
-            && sprite.networkType != NetworkType.LOCAL_ONLY) {
-          this.log.fine("${this}: Removing sprite ${id} from network");
-          networkRemovals.add(id);
-        }
-      }
-    }
+    spriteIndex.removePending();
   
     // Only send to network if server frames has passed.
     if (frames > 0) {
-      network.frame(duration, networkRemovals);
-      networkRemovals.clear();
+      network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
     }
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
@@ -218,12 +208,12 @@ class WormWorld extends World {
   }
   
   void createLocalClient(Map dataFromServer) {
-    spriteNetworkId = dataFromServer["spriteId"];
-    int spriteIndex = dataFromServer["spriteIndex"];
+    spriteIndex.spriteNetworkId = dataFromServer["spriteId"];
+    int playerSpriteIndex = dataFromServer["spriteIndex"];
     playerSprite = new RemotePlayerSprite(
-        this, localKeyState, 400.0, 200.0, spriteIndex);
+        this, localKeyState, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
-    playerSprite.setImage(spriteIndex, 24);
+    playerSprite.setImage(playerSpriteIndex, 24);
     addSprite(playerSprite);
   }
   
@@ -301,8 +291,8 @@ class WormWorld extends World {
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage) {
-    for (int networkId in sprites.keys) {
-      Sprite sprite = sprites[networkId];
+    for (int networkId in spriteIndex.spriteIds()) {
+      Sprite sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {

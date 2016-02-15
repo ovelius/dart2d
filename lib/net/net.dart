@@ -4,6 +4,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'connection.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
@@ -56,7 +57,7 @@ abstract class Network {
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in gameState.playerInfo) {
-      LocalPlayerSprite sprite = world.sprites[info.spriteId];
+      LocalPlayerSprite sprite = world.spriteIndex[info.spriteId];
       if (sprite != null) {
         // Make sure the ownerId is consistent with the connectionId.
         sprite.ownerId = info.connectionId;
@@ -121,7 +122,7 @@ abstract class Network {
         connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
         // Make it our responsibility to foward data from other players.
-        Sprite sprite = world.sprites[info.spriteId];
+        Sprite sprite = world.spriteIndex[info.spriteId];
         if (sprite.networkType == NetworkType.REMOTE) {
           sprite.networkType = NetworkType.REMOTE_FORWARD;
         }
@@ -207,7 +208,7 @@ abstract class Network {
     }
     // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
-    Map data = stateBundle(world.sprites, keyFrame);
+    Map data = stateBundle(world.spriteIndex, keyFrame);
     // A keyframe indicates that we are sending data with garantueed delivery.
     if (keyFrame) {
       registerDroppedFrames(data);
@@ -256,10 +257,10 @@ abstract class Network {
   }
 }
 
-Map<String, List<int>> stateBundle(Map<int, Sprite> sprites, bool keyFrame) {
+Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
   Map<String, List<int>> allData = {};
-  for (int networkId in sprites.keys) {
-    Sprite sprite = sprites[networkId];
+  for (int networkId in spriteIndex.spriteIds()) {
+    Sprite sprite = spriteIndex[networkId];
     if (sprite.networkType == NetworkType.LOCAL) {
       List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
       allData[sprite.networkId.toString()] = dataAsList; 

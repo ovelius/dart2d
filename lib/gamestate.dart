@@ -101,7 +101,7 @@ class GameState {
         world.network.sendMessage("${info.name} disconnected :/");
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
-        Sprite sprite = world.sprites[info.spriteId];
+        Sprite sprite = world.spriteIndex[info.spriteId];
         if (sprite != null) {
           // The game engine will not remove things if the REMOTE NetworkType.
           // So make the old servers sprite REMOTE_FORWARD.
@@ -119,7 +119,7 @@ class GameState {
   convertToServer(var selfConnectionId) {
     for (PlayerInfo info in playerInfo) {
       if (info.connectionId == selfConnectionId) {
-        RemotePlayerSprite oldSprite = world.sprites[info.spriteId];
+        RemotePlayerSprite oldSprite = world.spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
         playerSprite.setImage(oldSprite.imageIndex, oldSprite.size.x.toInt());
@@ -127,7 +127,7 @@ class GameState {
         oldSprite.info = info;
         world.playerSprite = playerSprite;
       } else {
-        MovingSprite oldSprite = world.sprites[info.spriteId];
+        MovingSprite oldSprite = world.spriteIndex[info.spriteId];
         // TODO: Handle case of connection being gone here.
         KeyState remoteKeyState =
             world.peer.connections[info.connectionId].remoteKeyState;

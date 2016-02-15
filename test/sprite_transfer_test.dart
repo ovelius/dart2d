@@ -1,5 +1,4 @@
-import 'package:unittest/unittest.dart';
-import 'package:unittest/html_config.dart';
+import 'package:test/test.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'matchers.dart';
@@ -15,7 +14,6 @@ import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
-  useHtmlConfiguration();
   setUp(() {
     canvasElement = (querySelector("#canvas") as CanvasElement);
     canvas = canvasElement.context2D;
@@ -63,25 +61,25 @@ void main() {
                 .andNetworkType(NetworkType.REMOTE),
       ]));
       // Assert server A representation.
-      expect(worldA.sprites[playerId(0)],
+      expect(worldA.spriteIndex[playerId(0)],
           hasType('LocalPlayerSprite'));
-      expect(worldB.sprites[playerId(0)],
+      expect(worldB.spriteIndex[playerId(0)],
           hasType('RemotePlayerClientSprite'));
-      expect(worldC.sprites[playerId(0)],
+      expect(worldC.spriteIndex[playerId(0)],
           hasType('RemotePlayerClientSprite'));
       // Assert client B representation. 
-      expect(worldA.sprites[playerId(1)],
+      expect(worldA.spriteIndex[playerId(1)],
           hasType('RemotePlayerServerSprite'));
-      expect(worldB.sprites[playerId(1)],
+      expect(worldB.spriteIndex[playerId(1)],
           hasType('RemotePlayerSprite'));
-      expect(worldC.sprites[playerId(1)],
+      expect(worldC.spriteIndex[playerId(1)],
           hasType('RemotePlayerClientSprite'));
       // Assert client C representation.
-      expect(worldA.sprites[playerId(2)],
+      expect(worldA.spriteIndex[playerId(2)],
           hasType('RemotePlayerServerSprite'));
-      expect(worldB.sprites[playerId(2)],
+      expect(worldB.spriteIndex[playerId(2)],
           hasType('RemotePlayerClientSprite'));
-      expect(worldC.sprites[playerId(2)],
+      expect(worldC.spriteIndex[playerId(2)],
           hasType('RemotePlayerSprite'));
 
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
@@ -90,28 +88,28 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }      
-      expect(worldB.sprites.length, equals(2));
+      expect(worldB.spriteIndex.count(), equals(2));
       expect(worldB, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
               .andNetworkType(NetworkType.LOCAL),
           hasSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.REMOTE_FORWARD),
       ]));
-      expect(worldB.sprites[playerId(1)],
+      expect(worldB.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
-      expect(worldB.sprites[playerId(2)],
+      expect(worldB.spriteIndex[playerId(2)],
           hasType('RemotePlayerServerSprite'));
       
-      expect(worldC.sprites.length, equals(2));
+      expect(worldC.spriteIndex.count(), equals(2));
           expect(worldC, hasExactSprites([
               hasSpriteWithNetworkId(playerId(1))
                   .andNetworkType(NetworkType.REMOTE),
               hasSpriteWithNetworkId(playerId(2))
                   .andNetworkType(NetworkType.LOCAL),
           ]));
-      expect(worldC.sprites[playerId(1)],
+      expect(worldC.spriteIndex[playerId(1)],
           hasType('RemotePlayerClientSprite'));
-      expect(worldC.sprites[playerId(2)],
+      expect(worldC.spriteIndex[playerId(2)],
           hasType('RemotePlayerSprite'));
       
       // Now test transferring a sprite over the network.
@@ -183,18 +181,18 @@ void main() {
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
 
       // The player B sprite is hooked up to the gameState.
-      LocalPlayerSprite playerBSprite = worldB.sprites[playerId(1)];
+      LocalPlayerSprite playerBSprite = worldB.spriteIndex[playerId(1)];
       expect(playerBSprite.info.name, equals("nameB"));
-      playerBSprite = worldA.sprites[playerId(1)];;
+      playerBSprite = worldA.spriteIndex[playerId(1)];;
       expect(playerBSprite.info.name, equals("nameB"));
       
-      LocalPlayerSprite playerASprite = worldB.sprites[playerId(0)];
+      LocalPlayerSprite playerASprite = worldB.spriteIndex[playerId(0)];
       expect(playerASprite.info.name, equals("nameA"));
-      playerBSprite = worldA.sprites[playerId(0)];
+      playerBSprite = worldA.spriteIndex[playerId(0)];
       expect(playerASprite.info.name, equals("nameA"));
       
       // Now kill one player.
-      playerBSprite = worldA.sprites[playerId(1)];
+      playerBSprite = worldA.spriteIndex[playerId(1)];
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
@@ -203,7 +201,7 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT);
 
       // Now look how worldB views this sprite.
-      playerBSprite = worldB.sprites[playerId(1)];
+      playerBSprite = worldB.spriteIndex[playerId(1)];
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
@@ -234,7 +232,7 @@ void main() {
                    .andNetworkType(NetworkType.LOCAL),
             ]));
 
-      LocalPlayerSprite playerBSprite = worldA.sprites[playerId(1)];
+      LocalPlayerSprite playerBSprite = worldA.spriteIndex[playerId(1)];
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.inGame(), equals(false));
 

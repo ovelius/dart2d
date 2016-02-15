@@ -6,7 +6,7 @@ import 'package:dart2d/gamestate.dart';
 import 'dart:math';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/sprites/sprite_index.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
