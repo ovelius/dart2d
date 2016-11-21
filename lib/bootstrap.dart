@@ -12,7 +12,7 @@ import 'dart:html';
 import 'dart:math';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = false;
+const bool USE_LOCAL_HOST_PEER = true;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 DateTime lastStep;
 
