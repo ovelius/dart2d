@@ -12,6 +12,7 @@ import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
+import 'dart:core';
 
 class ConnectionType {
   final value;
@@ -43,6 +44,9 @@ class ConnectionType {
 class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
+  // How long until connection attempt times out.
+  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:5);
+
   ConnectionType connectionType;
   World world;
   var id;
@@ -62,8 +66,12 @@ class ConnectionWrapper {
   KeyState remoteKeyState = new KeyState(null);
   // Storage of our reliable key data.
   Map keyFrameData = {};
-  
-  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType) {
+  // Keep track of how long connection has been open.
+  Stopwatch _connectionTimer;
+  // When we time out.
+  Duration _timeout;
+
+  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType, [_timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
@@ -86,6 +94,10 @@ class ConnectionWrapper {
     connection.callMethod('on',
         new JsObject.jsify(
             ['error', new JsFunction.withThis(this.error)]));
+    
+    // Start the connection timer.
+    _connectionTimer = new Stopwatch();
+    _connectionTimer.start();
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -271,9 +283,8 @@ class ConnectionWrapper {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
       if (keyFramesBehind(data[IS_KEY_FRAME_KEY]) > ALLOWED_KEYFRAMES_BEHIND) {
-        opened = false;
-        closed = true;
         print("${world}: Connection to $id too many keyframes behind current: ${data[IS_KEY_FRAME_KEY]} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+        close(null);
         return;
       }
       // Make a defensive copy in case of keyframe.
@@ -294,6 +305,23 @@ class ConnectionWrapper {
 
   int keyFramesBehind(int expectedKeyFrame) {
     return expectedKeyFrame - lastLocalPeerKeyFrameVerified;
+  }
+  
+  Duration sinceCreated() {
+    return new Duration(milliseconds:_connectionTimer.elapsedMilliseconds);
+  }
+
+  bool timedOut() {
+    return sinceCreated().compareTo(_timeout) > 0;
+  }
+
+  /**
+   * Checks if the connection has timed out and closes it if that is the case.
+   */
+  void checkForTimeout() {
+    if (timedOut()) {
+      close(null);
+    }
   }
   
   toString() => "${connectionType} to ${id}";
