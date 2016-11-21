@@ -3,7 +3,7 @@ description: Dart2d WebRTC Game
 environment:
   sdk: '>=0.8.10+6 <2.0.0'
 dependencies:
-  browser: '>=0.9.0 <0.10.0'
+  browser: '>=0.9.0'
   di: '>=3.3.4 <4.0.0'
   logging: any
   test: any
