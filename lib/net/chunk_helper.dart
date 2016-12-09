@@ -51,7 +51,6 @@ class ChunkHelper {
       return;
     }
     if (start == imageBuffer[name].length) {
-      print("${name} [${(100*imageBuffer[name].length/size).toStringAsFixed(1)}]");
       imageBuffer[name] = imageBuffer[name] + data;
       lastImageRequest.remove(name);
     } else {

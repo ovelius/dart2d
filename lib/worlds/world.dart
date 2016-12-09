@@ -14,6 +14,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -32,13 +33,6 @@ double untilNextFrame = FRAME_SPEED;
 
 CanvasRenderingContext2D canvas = null;
 CanvasElement canvasElement = null;
-
-Map<int, String> KEY_TO_NAME = {
-  KeyCode.LEFT: "Left",
-  KeyCode.RIGHT: "Right",
-  KeyCode.DOWN: "Down",
-  KeyCode.UP: "Up",   
-};
 
 abstract class World {
   final Logger log = new Logger('World');
@@ -91,108 +85,32 @@ abstract class World {
     loader = new Loader(canvasElement, this);
     spriteIndex = new SpriteIndex();
   }
-  
-  setJsPeer(var jsPeer) {
-    peer = new PeerWrapper(this, jsPeer);
-    network = new Server(this, peer);
-  }
-  
-  String toKey(int code) {
-    if (KeyCode.isCharacterKey(code)) {
-      return new String.fromCharCode(code);
-    } else {
-      return KEY_TO_NAME[code];
-    }
-  }
-  
-  void drawControlHelper(CanvasRenderingContext2D context) {
-    if (controlHelperTime > 0) {
-      context.setFillColorRgb(255, 255, 255);
-      context.setStrokeColorRgb(255, 255, 255);
-      context.fillText("Controls are:", WIDTH ~/ 3, 40);
-      int i = LocalPlayerSprite.controls.length;
-      for (String key in LocalPlayerSprite.controls.keys) {
-        int x = WIDTH ~/ 3;
-        int y = 70 + i*30;
-        String current = toKey(LocalPlayerSprite.controls[key]);
-        context.fillText("${key}: ${current}", x, y);
-        i--;
-      }
-    }    
-  }
-  
-  void connectTo(var id, [String name = null]) {
-    if (name != null) {
-      this.playerName = name;
-    }
-    hudMessages.display("Connecting to ${id}");
-    network = new Client(this, peer);
-    network.localPlayerName = this.playerName;
-    network.peer.connectTo(id);
-  }
 
-  void frameDraw([double duration = 0.01]) {
-    if (restart) {
-      clearScreen();
-      restart = false;
-    }
-    int frames = advanceFrames(duration);
- 
-    for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
-      if (sprite is Particles && sprite.sendToNetwork) {
-        Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
-        network.peer.sendDataWithKeyFramesToAll(data);
-      } 
-    }
+  /**
+   * Update the underlying jsPeer object.
+   * This is a simple callback.
+   */
+  setJsPeer(var jsPeer);
 
-    canvas.clearRect(0, 0, WIDTH, HEIGHT);
-    canvas.setFillColorRgb(0, 0, 0);
-    canvas.fillRect(0, 0, WIDTH, HEIGHT);
-    canvas.save();
-  
-    for (int networkId in spriteIndex.spriteIds()) {
-      var sprite = spriteIndex[networkId];
-      canvas.resetTransform();
-      if (!freeze && !network.hasNetworkProblem()) {
-        sprite.frame(duration, frames);
-      }
-      sprite.draw(canvas, localKeyState.debug);
-      collisionCheck(networkId, duration);
-      if (sprite.remove) {
-        spriteIndex.removeSprite(sprite.networkId);
-      }
-    }
-  
-    spriteIndex.removePending();
-  
-    // Only send to network if server frames has passed.
-    if (frames > 0) {
-      network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
-    }
-    // 1 since we count how many times this method is called.
-    drawFps.timeWithFrames(duration, 1);
-    drawFpsCounters();
-    hudMessages.render(canvas, duration);
-    canvas.restore();
-  }
-  
+  /**
+   * Connect to the given id.
+   * The ID is an id of the rtc subsystem.
+   */
+  void connectTo(var id, [String name = null]);
+
+  /**
+   * Advances the world this amount of time.
+   * Update objects.
+   * Draw objects.
+   * Possibly send updates to network.
+   */
+  void frameDraw([double duration = 0.01]);
+
+  /**
+   * Execute a collision check on this sprite.
+   * A collision may occur with other sprite or the world itself.
+   */
   void collisionCheck(int networkId, duration);
-  
-  int advanceFrames(double duration) {
-    int frames = 0;
-    
-    untilNextFrame -= duration;
-    while (untilNextFrame <= 0.0) {
-      untilNextFrame += FRAME_SPEED;
-      frames++;
-    }
-    serverFrame += frames;
-    serverFps.timeWithFrames(duration, frames);
-    think(duration, frames);
-    return frames;
-  }
-  
-  void think(double duration, int frames);
 
   MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
     Sprite sprite = spriteIndex[networkId];
@@ -213,13 +131,10 @@ abstract class World {
     spriteIndex = new SpriteIndex();
   }
 
-  void createLocalClient(Map dataFromServer) {
-    spriteNetworkId = dataFromServer["spriteId"];
-    int spriteIndex = dataFromServer["spriteIndex"];
-    addSprite(
-        new RemotePlayerSprite(
-            this, localKeyState, 400.0, 200.0, spriteIndex));
-  }
+  /**
+   * Create a local representation of this player in a remote world.
+   */
+  void createLocalClient(int spriteId, int spriteIndex);
 
   addLocalPlayerSprite(String name) {
     int id = network.gameState.getNextUsablePlayerSpriteId();
@@ -257,11 +172,6 @@ abstract class World {
     }
   }
 
-  /*
-  Iterable<Sprite> getFilteredSprites(bool test(Sprite sprite)) {
-    return sprites.values.where(test);
-  }*/
-  
   void addSprite(Sprite sprite) {
     spriteIndex.addSprite(sprite);
   }

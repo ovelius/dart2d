@@ -19,19 +19,7 @@ final Logger log = new Logger('Network');
 const KEY_FRAME_DEFAULT = 1.0/2;
 const PROBLEMATIC_FRAMES_BEHIND = 2;
 
-class Client extends Network {
-  Client(world, peer) : super(world, peer) {
-    _server = false;
-  }
-}
-
-class Server extends Network {
-  Server(world, peer) : super(world, peer) {
-    _server = true;
-  }
-}
-
-abstract class Network {
+class Network {
   GameState gameState;
   WormWorld world;
   String localPlayerName;
@@ -46,7 +34,7 @@ abstract class Network {
   List<String> activeIds = null;
   Set<String> blackListedIds = new Set();
 
-  Network(this.world, this.peer) {
+  Network(this.world, this.peer, this._server) {
     gameState = new GameState(world);
   }
   
@@ -75,7 +63,6 @@ abstract class Network {
       }
     }
   }
-  
   /**
    * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
    */

@@ -10,6 +10,7 @@ import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/state_updates.dart';
@@ -85,14 +86,20 @@ class WormWorld extends World {
       }
     }
   }
-  
-  void think(double duration, int frames) {
-    
-  }
-  
+
   setJsPeer(var jsPeer) {
     peer = new PeerWrapper(this, jsPeer);
-    network = new Server(this, peer);
+    network = new Network(this, peer, true);
+  }
+
+  void connectTo(var id, [String name = null]) {
+    if (name != null) {
+    this.playerName = name;
+    }
+    hudMessages.display("Connecting to ${id}");
+    network = new Network(this, peer, false);
+    network.localPlayerName = this.playerName;
+    network.peer.connectTo(id);
   }
 
   void frameDraw([double duration = 0.01]) {
@@ -164,7 +171,7 @@ class WormWorld extends World {
     }
     
     if (controlHelperTime > 0) {
-      drawControlHelper(canvas);
+      drawControlHelper(canvas, controlHelperTime, playerSprite, WIDTH, HEIGHT);
       controlHelperTime -= duration;
     }
   
@@ -207,9 +214,9 @@ class WormWorld extends World {
     return true;
   }
   
-  void createLocalClient(Map dataFromServer) {
-    spriteIndex.spriteNetworkId = dataFromServer["spriteId"];
-    int playerSpriteIndex = dataFromServer["spriteIndex"];
+  void createLocalClient(int spriteId, int localSpriteIndex) {
+    spriteIndex.spriteNetworkId = spriteId;
+    int playerSpriteIndex = localSpriteIndex;
     playerSprite = new RemotePlayerSprite(
         this, localKeyState, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
@@ -248,7 +255,20 @@ class WormWorld extends World {
       network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
-  
+
+  int advanceFrames(double duration) {
+    int frames = 0;
+
+    untilNextFrame -= duration;
+    while (untilNextFrame <= 0.0) {
+      untilNextFrame += FRAME_SPEED;
+      frames++;
+    }
+    serverFrame += frames;
+    serverFps.timeWithFrames(duration, frames);
+    return frames;
+  }
+
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
     addSprite(new Particles(null, sprite.position, velocity, radius * 1.5));

@@ -161,7 +161,9 @@ class ConnectionWrapper {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
       world.hudMessages.display("Got server challenge from ${id}");
       assert(!world.network.isServer());
-      world.createLocalClient(dataMap[SERVER_PLAYER_REPLY]);
+      Map receivedServerData = dataMap[SERVER_PLAYER_REPLY];
+      world.createLocalClient(receivedServerData["spriteId"],
+          receivedServerData["spriteIndex"]);
     }
     if (dataMap.containsKey(SERVER_PLAYER_REJECT)) {
       world.hudMessages.display("Game is full :/");

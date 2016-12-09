@@ -307,7 +307,7 @@ void main() {
       worldB.startAsServer("nameB");
       worldA.connectTo("b", "nameA");
   
-      expect((worldB.network as Server).gameState,
+      expect(worldB.network.gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"}));
       
       for (int i = 0; i < 4; i++) {
@@ -321,7 +321,7 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       
-      expect((worldB.network as Server).gameState,
+      expect(worldB.network.gameState,
           isGameStateOf({playerId(0): "nameB"}));
       expect(worldB.spriteIndex.count(), equals(1));
     });
@@ -355,7 +355,7 @@ void main() {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
-      expect((worldA.network as Server).gameState,
+      expect(worldA.network.gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
     
