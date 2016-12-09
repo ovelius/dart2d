@@ -29,8 +29,11 @@ class WormWorld extends World {
   
   double explosionFlash = 0.0;
     
-  WormWorld(int width, int height) : super(width, height) {
+  WormWorld(int width, int height, var jsPeer) : super(width, height) {
     halfWorld = new Vec2(width / 2, height / 2 );
+
+    peer = new PeerWrapper(this, jsPeer);
+    network = new Network(this, peer, true);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -85,11 +88,6 @@ class WormWorld extends World {
         }
       }
     }
-  }
-
-  setJsPeer(var jsPeer) {
-    peer = new PeerWrapper(this, jsPeer);
-    network = new Network(this, peer, true);
   }
 
   void connectTo(var id, [String name = null]) {

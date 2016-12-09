@@ -87,12 +87,6 @@ abstract class World {
   }
 
   /**
-   * Update the underlying jsPeer object.
-   * This is a simple callback.
-   */
-  setJsPeer(var jsPeer);
-
-  /**
    * Connect to the given id.
    * The ID is an id of the rtc subsystem.
    */
@@ -186,10 +180,6 @@ abstract class World {
   
   setInjector(Injector injector) {
     this.injector = injector;
-  }
-  
-  num negate(Random r) {
-    return r.nextBool() ? 1 : -1;    
   }
 
   num width() => WIDTH;

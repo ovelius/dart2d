@@ -26,11 +26,11 @@ void main() {
 
   canvasElement = (querySelector("#canvas") as CanvasElement);
   canvas = canvasElement.context2D;
-  world = new WormWorld(WIDTH, HEIGHT);
-  document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
-  document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
 
-  bootstrapWorld(world);
+  var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
+
+  world = new WormWorld(WIDTH, HEIGHT, peer);
+  setKeyListeners(world);
 
   querySelector("#clientBtn").onClick.listen((e) {
     var clientId = (querySelector("#clientId") as InputElement).value;
@@ -44,11 +44,16 @@ void main() {
     world.hudMessages.displayAndSendToNetwork(
         "${world.network.localPlayerName}: ${message}");
   });
+
+  startTimer();
 }
 
-void bootstrapWorld(World world) {
-  var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
-  world.setJsPeer(peer);
+void setKeyListeners(WormWorld world) {
+  document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
+  document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
+}
+
+void startTimer() {
   lastStep = new DateTime.now();
   new Timer(TIMEOUT, step);
 }
