@@ -1,6 +1,6 @@
 library matchers;
 
-import 'package:unittest/unittest.dart';
+import 'package:matcher/matcher.dart';
 import 'dart:convert';
 import 'dart:mirrors';
 import 'package:dart2d/worlds/world.dart';
@@ -248,10 +248,12 @@ class MapKeyMatcher extends Matcher {
     if (_value == null) {
       description.add("Map/Json string not containing key ${_key}");
     } else {
-      description.add("Map/Json string not containing key ${_key} with value ${_value}");
+      description.add(
+          "Map/Json string not containing key ${_key} with value ${_value}");
     }
     return description;
   }
+  toString() => "MapKeyMatcher for key '$_key' and value '$_value'";
 }
 
 class WorldConnectionMatcher extends Matcher {

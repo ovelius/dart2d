@@ -401,7 +401,7 @@ void main() {
         
         worldE.connectTo("a", "nameE");
         expect(recentSentDataTo("e"),
-                 new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
+            new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
         
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldE.frameDraw(KEY_FRAME_DEFAULT + 0.01);
