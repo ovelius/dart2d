@@ -24,13 +24,12 @@ void main() {
     world.playerName = name;
   };
 
-  canvasElement = (querySelector("#canvas") as CanvasElement);
-  canvas = canvasElement.context2D;
+  var canvasElement = (querySelector("#canvas") as CanvasElement);
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
-  world = new WormWorld(WIDTH, HEIGHT, peer);
-  setKeyListeners(world);
+  world = new WormWorld(WIDTH, HEIGHT, peer, canvasElement);
+  setKeyListeners(world, canvasElement);
 
   querySelector("#clientBtn").onClick.listen((e) {
     var clientId = (querySelector("#clientId") as InputElement).value;
@@ -48,9 +47,12 @@ void main() {
   startTimer();
 }
 
-void setKeyListeners(WormWorld world) {
+void setKeyListeners(WormWorld world, var canvasElement) {
   document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
   document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
+
+  canvasElement.addEventListener("keydown", world.localKeyState.onKeyDown);
+  canvasElement.addEventListener("keyup", world.localKeyState.onKeyUp);
 }
 
 void startTimer() {

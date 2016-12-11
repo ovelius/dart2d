@@ -22,6 +22,8 @@ import 'dart:html';
 import 'dart:mirrors';
 
 class WormWorld extends World {
+  CanvasRenderingContext2D _canvas = null;
+  CanvasElement _canvasElement = null;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld;
   ByteWorld byteWorld;
@@ -29,7 +31,10 @@ class WormWorld extends World {
   
   double explosionFlash = 0.0;
     
-  WormWorld(int width, int height, var jsPeer) : super(width, height) {
+  WormWorld(int width, int height, var jsPeer, var canvasElement)
+      : super(width, height, canvasElement) {
+    this._canvasElement = canvasElement;
+    this._canvas = _canvasElement.context2D;
     halfWorld = new Vec2(width / 2, height / 2 );
 
     peer = new PeerWrapper(this, jsPeer);
@@ -117,12 +122,12 @@ class WormWorld extends World {
        } 
       }
   
-      canvas.clearRect(0, 0, WIDTH, HEIGHT);
-      canvas.setFillColorRgb(135, 206, 250);
-      canvas.fillRect(0, 0, WIDTH, HEIGHT);
-      canvas.save();
-      
-      
+      _canvas
+        ..clearRect(0, 0, WIDTH, HEIGHT)
+        ..setFillColorRgb(135, 206, 250)
+        ..fillRect(0, 0, WIDTH, HEIGHT)
+        ..save();
+
       if (playerSprite != null) {
         Vec2 playerCenter = playerSprite.centerPoint();
         viewPoint.x = playerCenter.x - halfWorld.x;
@@ -141,35 +146,35 @@ class WormWorld extends World {
         }
       }
      
-     byteWorld.drawAt(canvas, viewPoint.x, viewPoint.y);
-     canvas.globalAlpha = 0.7;
-     byteWorld.drawAsMiniMap(canvas, 0, 0);
-     canvas.restore();
+     byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
+      _canvas.globalAlpha = 0.7;
+     byteWorld.drawAsMiniMap(_canvas, 0, 0);
+      _canvas.restore();
      
       for (int networkId in spriteIndex.spriteIds()) {
         var sprite = spriteIndex[networkId];
-        canvas.save();
-        canvas.translate(-viewPoint.x, -viewPoint.y);
+        _canvas.save();
+        _canvas.translate(-viewPoint.x, -viewPoint.y);
         if (!freeze && !network.hasNetworkProblem()) {
           sprite.frame(duration, frames, gravity);
         }
         if(shouldDraw(sprite))
-          sprite.draw(canvas, localKeyState.debug);
+          sprite.draw(_canvas, localKeyState.debug);
         collisionCheck(networkId, duration);
         if (sprite.remove) {
           spriteIndex.removeSprite(sprite.networkId);
         }
-        canvas.restore();
+        _canvas.restore();
       }
       
       if (explosionFlash > 0) {
-        canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
-      canvas.fillRect(0, 0, WIDTH, HEIGHT);
+        _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
+        _canvas.fillRect(0, 0, WIDTH, HEIGHT);
       explosionFlash -= duration * 5;
     }
     
     if (controlHelperTime > 0) {
-      drawControlHelper(canvas, controlHelperTime, playerSprite, WIDTH, HEIGHT);
+      drawControlHelper(_canvas, controlHelperTime, playerSprite, WIDTH, HEIGHT);
       controlHelperTime -= duration;
     }
   
@@ -182,16 +187,16 @@ class WormWorld extends World {
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
-    hudMessages.render(canvas, duration);
-    canvas.restore();
+    hudMessages.render(_canvas, duration);
+      _canvas.restore();
   }
   
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
       double xMin = viewPoint.x;                        //leftest x-value
-      double xMax = viewPoint.x + canvas.canvas.width;  //rightest x-value
+      double xMax = viewPoint.x + _canvas.canvas.width;  //rightest x-value
       double yMin = viewPoint.y;                        //highest y-value
-      double yMax = viewPoint.y + canvas.canvas.height; //lowest y-value
+      double yMax = viewPoint.y + _canvas.canvas.height; //lowest y-value
       
       double spriteX, spriteY, spriteWidth, spriteHeight;
       
@@ -321,6 +326,20 @@ class WormWorld extends World {
           }
         }
       }
+    }
+  }
+
+  void drawFpsCounters() {
+    if (localKeyState.debug) {
+      var font = _canvas.font;
+      _canvas.fillStyle = "#ffffff";
+      _canvas.font = '16pt Calibri';
+      _canvas.fillText("DrawFps: $drawFps", 0, 20);
+      _canvas.fillText("ServerFps: $serverFps", 0, 40);
+      _canvas.fillText("NetworkFps: $networkFps", 0, 60);
+      _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 80);
+      _canvas.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);
+      _canvas.font = font;
     }
   }
 }

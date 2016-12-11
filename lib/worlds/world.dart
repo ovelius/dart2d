@@ -31,9 +31,6 @@ int serverFrame = 0;
 const FRAME_SPEED = 1.0/15;
 double untilNextFrame = FRAME_SPEED;
 
-CanvasRenderingContext2D canvas = null;
-CanvasElement canvasElement = null;
-
 abstract class World {
   final Logger log = new Logger('World');
   
@@ -67,7 +64,7 @@ abstract class World {
   
   Injector injector;
   
-  World(int width, int height) {
+  World(int width, int height, var canvasElement) {
     WIDTH = width;
     HEIGHT = height;
     localKeyState = new KeyState(this);
@@ -149,20 +146,6 @@ abstract class World {
     addLocalPlayerSprite(name);
     if (forTest) {
       addLocalPlayerSprite(name);
-    }
-  }
-
-  void drawFpsCounters() {
-    if (localKeyState.debug) {
-      var font = canvas.font;
-      canvas.fillStyle = "#ffffff";
-      canvas.font = '16pt Calibri';
-      canvas.fillText("DrawFps: $drawFps", 0, 20);
-      canvas.fillText("ServerFps: $serverFps", 0, 40);
-      canvas.fillText("NetworkFps: $networkFps", 0, 60);
-      canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 80);
-      canvas.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);
-      canvas.font = font;
     }
   }
 

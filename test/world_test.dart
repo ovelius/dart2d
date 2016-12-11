@@ -24,8 +24,8 @@ void main() {
   setUp(() {
     testConnections.clear();
     testPeers.clear();
-    canvasElement = (querySelector("#canvas") as CanvasElement);
-    canvas = canvasElement.context2D;
+    var canvasElement = (querySelector("#canvas") as CanvasElement);
+    var canvas = canvasElement.context2D;
     canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
     useEmptyImagesForTest();
     byteWorld = new ByteWorld.fromCanvas(canvasElement, new Vec2());

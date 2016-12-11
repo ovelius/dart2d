@@ -15,8 +15,6 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
   setUp(() {
-    canvasElement = (querySelector("#canvas") as CanvasElement);
-    canvas = canvasElement.context2D;
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.loggerName} ${rec.level.name}: ${rec.time}: ${rec.message}');

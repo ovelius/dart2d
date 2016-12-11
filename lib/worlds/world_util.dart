@@ -19,10 +19,8 @@ String toKey(int code) {
 /**
  * Draws text to help the player with controls.
  */
-void drawControlHelper(CanvasRenderingContext2D context,
-        num controlHelperTime,
-        LocalPlayerSprite playerSprite,
-        int width, height) {
+void drawControlHelper(CanvasRenderingContext2D context, num controlHelperTime,
+    LocalPlayerSprite playerSprite, int width, height) {
   if (controlHelperTime > 0) {
     context.setFillColorRgb(255, 255, 255);
     context.setStrokeColorRgb(255, 255, 255);
@@ -30,7 +28,7 @@ void drawControlHelper(CanvasRenderingContext2D context,
     int i = playerSprite.getControls().length;
     for (String key in playerSprite.getControls().keys) {
       int x = height ~/ 3;
-      int y = 70 + i*30;
+      int y = 70 + i * 30;
       String current = toKey(playerSprite.getControls()[key]);
       context.fillText("${key}: ${current}", x, y);
       i--;
