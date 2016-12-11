@@ -32,7 +32,7 @@ class WormWorld extends World {
   double explosionFlash = 0.0;
     
   WormWorld(int width, int height, var jsPeer, var canvasElement)
-      : super(width, height, canvasElement) {
+      : super(canvasElement.width, canvasElement.height, canvasElement) {
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
     halfWorld = new Vec2(width / 2, height / 2 );
@@ -204,7 +204,7 @@ class WormWorld extends World {
       spriteY = sprite.position.y;   //sprite most top x-value
       spriteWidth = sprite.size.x;   //sprite width
       spriteHeight = sprite.size.y;  //sprite height
-             
+
       if(spriteX > xMax)
         return false;
       if(spriteX + spriteWidth < xMin)

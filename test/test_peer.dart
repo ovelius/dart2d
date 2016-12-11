@@ -5,13 +5,14 @@ import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'fake_canvas.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
 
 World testWorld(var id, {var canvasElement}) {
   if (canvasElement == null) {
-    canvasElement = querySelector("#canvas");
+    canvasElement = new FakeCanvas();
   }
   TestPeer peer = new TestPeer(id);
   WormWorld w = new WormWorld(400, 600, peer, canvasElement);

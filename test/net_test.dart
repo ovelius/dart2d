@@ -3,6 +3,7 @@ library dart2d;
 import 'package:test/test.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
+import 'fake_canvas.dart';
 import 'matchers.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -11,7 +12,6 @@ import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {

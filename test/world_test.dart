@@ -52,13 +52,13 @@ void main() {
       expect(sprite.drawCalls, equals(1));
       expect(sprite.frameCalls, equals(1));
       
-      sprite.position = new Vec2(WIDTH * 1.0, HEIGHT * 1.0);
+      sprite.position = new Vec2(worldA.width() * 1.0, worldA.height() * 1.0);
       
       worldA.frameDraw();
       expect(sprite.drawCalls, equals(2));
       expect(sprite.frameCalls, equals(2));
       
-      sprite.position = new Vec2(WIDTH * 1.0 + 1, HEIGHT * 1.0 + 1);
+      sprite.position = new Vec2(worldA.width() * 1.0 + 1, worldA.height() * 1.0 + 1);
            
       worldA.frameDraw();
       expect(sprite.drawCalls, equals(2));
