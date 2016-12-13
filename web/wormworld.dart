@@ -97,3 +97,40 @@ void step() {
   if (frameTimeMillis > TIMEOUT.inMilliseconds) {}
   new Timer(TIMEOUT - new Duration(milliseconds: frameTimeMillis), step);
 }
+
+createLocalHostPeerJs() {
+  return new JsObject(context['Peer'], [new JsObject.jsify({
+    'key': 'peerconfig', // TODO: Change this.
+    'host': 'localhost',
+    'port': 8089,
+    'debug': 7,
+    'config': {
+      // TODO: Use list of public ICE servers instead.
+      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
+    }
+  })]);
+}
+
+createPeerJs() {
+  return new JsObject(context['Peer'], [new JsObject.jsify({
+    'key': 'peerconfig', // TODO: Change this.
+    'host': 'ng.locutus.se',
+    'port': 8089,
+    'debug': 7,
+    'config': {
+      // TODO: Use list of public ICE servers instead.
+      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
+    }
+  })]);
+}
+
+createPeerJsOrig() {
+  return new JsObject(context['Peer'], [new JsObject.jsify({
+    'key': 'lwjd5qra8257b9', // TODO: Change this.
+    'debug': 7,
+    'config': {
+      // TODO: Use list of public ICE servers instead.
+      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
+    }
+  })]);
+}

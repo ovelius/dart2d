@@ -1,50 +1,13 @@
 library rtc;
 
-import 'dart:js';
 import 'dart:html';
 import 'package:dart2d/worlds/world.dart';
 import 'net.dart';
 import 'connection.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/net/chunk_helper.dart';
-
-createLocalHostPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-      'key': 'peerconfig', // TODO: Change this.
-      'host': 'localhost',
-      'port': 8089,
-      'debug': 7,
-      'config': {
-        // TODO: Use list of public ICE servers instead.
-        'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-      }
-     })]);
-}
-
-createPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'peerconfig', // TODO: Change this.
-    'host': 'ng.locutus.se',
-    'port': 8089,
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-   })]);
-}
-
-createPeerJsOrig() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'lwjd5qra8257b9', // TODO: Change this.
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-   })]);
-}
 
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
@@ -57,10 +20,7 @@ class PeerWrapper {
 
   PeerWrapper(this.world, PeerMarker jsPeer) {
     this.peer = jsPeer;
-    peer.callMethod('on', new JsObject.jsify(['open', new JsFunction.withThis(this.openPeer)]));
-    peer.callMethod('on', new JsObject.jsify(['receiveActivePeers', new JsFunction.withThis(this.receivePeers)]));
-    peer.callMethod('on', new JsObject.jsify(['connection', new JsFunction.withThis(this.connectPeer)]));
-    peer.callMethod('on', new JsObject.jsify(['error', new JsFunction.withThis(this.error)]));
+    new PeerWrapperCallbacks().registerPeerCallbacks(jsPeer, this);
   }
 
   /**
@@ -68,13 +28,7 @@ class PeerWrapper {
    */
   void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
     assert(id != null);
-    var metaData = new JsObject.jsify({
-      'label': 'dart2d',
-      'reliable': 'false',
-      'metadata': {},
-      'serialization': 'none',
-    });
-    var connection = peer.callMethod('connect', [id, metaData]);
+    var connection = new PeerWrapperCallbacks().connectToPeer(peer, id);
     var peerId = connection['peer'];
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(world, peerId, connection, connectionType);
     connections[peerId] = connectionWrapper;
