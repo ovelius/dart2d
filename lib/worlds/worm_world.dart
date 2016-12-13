@@ -111,6 +111,14 @@ class WormWorld extends World {
     network.peer.connectTo(id);
   }
 
+  /**
+   * Display a message in the world and send it to the network for remote display.
+   */
+  void displayHudMessageAndSendToNetwork(String message, [double period]) {
+    hudMessages.display(message, period);
+    network.sendMessage(message);
+  }
+
   void frameDraw([double duration = 0.01]) {
       if (!loader.frameDraw(duration)) {
         return;

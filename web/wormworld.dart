@@ -4,6 +4,8 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
+import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
 import 'package:di/di.dart';
@@ -17,7 +19,7 @@ const bool USE_LOCAL_HOST_PEER = true;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
-World world;
+WormWorld world;
 
 void main() {
   context['onSignIn'] = (param) {
@@ -40,6 +42,7 @@ void main() {
          toValue: canvasElement)
      ..bind(PeerMarker,  toValue: peer)
      ..bind(WormWorld)
+     ..bind(ChunkHelper)
      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
@@ -55,7 +58,7 @@ void main() {
 
   querySelector("#sendMsg").onClick.listen((e) {
     var message = (querySelector("#chatMsg") as InputElement).value;
-    world.hudMessages.displayAndSendToNetwork(
+    world.displayHudMessageAndSendToNetwork(
         "${world.network.localPlayerName}: ${message}");
   });
 

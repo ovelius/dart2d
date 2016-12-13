@@ -5,7 +5,8 @@ import 'dart:html';
 import 'package:dart2d/worlds/world.dart';
 import 'net.dart';
 import 'connection.dart';
-import 'state_updates.dart';
+import 'package:di/di.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 
 createLocalHostPeerJs() {
@@ -45,6 +46,7 @@ createPeerJsOrig() {
    })]);
 }
 
+@Injectable() // TODO: Make Injectable.
 class PeerWrapper {
   World world;
   ChunkHelper chunkHelper = new ChunkHelper();
@@ -53,7 +55,8 @@ class PeerWrapper {
   var id = null;
   Map connections = {};
 
-  PeerWrapper(this.world, this.peer) {
+  PeerWrapper(this.world, PeerMarker jsPeer) {
+    this.peer = jsPeer;
     peer.callMethod('on', new JsObject.jsify(['open', new JsFunction.withThis(this.openPeer)]));
     peer.callMethod('on', new JsObject.jsify(['receiveActivePeers', new JsFunction.withThis(this.receivePeers)]));
     peer.callMethod('on', new JsObject.jsify(['connection', new JsFunction.withThis(this.connectPeer)]));

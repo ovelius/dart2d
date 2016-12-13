@@ -2,7 +2,7 @@ library connection;
 
 import 'dart:js';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -48,7 +48,7 @@ class ConnectionWrapper {
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds:5);
 
   ConnectionType connectionType;
-  World world;
+  WormWorld world;
   var id;
   var connection;
   // True if connection was successfully opened.
@@ -150,7 +150,7 @@ class ConnectionWrapper {
       sprite.ownerId = id;
       world.addSprite(sprite);
 
-      world.hudMessages.displayAndSendToNetwork("${name} connected.");
+      world.displayHudMessageAndSendToNetwork("${name} connected.");
       Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
       sendData({
         SERVER_PLAYER_REPLY: serverData,

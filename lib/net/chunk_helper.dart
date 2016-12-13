@@ -4,7 +4,9 @@ import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
+import 'package:di/di.dart';
 
+@Injectable()
 class ChunkHelper {
   _DataCounter counter = new _DataCounter(3);
   static const int DEFAULT_CHUNK_SIZE = 512;

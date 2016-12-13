@@ -17,17 +17,13 @@ class _HudMessage {
   }
 }
 
+// TODO: Make injectable.
 class HudMessages {
   static const DEFAULT_DURATION = 4.0;
   World world;
   List<_HudMessage> messages = [];
 
   HudMessages(this.world);
-  
-  void displayAndSendToNetwork(String message, [double period]) {
-    display(message, period);
-    world.network.sendMessage(message);
-  }
 
   void display(String message, [double period]) {
     messages.add(new _HudMessage(

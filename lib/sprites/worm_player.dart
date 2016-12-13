@@ -242,7 +242,7 @@ class LocalPlayerSprite extends MovingSprite {
       spawnIn-= duration;
       if (spawnIn < 0) {
         velocity = new Vec2();
-        world.hudMessages.displayAndSendToNetwork("${info.name} is back!");
+        world.displayHudMessageAndSendToNetwork("${info.name} is back!");
         world.network.gameState.urgentData = true;
         info.inGame = true;
         collision = true;
@@ -306,7 +306,6 @@ class LocalPlayerSprite extends MovingSprite {
     } else if (keyIsDown("Aim up")) {
       gunUp(duration);
     }
-    
    
     if (keyIsDown("Rope")) {
       fireRope();
@@ -363,7 +362,7 @@ class LocalPlayerSprite extends MovingSprite {
   void takeDamage(int damage) {
     health -= damage;
     if (health <= 0) {
-      world.hudMessages.displayAndSendToNetwork("${info.name} died!");
+      world.displayHudMessageAndSendToNetwork("${info.name} died!");
       world.network.gameState.urgentData = true;
       info.deaths++;
       info.inGame = false;
