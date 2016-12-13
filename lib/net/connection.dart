@@ -1,15 +1,11 @@
 library connection;
 
-import 'dart:js';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/net/rtc.dart';
-import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
 import 'dart:core';
@@ -82,19 +78,7 @@ class ConnectionWrapper {
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
       lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     }
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['data', new JsFunction.withThis(this.receiveData)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['close', new JsFunction.withThis(this.close)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['open', new JsFunction.withThis(this.open)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['error', new JsFunction.withThis(this.error)]));
-    
+    new ConnectionCallbacks().registerPeerCallbacks(connection, this);
     // Start the connection timer.
     _connectionTimer = new Stopwatch();
     _connectionTimer.start();

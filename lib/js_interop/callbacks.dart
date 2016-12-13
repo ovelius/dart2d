@@ -31,3 +31,20 @@ class PeerWrapperCallbacks {
     return jsPeer.callMethod('connect', [id, metaData]);
   }
 }
+
+class ConnectionCallbacks {
+  void registerPeerCallbacks(var connection, ConnectionWrapper wrapper) {
+    connection.callMethod('on',
+        new JsObject.jsify(
+            ['data', new JsFunction.withThis(wrapper.receiveData)]));
+    connection.callMethod('on',
+        new JsObject.jsify(
+            ['close', new JsFunction.withThis(wrapper.close)]));
+    connection.callMethod('on',
+        new JsObject.jsify(
+            ['open', new JsFunction.withThis(wrapper.open)]));
+    connection.callMethod('on',
+        new JsObject.jsify(
+            ['error', new JsFunction.withThis(wrapper.error)]));
+  }
+}
