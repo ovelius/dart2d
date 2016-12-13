@@ -8,3 +8,5 @@ dependencies:
   logging: any
   test: any
   unittest: any
+transformers:
+ - di

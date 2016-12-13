@@ -4,17 +4,13 @@ import 'dart:html';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
-import 'package:dart2d/net/chunk_helper.dart';
-import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:math';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'dart:async';
 
 class Loader {
   WormWorld wormWorld_;
-  CanvasElement canvas_;
-  CanvasRenderingContext2D context_;
+  var canvas_;
+  var context_;
   int width;
   int height;
   

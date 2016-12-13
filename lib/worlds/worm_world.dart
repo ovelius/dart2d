@@ -5,37 +5,36 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/keystate.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:di/di.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/rtc.dart';
-import 'package:dart2d/res/imageindex.dart'; 
 import 'dart:math';
-import 'dart:html';
-import 'dart:mirrors';
 
+@Injectable()
 class WormWorld extends World {
-  CanvasRenderingContext2D _canvas = null;
-  CanvasElement _canvasElement = null;
+  var _canvas = null;
+  var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
   
   double explosionFlash = 0.0;
-    
-  WormWorld(int width, int height, var jsPeer, var canvasElement)
+
+  WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
-    halfWorld = new Vec2(width / 2, height / 2 );
+    halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
 
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);

@@ -2,7 +2,9 @@ library spaceworld;
 
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
+import 'package:di/di.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'dart:html';
 import 'dart:async';
@@ -28,7 +30,15 @@ void main() {
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
-  world = new WormWorld(WIDTH, HEIGHT, peer, canvasElement);
+  var injector = new ModuleInjector([new Module()
+     ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
+     ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
+     ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),  toValue: canvasElement)
+     ..bind(PeerMarker,  toValue: peer)
+     ..bind(WormWorld)
+  ]);
+  world = injector.get(WormWorld);
+
   setKeyListeners(world, canvasElement);
 
   querySelector("#clientBtn").onClick.listen((e) {

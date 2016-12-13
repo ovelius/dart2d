@@ -1,34 +1,32 @@
-import 'dart:typed_data';
-import 'dart:html';
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/res/imageindex.dart'; 
+import 'package:dart2d/res/imageindex.dart';
+import 'package:di/di.dart';
 
+@Injectable()
 class ByteWorld {
   int width;
   int height;
-  
   Vec2 viewSize;
-  
-  CanvasElement canvas;
-  ByteWorld(int imageId, Vec2 viewSize) {
+  var canvas;
+
+  ByteWorld(int imageId, Vec2 viewSize, ) {
     var image = images[imageId];
-    canvas = new CanvasElement(width: image.width, height: image.height);
+    canvas = TypeReflector.  new CanvasElement(width: image.width, height: image.height);
     this.width = canvas.width;
     this.height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
     this.viewSize = viewSize;
   }
   
-  ByteWorld.fromCanvas(CanvasElement canvas, Vec2 viewSize) {
+  ByteWorld.fromCanvas(var canvas, Vec2 viewSize) {
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
     this.viewSize = viewSize;
   }
   
-  void drawAt(CanvasRenderingContext2D canvas, x, y) {
+  void drawAt(var canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,
        x, y, // Source
@@ -36,7 +34,7 @@ class ByteWorld {
        0, 0, viewSize.x , viewSize.y);
   }
   
-  void drawAsMiniMap(CanvasRenderingContext2D canvas, x, y, [width = 100, height = 100]) {
+  void drawAsMiniMap(var canvas, x, y, [width = 100, height = 100]) {
     canvas.drawImageScaledFromSource(
        this.canvas,
        0, 0, // Source
