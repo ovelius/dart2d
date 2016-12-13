@@ -17,6 +17,16 @@ class ByteWorldCanvas {
 class CanvasMarker {
   int width;
   int height;
+
+  var context2D;
 }
 
 class PeerMarker { }
+
+class CanvasFactory {
+  CanvasFactory(this._factory);
+  dynamic _factory;
+  CanvasMarker createCanvas(int width, int height) {
+    return _factory(width, height);
+  }
+}

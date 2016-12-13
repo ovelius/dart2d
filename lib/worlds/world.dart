@@ -55,9 +55,7 @@ abstract class World {
   bool connectOnOpenConnection = false;
 
   Network network;
-  
-  Loader loader;
-  
+
   double controlHelperTime = 0.0;
   
   Injector injector;
@@ -77,8 +75,6 @@ abstract class World {
       }
     });
     hudMessages = new HudMessages(this);
-    loader = new Loader(canvasElement, this);
-    spriteIndex = new SpriteIndex();
   }
 
   /**

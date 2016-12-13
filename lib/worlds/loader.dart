@@ -5,12 +5,13 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class Loader {
-  WormWorld wormWorld_;
-  var canvas_;
+  WormWorld _wormWorld;
+  CanvasFactory _canvasFactory;
   var context_;
   int width;
   int height;
@@ -19,27 +20,31 @@ class Loader {
   
   bool completed_ = false;
   
-  Loader(this.canvas_, this.wormWorld_) {
-    context_ = canvas_.context2D;
-    width = canvas_.width;
-    height = canvas_.height;
+  Loader(@WorldCanvas() CanvasMarker canvasElement,
+         CanvasFactory canvasFactory,
+         WormWorld wormWorld) {
+   this._canvasFactory = canvasFactory;
+   context_ = canvasElement.context2D;
+   width = canvasElement.width;
+   height = canvasElement.height;
+   this._wormWorld = wormWorld;
   }
   
   String describeStage() {
-    if (wormWorld_.network.peer.id == null) {
+    if (_wormWorld.network.peer.id == null) {
       return "Waiting for WebRTC init";
-    } else if (!wormWorld_.network.hasOpenConnection() && !wormWorld_.network.connectionsExhausted()) {
+    } else if (!_wormWorld.network.hasOpenConnection() && !_wormWorld.network.connectionsExhausted()) {
       return "Attempting to connect to a peer...";
     } else if (!finishedLoadingImages()) {
-      if (wormWorld_.network.hasOpenConnection()) {
+      if (_wormWorld.network.hasOpenConnection()) {
         if (!imagesIndexed()) {
           loadImagesFromNetwork();
         }
-        List<ConnectionWrapper> connections = wormWorld_.network.safeActiveConnections();
+        List<ConnectionWrapper> connections = _wormWorld.network.safeActiveConnections();
         assert(!connections.isEmpty);
-        wormWorld_.peer.chunkHelper.requestNetworkData(connections);
+        _wormWorld.peer.chunkHelper.requestNetworkData(connections);
         // load from client.
-        return "Loading images from other client(s) ${imagesLoadedString()} ${wormWorld_.peer.chunkHelper.getTransferSpeed()}";
+        return "Loading images from other client(s) ${imagesLoadedString()} ${_wormWorld.peer.chunkHelper.getTransferSpeed()}";
       }
       if (!imagesIndexed()) {
         // Load everythng from the server.
@@ -65,14 +70,14 @@ class Loader {
     context_.save();
 
     if (finishedLoadingImages()) {
-      ConnectionWrapper serverConnection = wormWorld_.network.getServerConnection();
+      ConnectionWrapper serverConnection = _wormWorld.network.getServerConnection();
       if (serverConnection == null) {
-        wormWorld_.startAsServer("Blergh", false); // true for two players.
+        _wormWorld.startAsServer("Blergh", false); // true for two players.
       } else {
         // Connect to the actual game.
         serverConnection.connectToGame();
       }
-      wormWorld_.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(width * 1.0,  height * 1.0));
+      _wormWorld.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(width * 1.0,  height * 1.0), _canvasFactory);
       completed_ = true;
       return true;
     }

@@ -2,6 +2,8 @@ library spaceworld;
 
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
 import 'package:di/di.dart';
@@ -33,9 +35,12 @@ void main() {
   var injector = new ModuleInjector([new Module()
      ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
      ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
-     ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),  toValue: canvasElement)
+     ..bind(CanvasFactory, toValue: new CanvasFactory((w, h) => new CanvasElement(width:w, height:h)))
+     ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),
+         toValue: canvasElement)
      ..bind(PeerMarker,  toValue: peer)
      ..bind(WormWorld)
+     ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
 

@@ -11,6 +11,7 @@ import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/worlds/world_util.dart';
+import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
@@ -22,6 +23,7 @@ import 'dart:math';
 
 @Injectable()
 class WormWorld extends World {
+  Loader loader;
   SpriteIndex spriteIndex;
   var _canvas = null;
   var _canvasElement = null;
@@ -32,7 +34,8 @@ class WormWorld extends World {
   
   double explosionFlash = 0.0;
 
-  WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement, SpriteIndex spriteIndex)
+  WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement, SpriteIndex spriteIndex,
+      CanvasFactory canvasFactory)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
@@ -41,6 +44,7 @@ class WormWorld extends World {
     this.spriteIndex = spriteIndex;
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);
+    this.loader = new Loader(_canvasElement, canvasFactory, this);
   }
   
   void collisionCheck(int networkId, duration) {

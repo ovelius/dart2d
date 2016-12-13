@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 @Injectable()
@@ -10,11 +11,9 @@ class ByteWorld {
   Vec2 viewSize;
   var canvas;
 
-  ByteWorld(int imageId, Vec2 viewSize, TypeReflector reflector) {
-    reflector.factoryFor(Ca)
+  ByteWorld(int imageId, Vec2 viewSize, CanvasFactory canvasFactory) {
     var image = images[imageId];
-    TypeReflector
-    canvas = TypeReflector..  new CanvasElement(width: image.width, height: image.height);
+    canvas = canvasFactory.createCanvas(image.width, image.height);
     this.width = canvas.width;
     this.height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
