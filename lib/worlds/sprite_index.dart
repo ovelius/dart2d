@@ -5,12 +5,14 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/rope.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:di/di.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 /**
  * Contains the world sprite data, indexed by id.
  */
+@Injectable()
 class SpriteIndex {
   final Logger log = new Logger('SpriteIndex');
   
@@ -34,7 +36,7 @@ class SpriteIndex {
   List<Sprite> _waitingSprites = [];
   // Removals that needs to sent to the network.
   List<int> _networkRemovals = [];
-  // Spritest that will be removed from the world next frame;
+  // Sprites that will be removed from the world next frame;
   List<int> _removeSprites = [];
   // Sprites that will replace the current world sprites next frame.
   Map<int, Sprite> _replaceSprite = {};

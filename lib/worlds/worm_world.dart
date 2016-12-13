@@ -16,11 +16,13 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'dart:math';
 
 @Injectable()
 class WormWorld extends World {
+  SpriteIndex spriteIndex;
   var _canvas = null;
   var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
@@ -30,12 +32,13 @@ class WormWorld extends World {
   
   double explosionFlash = 0.0;
 
-  WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement)
+  WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement, SpriteIndex spriteIndex)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
 
+    this.spriteIndex = spriteIndex;
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);
   }

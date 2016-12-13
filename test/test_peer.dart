@@ -6,6 +6,7 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'fake_canvas.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:html';
@@ -15,7 +16,7 @@ World testWorld(var id, {var canvasElement}) {
     canvasElement = new FakeCanvas();
   }
   TestPeer peer = new TestPeer(id);
-  WormWorld w = new WormWorld(400, 600, peer, canvasElement);
+  WormWorld w = new WormWorld(peer, canvasElement);
   w.connectOnOpenConnection = true;
   w.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(400 * 1.0,  600 * 1.0));
   w.hudMessages = new TestHudMessage(w);
@@ -25,7 +26,7 @@ World testWorld(var id, {var canvasElement}) {
 
 Map testPeers = {};
 
-class TestPeer {
+class TestPeer extends PeerMarker {
   var id;
   var eventHandlers = {};
 

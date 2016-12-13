@@ -43,8 +43,6 @@ abstract class World {
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
 
-  // Sprite container.
-  SpriteIndex spriteIndex;
 
   HudMessages hudMessages;
   KeyState localKeyState; 

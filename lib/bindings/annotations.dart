@@ -14,6 +14,9 @@ class ByteWorldCanvas {
   const ByteWorldCanvas();
 }
 
-class CanvasMarker { }
+class CanvasMarker {
+  int width;
+  int height;
+}
 
 class PeerMarker { }

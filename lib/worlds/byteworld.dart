@@ -10,9 +10,11 @@ class ByteWorld {
   Vec2 viewSize;
   var canvas;
 
-  ByteWorld(int imageId, Vec2 viewSize, ) {
+  ByteWorld(int imageId, Vec2 viewSize, TypeReflector reflector) {
+    reflector.factoryFor(Ca)
     var image = images[imageId];
-    canvas = TypeReflector.  new CanvasElement(width: image.width, height: image.height);
+    TypeReflector
+    canvas = TypeReflector..  new CanvasElement(width: image.width, height: image.height);
     this.width = canvas.width;
     this.height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
