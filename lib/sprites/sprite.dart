@@ -3,7 +3,6 @@ library sprite;
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
-import 'dart:html';
 
 
 class SpriteType {
@@ -154,7 +153,7 @@ class Sprite {
     }
   }
 
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     if (debug) {
       context.fillStyle = "#ffffff";
@@ -188,11 +187,11 @@ class Sprite {
 
   }
   
-  setColor(CanvasRenderingContext2D context) {
+  setColor(var context) {
     context.fillStyle = color;
   }
 
-  drawRect(CanvasRenderingContext2D context) {
+  drawRect(var context) {
     context.rotate(angle);
     setColor(context);
     int x2 = size.x ~/ 2;
@@ -200,7 +199,7 @@ class Sprite {
     context.fillRect(-x2, -y2, size.x, size.y);
   }
 
-  drawCircle(CanvasRenderingContext2D context) {
+  drawCircle(var context) {
     setColor(context);
     context.beginPath();
     context.arc(

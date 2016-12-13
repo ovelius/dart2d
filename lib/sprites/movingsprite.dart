@@ -3,10 +3,7 @@ library movingsprite;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'dart:math';
-import 'dart:html';
 
 class MovingSprite extends Sprite {
   static const int FLAG_NO_GRAVITY = 1;

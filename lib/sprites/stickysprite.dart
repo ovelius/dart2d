@@ -3,7 +3,6 @@ library stickysprite;
 import 'movingsprite.dart';
 import 'sprite.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:math';
 
 /*
  * A sprite that follows the position of another sprite. 

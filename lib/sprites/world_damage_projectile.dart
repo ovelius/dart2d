@@ -7,7 +7,6 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:html';
 import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
@@ -118,7 +117,7 @@ class WorldDamageProjectile extends MovingSprite {
     super.frame(duration, frames, gravity);
   }
   
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
     if (explodeAfter != null) {
       context.fillStyle = "#ffffff";
       context.fillText(

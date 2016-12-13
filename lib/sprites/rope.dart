@@ -6,12 +6,11 @@ import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'dart:html';
 
 class Rope extends MovingSprite {
-  World world;
+  WormWorld world;
   bool locked = false;
   bool invisibleOutsideCanvas = false;
   MovingSprite owner;
@@ -77,7 +76,7 @@ class Rope extends MovingSprite {
     }
   }
   
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
     if (owner == null) {
       return;
     }

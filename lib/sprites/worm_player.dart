@@ -209,7 +209,7 @@ class LocalPlayerSprite extends MovingSprite {
     return info != null && info.inGame;
   }
   
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
     if (!inGame()) {
       this.velocity.x = 0.0;
       this.velocity.y = 0.0;
