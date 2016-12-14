@@ -9,6 +9,7 @@ import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
 import 'package:di/di.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/rtc.dart';
 import 'dart:html';
 import 'dart:async';
@@ -37,12 +38,14 @@ void main() {
   var injector = new ModuleInjector([new Module()
      ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
      ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
-     ..bind(CanvasFactory, toValue: new CanvasFactory((w, h) => new CanvasElement(width:w, height:h)))
+     ..bind(CanvasFactory, toValue:
+         new DynamicFactory(([w, h]) => new CanvasElement(width:w, height:h)))
      ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),
          toValue: canvasElement)
      ..bind(PeerMarker,  toValue: peer)
      ..bind(WormWorld)
      ..bind(ChunkHelper)
+     ..bind(ImageIndex)
      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);

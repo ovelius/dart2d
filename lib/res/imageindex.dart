@@ -3,6 +3,7 @@ library imageindex;
 import 'dart:html';
 import 'dart:math';
 import 'dart:async';
+import 'package:di/di.dart';
 
 List<String> imageSources = [
     "shipg01.png",
@@ -22,13 +23,24 @@ List<String> imageSources = [
     "zooka.png",
     "box.png",
     "gun.png",
-];  
+];
+
 
 var _EMPTY_IMAGE = () {
   ImageElement img = new ImageElement(width:100, height:100);
   img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
   return img;
 };
+
+@Injectable()
+class ImageIndex {
+  getImageByName(String name) {
+    return imageByName[name];
+  }
+  getImageByIndex(int index) {
+    return images[index];
+  }
+}
 // Item 0 is always empty image.
 List<ImageElement> images = [_EMPTY_IMAGE()];
 

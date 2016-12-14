@@ -10,6 +10,14 @@ class WorldCanvas {
   const WorldCanvas();
 }
 
+class CanvasFactory {
+  const CanvasFactory();
+}
+
+class ImageFactory {
+  const ImageFactory();
+}
+
 class ByteWorldCanvas {
   const ByteWorldCanvas();
 }
@@ -23,10 +31,10 @@ class CanvasMarker {
 
 class PeerMarker { }
 
-class CanvasFactory {
-  CanvasFactory(this._factory);
+class DynamicFactory {
+  DynamicFactory(this._factory);
   dynamic _factory;
-  CanvasMarker createCanvas(int width, int height) {
-    return _factory(width, height);
+  create(var args) {
+    return _factory(args);
   }
 }

@@ -7,6 +7,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:convert';
 import 'dart:core';
 

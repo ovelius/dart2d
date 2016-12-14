@@ -1,6 +1,14 @@
 import 'package:dart2d/net/rtc.dart';
 import 'dart:js';
 
+class JsCallbackBinder {
+  void bindOnFunction(var jsObject, String methodName, dynamic callback) {
+    jsObject.callMethod(
+        'on',
+        new JsObject.jsify([methodName, new JsFunction.withThis(callback)]));
+  }
+}
+
 class PeerWrapperCallbacks {
   void registerPeerCallbacks(var jsPeer, PeerWrapper wrapper) {
     jsPeer.callMethod(

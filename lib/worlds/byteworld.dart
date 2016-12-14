@@ -11,9 +11,8 @@ class ByteWorld {
   Vec2 viewSize;
   var canvas;
 
-  ByteWorld(int imageId, Vec2 viewSize, CanvasFactory canvasFactory) {
-    var image = images[imageId];
-    canvas = canvasFactory.createCanvas(image.width, image.height);
+  ByteWorld(var image, Vec2 viewSize, @CanvasFactory() DynamicFactory canvasFactory) {
+    canvas = canvasFactory.create([image.width, image.height]);
     this.width = canvas.width;
     this.height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);

@@ -35,7 +35,7 @@ class WormWorld extends World {
   double explosionFlash = 0.0;
 
   WormWorld(PeerMarker jsPeer, @WorldCanvas() CanvasMarker canvasElement, SpriteIndex spriteIndex,
-      CanvasFactory canvasFactory)
+      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;

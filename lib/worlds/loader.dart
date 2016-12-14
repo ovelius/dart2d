@@ -11,7 +11,8 @@ import 'package:dart2d/worlds/byteworld.dart';
 
 class Loader {
   WormWorld _wormWorld;
-  CanvasFactory _canvasFactory;
+  DynamicFactory _canvasFactory;
+  ImageIndex _imageIndex;
   var context_;
   int width;
   int height;
@@ -21,7 +22,8 @@ class Loader {
   bool completed_ = false;
   
   Loader(@WorldCanvas() CanvasMarker canvasElement,
-         CanvasFactory canvasFactory,
+         @CanvasFactory() DynamicFactory canvasFactory,
+         ImageIndex imageIndex,
          WormWorld wormWorld) {
    this._canvasFactory = canvasFactory;
    context_ = canvasElement.context2D;
@@ -77,7 +79,8 @@ class Loader {
         // Connect to the actual game.
         serverConnection.connectToGame();
       }
-      _wormWorld.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(width * 1.0,  height * 1.0), _canvasFactory);
+      _wormWorld.byteWorld = new ByteWorld(imageByName['world.png'],
+          new Vec2(width * 1.0,  height * 1.0), _canvasFactory);
       completed_ = true;
       return true;
     }
