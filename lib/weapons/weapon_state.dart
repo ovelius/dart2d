@@ -1,7 +1,7 @@
 library weapon_state;
 
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/sprites/world_damage_projectile.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -13,7 +13,7 @@ import 'package:dart2d/phys/vec2.dart';
 
 class WeaponState {
   static const double SHOW_WEAPON_NAME_TIME = 0.5;
-  World world;
+  WormWorld world;
   KeyState keyState;
   Sprite owner;
   Sprite gun;

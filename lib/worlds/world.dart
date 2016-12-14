@@ -57,9 +57,7 @@ abstract class World {
   Network network;
 
   double controlHelperTime = 0.0;
-  
-  Injector injector;
-  
+
   World(int width, int height, var canvasElement) {
     WIDTH = width;
     HEIGHT = height;
@@ -97,67 +95,11 @@ abstract class World {
    */
   void collisionCheck(int networkId, duration);
 
-  MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
-    Sprite sprite = spriteIndex[networkId];
-    if (sprite == null) {
-      sprite = SpriteIndex.fromWorldByIndex(this, flags);
-      sprite.networkType = NetworkType.REMOTE;
-      sprite.networkId = networkId;
-      // This might not be 100% accurate, since onwer might be:
-      // Client -> Server -> Client.
-      // But if that is the case it will be updated when we parse the GameState.
-      sprite.ownerId = wrapper.id;
-      addSprite(sprite);
-    } 
-    return sprite;
-  }
-
-  void clearScreen() {
-    spriteIndex = new SpriteIndex();
-  }
 
   /**
    * Create a local representation of this player in a remote world.
    */
   void createLocalClient(int spriteId, int spriteIndex);
-
-  addLocalPlayerSprite(String name) {
-    int id = network.gameState.getNextUsablePlayerSpriteId();
-    int imageId = network.gameState.getNextUsableSpriteImage();
-    PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
-    LocalPlayerSprite playerSprite = new LocalPlayerSprite(
-        this, localKeyState, info,
-        new Random().nextInt(WIDTH).toDouble(),
-        new Random().nextInt(HEIGHT).toDouble(),
-        imageByName["shipg01.png"]);
-    playerSprite.networkId = id;
-    playerSprite.setImage(imageId);
-    network.gameState.playerInfo.add(info);
-    addSprite(playerSprite);
-  }
-
-  startAsServer(String name, [bool forTest = false]) {
-    addLocalPlayerSprite(name);
-    if (forTest) {
-      addLocalPlayerSprite(name);
-    }
-  }
-
-  void addSprite(Sprite sprite) {
-    spriteIndex.addSprite(sprite);
-  }
-  
-  void removeSprite(int networkId) {
-    spriteIndex.removeSprite(networkId);
-  }
-  
-  void replaceSprite(int id, Sprite sprite) {
-    spriteIndex.replaceSprite(id, sprite);
-  }
-  
-  setInjector(Injector injector) {
-    this.injector = injector;
-  }
 
   num width() => WIDTH;
   num height() => HEIGHT;

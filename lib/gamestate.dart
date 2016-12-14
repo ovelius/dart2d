@@ -1,7 +1,7 @@
 library gamestate;
 
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
@@ -65,12 +65,12 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
 
-  World world;
+  WormWorld world;
   GameState(this.world) {
     startedAt = new DateTime.now();
   }
 
-  GameState.fromMap(World world, Map map) {
+  GameState.fromMap(WormWorld world, Map map) {
     this.world = world;
     List<Map> players = map["p"];
     for (Map playerMap in players) {

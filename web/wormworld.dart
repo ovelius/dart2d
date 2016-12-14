@@ -38,8 +38,8 @@ void main() {
   var injector = new ModuleInjector([new Module()
      ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
      ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
-     ..bind(CanvasFactory, toValue:
-         new DynamicFactory(([w, h]) => new CanvasElement(width:w, height:h)))
+     ..bind(DynamicFactory, withAnnotation: const CanvasFactory(),  toValue:
+         new DynamicFactory((args) => new CanvasElement(width:args[0], height:args[1])))
      ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),
          toValue: canvasElement)
      ..bind(PeerMarker,  toValue: peer)

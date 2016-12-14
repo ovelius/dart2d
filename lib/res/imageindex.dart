@@ -35,7 +35,7 @@ var _EMPTY_IMAGE = () {
 @Injectable()
 class ImageIndex {
   getImageByName(String name) {
-    return imageByName[name];
+    return images[imageByName[name]];
   }
   getImageByIndex(int index) {
     return images[index];

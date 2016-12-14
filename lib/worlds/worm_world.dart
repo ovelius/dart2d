@@ -6,6 +6,7 @@ import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/sprites/worm_player.dart';
@@ -44,7 +45,7 @@ class WormWorld extends World {
     this.spriteIndex = spriteIndex;
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);
-    this.loader = new Loader(_canvasElement, canvasFactory, this);
+    this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -204,7 +205,22 @@ class WormWorld extends World {
     hudMessages.render(_canvas, duration);
       _canvas.restore();
   }
-  
+
+  MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
+    Sprite sprite = spriteIndex[networkId];
+    if (sprite == null) {
+      sprite = SpriteIndex.fromWorldByIndex(this, flags);
+      sprite.networkType = NetworkType.REMOTE;
+      sprite.networkId = networkId;
+      // This might not be 100% accurate, since onwer might be:
+      // Client -> Server -> Client.
+      // But if that is the case it will be updated when we parse the GameState.
+      sprite.ownerId = wrapper.id;
+      addSprite(sprite);
+    }
+    return sprite;
+  }
+
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
       double xMin = viewPoint.x;                        //leftest x-value
@@ -341,6 +357,29 @@ class WormWorld extends World {
         }
       }
     }
+  }
+
+  startAsServer(String name, [bool forTest = false]) {
+    addLocalPlayerSprite(name);
+    if (forTest) {
+      addLocalPlayerSprite(name);
+    }
+  }
+
+  void addSprite(Sprite sprite) {
+    spriteIndex.addSprite(sprite);
+  }
+
+  void removeSprite(int networkId) {
+    spriteIndex.removeSprite(networkId);
+  }
+
+  void replaceSprite(int id, Sprite sprite) {
+    spriteIndex.replaceSprite(id, sprite);
+  }
+
+  void clearScreen() {
+    spriteIndex.clear();
   }
 
   void drawFpsCounters() {

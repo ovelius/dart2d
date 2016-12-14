@@ -35,7 +35,7 @@ class WorldPhys {
     Map connected = isConnected(world.byteWorld, (x - radius).toInt(), (y - radius).toInt());
     print("IsConnected: ${connected}");
     if (connected != null) {
-      Destructoid d = new Destructoid(world.byteWorld, world.centerView,
+      Destructoid d = new Destructoid(world.byteWorld, null /*world.centerView*/,
           connected['x'], connected['y'],  connected['x2'], connected['y2']);
       world.byteWorld.clearAtRect(
           d.position.x.toInt(), d.position.y.toInt(), d.size.x.toInt(), d.size.y.toInt());
@@ -127,8 +127,8 @@ class WorldPhys {
     List<bool> exhaustedDirections = [false, false, false, false];
     
     nextPos(world, pos, exhaustedDirections);
-    upperLeft.checkUpperLeft(pos);
-    bottomRight.checkBottomRight(pos);
+    upperLeft.checkUpperLeft(pos.x, pos.y);
+    bottomRight.checkBottomRight(pos.x, pos.y);
 
     while ( !_endCondition(world, pos.x, pos.y)) {
       if (pos.x == bottomRight.x && pos.y == upperLeft.y) {
@@ -139,8 +139,8 @@ class WorldPhys {
         };
       }
       nextPos(world, pos, exhaustedDirections);
-      upperLeft.checkUpperLeft(pos);
-      bottomRight.checkBottomRight(pos);
+      upperLeft.checkUpperLeft(pos.x, pos.y);
+      bottomRight.checkBottomRight(pos.x, pos.y);
     }
     return null;
   }

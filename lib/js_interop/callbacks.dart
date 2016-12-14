@@ -29,7 +29,7 @@ class PeerWrapperCallbacks {
         new JsObject.jsify(['error', new JsFunction.withThis(wrapper.error)]));
   }
 
-  dynamic connectToPeer(var jsPeer, string id) {
+  dynamic connectToPeer(var jsPeer, String id) {
     var metaData = new JsObject.jsify({
       'label': 'dart2d',
       'reliable': 'false',
@@ -41,7 +41,7 @@ class PeerWrapperCallbacks {
 }
 
 class ConnectionCallbacks {
-  void registerPeerCallbacks(var connection, ConnectionWrapper wrapper) {
+  void registerPeerCallbacks(var connection, var wrapper) {
     connection.callMethod('on',
         new JsObject.jsify(
             ['data', new JsFunction.withThis(wrapper.receiveData)]));

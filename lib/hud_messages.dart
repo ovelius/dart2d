@@ -2,7 +2,7 @@ library hud;
 
 import 'dart:html';
 import 'dart:math';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -20,7 +20,7 @@ class _HudMessage {
 // TODO: Make injectable.
 class HudMessages {
   static const DEFAULT_DURATION = 4.0;
-  World world;
+  WormWorld world;
   List<_HudMessage> messages = [];
 
   HudMessages(this.world);
@@ -50,7 +50,7 @@ class HudMessages {
           continue;
         }
         Vec2 middle = sprite.centerPoint();
-        int x = WIDTH ~/ 3;
+        int x = world.width() ~/ 3;
         int y = 40 + i*40;
         context.fillText("${info.name} ${info.score} ${info.deaths}", x, y);
         // TODO: Check that sprite is alive.

@@ -268,7 +268,7 @@ void dataReceived() {
 }
 
 void parseBundle(WormWorld world,
-    ConnectionWrapper connection, Map<String, List<int>> bundle) {
+    ConnectionWrapper connection, Map<String, dynamic> bundle) {
   dataReceived();
   for (String networkId in bundle.keys) {
     if (!SPECIAL_KEYS.contains(networkId)) {
