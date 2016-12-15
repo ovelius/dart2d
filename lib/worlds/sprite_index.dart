@@ -2,9 +2,10 @@ library sprite_index;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/rope.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:di/di.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -21,12 +22,13 @@ class SpriteIndex {
   static const int ROPE_SPRITE = 2;
 
   static final Map<int, dynamic> _spriteConstructors = {
-    MOVING_SPRITE: (World world) => new MovingSprite(0.0, 0.0, 0),
-    REMOTE_PLAYER_CLIENT_SPRITE: (World world) => new RemotePlayerClientSprite(world),
-    ROPE_SPRITE: (World world) => new Rope.createEmpty(world),
+    MOVING_SPRITE: (WormWorld world) => new MovingSprite(
+        new Vec2(), 0, new Vec2(), world.imageIndex),
+    REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
+    ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
   };
     
-  static MovingSprite fromWorldByIndex(World world, int number) {
+  static MovingSprite fromWorldByIndex(WormWorld world, int number) {
     return _spriteConstructors[number](world);
   }
 

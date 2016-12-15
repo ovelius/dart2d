@@ -145,15 +145,15 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
-       : super.withVecPosition(convertSprite.position, convertSprite.imageIndex) {
+       : super(convertSprite.position, convertSprite.imageId) {
      this.size = convertSprite.size;
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
      this.gun = _createGun();
    }
   
-  LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
-      : super(x, y, imageIndex) {
+  LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
+      : super(new Vec2(x, y), imageId) {
     this.world = world;
     this.info = info;
     this.keyState = keyState;

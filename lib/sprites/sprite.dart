@@ -50,7 +50,7 @@ class Sprite {
   // Access via getRadius()
   double _radius;
   Vec2 size;
-  int imageIndex;
+  int imageId;
   double angle = 0.0;
   SpriteType spriteType = SpriteType.IMAGE;
   // Color
@@ -73,10 +73,13 @@ class Sprite {
   // Will be removed by the engine.
   bool remove = false;
 
+  ImageIndex _imageIndex;
+
   Sprite.empty() { }
 
-  Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
-    var image = images[imageIndex];
+  Sprite(this.position, imageId, [Vec2 size, ImageIndex imageIndex]) {
+    this._imageIndex = imageIndex;
+    var image = images[imageId];
     if (size == null) {
       size = new Vec2();
       size.x = (image.width).toDouble();
@@ -84,29 +87,15 @@ class Sprite {
     } else {
       this.size = size;
     }
-    setImage(imageIndex, size.x.toInt());
+    setImage(imageId, size.x.toInt());
       
     assert(size.x > 0);
     assert(size.y > 0);
   }
 
-  
-  Sprite(double x, double y, int imageIndex, [int width, int height]) {
-    this.position = new Vec2(x, y);
-    var image = images[imageIndex];
-    size = new Vec2();
-    size.x = (width == null ? image.width : width).toDouble();
-    size.y = (height == null ? image.height : height).toDouble();
-    setImage(imageIndex, size.x.toInt());
-    
-    assert(size.x > 0);
-    assert(size.y > 0);
-  }
-  
-  void setImage(int imageIndex, [int frameWidth]) {
-    assert(imageIndex < images.length);
-    this.imageIndex = imageIndex;
-    var image = images[imageIndex];
+  void setImage(int imageId, [int frameWidth]) {
+    this.imageId = imageId;
+    var image = _imageIndex.getImageById(imageId);
     if (frameWidth != null) {
       frames = image.width ~/ frameWidth;
       if (frames == 0) {
@@ -167,14 +156,14 @@ class Sprite {
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
-      var image = images[imageIndex];
+      var image = _imageIndex.getImageById(imageId);
       num frameWidth = (image.width / frames); 
       if (this.angle > PI * 2) {
         context.scale(-1, 1);
       }
       context.rotate(angle);
       context.drawImageScaledFromSource(
-          images[imageIndex],
+          image,
           frameWidth * frameIndex, 0,
           frameWidth, image.height,
           -size.x / 2,  -size.y / 2,
@@ -219,6 +208,11 @@ class Sprite {
   
   bool takesDamage() {
     return false;
+  }
+
+  // TODO: Make methods below abstract?
+  void takeDamage(int damage) {
+
   }
   
   void addExtraNetworkData(List<int> data) {

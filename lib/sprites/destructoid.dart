@@ -11,7 +11,7 @@ class Destructoid extends MovingSprite {
   CanvasElement canvas;
   Vec2 centerView;
   
-  Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) : super(1.0, 1.0, 0) {
+  Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) : super(new Vec2(), 0) {
     this.centerView = centerView;
     this.size = new Vec2((x2 - x).toDouble(), (y2 - y).toDouble());
     this.position = new Vec2(x.toDouble(), y.toDouble());

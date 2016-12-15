@@ -37,8 +37,13 @@ class ImageIndex {
   getImageByName(String name) {
     return images[imageByName[name]];
   }
-  getImageByIndex(int index) {
-    return images[index];
+
+  int getImageIdByName(String name) {
+    return imageByName[name];
+  }
+
+  getImageById(int id) {
+    return images[id];
   }
   bool finishedLoadingImages() {
     return loadedImages.length == imageSources.length;

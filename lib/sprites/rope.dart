@@ -17,12 +17,12 @@ class Rope extends MovingSprite {
   MovingSprite lockedOnOther = null;
 
   Rope.createEmpty(this.world)
-        : super(0.0, 0.0, imageByName["fire.png"]) {
+        : super(new Vec2(), imageByName["fire.png"]) {
     owner = null;
   }
   
   Rope.createWithOwner(this.world, this.owner, double angle, double velocity)
-       : super(0.0, 0.0, imageByName["fire.png"]) {
+       : super(new Vec2(), imageByName["fire.png"]) {
       this.owner = owner;
       Vec2 ownerCenter = owner.centerPoint();
       this.size = new Vec2(5.0, 5.0);

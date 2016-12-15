@@ -101,7 +101,7 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   data.add(velocityScaled.y.toInt());
 
   if (keyFrame || sprite.fullFramesOverNetwork > 0) {
-    data.add(sprite.imageIndex);
+    data.add(sprite.imageId);
     data.add(sprite.spriteType.value);
     
     data.add(sprite.size.x.toInt());

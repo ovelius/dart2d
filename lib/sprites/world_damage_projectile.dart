@@ -64,7 +64,7 @@ class WorldDamageProjectile extends MovingSprite {
   double explodeAfter = null;
   
   WorldDamageProjectile(double x, double y, int imageIndex, [int width, int height])
-      : super(x, y, imageIndex, width, height);
+      : super(new Vec2(x, y), imageIndex, new Vec2(width, height));
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     assert(owner != null);
@@ -128,7 +128,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)
-     : super(0.0, 0.0, imageByName["fire.png"]) {
+     : super(new Vec2(), world.imageIndex.getImageIdByName("fire.png")) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;

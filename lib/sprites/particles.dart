@@ -27,7 +27,7 @@ class Particles extends Sprite {
   
   Particles(Sprite follow, Vec2 position, Vec2 velocityBase,
       [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
-      super(0.0, 0.0, 0, 1, 1) {
+      super(new Vec2(), 0, new Vec2()) {
     this.follow = follow;
     this.position = position;
     this.velocityBase = velocityBase;
@@ -46,7 +46,7 @@ class Particles extends Sprite {
     this.particleLifeTime = lifeTime;
   }
   
-  Particles.fromNetworkUpdate(List<int> data, WormWorld world) : super(0.0, 0.0, 0, 1, 1) {
+  Particles.fromNetworkUpdate(List<int> data, WormWorld world) : super(new Vec2(), 0, new Vec2()) {
     this.position = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
     this.velocityBase = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
     this.radius = data[4] / DOUBLE_INT_CONVERSION;

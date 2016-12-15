@@ -99,7 +99,7 @@ class WorldSpriteMatcher extends Matcher {
   }
 
   bool matchesImageIndex(Sprite sprite) {
-    return _imageIndex != null ? sprite.imageIndex == _imageIndex : true;
+    return _imageIndex != null ? sprite.imageId == _imageIndex : true;
   }
 
   bool matches(item, Map matchState) {

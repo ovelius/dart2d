@@ -3,6 +3,8 @@ library movingsprite;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class MovingSprite extends Sprite {
@@ -26,12 +28,9 @@ class MovingSprite extends Sprite {
   int flags = 0;
 
   MovingSprite.empty(): super.empty() {}
-  
-  MovingSprite(double x, double y, int imageIndex, [int width, int height])
-      : super(x, y, imageIndex, width, height);
-  
-  MovingSprite.withVecPosition(Vec2 position, int imageIndex, [Vec2 size])
-       : super.withVec2(position, imageIndex, size);
+
+  MovingSprite(Vec2 position, int imageId, [Vec2 size, ImageIndex imageIndex])
+       : super(position, imageId, size, imageIndex);
 
   frame(double duration, int frames, [Vec2 gravity]) {
     assert(duration != null);

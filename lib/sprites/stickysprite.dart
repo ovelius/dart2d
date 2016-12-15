@@ -12,7 +12,7 @@ class StickySprite extends MovingSprite {
   Sprite stickTo;
 
   StickySprite(Sprite stickTo, int imageIndex, int lifeTime, int width, [int height]) :
-      super(stickTo.position.x, stickTo.position.y, imageIndex, width, height == null ? width : height) {
+      super(stickTo.position,imageIndex, new Vec2(width, height == null ? width : height)) {
     this.stickTo = stickTo;
     this.collision = false;
     this.lifeTime = lifeTime;

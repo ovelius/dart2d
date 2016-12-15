@@ -122,7 +122,7 @@ class GameState {
         RemotePlayerSprite oldSprite = world.spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
-        playerSprite.setImage(oldSprite.imageIndex, oldSprite.size.x.toInt());
+        playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, playerSprite);
         oldSprite.info = info;
         world.playerSprite = playerSprite;
@@ -135,7 +135,7 @@ class GameState {
             new RemotePlayerServerSprite.copyFromMovingSprite(
                 world, remoteKeyState, info, oldSprite);
         remotePlayerSprite.setImage(
-            oldSprite.imageIndex, oldSprite.size.x.toInt());
+            oldSprite.imageId, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, remotePlayerSprite);
       }
     }
