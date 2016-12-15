@@ -40,6 +40,25 @@ class ImageIndex {
   getImageByIndex(int index) {
     return images[index];
   }
+  bool finishedLoadingImages() {
+    return loadedImages.length == imageSources.length;
+  }
+  String imagesLoadedString() {
+    return "${loadedImages.length}/${imageSources.length}";
+  }
+
+  addImagesFromServer([String path = "./img/"]) {
+    loadImagesFromServer(path);
+  }
+
+  void addFromImageData(String name, String data) {
+    images[imageByName[name]].src = data;
+    loadedImages[name] = true;
+  }
+
+  void addImagesFromNetwork() {
+    loadImagesFromNetwork();
+  }
 }
 // Item 0 is always empty image.
 List<ImageElement> images = [_EMPTY_IMAGE()];
@@ -75,6 +94,7 @@ String getImageDataUrl(String name) {
   return data;
 }
 
+@deprecated
 void addFromImageData(String name, String data) {
   images[imageByName[name]].src = data;
   loadedImages[name] = true;

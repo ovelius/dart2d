@@ -26,6 +26,7 @@ import 'dart:math';
 class WormWorld extends World {
   Loader loader;
   SpriteIndex spriteIndex;
+  ImageIndex imageIndex;
   var _canvas = null;
   var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
@@ -46,6 +47,7 @@ class WormWorld extends World {
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);
     this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this);
+    this.imageIndex = imageIndex;
   }
   
   void collisionCheck(int networkId, duration) {
