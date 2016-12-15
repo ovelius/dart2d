@@ -159,7 +159,7 @@ class GameState {
         world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
   }
   int getNextUsableSpriteImage() {
-    return imageByName[USEABLE_SPRITES[playerInfo.length]];
+    return world.imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
   }
   
   String toString() {

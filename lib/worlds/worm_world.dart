@@ -282,7 +282,7 @@ class WormWorld extends World {
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {
-      addSprite(new Particles(null, location, velocity, radius));
+      addSprite(new Particles(this, null, location, velocity, radius));
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork);
     if (!fromNetwork) {
@@ -306,7 +306,7 @@ class WormWorld extends World {
 
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
-    addSprite(new Particles(null, sprite.position, velocity, radius * 1.5));
+    addSprite(new Particles(this, null, sprite.position, velocity, radius * 1.5));
     addVelocityFromExplosion(sprite.centerPoint(), damage, radius, !fromNetwork);
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};

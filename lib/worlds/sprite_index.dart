@@ -22,8 +22,8 @@ class SpriteIndex {
   static const int ROPE_SPRITE = 2;
 
   static final Map<int, dynamic> _spriteConstructors = {
-    MOVING_SPRITE: (WormWorld world) => new MovingSprite(
-        new Vec2(), 0, new Vec2(), world.imageIndex),
+    MOVING_SPRITE: (WormWorld world) => new MovingSprite.imageBasedSprite(
+        new Vec2(), 0, world.imageIndex),
     REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
     ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
   };

@@ -25,11 +25,10 @@ class Particles extends Sprite {
   // We got it from network.
   bool sendToNetwork = false;
   
-  Particles(Sprite follow, Vec2 position, Vec2 velocityBase,
+  Particles(WormWorld world, Sprite follow, Vec2 position, Vec2 velocityBase,
       [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
-      super(new Vec2(), 0, new Vec2()) {
+      super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
-    this.position = position;
     this.velocityBase = velocityBase;
     this.lifeTime = lifeTime;
     this.particleType = particleType;
@@ -46,7 +45,8 @@ class Particles extends Sprite {
     this.particleLifeTime = lifeTime;
   }
   
-  Particles.fromNetworkUpdate(List<int> data, WormWorld world) : super(new Vec2(), 0, new Vec2()) {
+  Particles.fromNetworkUpdate(List<int> data, WormWorld world)
+      : super(new Vec2(), new Vec2(1, 1),  SpriteType.CUSTOM) {
     this.position = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
     this.velocityBase = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
     this.radius = data[4] / DOUBLE_INT_CONVERSION;

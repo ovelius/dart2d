@@ -52,7 +52,7 @@ class Sprite {
   Vec2 size;
   int imageId;
   double angle = 0.0;
-  SpriteType spriteType = SpriteType.IMAGE;
+  SpriteType spriteType = SpriteType.RECT;
   // Color
   String color = "rgba(255, 255, 255, 1.0)";
   //True if sprite doesn't have to be drawn when outside of canvas.
@@ -77,18 +77,20 @@ class Sprite {
 
   Sprite.empty() { }
 
-  Sprite(this.position, imageId, [Vec2 size, ImageIndex imageIndex]) {
-    this._imageIndex = imageIndex;
+  Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
+    spriteType = SpriteType.IMAGE;
+    assert(imageIndex != null);
     var image = images[imageId];
-    if (size == null) {
-      size = new Vec2();
-      size.x = (image.width).toDouble();
-      size.y = (image.height).toDouble();
-    } else {
-      this.size = size;
-    }
+    assert(image != null);
+    size = new Vec2();
+    size.x = (image.width).toDouble();
+    size.y = (image.height).toDouble();
     setImage(imageId, size.x.toInt());
-      
+  }
+
+  Sprite(this.position, Vec2 size, SpriteType spriteType) {
+    this.spriteType = spriteType;
+    this.size = size;
     assert(size.x > 0);
     assert(size.y > 0);
   }
@@ -156,6 +158,7 @@ class Sprite {
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
+      assert(_imageIndex != null);
       var image = _imageIndex.getImageById(imageId);
       num frameWidth = (image.width / frames); 
       if (this.angle > PI * 2) {

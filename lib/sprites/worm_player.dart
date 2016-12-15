@@ -56,8 +56,8 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
       : super(world, keyState, info, x, y, imageIndex);
   
   RemotePlayerServerSprite.copyFromMovingSprite(
-      World world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
-      : super.copyFromMovingSprite(sprite) {
+      WormWorld world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
+      : super.copyFromMovingSprite(world, sprite) {
     this.world = world;
     this.info = info;
     this.keyState = keystate;
@@ -132,7 +132,7 @@ class LocalPlayerSprite extends MovingSprite {
   MovingSprite gun;
 
   factory LocalPlayerSprite.copyFromRemotePlayerSprite(RemotePlayerSprite convertSprite) {
-    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite);
+    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite.world, convertSprite);
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;
@@ -144,21 +144,21 @@ class LocalPlayerSprite extends MovingSprite {
     return sprite;
   }
   
-  LocalPlayerSprite.copyFromMovingSprite(MovingSprite convertSprite)
-       : super(convertSprite.position, convertSprite.imageId) {
+  LocalPlayerSprite.copyFromMovingSprite(WormWorld world, MovingSprite convertSprite)
+       : super.imageBasedSprite(convertSprite.position, convertSprite.imageId, world.imageIndex) {
      this.size = convertSprite.size;
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
-     this.gun = _createGun();
+     this.gun = _createGun(world.imageIndex);
    }
   
-  LocalPlayerSprite(World world, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
-      : super(new Vec2(x, y), imageId) {
+  LocalPlayerSprite(WormWorld world, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
+      : super.imageBasedSprite(new Vec2(x, y), imageId, world.imageIndex) {
     this.world = world;
     this.info = info;
     this.keyState = keyState;
     this.size = DEFAULT_PLAYER_SIZE;
-    this.gun = _createGun();
+    this.gun = _createGun(world.imageIndex);
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
@@ -168,8 +168,9 @@ class LocalPlayerSprite extends MovingSprite {
     });
   }
   
-  StickySprite _createGun() {
-    return new StickySprite(this, imageByName["gun.png"], Sprite.UNLIMITED_LIFETIME, 30, 7);
+  StickySprite _createGun(ImageIndex index) {
+    Sprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"), index, Sprite.UNLIMITED_LIFETIME);
+    sprite.size = new Vec2(30, 7);
   }
 
   collide(MovingSprite other, ByteWorld world, int direction) {

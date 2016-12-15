@@ -10,11 +10,11 @@ import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
-  BananaCake(double x, double y, int imageIndex, [int width, int height])
-       : super(x, y, imageIndex, width, height);
+//  BananaCake(double x, double y, int imageId, [int width, int height])
+   //    : super(x, y, imageId, width, height);
  
   BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
-       : super(0.0, 0.0, imageByName["cake.png"]) {
+       : super(0.0, 0.0, world.imageIndex.getImageIdByName("cake.png"), world.imageIndex) {
       this.world = world;
       this.owner = owner;
       this.damage = damage;
@@ -36,7 +36,7 @@ class BananaCake extends WorldDamageProjectile {
     Random r = new Random();
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 30);
-      sprite.setImage(imageByName["banana.png"]);
+      sprite.setImage(world.imageIndex.getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
       sprite.velocity.x += r.nextDouble() * PI * 4;
@@ -63,8 +63,8 @@ class WorldDamageProjectile extends MovingSprite {
 
   double explodeAfter = null;
   
-  WorldDamageProjectile(double x, double y, int imageIndex, [int width, int height])
-      : super(new Vec2(x, y), imageIndex, new Vec2(width, height));
+  WorldDamageProjectile(double x, double y, int imageId, ImageIndex imageIndex)
+      : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex);
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     assert(owner != null);
@@ -128,7 +128,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)
-     : super(new Vec2(), world.imageIndex.getImageIdByName("fire.png")) {
+     : super.imageBasedSprite(new Vec2(), world.imageIndex.getImageIdByName("fire.png"), world.imageIndex) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
@@ -137,7 +137,6 @@ class WorldDamageProjectile extends MovingSprite {
     double ownerSize = owner.size.sum() / 2;
     this.position.x = ownerCenter.x + cos(owner.angle) * ownerSize;
     this.position.y = ownerCenter.y + sin(owner.angle) * ownerSize;
-    this.spriteType = SpriteType.IMAGE;
     this.velocity.x = cos(owner.angle);
     this.angle = owner.angle;
     this.velocity.y = sin(owner.angle);

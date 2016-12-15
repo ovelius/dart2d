@@ -8,15 +8,16 @@ import 'package:di/di.dart';
 
 @Injectable()
 class ChunkHelper {
-  _DataCounter counter = new _DataCounter(3);
   static const int DEFAULT_CHUNK_SIZE = 512;
   static const int MAX_CHUNK_SIZE = 65000;
   static const Duration IMAGE_RETRY_DURATION = const Duration(milliseconds: 1000);
+  ImageIndex _imageIndex;
+  _DataCounter counter = new _DataCounter(3);
   int chunkSize;
   Map<String, DateTime> lastImageRequest = new Map();
   Map<String, String> imageBuffer = new Map();
   
-  ChunkHelper([this.chunkSize = DEFAULT_CHUNK_SIZE]);
+  ChunkHelper(this._imageIndex, [this.chunkSize = DEFAULT_CHUNK_SIZE]);
   
   /**
    * Send a reply with the requested image data.
@@ -24,7 +25,7 @@ class ChunkHelper {
   void replyWithImageData(Map dataMap, var connection) {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
     String name = imageDataRequest['name'];
-    String data = getImageDataUrl(name);
+    String data = _imageIndex.getImageDataUrl(name);
     int start = imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
     int end = imageDataRequest.containsKey("end") 
         ? imageDataRequest["end"]
@@ -61,7 +62,7 @@ class ChunkHelper {
 
     // Image complete.
     if (imageBuffer[name].length == size) {
-      addFromImageData(name, imageBuffer[name]); 
+      _imageIndex.addFromImageData(name, imageBuffer[name]);
       imageBuffer.remove(name);
       print("Image complete ${name} :)");
     }
@@ -69,9 +70,9 @@ class ChunkHelper {
   
   void requestNetworkData(List<ConnectionWrapper> connections) {
     int requestedImages = 0;
-    for (String name in imageByName.keys) {
+    for (String name in _imageIndex.allImagesByName().keys) {
       // Don't request more than 2 images at a time.
-      if (requestedImages > 2 && loadedImages[name] != true) {
+      if (requestedImages > 2 && !_imageIndex.imageIsLoaded(name)) {
         lastImageRequest[name] = new DateTime.now();
         continue;
       }
@@ -83,7 +84,7 @@ class ChunkHelper {
   
   bool maybeRequestImageLoad(String name, List<ConnectionWrapper> connections) {
     DateTime now = new DateTime.now();
-    if (loadedImages[name] != true) {
+    if (!_imageIndex.imageIsLoaded(name)) {
       DateTime lastRequest = lastImageRequest[name];
       if (lastRequest == null) {
         // Request larger chunk.

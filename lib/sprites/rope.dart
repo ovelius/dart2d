@@ -16,20 +16,18 @@ class Rope extends MovingSprite {
   MovingSprite owner;
   MovingSprite lockedOnOther = null;
 
-  Rope.createEmpty(this.world)
-        : super(new Vec2(), imageByName["fire.png"]) {
+  Rope.createEmpty(WormWorld world)
+        : super.empty() {
+    this.world = world;
     owner = null;
   }
   
-  Rope.createWithOwner(this.world, this.owner, double angle, double velocity)
-       : super(new Vec2(), imageByName["fire.png"]) {
+  Rope.createWithOwner(WormWorld world, this.owner, double angle, double velocity)
+       : super(new Vec2(), new Vec2(5.0, 5.0), SpriteType.RECT) {
       this.owner = owner;
       Vec2 ownerCenter = owner.centerPoint();
-      this.size = new Vec2(5.0, 5.0);
       this.position.x = ownerCenter.x - size.x / 2;
       this.position.y = ownerCenter.y - size.y / 2;
-      this.spriteType = SpriteType.RECT;
-      
       this.angle = owner.angle;
       this.velocity.x = cos(angle);
       this.velocity.y = sin(angle);

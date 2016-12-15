@@ -10,12 +10,10 @@ class Destructoid extends MovingSprite {
   double bounche = 0.1;
   CanvasElement canvas;
   Vec2 centerView;
-  
-  Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) : super(new Vec2(), 0) {
+
+  Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) :
+        super(new Vec2(x.toDouble(), y.toDouble()),  new Vec2((x2 - x).toDouble(), (y2 - y).toDouble()), SpriteType.CUSTOM) {
     this.centerView = centerView;
-    this.size = new Vec2((x2 - x).toDouble(), (y2 - y).toDouble());
-    this.position = new Vec2(x.toDouble(), y.toDouble());
-    this.spriteType = SpriteType.CUSTOM;
     canvas = new CanvasElement(width: size.x.toInt(), height: size.y.toInt());
     ImageData data = world.canvas.context2D.getImageData(x, y, x2 - x, y2 - y);
     canvas.context2D.putImageData(data, 0, 0);

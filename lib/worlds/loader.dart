@@ -38,22 +38,22 @@ class Loader {
       return "Waiting for WebRTC init";
     } else if (!_wormWorld.network.hasOpenConnection() && !_wormWorld.network.connectionsExhausted()) {
       return "Attempting to connect to a peer...";
-    } else if (!finishedLoadingImages()) {
+    } else if (!_imageIndex.finishedLoadingImages()) {
       if (_wormWorld.network.hasOpenConnection()) {
-        if (!imagesIndexed()) {
-          loadImagesFromNetwork();
+        if (!_imageIndex.imagesIndexed()) {
+          _imageIndex.loadImagesFromNetwork();
         }
         List<ConnectionWrapper> connections = _wormWorld.network.safeActiveConnections();
         assert(!connections.isEmpty);
         _wormWorld.peer.chunkHelper.requestNetworkData(connections);
         // load from client.
-        return "Loading images from other client(s) ${imagesLoadedString()} ${_wormWorld.peer.chunkHelper.getTransferSpeed()}";
+        return "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_wormWorld.peer.chunkHelper.getTransferSpeed()}";
       }
-      if (!imagesIndexed()) {
+      if (!_imageIndex.imagesIndexed()) {
         // Load everythng from the server.
-        loadImagesFromServer();
+        _imageIndex.loadImagesFromServer();
       }
-      return "Loading images from server ${imagesLoadedString()}";
+      return "Loading images from server ${_imageIndex.imagesLoadedString()}";
     }
     return "Unkown state";
   }
@@ -72,7 +72,7 @@ class Loader {
     drawCenteredText(describeStage());
     context_.save();
 
-    if (finishedLoadingImages()) {
+    if (_imageIndex.finishedLoadingImages()) {
       ConnectionWrapper serverConnection = _wormWorld.network.getServerConnection();
       if (serverConnection == null) {
         _wormWorld.startAsServer("Blergh", false); // true for two players.
