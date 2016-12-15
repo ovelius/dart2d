@@ -78,6 +78,7 @@ class Sprite {
   Sprite.empty() { }
 
   Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
+    this._imageIndex = imageIndex;
     spriteType = SpriteType.IMAGE;
     assert(imageIndex != null);
     var image = images[imageId];

@@ -171,6 +171,7 @@ class LocalPlayerSprite extends MovingSprite {
   StickySprite _createGun(ImageIndex index) {
     Sprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"), index, Sprite.UNLIMITED_LIFETIME);
     sprite.size = new Vec2(30, 7);
+    return sprite;
   }
 
   collide(MovingSprite other, ByteWorld world, int direction) {

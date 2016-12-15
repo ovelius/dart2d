@@ -362,6 +362,9 @@ class WormWorld extends World {
   }
 
   startAsServer(String name, [bool forTest = false]) {
+    if (this.imageIndex == null) {
+      throw new StateError("ImageIndex can not be null!");
+    }
     addLocalPlayerSprite(name);
     if (forTest) {
       addLocalPlayerSprite(name);
