@@ -39,14 +39,15 @@ class WormWorld extends World {
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
+    this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
+    // Order important here :(
     peer = new PeerWrapper(this, jsPeer);
     network = new Network(this, peer, true);
     this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this);
-    this.imageIndex = imageIndex;
   }
   
   void collisionCheck(int networkId, duration) {

@@ -1,6 +1,5 @@
 library loader;
 
-import 'dart:html';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
@@ -96,7 +95,7 @@ class Loader {
   
   void drawCenteredText(String text) {
     context_.font = "20px Arial";
-    TextMetrics metrics = context_.measureText(text);
+    var metrics = context_.measureText(text);
     context_.fillText(
         text, width / 2 - metrics.width / 2, height / 2);
   }

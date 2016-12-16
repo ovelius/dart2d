@@ -46,6 +46,7 @@ class ImageIndex {
     this._imageFactory = imageFactory;
     this._canvasFactory = canvasFactory;
     // Image 0 is always empty image.
+    _createEmptyImage();
     images.add(_EMPTY_IMAGE);
   }
 
@@ -72,10 +73,12 @@ class ImageIndex {
   }
 
   int getImageIdByName(String name) {
+    assert(imageByName[name] != null);
     return imageByName[name];
   }
 
   getImageById(int id) {
+    assert(images[id] != null);
     return images[id];
   }
   bool finishedLoadingImages() {
