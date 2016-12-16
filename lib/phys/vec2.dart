@@ -11,9 +11,9 @@ class Vec2 {
   double x;
   double y;
   
-  Vec2([x, y]) {
-    this.x = x == null ? 0.0 : x;
-    this.y = y == null ? 0.0 : y;
+  Vec2([num x, y]) {
+    this.x = x == null ? 0.0 : x.toDouble();
+    this.y = y == null ? 0.0 : y.toDouble();
   }
 
   Vec2.copy(Vec2 other) {
