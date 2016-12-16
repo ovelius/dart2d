@@ -17,8 +17,9 @@ class PeerWrapper {
   var peer;
   var id = null;
   Map connections = {};
+  var _error;
 
-  PeerWrapper(this._world, PeerMarker jsPeer) {
+  PeerWrapper(this._world, @PeerMarker() Object jsPeer) {
     this.peer = jsPeer;
     this.chunkHelper = new ChunkHelper(this._world.imageIndex);
     new PeerWrapperCallbacks().registerPeerCallbacks(jsPeer, this);
@@ -37,6 +38,7 @@ class PeerWrapper {
   }
 
   void error(unusedThis, e) {
+    _error = e;
     _world.hudMessages.display("Peer error: ${e}");
   }
 
@@ -125,4 +127,6 @@ class PeerWrapper {
       this.connections = connectionsCopy;
     }
   }
+
+  getLastError() => this._error;
 }

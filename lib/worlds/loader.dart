@@ -21,20 +21,25 @@ class Loader {
   
   bool completed_ = false;
   
-  Loader(@WorldCanvas() CanvasMarker canvasElement,
+  Loader(@WorldCanvas() Object canvasElement,
          @CanvasFactory() DynamicFactory canvasFactory,
          ImageIndex imageIndex,
          WormWorld wormWorld) {
    this._canvasFactory = canvasFactory;
-   context_ = canvasElement.context2D;
-   width = canvasElement.width;
-   height = canvasElement.height;
+   // Hack the typesystem.
+   var canvas = canvasElement;
+   context_ = canvas.context2D;
+   width = canvas.width;
+   height = canvas.height;
    this._wormWorld = wormWorld;
    this._imageIndex = imageIndex;
   }
   
   String describeStage() {
     if (_wormWorld.network.peer.id == null) {
+      if (_wormWorld.peer.getLastError() != null) {
+        return "${_wormWorld.peer.getLastError()}";
+      }
       return "Waiting for WebRTC init";
     } else if (!_wormWorld.network.hasOpenConnection() && !_wormWorld.network.connectionsExhausted()) {
       return "Attempting to connect to a peer...";

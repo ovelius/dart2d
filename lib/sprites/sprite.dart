@@ -81,7 +81,7 @@ class Sprite {
     this._imageIndex = imageIndex;
     spriteType = SpriteType.IMAGE;
     assert(imageIndex != null);
-    var image = images[imageId];
+    var image = imageIndex.getImageById(imageId);
     assert(image != null);
     size = new Vec2();
     size.x = (image.width).toDouble();

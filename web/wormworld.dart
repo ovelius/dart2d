@@ -40,9 +40,17 @@ void main() {
      ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
      ..bind(DynamicFactory, withAnnotation: const CanvasFactory(),  toValue:
          new DynamicFactory((args) => new CanvasElement(width:args[0], height:args[1])))
-     ..bind(CanvasMarker, withAnnotation: const WorldCanvas(),
+     ..bind(DynamicFactory, withAnnotation: const ImageFactory(),  toValue:
+         new DynamicFactory((args) {
+           if (args.length == 0) {
+             return new ImageElement();
+           } else {
+             return new ImageElement(width: args[0], height: args[1]);
+           }
+         }))
+     ..bind(Object, withAnnotation: const WorldCanvas(),
          toValue: canvasElement)
-     ..bind(PeerMarker,  toValue: peer)
+     ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..bind(WormWorld)
      ..bind(ChunkHelper)
      ..bind(ImageIndex)

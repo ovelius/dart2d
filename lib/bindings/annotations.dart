@@ -22,14 +22,9 @@ class ByteWorldCanvas {
   const ByteWorldCanvas();
 }
 
-class CanvasMarker {
-  int width;
-  int height;
-
-  var context2D;
+class PeerMarker {
+  const PeerMarker();
 }
-
-class PeerMarker { }
 
 class DynamicFactory {
   DynamicFactory(this._factory);

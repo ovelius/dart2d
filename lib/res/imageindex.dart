@@ -3,6 +3,7 @@ library imageindex;
 import 'dart:html';
 import 'dart:math';
 import 'dart:async';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 List<String> imageSources = [
@@ -25,19 +26,46 @@ List<String> imageSources = [
     "gun.png",
 ];
 
-
-var _EMPTY_IMAGE = () {
-  ImageElement img = new ImageElement(width:100, height:100);
-  img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
-  return img;
-};
+const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
 @Injectable()
 class ImageIndex {
+  var _EMPTY_IMAGE;
+  DynamicFactory _canvasFactory;
+  DynamicFactory _imageFactory;
   Map<String, String> dataUrlCache_ = new Map();
   // Map ImageName -> ImageId.
   Map imageByName = new Map<String, int>();
   Map loadedImages = new Map<String, bool>();
+  List images = new List();
+  // Item 0 is always empty image.
+  List<Future> imageFutures = [];
+
+  ImageIndex(@CanvasFactory() DynamicFactory canvasFactory,
+      @ImageFactory() DynamicFactory imageFactory) {
+    this._imageFactory = imageFactory;
+    this._canvasFactory = canvasFactory;
+    // Image 0 is always empty image.
+    images.add(_EMPTY_IMAGE);
+  }
+
+  void _createEmptyImage() {
+    _EMPTY_IMAGE = _imageFactory.create([100, 100]);
+    _EMPTY_IMAGE.src = _EMPTY_IMAGE_DATA_STRING;
+  }
+
+  /**
+   * Factory constructor to be used in testing.
+   */
+  ImageIndex.useEmptyImagesForTest(DynamicFactory imageFactory) {
+    this._imageFactory = imageFactory;
+    _createEmptyImage();
+    for (var img in imageSources) {
+      images.add(_EMPTY_IMAGE());
+      imageByName[img] = images.length - 1;
+      loadedImages[img] = true;
+    }
+  }
 
   getImageByName(String name) {
     return images[imageByName[name]];
@@ -120,18 +148,5 @@ class ImageIndex {
 
   bool imageIsLoaded(String name) {
     return loadedImages[name] == true;
-  }
-}
-// Item 0 is always empty image.
-List<ImageElement> images = [_EMPTY_IMAGE()];
-
-List<Future> imageFutures = [];
-
-useEmptyImagesForTest() {
-  for (var img in imageSources) {
-    images.add(_EMPTY_IMAGE());
-    // FIXME
-    //imageByName[img] = images.length - 1;
-    //loadedImages[img] = true;
   }
 }

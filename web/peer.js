@@ -138,13 +138,7 @@ Peer.prototype._retrieveId = function(cb) {
   http.open('get', url, true);
   http.onerror = function(e) {
     util.error('Error retrieving ID', e);
-    var pathError = '';
-    if (self.options.path === '/' && self.options.host !== util.CLOUD_HOST) {
-      pathError = ' If you passed in a `path` to your self-hosted PeerServer, '
-        + 'you\'ll also need to pass in that same path when creating a new'
-        + ' Peer.';
-    }
-    self._abort('server-error', 'Could not get an ID from the server.' + pathError);
+    self._abort('server-error', 'Could not get an ID from the server :(');
   }
   http.onreadystatechange = function() {
     if (http.readyState !== 4) {
