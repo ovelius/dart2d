@@ -12,6 +12,7 @@ import 'package:dart2d/net/chunk_helper.dart';
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
   WormWorld _world;
+  JsCallbacksWrapper _peerWrapperCallbacks;
   ChunkHelper chunkHelper;
   bool autoConnect = true;
   var peer;
@@ -19,10 +20,16 @@ class PeerWrapper {
   Map connections = {};
   var _error;
 
-  PeerWrapper(this._world, @PeerMarker() Object jsPeer) {
+  PeerWrapper(this._world, @PeerMarker() Object jsPeer,
+      JsCallbacksWrapper peerWrapperCallbacks) {
     this.peer = jsPeer;
     this.chunkHelper = new ChunkHelper(this._world.imageIndex);
-    new PeerWrapperCallbacks().registerPeerCallbacks(jsPeer, this);
+    this._peerWrapperCallbacks = peerWrapperCallbacks;
+    peerWrapperCallbacks
+      ..bindOnFunction(jsPeer, 'open', openPeer)
+      ..bindOnFunction(jsPeer, 'receiveActivePeers', receivePeers)
+      ..bindOnFunction(jsPeer, 'connection', connectPeer)
+      ..bindOnFunction(jsPeer, 'error', error);
   }
 
   /**
@@ -30,10 +37,10 @@ class PeerWrapper {
    */
   void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
     assert(id != null);
-    var connection = new PeerWrapperCallbacks().connectToPeer(peer, id);
+    var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, peerId, connection, connectionType);
+        _world, peerId, connection, connectionType, this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
@@ -84,10 +91,12 @@ class PeerWrapper {
     assert(peerId != null);
     _world.hudMessages.display("Got connection from ${peerId}");
     if (_world.network.isServer()) {
-      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT);
+      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT,
+          this._peerWrapperCallbacks);
     } else {
       // We are a client. This must be another client connecting to us.
-      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.CLIENT_TO_CLIENT);
+      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.CLIENT_TO_CLIENT,
+          this._peerWrapperCallbacks);
     }
   }
 

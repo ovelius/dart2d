@@ -6,6 +6,7 @@ import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
@@ -37,7 +38,7 @@ class WormWorld extends World {
   double explosionFlash = 0.0;
 
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
-      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex)
+      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex, JsCallbacksWrapper peerWrapperCallbacks)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
     this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
@@ -45,7 +46,7 @@ class WormWorld extends World {
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     // Order important here :(
-    peer = new PeerWrapper(this, jsPeer);
+    peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
     network = new Network(this, peer, true);
     this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this);
   }

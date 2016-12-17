@@ -68,7 +68,8 @@ class ConnectionWrapper {
   // When we time out.
   Duration _timeout;
 
-  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType, [_timeout = DEFAULT_TIMEOUT]) {
+  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType,
+      JsCallbacksWrapper peerWrapperCallbacks,[_timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
@@ -79,7 +80,11 @@ class ConnectionWrapper {
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
       lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     }
-    new ConnectionCallbacks().registerPeerCallbacks(connection, this);
+    peerWrapperCallbacks
+       ..bindOnFunction(connection, 'data', receiveData)
+       ..bindOnFunction(connection, 'close', close)
+       ..bindOnFunction(connection, 'close', close)
+       ..bindOnFunction(connection, 'error', error);
     // Start the connection timer.
     _connectionTimer = new Stopwatch();
     _connectionTimer.start();

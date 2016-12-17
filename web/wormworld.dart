@@ -3,6 +3,7 @@ library spaceworld;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/rtc.dart';
@@ -54,6 +55,7 @@ void main() {
      ..bind(WormWorld)
      ..bind(ChunkHelper)
      ..bind(ImageIndex)
+     ..bind(JsCallbacksWrapper, toImplementation:  JsCallbacksWrapperImpl)
      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
@@ -120,6 +122,24 @@ createLocalHostPeerJs() {
       'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
     }
   })]);
+}
+
+@Injectable()
+class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
+  void bindOnFunction(var jsObject, String methodName, dynamic callback) {
+    jsObject.callMethod(
+        'on',
+        new JsObject.jsify([methodName, new JsFunction.withThis(callback)]));
+  }
+  dynamic connectToPeer(var jsPeer, String id) {
+    var metaData = new JsObject.jsify({
+      'label': 'dart2d',
+      'reliable': 'false',
+      'metadata': {},
+      'serialization': 'none',
+    });
+    return jsPeer.callMethod('connect', [id, metaData]);
+  }
 }
 
 createPeerJs() {
