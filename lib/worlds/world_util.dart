@@ -1,5 +1,5 @@
-import 'dart:html' show KeyCode, CanvasRenderingContext2D;
 import 'package:dart2d/sprites/worm_player.dart';
+import 'package:dart2d/keystate.dart';
 
 Map<int, String> _KEY_TO_NAME = {
   KeyCode.LEFT: "Left",
@@ -18,7 +18,7 @@ String toKey(int code) {
 /**
  * Draws text to help the player with controls.
  */
-void drawControlHelper(CanvasRenderingContext2D context, num controlHelperTime,
+void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelperTime,
     LocalPlayerSprite playerSprite, int width, height) {
   if (controlHelperTime > 0) {
     context.setFillColorRgb(255, 255, 255);

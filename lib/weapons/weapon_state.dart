@@ -8,7 +8,6 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
-import 'dart:html';
 import 'package:dart2d/phys/vec2.dart';
 
 class WeaponState {
@@ -112,11 +111,11 @@ class WeaponState {
     weapons[selectedWeaponIndex].think(duration);
   }
   
-  draw(CanvasRenderingContext2D context) {
+  draw(var /*CanvasRenderingContext2D*/ context) {
     context.fillStyle = "#ffffff";
     Vec2 center = owner.centerPoint();
     if (changeTime > 0) {
-      TextMetrics metrics = 
+      var metrics =
         context.measureText(weapons[selectedWeaponIndex].name);
       context.fillText(weapons[selectedWeaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
     }

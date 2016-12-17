@@ -5,7 +5,6 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
-import 'dart:html';
 
 class Particles extends Sprite {
   static const COLORFUL = 1;
@@ -115,7 +114,7 @@ class Particles extends Sprite {
       p.radius-=shrinkPerStep;
     }
   }
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
     int dead = 0;
     Random r = new Random();
     context.globalCompositeOperation = "lighter";
@@ -140,10 +139,11 @@ class Particles extends Sprite {
     }
   }
   
-  setFillStyle(CanvasRenderingContext2D context, _Particle p) {
+  setFillStyle(var /*CanvasRenderingContext2D*/ context, _Particle p) {
     if (this.particleType == COLORFUL) {
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
-      CanvasGradient gradient = context.createRadialGradient(p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);                
+      var /*CanvasGradient*/ gradient = context.createRadialGradient(
+          p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);
       String color = "rgba(${p.r},${p.g},${p.b},${opacity})";
       String colorTransparent = "rgba(${p.r},${p.g},${p.b},0)";
       gradient.addColorStop(0, color);

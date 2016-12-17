@@ -20,7 +20,6 @@ import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
 import 'dart:math';
-import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 int WIDTH;

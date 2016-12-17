@@ -4,24 +4,23 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:html';
 
 class Destructoid extends MovingSprite {
   double bounche = 0.1;
-  CanvasElement canvas;
+  var canvas;
   Vec2 centerView;
 
   Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) :
         super(new Vec2(x.toDouble(), y.toDouble()),  new Vec2((x2 - x).toDouble(), (y2 - y).toDouble()), SpriteType.CUSTOM) {
     this.centerView = centerView;
-    canvas = new CanvasElement(width: size.x.toInt(), height: size.y.toInt());
-    ImageData data = world.canvas.context2D.getImageData(x, y, x2 - x, y2 - y);
-    canvas.context2D.putImageData(data, 0, 0);
+//    canvas = new CanvasElement(width: size.x.toInt(), height: size.y.toInt());
+  //  ImageData data = world.canvas.context2D.getImageData(x, y, x2 - x, y2 - y);
+    //canvas.context2D.putImageData(data, 0, 0);
     print("created data of ${position} ${size}");
   }
   
   @override
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     
    // context.translate(position.x + size.x / 2, position.y + size.y / 2);

@@ -1,6 +1,5 @@
 library imageindex;
 
-import 'dart:html';
 import 'dart:math';
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
@@ -113,8 +112,8 @@ class ImageIndex {
       return dataUrlCache_[name];
     }
     int index = imageByName[name];
-    ImageElement image = images[index];
-    CanvasElement canvas = new CanvasElement(width:image.width, height:image.height);
+    var image = images[index];
+    var canvas = _canvasFactory.create([image.width, image.height]);
     canvas.context2D.drawImage(image, 0, 0);
     String data = canvas.toDataUrl("image/png");
     dataUrlCache_[name] = data;
@@ -125,7 +124,7 @@ class ImageIndex {
     // TODO: What if partially loaded from client?
     // loadedImages[name] will be true then.
     for (var img in imageSources) {
-      ImageElement element = new ImageElement(src: path + img);
+      var element = this._imageFactory.create([path + img]);
       images.add(element);
       imageFutures.add(element.onLoad.first);
       element.onLoad.first.then((e) {
@@ -139,7 +138,7 @@ class ImageIndex {
 
   loadImagesFromNetwork() {
     for (var img in imageSources) {
-      ImageElement element = new ImageElement();
+      var element = this._imageFactory.create([]);
       images.add(element);
       imageByName[img] = images.length - 1;
     }
