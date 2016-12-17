@@ -43,3 +43,9 @@ class _FakeContext2D {
 class _FakeGradient {
   void addColorStop(num arg, var color) {}
 }
+
+class FakeImage {
+  String src;
+  int width;
+  int height;
+}

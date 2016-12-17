@@ -57,9 +57,7 @@ class ImageIndex {
   /**
    * Factory constructor to be used in testing.
    */
-  ImageIndex.useEmptyImagesForTest(DynamicFactory imageFactory) {
-    this._imageFactory = imageFactory;
-    _createEmptyImage();
+  useEmptyImagesForTest() {
     for (var img in imageSources) {
       images.add(_EMPTY_IMAGE());
       imageByName[img] = images.length - 1;

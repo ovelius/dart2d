@@ -7,7 +7,7 @@ import 'fake_canvas.dart';
 import 'matchers.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';
@@ -23,14 +23,13 @@ void main() {
     testConnections.clear();
     testPeers.clear();
     logConnectionData = true;
-    useEmptyImagesForTest();
     remapKeyNamesForTest();
   });
 
   group('World smoke tests', () {
     test('TestBasicSmokeConnection', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
       
       worldB.startAsServer("nameB");
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -80,8 +79,8 @@ void main() {
     });
 
     test('TestDroppedKeyFrame', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
       // First connection will drop on packet.
       droppedPacketsNextConnection.add(1);
       // Second connection will drop two.
@@ -120,11 +119,11 @@ void main() {
   
     test('TestThreeWorlds', () {
       print("Testing connecting with three players");
-      World worldA = testWorld("a"); 
+      WormWorld worldA = testWorld("a");
       worldA.startAsServer("nameA");
-  
-      World worldB = testWorld("b");
-      World worldC = testWorld("c");
+
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
   
       // b connects to a.
       worldB.connectTo("a", "nameB");
@@ -211,12 +210,12 @@ void main() {
       
       logConnectionData = false;
       print("Testing connecting with three players, server dies so a new server is elected");
-      World worldA = testWorld("a"); 
+      WormWorld worldA = testWorld("a");
       worldA.startAsServer("nameA");
-  
-      World worldB = testWorld("b");
-      World worldC = testWorld("c");
-      World worldD = testWorld("d");
+
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
+      WormWorld worldD = testWorld("d");
   
       worldB.connectTo("a", "nameB");         
       worldC.connectTo("a", "nameC");
@@ -300,8 +299,8 @@ void main() {
     });
 
     test('TestDroppedConnection', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
       worldB.startAsServer("nameB");
       worldA.connectTo("b", "nameA");
   
@@ -325,10 +324,10 @@ void main() {
     });
 
     test('TestThreePlayerOneJoinsLater', () {
-      World worldA = testWorld("a"); 
+      WormWorld worldA = testWorld("a");
       worldA.startAsServer("nameA");
-      World worldB = testWorld("b");
-      World worldC = testWorld("c");
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
       worldB.connectTo("a", "nameB");
       for (int i = 0; i < 20; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -359,9 +358,9 @@ void main() {
     
     test('TestReliableMessage', () {
         logConnectionData = true;
-        World worldA = testWorld("a"); 
+        WormWorld worldA = testWorld("a");
         worldA.startAsServer("nameA");
-        World worldB = testWorld("b");
+        WormWorld worldB = testWorld("b");
         worldB.connectTo("a", "nameB");
         
         testConnections['b'].forEach((e) { e.dropPackets = 1;});
@@ -385,13 +384,13 @@ void main() {
     
     test('TestMaxPlayers', () {
         logConnectionData = false;
-        World worldA = testWorld("a"); 
+        WormWorld worldA = testWorld("a");
         worldA.startAsServer("nameA");
-    
-        World worldB = testWorld("b");
-        World worldC = testWorld("c");
-        World worldD = testWorld("d");
-        World worldE = testWorld("e");
+
+        WormWorld worldB = testWorld("b");
+        WormWorld worldC = testWorld("c");
+        WormWorld worldD = testWorld("d");
+        WormWorld worldE = testWorld("e");
     
         worldB.connectTo("a", "nameB");         
         worldC.connectTo("a", "nameC");

@@ -5,13 +5,13 @@ import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:html';
 
-World testWorld(var id, {var canvasElement}) {
+WormWorld testWorld(var id, {var canvasElement}) {
   if (canvasElement == null) {
     canvasElement = new FakeCanvas();
   }
@@ -25,6 +25,15 @@ World testWorld(var id, {var canvasElement}) {
 }
 
 Map testPeers = {};
+
+class FakeJsCallbacksWrapper implements JsCallbacksWrapper {
+  void bindOnFunction(var jsObject, String methodName, dynamic callback) {
+    throw new ArgumentError("Not impl");
+  }
+  dynamic connectToPeer(var jsPeer, String id) {
+    throw new ArgumentError("Not impl");
+  }
+}
 
 class TestPeer extends PeerMarker {
   var id;
