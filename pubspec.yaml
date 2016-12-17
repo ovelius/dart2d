@@ -8,5 +8,6 @@ dependencies:
   logging: any
   test: any
   unittest: any
+  mockito: any
 transformers:
  - di
