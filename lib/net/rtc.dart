@@ -1,6 +1,5 @@
 library rtc;
 
-import 'dart:html';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'net.dart';
 import 'connection.dart';
@@ -51,12 +50,7 @@ class PeerWrapper {
 
   void openPeer(unusedThis, id) {
     this.id = id;
-    var item = querySelector("#peerId");
-    if (item != null) {
-      querySelector("#peerId").innerHtml = "Your id is: " + id;
-      var name = (querySelector("#nameInput") as InputElement).value;
-      log.info("Got id ${id}");
-    }
+    log.info("Got id ${id}");
   }
   
   /**
