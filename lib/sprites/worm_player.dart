@@ -15,7 +15,6 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/stickysprite.dart';
 import 'package:dart2d/sprites/rope.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:html';
 
 /**
  * Created on clients to represent other players.
@@ -227,7 +226,7 @@ class LocalPlayerSprite extends MovingSprite {
     _drawHealthBar(context);
   }
 
-  _drawHealthBar(CanvasRenderingContext2D context) {
+  _drawHealthBar(var context) {
     double healthFactor = health/MAX_HEALTH;
     context.resetTransform();
     var grad = context.createLinearGradient(0, 0, 3*WIDTH*healthFactor, 10);

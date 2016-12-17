@@ -1,10 +1,10 @@
 library hud;
 
-import 'dart:html';
 import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/gamestate.dart';
 
@@ -38,7 +38,7 @@ class HudMessages {
         world.localKeyState.keyIsDown(KeyCode.ALT);
   }
 
-  void showGameTable(CanvasRenderingContext2D context) {
+  void showGameTable(var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
       GameState gameState = world.network.gameState;
       context.setFillColorRgb(200, 0, 0);
@@ -65,7 +65,7 @@ class HudMessages {
     }    
   }
 
-  void render(CanvasRenderingContext2D context, double timeSpent) {
+  void render(var /*CanvasRenderingContext2D*/ context, double timeSpent) {
     context.font = '16pt Calibri';
     context.resetTransform();
     showGameTable(context);

@@ -9,11 +9,10 @@ Map<int, String> _KEY_TO_NAME = {
 };
 
 String toKey(int code) {
-  if (KeyCode.isCharacterKey(code)) {
-    return new String.fromCharCode(code);
-  } else {
+  if (_KEY_TO_NAME.containsKey(code)) {
     return _KEY_TO_NAME[code];
   }
+  return new String.fromCharCode(code);
 }
 
 /**

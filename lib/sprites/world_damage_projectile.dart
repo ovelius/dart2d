@@ -10,9 +10,6 @@ import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
-//  BananaCake(double x, double y, int imageId, [int width, int height])
-   //    : super(x, y, imageId, width, height);
- 
   BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
        : super(0.0, 0.0, world.imageIndex.getImageIdByName("cake.png"), world.imageIndex) {
       this.world = world;

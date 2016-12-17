@@ -1,6 +1,6 @@
 import 'package:dart2d/bindings/annotations.dart';
 
-class FakeCanvas extends CanvasMarker {
+class FakeCanvas {
 
   _FakeContext2D context2D;
   num height = 800;
