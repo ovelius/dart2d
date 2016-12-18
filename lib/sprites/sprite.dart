@@ -46,7 +46,7 @@ class NetworkType {
 class Sprite {
   static const int UNLIMITED_LIFETIME = -1;
   // Position, size, image and rendered angle.
-  Vec2 position;
+  Vec2 position = new Vec2();
   // Access via getRadius()
   double _radius;
   Vec2 size;
@@ -75,7 +75,7 @@ class Sprite {
 
   ImageIndex _imageIndex;
 
-  Sprite.empty() { }
+  Sprite.empty(ImageIndex imageIndex) { this._imageIndex = imageIndex; }
 
   Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
     this._imageIndex = imageIndex;

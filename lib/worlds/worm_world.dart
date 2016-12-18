@@ -212,6 +212,7 @@ class WormWorld extends World {
   MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
     Sprite sprite = spriteIndex[networkId];
     if (sprite == null) {
+      print("${this.playerName} - $networkId is missing from ${spriteIndex}");
       sprite = SpriteIndex.fromWorldByIndex(this, flags);
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;
@@ -362,13 +363,13 @@ class WormWorld extends World {
     }
   }
 
-  startAsServer(String name, [bool forTest = false]) {
+  startAsServer([String name, bool forTest = false]) {
     if (this.imageIndex == null) {
       throw new StateError("ImageIndex can not be null!");
     }
-    addLocalPlayerSprite(name);
+    addLocalPlayerSprite(this.playerName);
     if (forTest) {
-      addLocalPlayerSprite(name);
+      addLocalPlayerSprite(this.playerName);
     }
   }
 

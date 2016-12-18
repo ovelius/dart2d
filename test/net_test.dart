@@ -30,8 +30,7 @@ void main() {
     test('TestBasicSmokeConnection', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      
-      worldB.startAsServer("nameB");
+
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
   
@@ -110,7 +109,7 @@ void main() {
       // Game should get underway about one keyframe later.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      
+
       // Game has started.
       expect(worldA.spriteIndex.count(), equals(1));
       expect(worldB.spriteIndex.count(), equals(1));

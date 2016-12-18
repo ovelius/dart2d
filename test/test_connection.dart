@@ -59,7 +59,8 @@ class TestConnection {
       if (!otherEnd.eventHandlers.containsKey("data")) {
         throw new StateError("otherEnd $otherEnd doesn't have a 'data' has ${otherEnd.eventHandlers.keys}");
       }
-      otherEnd.eventHandlers["data"].apply(jsonObject);
+      print("trying to send ${jsonObject}");
+      otherEnd.eventHandlers["data"](this, jsonObject[0]);
     }
   }
 
@@ -84,7 +85,7 @@ class TestConnection {
     if (methodName == "open") {
       // Signal an open connection right away.
       // But only if the other side has a data handler registered.
-      jsFunction.apply([]); 
+      jsFunction(this);
     }
     return true;
   }

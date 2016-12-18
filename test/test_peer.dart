@@ -15,18 +15,10 @@ import 'package:di/di.dart';
 
 WormWorld testWorld(String id, {var canvasElement}) {
   Injector injector = createWorldInjector(id);
-  return injector.get(WormWorld);
-  /*
-  if (canvasElement == null) {
-    canvasElement = new FakeCanvas();
-  }
-  TestPeer peer = new TestPeer(id);
-  WormWorld w = new WormWorld(peer, canvasElement);
-  w.connectOnOpenConnection = true;
-  w.byteWorld = new ByteWorld(imageByName['world.png'], new Vec2(400 * 1.0,  600 * 1.0));
-  w.hudMessages = new TestHudMessage(w);
-  w.loader.completed_ = true;
-  return w; */
+  WormWorld world = injector.get(WormWorld);
+  world.playerName = "name${id.toUpperCase()}";
+  world.connectOnOpenConnection = true;
+  return world;
 }
 
 Map testPeers = {};

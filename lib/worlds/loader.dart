@@ -79,7 +79,7 @@ class Loader {
     if (_imageIndex.finishedLoadingImages()) {
       ConnectionWrapper serverConnection = _wormWorld.network.getServerConnection();
       if (serverConnection == null) {
-        _wormWorld.startAsServer("Blergh", false); // true for two players.
+        _wormWorld.startAsServer(); // true for two players.
       } else {
         // Connect to the actual game.
         serverConnection.connectToGame();

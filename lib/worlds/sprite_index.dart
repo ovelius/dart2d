@@ -73,11 +73,13 @@ class SpriteIndex {
         }
       }
       if (_sprites.containsKey(newSprite.networkId)) {
+        throw new StateError("Not overwriting ${newSprite.networkId} existing ${_sprites[newSprite.networkId]}");
         log.severe("Network controlled sprite ${newSprite}[${newSprite.networkId}]"
             + "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
         continue;
       }
       _sprites[newSprite.networkId] = newSprite;
+      print("added ${newSprite.networkId} as ${newSprite}");
       added.add(newSprite);
     }
     _replacePending();

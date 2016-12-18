@@ -27,7 +27,7 @@ class MovingSprite extends Sprite {
   // Set from network. See static FLAG_ fields above.
   int flags = 0;
 
-  MovingSprite.empty(): super.empty();
+  MovingSprite.empty(ImageIndex imageIndex): super.empty(imageIndex);
 
   MovingSprite(Vec2 position, Vec2 size, SpriteType spriteType)
       : super(position, size, spriteType);

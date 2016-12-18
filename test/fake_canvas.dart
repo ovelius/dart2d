@@ -31,7 +31,9 @@ class _FakeContext2D {
   void translate(num x, y) {}
   void rotate(num rad) {}
 
-  void fillText(var str, num one, [two, three]) {}
+  void fillText(var str, num one, [two, three]) {
+    print("${this.runtimeType}: fillText $str");
+  }
   void drawImageScaled(var image, num one, two, three, four) {}
   void drawImageScaledFromSource(var obj, num one, two, three, four, five, size, seven, eight) {}
 
