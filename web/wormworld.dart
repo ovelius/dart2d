@@ -15,8 +15,6 @@ import 'package:dart2d/net/rtc.dart';
 import 'dart:html';
 import 'dart:async';
 
-final int WIDTH = (querySelector("#canvas") as CanvasElement).width;
-final int HEIGHT = (querySelector("#canvas") as CanvasElement).height;
 const bool USE_LOCAL_HOST_PEER = true;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 
@@ -32,25 +30,26 @@ void main() {
     world.playerName = name;
   };
 
-  var canvasElement = (querySelector("#canvas") as CanvasElement);
+  CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
   var injector = new ModuleInjector([new Module()
-     ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
-     ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
+     ..bind(int, withAnnotation: const WorldWidth(), toValue: canvasElement.width)
+     ..bind(int, withAnnotation: const WorldHeight(), toValue: canvasElement.height)
      ..bind(DynamicFactory, withAnnotation: const CanvasFactory(),  toValue:
          new DynamicFactory((args) => new CanvasElement(width:args[0], height:args[1])))
      ..bind(DynamicFactory, withAnnotation: const ImageFactory(),  toValue:
          new DynamicFactory((args) {
            if (args.length == 0) {
              return new ImageElement();
+           } else if (args.length == 1) {
+             return new ImageElement(src: args[0]);
            } else {
              return new ImageElement(width: args[0], height: args[1]);
            }
          }))
-     ..bind(Object, withAnnotation: const WorldCanvas(),
-         toValue: canvasElement)
+     ..bind(Object, withAnnotation: const WorldCanvas(), toValue: canvasElement)
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..bind(WormWorld)
      ..bind(ChunkHelper)
@@ -111,19 +110,6 @@ void step() {
   new Timer(TIMEOUT - new Duration(milliseconds: frameTimeMillis), step);
 }
 
-createLocalHostPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'peerconfig', // TODO: Change this.
-    'host': 'localhost',
-    'port': 8089,
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-  })]);
-}
-
 @Injectable()
 class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
   void bindOnFunction(var jsObject, String methodName, dynamic callback) {
@@ -155,9 +141,11 @@ createPeerJs() {
   })]);
 }
 
-createPeerJsOrig() {
+createLocalHostPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'lwjd5qra8257b9', // TODO: Change this.
+    'key': 'peerconfig', // TODO: Change this.
+    'host': 'localhost',
+    'port': 8089,
     'debug': 7,
     'config': {
       // TODO: Use list of public ICE servers instead.

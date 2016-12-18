@@ -9,7 +9,7 @@ import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'test_peer.dart';
 
-Injector createWorldInject(String id) {
+Injector createWorldInjector(String id) {
   TestPeer peer = new TestPeer(id);
   ModuleInjector injector = new ModuleInjector([
     new Module()

@@ -31,13 +31,22 @@ class _FakeContext2D {
   void translate(num x, y) {}
   void rotate(num rad) {}
 
-  void fillText(var str, num one, two, three) {}
+  void fillText(var str, num one, [two, three]) {}
   void drawImageScaled(var image, num one, two, three, four) {}
   void drawImageScaledFromSource(var obj, num one, two, three, four, five, size, seven, eight) {}
+
+  dynamic measureText(String text) {
+    return new _FakeTextMetrics(text.length);
+  }
 
    _FakeGradient createLinearGradient(num one, two, three, four) {
     return new _FakeGradient();
   }
+}
+
+class _FakeTextMetrics {
+  int width;
+  _FakeTextMetrics(this.width);
 }
 
 class _FakeGradient {
@@ -46,6 +55,6 @@ class _FakeGradient {
 
 class FakeImage {
   String src;
-  int width;
-  int height;
+  int width = 100;
+  int height = 100;
 }
