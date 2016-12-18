@@ -31,7 +31,8 @@ void main() {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
 
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.startAsServer("nameB");
+      worldB.frameDraw();
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
   
       worldA.connectTo("b", "nameA");
@@ -80,7 +81,7 @@ void main() {
     test('TestDroppedKeyFrame', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      // First connection will drop on packet.
+      // First connection will drop one packet.
       droppedPacketsNextConnection.add(1);
       // Second connection will drop two.
       droppedPacketsNextConnection.add(2);
@@ -119,6 +120,7 @@ void main() {
     test('TestThreeWorlds', () {
       print("Testing connecting with three players");
       WormWorld worldA = testWorld("a");
+      worldA.frameDraw();
       worldA.startAsServer("nameA");
 
       WormWorld worldB = testWorld("b");
@@ -384,6 +386,7 @@ void main() {
     test('TestMaxPlayers', () {
         logConnectionData = false;
         WormWorld worldA = testWorld("a");
+
         worldA.startAsServer("nameA");
 
         WormWorld worldB = testWorld("b");

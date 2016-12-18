@@ -73,7 +73,6 @@ class SpriteIndex {
         }
       }
       if (_sprites.containsKey(newSprite.networkId)) {
-        throw new StateError("Not overwriting ${newSprite.networkId} existing ${_sprites[newSprite.networkId]}");
         log.severe("Network controlled sprite ${newSprite}[${newSprite.networkId}]"
             + "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
         continue;
@@ -159,4 +158,6 @@ class SpriteIndex {
   int count() => _sprites.length;
   operator [](index) => _sprites[index];
   operator []=(int i, Sprite value) => _sprites[i] = value;
+
+  toString() => "SpriteIndex ${_sprites}";
 }

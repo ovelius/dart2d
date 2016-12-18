@@ -28,6 +28,7 @@ class WormWorld extends World {
   Loader loader;
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
+  DynamicFactory _canvasFactory;
   var _canvas = null;
   var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
@@ -40,6 +41,7 @@ class WormWorld extends World {
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex, JsCallbacksWrapper peerWrapperCallbacks)
       : super(canvasElement.width, canvasElement.height, canvasElement) {
+    this._canvasFactory = canvasFactory;
     this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
     this._canvas = _canvasElement.context2D;
@@ -131,6 +133,7 @@ class WormWorld extends World {
         clearScreen();
         restart = false;
       }
+      assert(byteWorld != null);
       int frames = advanceFrames(duration);
    
       for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
@@ -363,14 +366,15 @@ class WormWorld extends World {
     }
   }
 
-  startAsServer([String name, bool forTest = false]) {
-    if (this.imageIndex == null) {
-      throw new StateError("ImageIndex can not be null!");
-    }
+  startAsServer([String name]) {
+    assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
-    if (forTest) {
-      addLocalPlayerSprite(this.playerName);
-    }
+  }
+
+  void initByteWorld([String map = 'world.png']) {
+    byteWorld = new ByteWorld(
+        imageIndex.getImageByName(map),
+        new Vec2(this.width() * 1.0,  this.height() * 1.0), _canvasFactory);
   }
 
   void addSprite(Sprite sprite) {

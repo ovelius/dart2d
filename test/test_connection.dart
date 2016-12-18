@@ -59,7 +59,6 @@ class TestConnection {
       if (!otherEnd.eventHandlers.containsKey("data")) {
         throw new StateError("otherEnd $otherEnd doesn't have a 'data' has ${otherEnd.eventHandlers.keys}");
       }
-      print("trying to send ${jsonObject}");
       otherEnd.eventHandlers["data"](this, jsonObject[0]);
     }
   }
@@ -76,7 +75,6 @@ class TestConnection {
       }
       return "OK";
     }
-    print("$this ${methodName} ${jsonObject}");
     return "Not supported";
   }
   

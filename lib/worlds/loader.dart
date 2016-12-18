@@ -84,6 +84,7 @@ class Loader {
         // Connect to the actual game.
         serverConnection.connectToGame();
       }
+      // Move elsewhere to allow choosing map...
       _wormWorld.byteWorld = new ByteWorld(
           _imageIndex.getImageByName('world.png'),
           new Vec2(width * 1.0,  height * 1.0), _canvasFactory);

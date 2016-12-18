@@ -117,9 +117,9 @@ class WorldSpriteMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      Sprite sprite = item.sprites[_networkId];
+      Sprite sprite = item.spriteIndex[_networkId];
       if (sprite == null) {
-        mismatchDescription.add("World sprites ${item.sprites} does not contain key ${_networkId}");
+        mismatchDescription.add("World sprites ${item.spriteIndex} does not contain key ${_networkId}");
       } else if (sprite.networkType != _networkType) {
         mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}");
       }
