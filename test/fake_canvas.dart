@@ -21,7 +21,7 @@ class _FakeContext2D {
   num globalAlpha = 1.0;
 
   void clearRect(num one, two, three, four) {}
-  void setFillColorRgb(num one, two, three) {}
+  void setFillColorRgb(num one, two, three, [four]) {}
   void fillRect(num one, two, three, four) {}
 
   void save() {}
@@ -35,6 +35,10 @@ class _FakeContext2D {
   void drawImageScaled(var image, num one, two, three, four) {}
   void drawImageScaledFromSource(var obj, num one, two, three, four, five, size, seven, eight) {}
 
+  _FakeData getImageData(num x, y, w, h) {
+    return new _FakeData(new List.filled((w*h).toInt() * 4 ,0));
+  }
+
   dynamic measureText(String text) {
     return new _FakeTextMetrics(text.length);
   }
@@ -47,6 +51,11 @@ class _FakeContext2D {
 class _FakeTextMetrics {
   int width;
   _FakeTextMetrics(this.width);
+}
+
+class _FakeData {
+  List<int> data;
+  _FakeData(this.data);
 }
 
 class _FakeGradient {
