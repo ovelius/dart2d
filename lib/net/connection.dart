@@ -83,7 +83,7 @@ class ConnectionWrapper {
     peerWrapperCallbacks
        ..bindOnFunction(connection, 'data', receiveData)
        ..bindOnFunction(connection, 'close', close)
-       ..bindOnFunction(connection, 'close', close)
+       ..bindOnFunction(connection, 'open', open)
        ..bindOnFunction(connection, 'error', error);
     // Start the connection timer.
     _connectionTimer = new Stopwatch();
