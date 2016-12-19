@@ -1,6 +1,7 @@
 packages
 web\img\packages
 packages
+.packages
 build/
 .pub/
 .project
