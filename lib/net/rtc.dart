@@ -1,46 +1,34 @@
 library rtc;
 
-import 'dart:js';
-import 'dart:html';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'net.dart';
 import 'connection.dart';
-import 'state_updates.dart';
+import 'package:di/di.dart';
+import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
+import 'package:dart2d/net/chunk_helper.dart';
 
-createLocalHostPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-      'key': 'peerconfig', // TODO: Change this.
-      'host': 'localhost',
-      'port': 8089,
-      'debug': 7,
-      'config': {
-        // TODO: Use list of public ICE servers instead.
-        'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-      }
-     })]);
-}
-
-createPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'lwjd5qra8257b9', // TODO: Change this.
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-   })]);
-}
-
+@Injectable() // TODO: Make Injectable.
 class PeerWrapper {
-  World world;
+  WormWorld _world;
+  JsCallbacksWrapper _peerWrapperCallbacks;
+  ChunkHelper chunkHelper;
+  bool autoConnect = true;
   var peer;
-  var id;
+  var id = null;
   Map connections = {};
+  var _error;
 
-  PeerWrapper(this.world, this.peer) {
-    peer.callMethod('on', new JsObject.jsify(['open', new JsFunction.withThis(this.openPeer)]));
-    peer.callMethod('on', new JsObject.jsify(['connection', new JsFunction.withThis(this.connectPeer)]));
-    peer.callMethod('on', new JsObject.jsify(['error', new JsFunction.withThis(this.error)]));
+  PeerWrapper(this._world, @PeerMarker() Object jsPeer,
+      JsCallbacksWrapper peerWrapperCallbacks) {
+    this.peer = jsPeer;
+    this.chunkHelper = new ChunkHelper(this._world.imageIndex);
+    this._peerWrapperCallbacks = peerWrapperCallbacks;
+    peerWrapperCallbacks
+      ..bindOnFunction(jsPeer, 'open', openPeer)
+      ..bindOnFunction(jsPeer, 'receiveActivePeers', receivePeers)
+      ..bindOnFunction(jsPeer, 'connection', connectPeer)
+      ..bindOnFunction(jsPeer, 'error', error);
   }
 
   /**
@@ -48,30 +36,37 @@ class PeerWrapper {
    */
   void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
     assert(id != null);
-    var metaData = new JsObject.jsify({
-      'label': 'dart2d',
-      'reliable': 'false',
-      'metadata': {},
-      'serialization': 'none',
-    });
-    var connection = peer.callMethod('connect', [id, metaData]);
+    var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
-    ConnectionWrapper connectionWrapper = new ConnectionWrapper(world, peerId, connection, connectionType);
+    ConnectionWrapper connectionWrapper = new ConnectionWrapper(
+        _world, peerId, connection, connectionType, this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
-  void error(e) {
-    world.hudMessages.display("Peer error: ${e}");
+  void error(unusedThis, e) {
+    _error = e;
+    _world.hudMessages.display("Peer error: ${e}");
   }
 
   void openPeer(unusedThis, id) {
     this.id = id;
-    var item = querySelector("#peerId");
-    if (item != null) {
-      querySelector("#peerId").innerHtml = "Your id is: " + id;
-      var name = (querySelector("#nameInput") as InputElement).value;
-      world.startAsServer(name, false); // true for two players. 
-    }
+    log.info("Got id ${id}");
+  }
+  
+  /**
+   * Receive list of peers from server. Automatically connect. 
+   */
+  void receivePeers(unusedThis, List<String> ids) {
+    ids.remove(this.id);
+    this._world.network.activeIds = ids;
+    ids.forEach((String id) {
+      if (autoConnect) {
+        log.info("Auto connecting to id ${id}");
+        this._world.restart = true;
+        this._world.connectTo(id, "Auto connect name");
+        return;
+      }
+    });
   }
 
   bool hasConnections() {
@@ -88,12 +83,14 @@ class PeerWrapper {
   void connectPeer(unusedThis, connection) {
     var peerId = connection['peer'];
     assert(peerId != null);
-    world.hudMessages.display("Got connection from ${peerId}");
-    if (world.network.isServer()) {
-      connections[peerId] = new ConnectionWrapper(world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT);
+    _world.hudMessages.display("Got connection from ${peerId}");
+    if (_world.network.isServer()) {
+      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT,
+          this._peerWrapperCallbacks);
     } else {
       // We are a client. This must be another client connecting to us.
-      connections[peerId] = new ConnectionWrapper(world, peerId, connection,  ConnectionType.CLIENT_TO_CLIENT);
+      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.CLIENT_TO_CLIENT,
+          this._peerWrapperCallbacks);
     }
   }
 
@@ -121,16 +118,18 @@ class PeerWrapper {
         connectionsCopy.remove(key);
         if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
           print("Removing Gamestate for $key");
-          world.network.gameState.removeByConnectionId(key);
+          _world.network.gameState.removeByConnectionId(key);
         // The crucial step of verifying we still have a server.
-        } else if (world.network.verifyOrTransferServerRole(connectionsCopy)) {
+        } else if (_world.network.verifyOrTransferServerRole(connectionsCopy)) {
           // We got eleceted the new server, first task is to remove the old.
           print("Removing Gamestate for $key");
-          world.network.gameState.removeByConnectionId(key);
-          world.network.gameState.convertToServer(this.id);
+          _world.network.gameState.removeByConnectionId(key);
+          _world.network.gameState.convertToServer(this.id);
         }
       }
       this.connections = connectionsCopy;
     }
   }
+
+  getLastError() => this._error;
 }

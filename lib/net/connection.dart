@@ -1,16 +1,15 @@
 library connection;
 
-import 'dart:js';
-import 'dart:html';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/playersprite.dart';
-import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:convert';
+import 'dart:core';
 
 class ConnectionType {
   final value;
@@ -42,9 +41,11 @@ class ConnectionType {
 class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
+  // How long until connection attempt times out.
+  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:5);
+
   ConnectionType connectionType;
-  World world;
-  PeerWrapper peerWrapper;
+  WormWorld world;
   var id;
   var connection;
   // True if connection was successfully opened.
@@ -62,30 +63,31 @@ class ConnectionWrapper {
   KeyState remoteKeyState = new KeyState(null);
   // Storage of our reliable key data.
   Map keyFrameData = {};
-  
-  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType) {
+  // Keep track of how long connection has been open.
+  Stopwatch _connectionTimer;
+  // When we time out.
+  Duration _timeout;
+
+  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType,
+      JsCallbacksWrapper peerWrapperCallbacks,[_timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
-    if ( connectionType == ConnectionType.CLIENT_TO_CLIENT) {
+    if (connectionType == ConnectionType.CLIENT_TO_CLIENT) {
       this.handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
       lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     }
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['data', new JsFunction.withThis(this.receiveData)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['close', new JsFunction.withThis(this.close)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['open', new JsFunction.withThis(this.open)]));
-    connection.callMethod('on',
-        new JsObject.jsify(
-            ['error', new JsFunction.withThis(this.error)]));
+    peerWrapperCallbacks
+       ..bindOnFunction(connection, 'data', receiveData)
+       ..bindOnFunction(connection, 'close', close)
+       ..bindOnFunction(connection, 'open', open)
+       ..bindOnFunction(connection, 'error', error);
+    // Start the connection timer.
+    _connectionTimer = new Stopwatch();
+    _connectionTimer.start();
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -97,9 +99,10 @@ class ConnectionWrapper {
   }
   
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
-    lastLocalPeerKeyFrameVerified = dataMap[KEY_FRAME_KEY];
-    if (lastLocalPeerKeyFrameVerified >= world.network.currentKeyFrame) {
+    int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
+    if (receivedKeyFrameAck > lastLocalPeerKeyFrameVerified) {
       // Cool we just got some reliable data verified :)
+      lastLocalPeerKeyFrameVerified = receivedKeyFrameAck;
       keyFrameData = {};
     }
   }
@@ -137,7 +140,7 @@ class ConnectionWrapper {
       sprite.ownerId = id;
       world.addSprite(sprite);
 
-      world.hudMessages.displayAndSendToNetwork("${name} connected.");
+      world.displayHudMessageAndSendToNetwork("${name} connected.");
       Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
       sendData({
         SERVER_PLAYER_REPLY: serverData,
@@ -148,7 +151,9 @@ class ConnectionWrapper {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
       world.hudMessages.display("Got server challenge from ${id}");
       assert(!world.network.isServer());
-      world.createLocalClient(dataMap[SERVER_PLAYER_REPLY]);
+      Map receivedServerData = dataMap[SERVER_PLAYER_REPLY];
+      world.createLocalClient(receivedServerData["spriteId"],
+          receivedServerData["spriteIndex"]);
     }
     if (dataMap.containsKey(SERVER_PLAYER_REJECT)) {
       world.hudMessages.display("Game is full :/");
@@ -162,6 +167,11 @@ class ConnectionWrapper {
   }
 
   void close(unusedThis) {
+    world.hudMessages.display("Connection to ${id} closed :(");
+    // Connection was never open, blacklist the id.
+    if (!opened) {
+      world.network.blackListedIds.add(this.id);
+    }
     opened = false;
     closed = true;
   }
@@ -171,6 +181,13 @@ class ConnectionWrapper {
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+    opened = true;
+    if (world.connectOnOpenConnection) {
+      connectToGame();
+    }
+  }
+  
+  void connectToGame() {
     if (connectionType == ConnectionType.CLIENT_TO_SERVER) {
       // Send out local data hello. We don't do this as part of the intial handshake but over
       // the actual connection.
@@ -181,12 +198,15 @@ class ConnectionWrapper {
       };
       sendData(playerData);
     }
-    opened = true;
   }
   
   void error(unusedThis, error) {
     print("error ${error}");
     world.hudMessages.display("Connection: ${error}");
+    // Connection was never open, blacklist the id.
+    if (!opened) {
+      world.network.blackListedIds.add(this.id);
+    }
     opened = false;
     closed = true;
   }
@@ -195,6 +215,18 @@ class ConnectionWrapper {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     verifyLastKeyFrameHasBeenReceived(dataMap);
+    
+    // Allow sending and parsing imageData regardless of state.
+    if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
+      world.peer.chunkHelper.replyWithImageData(dataMap, this);
+    }
+    if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
+      world.peer.chunkHelper.parseImageChunkResponse(dataMap);
+      // Request new data right away.
+      world.peer.chunkHelper.requestNetworkData(
+          new List.filled(1, this));
+    }
+    
     if (!handshakeReceived) {
       // Try to handle the intial connection handshake.
       checkForHandshakeData(dataMap);
@@ -213,8 +245,8 @@ class ConnectionWrapper {
     }
     parseBundle(world, this, dataMap);
   }
-
-  void mergeWithStoredData(var data) {
+ 
+  void alsoSendWithStoredData(var data) {
     for (String key in RELIABLE_KEYS.keys) {
       // Use the merge function specified to merge any previosly stored data
       // with the data being sent in this frame.
@@ -226,20 +258,34 @@ class ConnectionWrapper {
     }
   }
   
-  void sendData(data) {
+  void storeAwayReliableData(var data) {
+    RELIABLE_KEYS.keys.forEach((String reliableKey) {
+      if (data.containsKey(reliableKey)) {
+        var mergedData = RELIABLE_KEYS[reliableKey](data[reliableKey], keyFrameData[reliableKey]);
+        if (mergedData != null) {
+          keyFrameData[reliableKey] = mergedData;
+        }
+      }
+    }); 
+  }
+  
+  void sendData(Map data) {
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
       if (keyFramesBehind(data[IS_KEY_FRAME_KEY]) > ALLOWED_KEYFRAMES_BEHIND) {
-        opened = false;
-        closed = true;
         print("${world}: Connection to $id too many keyframes behind current: ${data[IS_KEY_FRAME_KEY]} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+        close(null);
         return;
       }
       // Make a defensive copy in case of keyframe.
+      // Then add previous data to it.
       data = new Map.from(data);
-      mergeWithStoredData(data);
+      alsoSendWithStoredData(data);
+    } else {
+      // Store away any reliable data sent.
+      storeAwayReliableData(data);
     }
     var jsonData = JSON.encode(data);
     connection.callMethod('send', [jsonData]);
@@ -251,6 +297,23 @@ class ConnectionWrapper {
 
   int keyFramesBehind(int expectedKeyFrame) {
     return expectedKeyFrame - lastLocalPeerKeyFrameVerified;
+  }
+  
+  Duration sinceCreated() {
+    return new Duration(milliseconds:_connectionTimer.elapsedMilliseconds);
+  }
+
+  bool timedOut() {
+    return sinceCreated().compareTo(_timeout) > 0;
+  }
+
+  /**
+   * Checks if the connection has timed out and closes it if that is the case.
+   */
+  void checkForTimeout() {
+    if (timedOut()) {
+      close(null);
+    }
   }
   
   toString() => "${connectionType} to ${id}";

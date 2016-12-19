@@ -1,12 +1,16 @@
 library matchers;
 
-import 'package:unittest/unittest.dart';
+import 'package:matcher/matcher.dart';
 import 'dart:convert';
 import 'dart:mirrors';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/sprite.dart';
+
+playerId(int count) {
+  return GameState.ID_OFFSET_FOR_NEW_CLIENT + count * GameState.ID_OFFSET_FOR_NEW_CLIENT;
+}
 
 WorldSpriteMatcher hasSpriteWithNetworkId(int id) {
   return new WorldSpriteMatcher(id);
@@ -95,12 +99,12 @@ class WorldSpriteMatcher extends Matcher {
   }
 
   bool matchesImageIndex(Sprite sprite) {
-    return _imageIndex != null ? sprite.imageIndex == _imageIndex : true;
+    return _imageIndex != null ? sprite.imageId == _imageIndex : true;
   }
 
   bool matches(item, Map matchState) {
     if (item is World) {
-      Sprite sprite = item.sprites[_networkId];
+      Sprite sprite = item.spriteIndex[_networkId];
       if (sprite != null) {
         if (sprite.networkId == _networkId) {
           return matchesNetworkType(sprite) && matchesImageIndex(sprite);
@@ -113,9 +117,9 @@ class WorldSpriteMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      Sprite sprite = item.sprites[_networkId];
+      Sprite sprite = item.spriteIndex[_networkId];
       if (sprite == null) {
-        mismatchDescription.add("World sprites ${item.sprites} does not contain key ${_networkId}");
+        mismatchDescription.add("World sprites ${item.spriteIndex} does not contain key ${_networkId}");
       } else if (sprite.networkType != _networkType) {
         mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}");
       }
@@ -127,6 +131,8 @@ class WorldSpriteMatcher extends Matcher {
   Description describe(Description description) {
     return description.add("World does not contain sprite with networkId ${_networkId}");    
   }
+  
+  toString() => "SpriteMatcher for networkId ${_networkId}";
 }
 
 class WorldSpriteStateMatcher extends Matcher {
@@ -141,7 +147,7 @@ class WorldSpriteStateMatcher extends Matcher {
           spriteMatchers.removeAt(i);
         }
       }
-      return spriteMatchers.isEmpty && _spriteMatchers.length == item.sprites.length;
+      return spriteMatchers.isEmpty && _spriteMatchers.length == item.spriteIndex.count();
     }
     return false;
   }
@@ -149,7 +155,7 @@ class WorldSpriteStateMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.sprites}");
+      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.spriteIndex}");
     } else {
       mismatchDescription.add("Matched item must be World");
     }
@@ -202,12 +208,18 @@ class TypeMatcher extends Matcher {
 }
 
 class MapKeyMatcher extends Matcher {
+  MapKeyMatcher.doesNotContain(this._key) {
+    this._value = null;
+    this._invert = true;
+  }
   MapKeyMatcher.containsKey(this._key) {
     this._value = null;
   }
   MapKeyMatcher.containsKeyWithValue(this._key, this._value);
   final String _key;
   var _value;
+  bool _invert = false;
+  
   bool matches(item, Map matchState) {
     Map data = null;
     if (item is String) {
@@ -215,7 +227,13 @@ class MapKeyMatcher extends Matcher {
     } else if (item is Map) {
       data = item;
     }
+
     bool containsKey = data != null && data.containsKey(_key);
+    
+    if (_invert) {
+      return !containsKey;
+    }
+    
     if (containsKey) {
       // If _value is null always match.
       return _value == null ? true : data[_key] == _value;
@@ -223,13 +241,19 @@ class MapKeyMatcher extends Matcher {
     return false;
   }
   Description describe(Description description) {
+    if (_invert) {
+      description.add("Map/Json that DOES NOT contain key ${_key}");
+      return description;
+    }
     if (_value == null) {
       description.add("Map/Json string not containing key ${_key}");
     } else {
-      description.add("Map/Json string not containing key ${_key} with value ${_value}");
+      description.add(
+          "Map/Json string not containing key ${_key} with value ${_value}");
     }
     return description;
   }
+  toString() => "MapKeyMatcher for key '$_key' and value '$_value'";
 }
 
 class WorldConnectionMatcher extends Matcher {

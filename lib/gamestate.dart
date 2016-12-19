@@ -1,11 +1,11 @@
 library gamestate;
 
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/sprites/playersprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 final Logger log = new Logger('GameState');
@@ -16,6 +16,7 @@ class PlayerInfo {
   int spriteId;
   int score = 0;
   int deaths = 0;
+  bool inGame = true;
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
   PlayerInfo.fromMap(Map map) {
@@ -24,6 +25,7 @@ class PlayerInfo {
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
+    inGame = map.containsKey("g");
   }
 
   Map toMap() {
@@ -33,31 +35,42 @@ class PlayerInfo {
     map["cid"] = connectionId;
     map["s"] = score;
     map["d"] = deaths;
+    if (inGame) {
+      map["g"] = inGame;
+    }
     return map;
   }
 
-  String toString() => "${spriteId} ${name}";  
+  String toString() => "${spriteId} ${name} ${inGame}";  
 }
 
 class GameState {
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
-      ["shipg01.png", "shipr01.png", "shipb01.png",  "shipy01.png"];
+      ["duck.png", "dragon.png", "duck.png",  "dragon.png"];
 
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
   int level = 0;
+  // True if we have urgent data for the network.
+  bool urgentData = false;
+  
+  bool retrieveAndResetUrgentData() {
+    bool tUrgentData = urgentData;
+    urgentData = false;
+    return tUrgentData;
+  }
   
   bool isAtMaxPlayers() {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
 
-  World world;
+  WormWorld world;
   GameState(this.world) {
     startedAt = new DateTime.now();
   }
 
-  GameState.fromMap(World world, Map map) {
+  GameState.fromMap(WormWorld world, Map map) {
     this.world = world;
     List<Map> players = map["p"];
     for (Map playerMap in players) {
@@ -88,7 +101,7 @@ class GameState {
         world.network.sendMessage("${info.name} disconnected :/");
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
-        Sprite sprite = world.sprites[info.spriteId];
+        Sprite sprite = world.spriteIndex[info.spriteId];
         if (sprite != null) {
           // The game engine will not remove things if the REMOTE NetworkType.
           // So make the old servers sprite REMOTE_FORWARD.
@@ -106,19 +119,23 @@ class GameState {
   convertToServer(var selfConnectionId) {
     for (PlayerInfo info in playerInfo) {
       if (info.connectionId == selfConnectionId) {
-        RemotePlayerSprite oldSprite = world.sprites[info.spriteId];
+        RemotePlayerSprite oldSprite = world.spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
-        playerSprite.setImage(oldSprite.imageIndex);
+        playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, playerSprite);
         oldSprite.info = info;
+        world.playerSprite = playerSprite;
       } else {
-        MovingSprite oldSprite = world.sprites[info.spriteId];
+        MovingSprite oldSprite = world.spriteIndex[info.spriteId];
         // TODO: Handle case of connection being gone here.
-        KeyState remoteKeyState = world.peer.connections[info.connectionId].remoteKeyState;
-        RemotePlayerServerSprite remotePlayerSprite = new RemotePlayerServerSprite.copyFromMovingSprite(
-            world, remoteKeyState, info, oldSprite);
-        remotePlayerSprite.setImage(oldSprite.imageIndex);
+        KeyState remoteKeyState =
+            world.peer.connections[info.connectionId].remoteKeyState;
+        RemotePlayerServerSprite remotePlayerSprite = 
+            new RemotePlayerServerSprite.copyFromMovingSprite(
+                world, remoteKeyState, info, oldSprite);
+        remotePlayerSprite.setImage(
+            oldSprite.imageId, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, remotePlayerSprite);
       }
     }
@@ -138,10 +155,11 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
   int getNextUsablePlayerSpriteId() {
-    return world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+    return ID_OFFSET_FOR_NEW_CLIENT + 
+        world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
   }
   int getNextUsableSpriteImage() {
-    return imageByName[USEABLE_SPRITES[playerInfo.length]];
+    return world.imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
   }
   
   String toString() {

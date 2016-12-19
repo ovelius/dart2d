@@ -3,7 +3,6 @@ library sprite;
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
-import 'dart:html';
 
 
 class SpriteType {
@@ -14,6 +13,7 @@ class SpriteType {
   static const IMAGE = const SpriteType._internal(0);
   static const RECT = const SpriteType._internal(1);
   static const CIRCLE = const SpriteType._internal(2);
+  static const CUSTOM = const SpriteType._internal(3);
   
   SpriteType.fromInt(this.value);
   operator ==(SpriteType other) {
@@ -46,16 +46,18 @@ class NetworkType {
 class Sprite {
   static const int UNLIMITED_LIFETIME = -1;
   // Position, size, image and rendered angle.
-  Vec2 position;
+  Vec2 position = new Vec2();
   // Access via getRadius()
   double _radius;
   Vec2 size;
-  int imageIndex;
+  int imageId;
   double angle = 0.0;
-  SpriteType spriteType = SpriteType.IMAGE;
+  SpriteType spriteType = SpriteType.RECT;
   // Color
-  int color = 0xffffff;
-  double alpha = 1.0;
+  String color = "rgba(255, 255, 255, 1.0)";
+  //True if sprite doesn't have to be drawn when outside of canvas.
+  //Default is true.
+  bool invisibleOutsideCanvas = true;
   // Animation data computed in constructor.
   int frameIndex = 0;
   int frames = 1;
@@ -70,35 +72,33 @@ class Sprite {
   int fullFramesOverNetwork = 3;
   // Will be removed by the engine.
   bool remove = false;
-  
-  Sprite.withVec2(this.position, imageIndex, [Vec2 size, double angle]) {
-    var image = images[imageIndex];
-    if (size == null) {
-      size = new Vec2();
-      size.x = (image.width).toDouble();
-      size.y = (image.height).toDouble();
-    }
-    setImage(imageIndex, size.x.toInt());
-      
+
+  ImageIndex _imageIndex;
+
+  Sprite.empty(ImageIndex imageIndex) { this._imageIndex = imageIndex; }
+
+  Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
+    this._imageIndex = imageIndex;
+    spriteType = SpriteType.IMAGE;
+    assert(imageIndex != null);
+    var image = imageIndex.getImageById(imageId);
+    assert(image != null);
+    size = new Vec2();
+    size.x = (image.width).toDouble();
+    size.y = (image.height).toDouble();
+    setImage(imageId, size.x.toInt());
+  }
+
+  Sprite(this.position, Vec2 size, SpriteType spriteType) {
+    this.spriteType = spriteType;
+    this.size = size;
     assert(size.x > 0);
     assert(size.y > 0);
   }
 
-  Sprite(double x, double y, int imageIndex, [int width, int height]) {
-    this.position = new Vec2(x, y);
-    var image = images[imageIndex];
-    size = new Vec2();
-    size.x = (width == null ? image.width : width).toDouble();
-    size.y = (height == null ? image.height : height).toDouble();
-    setImage(imageIndex, size.x.toInt());
-    
-    assert(size.x > 0);
-    assert(size.y > 0);
-  }
-  
-  void setImage(int imageIndex, [int frameWidth]) {
-    this.imageIndex = imageIndex;
-    var image = images[imageIndex];
+  void setImage(int imageId, [int frameWidth]) {
+    this.imageId = imageId;
+    var image = _imageIndex.getImageById(imageId);
     if (frameWidth != null) {
       frames = image.width ~/ frameWidth;
       if (frames == 0) {
@@ -132,7 +132,7 @@ class Sprite {
         position.y + size.y / 2);
   }
 
-  frame(double duration, int frameStep) {
+  frame(double duration, int frameStep, [Vec2 gravity]) {
     if (frameStep > 0) {
       frameIndex += frameStep;
       frameIndex = frameIndex % frames;
@@ -145,21 +145,29 @@ class Sprite {
     }
   }
 
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
+    context.translate(position.x + size.x / 2, position.y + size.y / 2);
+    if (debug) {
+      context.fillStyle = "#ffffff";
+      context.beginPath();
+      context.arc(0, 0, getRadius(), 0, 2 * PI, false);
+      context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
+      context.lineWidth = 1;
+      context.strokeStyle = '#ffffff';
+      context.stroke();
+    }
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
-      Vec2 center = centerPoint();
-      context.translate(center.x, center.y);
-      if (debug) {
-        context.setFillColorRgb(255, 255, 255);
-        context.fillRect(-3,  -3, 6, 6);
-      }
-      var image = images[imageIndex];
+      assert(_imageIndex != null);
+      var image = _imageIndex.getImageById(imageId);
       num frameWidth = (image.width / frames); 
+      if (this.angle > PI * 2) {
+        context.scale(-1, 1);
+      }
       context.rotate(angle);
       context.drawImageScaledFromSource(
-          images[imageIndex],
+          image,
           frameWidth * frameIndex, 0,
           frameWidth, image.height,
           -size.x / 2,  -size.y / 2,
@@ -169,22 +177,22 @@ class Sprite {
     } else {
       print("Warning: Can't handle sprite type $spriteType");
     }
+
   }
   
-  setColor(CanvasRenderingContext2D context) {
-    context.setFillColorRgb(
-        color & 0xff,
-        (color & 0x00ff) << 8,
-        (color & 0x0000ff) << 16,
-        alpha);
+  setColor(var context) {
+    context.fillStyle = color;
   }
 
-  drawRect(CanvasRenderingContext2D context) {
+  drawRect(var context) {
+    context.rotate(angle);
     setColor(context);
-    context.fillRect(position.x, position.y, size.x, size.y);
+    int x2 = size.x ~/ 2;
+    int y2 = size.y ~/ 2;
+    context.fillRect(-x2, -y2, size.x, size.y);
   }
 
-  drawCircle(CanvasRenderingContext2D context) {
+  drawCircle(var context) {
     setColor(context);
     context.beginPath();
     context.arc(
@@ -204,6 +212,19 @@ class Sprite {
   
   bool takesDamage() {
     return false;
+  }
+
+  // TODO: Make methods below abstract?
+  void takeDamage(int damage) {
+
+  }
+  
+  void addExtraNetworkData(List<int> data) {
+    
+  }
+  
+  void parseExtraNetworkData(List<int> data, int startAt) {
+    
   }
   
   toString() => "Sprite[${this.networkType}] p:$position";

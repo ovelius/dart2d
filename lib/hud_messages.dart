@@ -1,11 +1,10 @@
 library hud;
 
-import 'dart:html';
 import 'dart:math';
-import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/sprites/playersprite.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/gamestate.dart';
 
@@ -18,17 +17,13 @@ class _HudMessage {
   }
 }
 
+// TODO: Make injectable.
 class HudMessages {
   static const DEFAULT_DURATION = 4.0;
-  World world;
+  WormWorld world;
   List<_HudMessage> messages = [];
 
   HudMessages(this.world);
-  
-  void displayAndSendToNetwork(String message, [double period]) {
-    display(message, period);
-    world.network.sendMessage(message);
-  }
 
   void display(String message, [double period]) {
     messages.add(new _HudMessage(
@@ -43,16 +38,19 @@ class HudMessages {
         world.localKeyState.keyIsDown(KeyCode.ALT);
   }
 
-  void showGameTable(CanvasRenderingContext2D context) {
+  void showGameTable(var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
       GameState gameState = world.network.gameState;
       context.setFillColorRgb(200, 0, 0);
       context.setStrokeColorRgb(200, 0, 0);
       for (int i = gameState.playerInfo.length - 1; i >= 0; i--) {
         PlayerInfo info = gameState.playerInfo[i];
-        MovingSprite sprite = world.sprites[info.spriteId];
+        MovingSprite sprite = world.spriteIndex[info.spriteId];
+        if (sprite == null) {
+          continue;
+        }
         Vec2 middle = sprite.centerPoint();
-        int x = WIDTH ~/ 3;
+        int x = world.width() ~/ 3;
         int y = 40 + i*40;
         context.fillText("${info.name} ${info.score} ${info.deaths}", x, y);
         // TODO: Check that sprite is alive.
@@ -67,7 +65,7 @@ class HudMessages {
     }    
   }
 
-  void render(CanvasRenderingContext2D context, double timeSpent) {
+  void render(var /*CanvasRenderingContext2D*/ context, double timeSpent) {
     context.font = '16pt Calibri';
     context.resetTransform();
     showGameTable(context);

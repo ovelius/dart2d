@@ -2,14 +2,15 @@ library net;
 
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import 'package:dart2d/sprites/playersprite.dart';
-import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/sprites/worm_player.dart';
+import 'connection.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/fps_counter.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/rtc.dart';
-import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/keystate.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -18,21 +19,9 @@ final Logger log = new Logger('Network');
 const KEY_FRAME_DEFAULT = 1.0/2;
 const PROBLEMATIC_FRAMES_BEHIND = 2;
 
-class Client extends Network {
-  Client(world, peer) : super(world, peer) {
-    _server = false;
-  }
-}
-
-class Server extends Network {
-  Server(world, peer) : super(world, peer) {
-    _server = true;
-  }
-}
-
-abstract class Network {
+class Network {
   GameState gameState;
-  World world;
+  WormWorld world;
   String localPlayerName;
   PeerWrapper peer;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
@@ -41,11 +30,14 @@ abstract class Network {
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
+  // Store active ids from the server to connect to.
+  List<String> activeIds = null;
+  Set<String> blackListedIds = new Set();
 
-  Network(this.world, this.peer) {
+  Network(this.world, this.peer, this._server) {
     gameState = new GameState(world);
   }
-
+  
   /**
    * Ensures that we have a connection to all clients in the game.
    * This is to be able to elect a new server in case the current server dies.
@@ -54,10 +46,13 @@ abstract class Network {
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in gameState.playerInfo) {
-      Sprite sprite = world.sprites[info.spriteId];
+      LocalPlayerSprite sprite = world.spriteIndex[info.spriteId];
       if (sprite != null) {
         // Make sure the ownerId is consistent with the connectionId.
         sprite.ownerId = info.connectionId;
+        sprite.info = info;
+      } else {
+        log.warning("No matching sprite found for ${info}");
       }
       if (!peer.hasConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
@@ -67,6 +62,15 @@ abstract class Network {
         }
       }
     }
+  }
+  /**
+   * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
+   */
+  bool connectionsExhausted() {
+    if (activeIds == null) {
+      return false;
+    }
+    return activeIds.length - blackListedIds.length == 0;
   }
   
   /**
@@ -106,24 +110,20 @@ abstract class Network {
         connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
         // Make it our responsibility to foward data from other players.
-        Sprite sprite = world.sprites[info.spriteId];
+        Sprite sprite = world.spriteIndex[info.spriteId];
         if (sprite.networkType == NetworkType.REMOTE) {
           sprite.networkType = NetworkType.REMOTE_FORWARD;
         }
       }
       world.hudMessages.display("Server role tranferred to you :)");
+      // TODO: Add self sprite.
       return true;
     }
     return false;
   }
 
-  bool checkForKeyFrame(bool forceKeyFrame, double duration) {
+  bool checkForKeyFrame(double duration) {
     untilNextKeyFrame -= duration;
-    if (forceKeyFrame) {
-      currentKeyFrame++;
-      untilNextKeyFrame = KEY_FRAME_DEFAULT;
-      return true;
-    }
     if (untilNextKeyFrame < 0) {
       currentKeyFrame++;
       untilNextKeyFrame += KEY_FRAME_DEFAULT;
@@ -139,6 +139,32 @@ abstract class Network {
         serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
       }
     }
+  }
+  
+  /**
+   * Return a list of connections garantueed to be active.
+   */
+  List<ConnectionWrapper> safeActiveConnections() {
+    List<ConnectionWrapper> activeConnections = new List();
+    for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
+      if (!wrapper.closed && wrapper.opened) {
+        activeConnections.add(wrapper);
+      }
+    }
+    return activeConnections;
+  }
+  
+  /**
+   * Return the connection to the server.
+   */
+  ConnectionWrapper getServerConnection() {
+    for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
+      if (!wrapper.closed && wrapper.opened
+          && wrapper.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        return wrapper;
+      }
+    }
+    return null;
   }
   
   /**
@@ -168,23 +194,22 @@ abstract class Network {
       serverFramesBehind = 0;
       return;
     }
-    bool keyFrame = checkForKeyFrame(!removals.isEmpty, duration);
-    Map data = stateBundle(world.sprites, keyFrame);
+    // This doesnät make sense.
+    bool keyFrame = checkForKeyFrame(duration);
+    Map data = stateBundle(world.spriteIndex, keyFrame);
     // A keyframe indicates that we are sending data with garantueed delivery.
     if (keyFrame) {
       registerDroppedFrames(data);
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
     }
     if (removals.length > 0) {
-      data[REMOVE_KEY] = new List.from(removals, growable:false);
-      removals.clear();
+      data[REMOVE_KEY] = removals;
     }
     if (!isServer()) {
       data[KEY_STATE_KEY] = world.localKeyState.getEnabledState();
-    } else if (keyFrame) {
+    } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
       data[GAME_STATE] = gameState.toMap();
     }
-
     if (data.length > 0) {
       peer.sendDataWithKeyFramesToAll(data);
     }
@@ -201,6 +226,13 @@ abstract class Network {
     return false;
   }
   
+  bool hasOpenConnection() {
+    if (hasReadyConnection()) {
+      return safeActiveConnections().length > 0;
+    }
+    return false;
+  }
+  
   String keyFrameDebugData() {
     if (!hasReadyConnection()) {
       return "No connections";
@@ -213,10 +245,10 @@ abstract class Network {
   }
 }
 
-Map<String, List<int>> stateBundle(Map<int, Sprite> sprites, bool keyFrame) {
+Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
   Map<String, List<int>> allData = {};
-  for (int networkId in sprites.keys) {
-    Sprite sprite = sprites[networkId];
+  for (int networkId in spriteIndex.spriteIds()) {
+    Sprite sprite = spriteIndex[networkId];
     if (sprite.networkType == NetworkType.LOCAL) {
       List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
       allData[sprite.networkId.toString()] = dataAsList; 
@@ -235,14 +267,14 @@ void dataReceived() {
   lastNetworkFrameReceived = now;
 }
 
-void parseBundle(World world,
-    ConnectionWrapper connection, Map<String, List<int>> bundle) {
+void parseBundle(WormWorld world,
+    ConnectionWrapper connection, Map<String, dynamic> bundle) {
   dataReceived();
   for (String networkId in bundle.keys) {
     if (!SPECIAL_KEYS.contains(networkId)) {
       int parsedNetworkId = int.parse(networkId);
       // TODO(erik) Prio data for the owner of the sprite instead.
-      Sprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
+      MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
       if (!sprite.networkType.remoteControlled()) {
         log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
         continue;
@@ -265,6 +297,12 @@ void parseBundle(World world,
     for (String message in bundle[MESSAGE_KEY]) {
       world.hudMessages.display(message);
     }
+  }
+  if (bundle.containsKey(WORLD_DESTRUCTION)) {
+    world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
+  }
+  if (bundle.containsKey(WORLD_PARTICLE)) {
+    world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
   }
   if (bundle.containsKey(GAME_STATE)) {
     assert(!world.network.isServer());

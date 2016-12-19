@@ -1,84 +1,70 @@
 library movingsprite;
 
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/worlds/world.dart';
-import 'dart:math';
-import 'dart:html';
+import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 
 class MovingSprite extends Sprite {
- 
+  static const int FLAG_NO_GRAVITY = 1;
+  static const int FLAG_NO_MOVEMENTS = 2;
+  
+  static const int DIR_ABOVE = 0;
+  static const int DIR_BELOW = 1;
+  static const int DIR_LEFT = 2;
+  static const int DIR_RIGHT = 3;
+
   Vec2 velocity = new Vec2();
   double rotationVelocity = 0.0;
   Vec2 acceleration = new Vec2();
 
+  double gravityAffect = 1.0;
   bool collision = true;
   int outOfBoundsMovesRemaining = -1;
-
-  MovingSprite(double x, double y, int imageIndex, [int width, int height])
-      : super(x, y, imageIndex, width, height);
   
-  MovingSprite.withVecPosition(Vec2 position, int imageIndex, [Vec2 size])
-       : super.withVec2(position, imageIndex, size);
+  // Set from network. See static FLAG_ fields above.
+  int flags = 0;
 
-  frame(double duration, int frames) {
+  MovingSprite.empty(ImageIndex imageIndex): super.empty(imageIndex);
+
+  MovingSprite(Vec2 position, Vec2 size, SpriteType spriteType)
+      : super(position, size, spriteType);
+
+  MovingSprite.imageBasedSprite(Vec2 position, int imageId, ImageIndex imageIndex)
+      : super.imageBasedSprite(position, imageId, imageIndex);
+
+  frame(double duration, int frames, [Vec2 gravity]) {
     assert(duration != null);
     assert(duration >= .0);
-
-    velocity = velocity.add(
-        acceleration.multiply(duration));
+        
+    if (flags & FLAG_NO_MOVEMENTS == 0) {
+      velocity = velocity.add(
+          acceleration.multiply(duration));
     
-    position = position.add(
-        velocity.multiply(duration));
+      position = position.add(
+          velocity.multiply(duration));
+    }
+    
+    if (gravity != null && (flags & FLAG_NO_GRAVITY) == 0) {
+      velocity = velocity.add(gravity.multiply(duration * gravityAffect));
+    }
 
     angle += rotationVelocity * duration;
 
-    if (outOfBoundsCheck() && outOfBoundsMovesRemaining > 0) {
-      outOfBoundsMovesRemaining--;
-      remove = outOfBoundsMovesRemaining == 0;
-    }
-
-    super.frame(duration, frames);
+    super.frame(duration, frames, gravity);
   }
- 
-  collide(MovingSprite other) {
+
+  collide(MovingSprite other, ByteWorld world, int direction) {
  
   }
-
-  draw(CanvasRenderingContext2D context, bool debug) {
-    super.draw(context, debug);
-    if (debug) {
-      context.resetTransform();
-      context.setFillColorRgb(255, 255, 255);
-      context.fillText("vel: ${velocity}", position.x, position.y);
-      context.beginPath();
-      Vec2 center = centerPoint();
-      context.arc(center.x, center.y, getRadius(), 0, 2 * PI, false);
-      context.rect(position.x, position.y, size.x, size.y);
-      context.lineWidth = 1;
-      context.strokeStyle = '#ffffff';
-      context.stroke();
-    }
+  
+  int sendFlags() {
+    return 0;
   }
-
-  bool outOfBoundsCheck() {
-    bool outOfBounds = false;
-    if (position.x > WIDTH) {
-      position.x = -size.x;
-      outOfBounds = true;
-    }
-    if (position.x < -size.x ) {
-      position.x = WIDTH.toDouble();
-      outOfBounds = true;
-    }
-    if (position.y > HEIGHT) {
-      position.y = -size.y;
-      outOfBounds = true;
-    }
-    if (position.y < -size.y) {
-      position.y = HEIGHT.toDouble();
-      outOfBounds = true;
-    }
-    return outOfBounds;
+  
+  int remoteRepresentation() {
+    return SpriteIndex.MOVING_SPRITE;
   }
 }
