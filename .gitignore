@@ -1,6 +1,8 @@
 packages
 web\img\packages
 packages
+.packages
+pubspec.lock
 build/
 .pub/
 .project
