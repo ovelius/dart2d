@@ -38,8 +38,7 @@ void main() {
       worldA.frameDraw();
       worldA.spriteIndex[playerId(0)].position = new Vec2();
       
-      _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2(),
-          imageByName['fire.png']);
+      _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2());
       
       worldA.addSprite(sprite);
       worldA.frameDraw();
@@ -66,9 +65,8 @@ void main() {
 class _TestSprite extends Sprite {
   int drawCalls = 0;
   int frameCalls = 0;
-  
-  _TestSprite.withVecPosition(Vec2 position, int imageIndex)
-        : super.withVec2(position, imageIndex, new Vec2(1.0, 1.0));
+  _TestSprite.withVecPosition(Vec2 position)
+        : super(position, new Vec2(1.0, 1.0), SpriteType.RECT);
   
   @override
   frame(double duration, int frameStep, [Vec2 gravity]) {
@@ -76,7 +74,7 @@ class _TestSprite extends Sprite {
   }
   
   @override
-  draw(CanvasRenderingContext2D context, bool debug) {
+  draw(var context, bool debug) {
     drawCalls++;
   }
 }
