@@ -155,7 +155,7 @@ class WorldSpriteStateMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.spriteIndex.sprites}");
+      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.spriteIndex}");
     } else {
       mismatchDescription.add("Matched item must be World");
     }
