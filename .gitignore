@@ -3,6 +3,7 @@ web\img\packages
 packages
 .packages
 build/
+pubspec.lock
 .pub/
 .project
 *.iml
