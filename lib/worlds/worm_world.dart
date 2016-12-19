@@ -35,15 +35,18 @@ class WormWorld extends World {
   Vec2 halfWorld;
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
-  
+
+  int _width, _height;
   double explosionFlash = 0.0;
 
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex, JsCallbacksWrapper peerWrapperCallbacks)
-      : super(canvasElement.width, canvasElement.height, canvasElement) {
+      : super() {
     this._canvasFactory = canvasFactory;
     this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
+    this._width = _canvasElement.width;
+    this._height = _canvasElement.height;
     this._canvas = _canvasElement.context2D;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
@@ -144,20 +147,20 @@ class WormWorld extends World {
       }
   
       _canvas
-        ..clearRect(0, 0, WIDTH, HEIGHT)
+        ..clearRect(0, 0, _width, _height)
         ..setFillColorRgb(135, 206, 250)
-        ..fillRect(0, 0, WIDTH, HEIGHT)
+        ..fillRect(0, 0, _width, _height)
         ..save();
 
       if (playerSprite != null) {
         Vec2 playerCenter = playerSprite.centerPoint();
         viewPoint.x = playerCenter.x - halfWorld.x;
         viewPoint.y = playerCenter.y - halfWorld.y;
-        if (viewPoint.y > byteWorld.height - HEIGHT) {
-          viewPoint.y = byteWorld.height * 1.0 - HEIGHT;
+        if (viewPoint.y > byteWorld.height - _height) {
+          viewPoint.y = byteWorld.height * 1.0 - _height;
         }
-        if (viewPoint.x > byteWorld.width - WIDTH) {
-          viewPoint.x = byteWorld.width * 1.0 - WIDTH;
+        if (viewPoint.x > byteWorld.width - _width) {
+          viewPoint.x = byteWorld.width * 1.0 - _width;
         }
         if (viewPoint.x < 0) {
           viewPoint.x = 0.0;
@@ -190,12 +193,12 @@ class WormWorld extends World {
       
       if (explosionFlash > 0) {
         _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
-        _canvas.fillRect(0, 0, WIDTH, HEIGHT);
+        _canvas.fillRect(0, 0, _width, _height);
       explosionFlash -= duration * 5;
     }
     
     if (controlHelperTime > 0) {
-      drawControlHelper(_canvas, controlHelperTime, playerSprite, WIDTH, HEIGHT);
+      drawControlHelper(_canvas, controlHelperTime, playerSprite, _width, _height);
       controlHelperTime -= duration;
     }
   
@@ -270,8 +273,8 @@ class WormWorld extends World {
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
     playerSprite = new LocalPlayerSprite(
         this, localKeyState, info,
-        new Random().nextInt(WIDTH).toDouble(),
-        new Random().nextInt(HEIGHT).toDouble(),
+        new Random().nextInt(_width).toDouble(),
+        new Random().nextInt(_height).toDouble(),
         imageId);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.networkId = id;
@@ -406,4 +409,7 @@ class WormWorld extends World {
       _canvas.font = font;
     }
   }
+
+  num width() => _width;
+  num height() => _height;
 }

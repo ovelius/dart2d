@@ -11,10 +11,11 @@ import 'test_peer.dart';
 
 Injector createWorldInjector(String id) {
   TestPeer peer = new TestPeer(id);
+  FakeCanvas fakeCanvas = new FakeCanvas();
   ModuleInjector injector = new ModuleInjector([
     new Module()
-      ..bind(int, withAnnotation: const WorldWidth(), toValue: WIDTH)
-      ..bind(int, withAnnotation: const WorldHeight(), toValue: HEIGHT)
+      ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
+      ..bind(int, withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
       ..bind(DynamicFactory,
           withAnnotation: const CanvasFactory(),
           toValue: new DynamicFactory((args) => new FakeCanvas()))

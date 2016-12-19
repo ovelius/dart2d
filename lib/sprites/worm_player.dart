@@ -229,12 +229,12 @@ class LocalPlayerSprite extends MovingSprite {
   _drawHealthBar(var context) {
     double healthFactor = health/MAX_HEALTH;
     context.resetTransform();
-    var grad = context.createLinearGradient(0, 0, 3*WIDTH*healthFactor, 10);
+    var grad = context.createLinearGradient(0, 0, 3*world.width()*healthFactor, 10);
     grad.addColorStop(0, "#00ff00");
     grad.addColorStop(1, "#FF0000");
     context.globalAlpha = 0.5;
     context.fillStyle = grad;
-    context.fillRect(0, HEIGHT - 10, WIDTH * healthFactor, 10);
+    context.fillRect(0, world.height() - 10, world.width() * healthFactor, 10);
     context.globalAlpha = 1.0;
   }
   

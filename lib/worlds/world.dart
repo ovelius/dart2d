@@ -22,9 +22,6 @@ import 'package:dart2d/keystate.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-int WIDTH;
-int HEIGHT;
-
 int serverFrame = 0;
 // 25 server frames per second.
 const FRAME_SPEED = 1.0/15;
@@ -57,9 +54,7 @@ abstract class World {
 
   double controlHelperTime = 0.0;
 
-  World(int width, int height, var canvasElement) {
-    WIDTH = width;
-    HEIGHT = height;
+  World() {
     localKeyState = new KeyState(this);
     localKeyState.registerGenericListener((e) {
       if (!playerSprite.isMappedKey(e)) {
@@ -100,8 +95,6 @@ abstract class World {
    */
   void createLocalClient(int spriteId, int spriteIndex);
 
-  num width() => WIDTH;
-  num height() => HEIGHT;
   toString() => "World[${peer.id}]";
 }
 
