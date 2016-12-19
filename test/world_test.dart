@@ -14,7 +14,6 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'dart:html';
 import 'dart:async';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -24,11 +23,6 @@ void main() {
   setUp(() {
     testConnections.clear();
     testPeers.clear();
-    var canvasElement = (querySelector("#canvas") as CanvasElement);
-    var canvas = canvasElement.context2D;
-    canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    useEmptyImagesForTest();
-    byteWorld = new ByteWorld.fromCanvas(canvasElement, new Vec2());
   });
 
   group('ByteWorld tests', () {
@@ -44,7 +38,8 @@ void main() {
       worldA.frameDraw();
       worldA.spriteIndex[playerId(0)].position = new Vec2();
       
-      _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2(), imageByName['fire.png']);
+      _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2(),
+          imageByName['fire.png']);
       
       worldA.addSprite(sprite);
       worldA.frameDraw();

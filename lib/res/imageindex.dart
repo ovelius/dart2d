@@ -75,6 +75,7 @@ class ImageIndex {
   }
 
   getImageById(int id) {
+    assert(id != null);
     assert(images[id] != null);
     return images[id];
   }

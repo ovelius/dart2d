@@ -5,12 +5,12 @@ import 'matchers.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'dart:html';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
@@ -22,15 +22,14 @@ void main() {
     testConnections.clear();
     testPeers.clear();
     logConnectionData = false;
-    useEmptyImagesForTest();
     remapKeyNamesForTest();
   });
   
   group('Sprite transfer tests', () {
     test('TestBasicSpriteTransfer', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
-      World worldC = testWorld("c");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(playerId(0))
@@ -111,8 +110,11 @@ void main() {
           hasType('RemotePlayerSprite'));
       
       // Now test transferring a sprite over the network.
-      MovingSprite sprite = new MovingSprite(1.0, 2.0, imageByName['fire.png']);
+      MovingSprite sprite = new MovingSprite(new Vec2(), new Vec2(1.0, 2.0), SpriteType.RECT);
+      MovingSprite imageSprite = new MovingSprite.imageBasedSprite(
+          new Vec2(), 0, worldB.imageIndex);
       worldB.addSprite(sprite);
+      worldB.addSprite(imageSprite);
       worldB.frameDraw();
       expect(worldB, hasExactSprites([
         hasSpriteWithNetworkId(playerId(1))
@@ -120,6 +122,8 @@ void main() {
         hasSpriteWithNetworkId(playerId(2))
             .andNetworkType(NetworkType.REMOTE_FORWARD),
         hasSpriteWithNetworkId(sprite.networkId)
+            .andNetworkType(NetworkType.LOCAL),
+        hasSpriteWithNetworkId(imageSprite.networkId)
             .andNetworkType(NetworkType.LOCAL),
       ]));
       worldB.frameDraw();
@@ -132,9 +136,12 @@ void main() {
              .andNetworkType(NetworkType.LOCAL),
          hasSpriteWithNetworkId(sprite.networkId)
              .andNetworkType(NetworkType.REMOTE),
+         hasSpriteWithNetworkId(imageSprite.networkId)
+             .andNetworkType(NetworkType.REMOTE),
       ]));
       // Now remove the sprite.
       sprite.remove = true;
+      imageSprite.remove = true;
       for (int i = 0; i < 9; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
         worldC.frameDraw(KEY_FRAME_DEFAULT);
@@ -160,8 +167,8 @@ void main() {
     });
     
     test('TestGameStateTransfer', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
       worldA.startAsServer("nameA");
      
       worldB.connectTo("a", "nameB");
@@ -206,8 +213,8 @@ void main() {
     });
     
     test('TestPlayerDeath', () {
-      World worldA = testWorld("a");
-      World worldB = testWorld("b");
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       worldB.connectTo("a", "nameB");
