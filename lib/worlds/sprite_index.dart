@@ -52,6 +52,8 @@ class SpriteIndex {
    * will get a networkId when added.
    */
   void addSprite(Sprite sprite) {
+    assert(sprite.position != null);
+    assert(sprite.size != null);
     if (sprite.networkId != null) {
       if (_sprites.containsKey(sprite.networkId)) {
         throw new StateError(

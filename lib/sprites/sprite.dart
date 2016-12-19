@@ -49,7 +49,7 @@ class Sprite {
   Vec2 position = new Vec2();
   // Access via getRadius()
   double _radius;
-  Vec2 size;
+  Vec2 size = new Vec2(1.0, 1.0);
   int imageId;
   double angle = 0.0;
   SpriteType spriteType = SpriteType.RECT;

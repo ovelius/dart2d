@@ -19,6 +19,7 @@ class Rope extends MovingSprite {
   Rope.createEmpty(WormWorld world)
         : super.empty(world.imageIndex) {
     this.world = world;
+    this.invisibleOutsideCanvas = false;
     owner = null;
   }
   
@@ -31,7 +32,7 @@ class Rope extends MovingSprite {
       this.angle = owner.angle;
       this.velocity.x = cos(angle);
       this.velocity.y = sin(angle);
-      
+      this.invisibleOutsideCanvas = false;
       this.velocity = this.velocity.multiply(velocity);
       this.velocity = owner.velocity + this.velocity;
   }
