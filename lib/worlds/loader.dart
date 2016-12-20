@@ -10,6 +10,26 @@ import 'package:dart2d/net/rtc.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
+
+class LoaderState {
+  final value;
+  final String description;
+  const LoaderState._internal(this.value, this.description);
+  toString() => 'Enum.$value';
+
+  static const UNKNOWN = const LoaderState._internal(0, "Unkown");
+  static const ERROR = const LoaderState._internal(1, "Error");
+  static const WEB_RTC_INIT = const LoaderState._internal(2, "Waiting for WebRTC init");
+  static const CONNECTING_TO_PEER = const LoaderState._internal(3, "Attempting to connect to a peer...");
+  static const LOADING_SERVER = const LoaderState._internal(4, "Loading resources from server...");
+  static const LOADING_OTHER_CLIENT = const LoaderState._internal(5, "Loading resources from client...");
+  static const LOADING_COMPLETED = const LoaderState._internal(6, "Completed");
+
+  operator ==(LoaderState other) {
+    return value == other.value;
+  }
+}
+
 @Injectable() // TODO make fully injectable.
 class Loader {
   WormWorld _wormWorld;
@@ -24,6 +44,7 @@ class Loader {
   DateTime startedAt;
   
   bool completed_ = false;
+  String _currentState = LoaderState.UNKNOWN.description;
   
   Loader(@WorldCanvas() Object canvasElement,
          @CanvasFactory() DynamicFactory canvasFactory,
@@ -42,15 +63,16 @@ class Loader {
    this._wormWorld = wormWorld;
    this._imageIndex = imageIndex;
   }
-  
-  String describeStage() {
+
+  LoaderState describeStage() {
     if (_peerWrapper.id == null) {
       if (_peerWrapper.getLastError() != null) {
-        return "${_peerWrapper.getLastError()}";
+        this._currentState = "${_peerWrapper.getLastError()}";
+        return LoaderState.ERROR;
       }
-      return "Waiting for WebRTC init";
+      return LoaderState.WEB_RTC_INIT;
     } else if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
-      return "Attempting to connect to a peer...";
+      return LoaderState.CONNECTING_TO_PEER;
     } else if (!_imageIndex.finishedLoadingImages()) {
       if (_network.hasOpenConnection()) {
         if (!_imageIndex.imagesIndexed()) {
@@ -60,16 +82,20 @@ class Loader {
         assert(!connections.isEmpty);
         _peerWrapper.chunkHelper.requestNetworkData(connections);
         // load from client.
-        return "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}";
+        _currentState = "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}";
+        return LoaderState.LOADING_OTHER_CLIENT;
       }
       if (!_imageIndex.imagesIndexed()) {
         // Load everythng from the server.
         _imageIndex.loadImagesFromServer();
       }
-      return "Loading images from server ${_imageIndex.imagesLoadedString()}";
+      _currentState = "Loading images from server ${_imageIndex.imagesLoadedString()}";
+      return LoaderState.LOADING_SERVER;
     }
-    return "Unkown state";
+    return LoaderState.UNKNOWN;
   }
+
+  String currentStateAsString() => _currentState;
   
   bool completed() => completed_;
   
@@ -82,7 +108,7 @@ class Loader {
     }
     context_.clearRect(0, 0, width, height);
     context_.setFillColorRgb(-0, 0, 0);
-    drawCenteredText(describeStage());
+    drawCenteredText(currentStateAsString());
     context_.save();
 
     if (_imageIndex.finishedLoadingImages()) {
