@@ -72,6 +72,13 @@ class Network {
     }
     return activeIds.length - blackListedIds.length == 0;
   }
+
+  /**
+   * See if we've received a list of active peers.
+   */
+  bool hasReceivedActiveIds() {
+    return activeIds != null;
+  }
   
   /**
    * Our goal is to always have a connection to a server.

@@ -20,6 +20,7 @@ class LoaderState {
   static const UNKNOWN = const LoaderState._internal(0, "Unkown");
   static const ERROR = const LoaderState._internal(1, "Error");
   static const WEB_RTC_INIT = const LoaderState._internal(2, "Waiting for WebRTC init");
+  static const WAITING_FOR_PEER_DATA = const LoaderState._internal(7, "Fetching list of active peers...");
   static const CONNECTING_TO_PEER = const LoaderState._internal(3, "Attempting to connect to a peer...");
   static const LOADING_SERVER = const LoaderState._internal(4, "Loading resources from server...");
   static const LOADING_OTHER_CLIENT = const LoaderState._internal(5, "Loading resources from client...");
@@ -65,7 +66,9 @@ class Loader {
         return LoaderState.ERROR;
       }
       return LoaderState.WEB_RTC_INIT;
-    } else if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
+    } else if (!_network.hasReceivedActiveIds()) {
+      return LoaderState.WAITING_FOR_PEER_DATA;
+    } if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
       return LoaderState.CONNECTING_TO_PEER;
     } else if (!_imageIndex.finishedLoadingImages()) {
       if (_network.hasOpenConnection()) {

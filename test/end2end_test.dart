@@ -33,6 +33,16 @@ void main() {
       Injector injectorA = createWorldInjector("a");
       Injector injectorB = createWorldInjector("b");
 
+      WormWorld worldA = injectorA.get(WormWorld);
+      TestPeer peerA = injectorA.get(TestPeer);
+      WormWorld worldB = injectorB.get(WormWorld);
+
+      // expect()
+      for (int i = 0; i < 10; i++) {
+        print("${worldA.loader.describeStage().description}");
+        worldA.frameDraw();
+
+    }
 
     });
   });

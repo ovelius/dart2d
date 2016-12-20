@@ -58,6 +58,7 @@ class PeerWrapper {
    */
   void receivePeers(unusedThis, List<String> ids) {
     ids.remove(this.id);
+    log.info("Received active peers of $ids");
     this._world.network.activeIds = ids;
     ids.forEach((String id) {
       if (autoConnect) {

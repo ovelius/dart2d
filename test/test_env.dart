@@ -14,6 +14,9 @@ Injector createWorldInjector(String id) {
   FakeCanvas fakeCanvas = new FakeCanvas();
   ModuleInjector injector = new ModuleInjector([
     new Module()
+      // Test only.
+      ..bind(TestPeer, toValue: peer)
+      // World bindings.
       ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
       ..bind(int, withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
       ..bind(DynamicFactory,
