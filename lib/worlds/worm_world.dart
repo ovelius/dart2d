@@ -53,7 +53,7 @@ class WormWorld extends World {
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
     network = new Network(this, peer, true);
-    this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this);
+    this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this, network, peer);
   }
   
   void collisionCheck(int networkId, duration) {

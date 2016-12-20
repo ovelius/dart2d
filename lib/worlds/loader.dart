@@ -5,11 +5,16 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/rtc.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
+@Injectable() // TODO make fully injectable.
 class Loader {
   WormWorld _wormWorld;
+  Network _network;
+  PeerWrapper _peerWrapper;
   DynamicFactory _canvasFactory;
   ImageIndex _imageIndex;
   var context_;
@@ -23,7 +28,11 @@ class Loader {
   Loader(@WorldCanvas() Object canvasElement,
          @CanvasFactory() DynamicFactory canvasFactory,
          ImageIndex imageIndex,
-         WormWorld wormWorld) {
+         WormWorld wormWorld,
+         Network network,
+         PeerWrapper peerWrapper) {
+   this._network = network;
+   this._peerWrapper = peerWrapper;
    this._canvasFactory = canvasFactory;
    // Hack the typesystem.
    var canvas = canvasElement;
@@ -35,23 +44,23 @@ class Loader {
   }
   
   String describeStage() {
-    if (_wormWorld.network.peer.id == null) {
-      if (_wormWorld.peer.getLastError() != null) {
-        return "${_wormWorld.peer.getLastError()}";
+    if (_peerWrapper.id == null) {
+      if (_peerWrapper.getLastError() != null) {
+        return "${_peerWrapper.getLastError()}";
       }
       return "Waiting for WebRTC init";
-    } else if (!_wormWorld.network.hasOpenConnection() && !_wormWorld.network.connectionsExhausted()) {
+    } else if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
       return "Attempting to connect to a peer...";
     } else if (!_imageIndex.finishedLoadingImages()) {
-      if (_wormWorld.network.hasOpenConnection()) {
+      if (_network.hasOpenConnection()) {
         if (!_imageIndex.imagesIndexed()) {
           _imageIndex.loadImagesFromNetwork();
         }
-        List<ConnectionWrapper> connections = _wormWorld.network.safeActiveConnections();
+        List<ConnectionWrapper> connections = _network.safeActiveConnections();
         assert(!connections.isEmpty);
-        _wormWorld.peer.chunkHelper.requestNetworkData(connections);
+        _peerWrapper.chunkHelper.requestNetworkData(connections);
         // load from client.
-        return "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_wormWorld.peer.chunkHelper.getTransferSpeed()}";
+        return "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}";
       }
       if (!_imageIndex.imagesIndexed()) {
         // Load everythng from the server.
@@ -77,7 +86,7 @@ class Loader {
     context_.save();
 
     if (_imageIndex.finishedLoadingImages()) {
-      ConnectionWrapper serverConnection = _wormWorld.network.getServerConnection();
+      ConnectionWrapper serverConnection = _network.getServerConnection();
       if (serverConnection == null) {
         _wormWorld.startAsServer(); // true for two players.
       } else {
