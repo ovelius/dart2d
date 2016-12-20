@@ -63,7 +63,8 @@ class PeerWrapper {
       if (autoConnect) {
         log.info("Auto connecting to id ${id}");
         this._world.restart = true;
-        this._world.connectTo(id, "Auto connect name");
+        // Do no start game !
+        this._world.connectTo(id, "Auto connect name", false);
         return;
       }
     });

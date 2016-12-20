@@ -112,7 +112,7 @@ class WormWorld extends World {
     }
   }
 
-  void connectTo(var id, [String name = null]) {
+  void connectTo(var id, [String name = null, bool startGame = true]) {
     if (name != null) {
     this.playerName = name;
     }
@@ -120,7 +120,9 @@ class WormWorld extends World {
     network = new Network(this, peer, false);
     network.localPlayerName = this.playerName;
     network.peer.connectTo(id);
-    this.startGame();
+    if (startGame) {
+      this.startGame();
+    }
   }
 
   /**
@@ -221,6 +223,9 @@ class WormWorld extends World {
   }
 
   void startGame() {
+    if (!loader.completed()) {
+      throw new StateError("Can not start game! Loading not complete, stage: ${loader.describeStage()}");
+    }
     ConnectionWrapper serverConnection = this.network.getServerConnection();
     if (serverConnection == null) {
       startAsServer(); // true for two players.
