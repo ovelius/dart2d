@@ -19,7 +19,6 @@ WormWorld testWorld(String id, {var canvasElement}) {
   world.playerName = "name${id.toUpperCase()}";
   world.loader.completed_ = true;
   world.initByteWorld();
-  world.connectOnOpenConnection = true;
   return world;
 }
 

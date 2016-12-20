@@ -48,7 +48,6 @@ abstract class World {
   
   bool restart = false;
   bool freeze = false;
-  bool connectOnOpenConnection = false;
 
   Network network;
 

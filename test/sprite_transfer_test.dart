@@ -30,7 +30,7 @@ void main() {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
-      worldA.startAsServer("nameA");
+      worldA.startGame();
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(playerId(0))
           .andNetworkType(NetworkType.LOCAL));
@@ -169,7 +169,7 @@ void main() {
     test('TestGameStateTransfer', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      worldA.startAsServer("nameA");
+      worldA.startGame();
      
       worldB.connectTo("a", "nameB");
 
@@ -215,7 +215,7 @@ void main() {
     test('TestPlayerDeath', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      worldA.startAsServer("nameA");
+      worldA.startGame();
       worldA.frameDraw();
       worldB.connectTo("a", "nameB");
 

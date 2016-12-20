@@ -31,11 +31,13 @@ void main() {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
 
-      worldB.startAsServer("nameB");
+      // A framedraw will start worldB as server.
       worldB.frameDraw();
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
   
       worldA.connectTo("b", "nameA");
+      // A framedraw twill start worldA as client.
+      worldA.frameDraw();
       // ClientSpec was sent to b from a:
       expect(recentSentDataTo("b"),
           new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
@@ -112,8 +114,8 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
       // Game has started.
-      expect(worldA.spriteIndex.count(), equals(1));
-      expect(worldB.spriteIndex.count(), equals(1));
+      expect(worldA.spriteIndex.count(), equals(2));
+      expect(worldB.spriteIndex.count(), equals(2));
     });
   
   
@@ -121,7 +123,7 @@ void main() {
       print("Testing connecting with three players");
       WormWorld worldA = testWorld("a");
       worldA.frameDraw();
-      worldA.startAsServer("nameA");
+     // worldA.startAsServer("nameA");
 
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
@@ -212,7 +214,7 @@ void main() {
       logConnectionData = false;
       print("Testing connecting with three players, server dies so a new server is elected");
       WormWorld worldA = testWorld("a");
-      worldA.startAsServer("nameA");
+      worldA.startGame();
 
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
@@ -302,7 +304,7 @@ void main() {
     test('TestDroppedConnection', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      worldB.startAsServer("nameB");
+      worldB.startGame();
       worldA.connectTo("b", "nameA");
   
       expect(worldB.network.gameState,
@@ -326,7 +328,7 @@ void main() {
 
     test('TestThreePlayerOneJoinsLater', () {
       WormWorld worldA = testWorld("a");
-      worldA.startAsServer("nameA");
+      worldA.startGame();
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
       worldB.connectTo("a", "nameB");
@@ -387,7 +389,7 @@ void main() {
         logConnectionData = false;
         WormWorld worldA = testWorld("a");
 
-        worldA.startAsServer("nameA");
+        worldA.startGame();
 
         WormWorld worldB = testWorld("b");
         WormWorld worldC = testWorld("c");

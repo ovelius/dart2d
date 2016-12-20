@@ -39,6 +39,8 @@ class WormWorld extends World {
   int _width, _height;
   double explosionFlash = 0.0;
 
+  bool connectedToGame = false;
+
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex, JsCallbacksWrapper peerWrapperCallbacks)
       : super() {
@@ -53,7 +55,7 @@ class WormWorld extends World {
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
     network = new Network(this, peer, true);
-    this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, this, network, peer);
+    this.loader = new Loader(_canvasElement, canvasFactory, imageIndex, network, peer);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -118,6 +120,7 @@ class WormWorld extends World {
     network = new Network(this, peer, false);
     network.localPlayerName = this.playerName;
     network.peer.connectTo(id);
+    this.startGame();
   }
 
   /**
@@ -131,6 +134,8 @@ class WormWorld extends World {
   void frameDraw([double duration = 0.01]) {
       if (!loader.frameDraw(duration)) {
         return;
+      } else if (!connectedToGame) {
+        startGame();
       }
       if (restart) {
         clearScreen();
@@ -213,6 +218,19 @@ class WormWorld extends World {
     drawFpsCounters();
     hudMessages.render(_canvas, duration);
       _canvas.restore();
+  }
+
+  void startGame() {
+    ConnectionWrapper serverConnection = this.network.getServerConnection();
+    if (serverConnection == null) {
+      startAsServer(); // true for two players.
+    } else {
+      // Connect to the actual game.
+      serverConnection.connectToGame();
+    }
+    // Move elsewhere to allow choosing map...
+    this.initByteWorld();
+    connectedToGame = true;
   }
 
   MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {

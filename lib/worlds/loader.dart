@@ -32,7 +32,6 @@ class LoaderState {
 
 @Injectable() // TODO make fully injectable.
 class Loader {
-  WormWorld _wormWorld;
   Network _network;
   PeerWrapper _peerWrapper;
   DynamicFactory _canvasFactory;
@@ -49,7 +48,6 @@ class Loader {
   Loader(@WorldCanvas() Object canvasElement,
          @CanvasFactory() DynamicFactory canvasFactory,
          ImageIndex imageIndex,
-         WormWorld wormWorld,
          Network network,
          PeerWrapper peerWrapper) {
    this._network = network;
@@ -60,7 +58,6 @@ class Loader {
    context_ = canvas.context2D;
    width = canvas.width;
    height = canvas.height;
-   this._wormWorld = wormWorld;
    this._imageIndex = imageIndex;
   }
 
@@ -112,17 +109,6 @@ class Loader {
     context_.save();
 
     if (_imageIndex.finishedLoadingImages()) {
-      ConnectionWrapper serverConnection = _network.getServerConnection();
-      if (serverConnection == null) {
-        _wormWorld.startAsServer(); // true for two players.
-      } else {
-        // Connect to the actual game.
-        serverConnection.connectToGame();
-      }
-      // Move elsewhere to allow choosing map...
-      _wormWorld.byteWorld = new ByteWorld(
-          _imageIndex.getImageByName('world.png'),
-          new Vec2(width * 1.0,  height * 1.0), _canvasFactory);
       completed_ = true;
       return true;
     }

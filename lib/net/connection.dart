@@ -182,9 +182,6 @@ class ConnectionWrapper {
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     opened = true;
-    if (world.connectOnOpenConnection) {
-      connectToGame();
-    }
   }
   
   void connectToGame() {
