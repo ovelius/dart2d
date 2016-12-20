@@ -34,7 +34,6 @@ class LoaderState {
 class Loader {
   Network _network;
   PeerWrapper _peerWrapper;
-  DynamicFactory _canvasFactory;
   ImageIndex _imageIndex;
   var context_;
   int width;
@@ -46,13 +45,11 @@ class Loader {
   String _currentState = LoaderState.UNKNOWN.description;
   
   Loader(@WorldCanvas() Object canvasElement,
-         @CanvasFactory() DynamicFactory canvasFactory,
          ImageIndex imageIndex,
          Network network,
          PeerWrapper peerWrapper) {
    this._network = network;
    this._peerWrapper = peerWrapper;
-   this._canvasFactory = canvasFactory;
    // Hack the typesystem.
    var canvas = canvasElement;
    context_ = canvas.context2D;
