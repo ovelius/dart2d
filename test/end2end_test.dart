@@ -10,6 +10,7 @@ import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.dart';
@@ -30,20 +31,43 @@ void main() {
 
   group('Smoke tests', () {
     test('TestBasicSmokeConnection', () {
-      Injector injectorA = createWorldInjector("a");
-      Injector injectorB = createWorldInjector("b");
+      Injector injectorA = createWorldInjector("a", false);
+      Injector injectorB = createWorldInjector("b", false);
 
       WormWorld worldA = injectorA.get(WormWorld);
       TestPeer peerA = injectorA.get(TestPeer);
+      Loader loaderA = worldA.loader;
+      FakeImageFactory fakeImageFactoryA = injectorA.get(FakeImageFactory);
+
       WormWorld worldB = injectorB.get(WormWorld);
+      Loader loaderB = worldB.loader;
+      TestPeer peerB = injectorB.get(TestPeer);
 
-      // expect()
-      for (int i = 0; i < 10; i++) {
-        print("${worldA.loader.describeStage().description}");
-        worldA.frameDraw();
+      // WorldA receives no peers.
+      expect(loaderA.describeStage(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      peerA.receiveActivePeer([]);
+      worldA.frameDraw();
+      // Completes loading from Server.
+      expect(loaderA.describeStage(), equals(LoaderState.LOADING_SERVER));
+      worldA.frameDraw();
+      fakeImageFactoryA.completeAllImages();
+      worldA.frameDraw();
+      expect(loaderA.describeStage(), equals(LoaderState.LOADING_COMPLETED));
 
-    }
+      // WorldB receives worldA as peer.
+      expect(loaderB.describeStage(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      worldB.frameDraw();
+      peerB.receiveActivePeer(['a']);
+      expect(loaderB.describeStage(), equals(LoaderState.LOADING_OTHER_CLIENT));
+      worldB.frameDraw();
+      expect(loaderB.describeStage(), equals(LoaderState.LOADING_COMPLETED));
 
+      // Ideally this does not mean connection to a game..
+
+      // TODO: Add tests here for
+      // 1) Client dies mid loading.
+      // 2) Client unable to connect.
+      // 3) Grabbing world state.
     });
   });
 }

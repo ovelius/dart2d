@@ -9,13 +9,15 @@ import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'test_peer.dart';
 
-Injector createWorldInjector(String id) {
+Injector createWorldInjector(String id, [bool loadImages = true]) {
   TestPeer peer = new TestPeer(id);
   FakeCanvas fakeCanvas = new FakeCanvas();
+  FakeImageFactory fakeImageFactory = new FakeImageFactory();
   ModuleInjector injector = new ModuleInjector([
     new Module()
       // Test only.
       ..bind(TestPeer, toValue: peer)
+      ..bind(FakeImageFactory, toValue: fakeImageFactory)
       // World bindings.
       ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
       ..bind(int, withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
@@ -23,13 +25,7 @@ Injector createWorldInjector(String id) {
           withAnnotation: const CanvasFactory(),
           toValue: new DynamicFactory((args) => new FakeCanvas()))
       ..bind(DynamicFactory, withAnnotation: const ImageFactory(),
-          toValue: new DynamicFactory((args) {
-        if (args.length == 0) {
-          return new FakeImage();
-        } else {
-          return new FakeImage();
-        }
-      }))
+          toInstanceOf: FakeImageFactory)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
@@ -39,6 +35,8 @@ Injector createWorldInjector(String id) {
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)
   ]);
-  injector.get(ImageIndex).useEmptyImagesForTest();
+  if (loadImages) {
+    injector.get(ImageIndex).useEmptyImagesForTest();
+  }
   return injector;
 }

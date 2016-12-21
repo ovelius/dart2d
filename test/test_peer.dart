@@ -72,6 +72,11 @@ class TestPeer extends PeerMarker {
     }
     return true;
   }
+
+  void receiveActivePeer(List<String> peers) {
+    assert(eventHandlers['receiveActivePeers'] != null);
+    eventHandlers['receiveActivePeers'](this, peers);
+  }
 }
 
 class TestHudMessage extends HudMessages {

@@ -89,6 +89,9 @@ class Loader {
       _currentState = "Loading images from server ${_imageIndex.imagesLoadedString()}";
       return LoaderState.LOADING_SERVER;
     }
+    if (this.completed()) {
+      return LoaderState.LOADING_COMPLETED;
+    }
     return LoaderState.UNKNOWN;
   }
 
