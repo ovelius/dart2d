@@ -22,7 +22,7 @@ class ChunkHelper {
   /**
    * Send a reply with the requested image data.
    */
-  void replyWithImageData(Map dataMap, var connection) {
+  void replyWithImageData(Map dataMap, ConnectionWrapper connection) {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
     String name = imageDataRequest['name'];
     String data = _imageIndex.getImageDataUrl(name);
@@ -111,7 +111,6 @@ class ChunkHelper {
    * Request image data from a random connection.
    */
   bool requestImageData(String name, List<ConnectionWrapper> connections) {
-    // print("requesting image ${name}");
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {

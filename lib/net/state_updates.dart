@@ -20,6 +20,8 @@ String WORLD_DESTRUCTION = "_w";
 String WORLD_PARTICLE = "_p";
 String IMAGE_DATA_REQUEST = "_i";
 String IMAGE_DATA_RESPONSE = "-i";
+String PING = "-p";
+String PONG = "-o";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -39,6 +41,9 @@ void remapKeyNamesForTest() {
   WORLD_PARTICLE = "world_particles";
   IMAGE_DATA_REQUEST = "image_request";
   IMAGE_DATA_REQUEST = "image_response";
+  //
+  PING = "ping";
+  PONG = "pong";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.

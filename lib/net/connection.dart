@@ -196,7 +196,16 @@ class ConnectionWrapper {
       sendData(playerData);
     }
   }
-  
+
+  /**
+   * Send ping message.
+   */
+  void sendPing() {
+    sendData(
+        {PING: new DateTime.now().millisecond.toString(),
+          IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
+  }
+
   void error(unusedThis, error) {
     print("error ${error}");
     world.hudMessages.display("Connection: ${error}");
@@ -212,7 +221,12 @@ class ConnectionWrapper {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     verifyLastKeyFrameHasBeenReceived(dataMap);
-    
+    // Fast return PING messages.
+    if (dataMap.containsKey(PING)) {
+      this.sendData({PONG: "y"});
+      return;
+    }
+
     // Allow sending and parsing imageData regardless of state.
     if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
       world.peer.chunkHelper.replyWithImageData(dataMap, this);
