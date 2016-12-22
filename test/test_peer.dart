@@ -36,8 +36,10 @@ class FakeJsCallbacksWrapper implements JsCallbacksWrapper {
 }
 
 class TestPeer extends PeerMarker {
-  var id;
+  String id;
   var eventHandlers = {};
+  Set<String> failConnectionsTo = new Set();
+  List<TestConnection> connections = [];
 
   TestPeer(this.id) {
     assert(!testPeers.containsKey(id));
@@ -51,6 +53,12 @@ class TestPeer extends PeerMarker {
         throw new ArgumentError("No peer with id ${otherId} in this test!");
       }
       TestConnection localConnection = new TestConnection(otherId);
+      connections.add(localConnection);
+      if (failConnectionsTo.contains(otherId)) {
+        print("Simulating failing connection to ${otherId}");
+        localConnection.signalOpen = false;
+        return localConnection;
+      }
       TestConnection remoteConnection = new TestConnection(id);
       remoteConnection.otherEnd = localConnection;
       localConnection.otherEnd = remoteConnection;
@@ -76,6 +84,12 @@ class TestPeer extends PeerMarker {
   void receiveActivePeer(List<String> peers) {
     assert(eventHandlers['receiveActivePeers'] != null);
     eventHandlers['receiveActivePeers'](this, peers);
+  }
+
+  void signalErrorAllConnections() {
+    connections.forEach((c) {
+      c.eventHandlers['error'](c, "Simulated error");
+    });
   }
 }
 

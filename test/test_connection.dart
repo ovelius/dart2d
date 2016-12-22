@@ -8,7 +8,8 @@ recentReceviedDataFrom(id, [int index = 0]) {
   return testConnections[id][index].recentDataRecevied;
 }
 
-Map<dynamic, List<TestConnection>> testConnections = {};
+// Map of connections from id.
+Map<String, List<TestConnection>> testConnections = {};
 
 List<int> droppedPacketsNextConnection = [];
 
@@ -25,6 +26,8 @@ class TestConnection {
   
   bool buffer = false;
   List dataBuffer = [];
+
+  bool signalOpen = true;
 
   TestConnection(this.id) {
     if (!testConnections.containsKey(id)) {
@@ -80,7 +83,7 @@ class TestConnection {
   
   bool bindOnHandler(String methodName, var jsFunction) {
     eventHandlers[methodName] = jsFunction;
-    if (methodName == "open") {
+    if (methodName == "open" && signalOpen) {
       // Signal an open connection right away.
       // But only if the other side has a data handler registered.
       jsFunction(this);

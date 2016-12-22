@@ -4,6 +4,7 @@ import 'package:test/test.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 import 'fake_canvas.dart';
+import 'test_env.dart';
 import 'matchers.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -20,8 +21,7 @@ void main() {
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');
     });
-    testConnections.clear();
-    testPeers.clear();
+    clearEnvironment();
     logConnectionData = true;
     remapKeyNamesForTest();
   });

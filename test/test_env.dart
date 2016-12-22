@@ -8,6 +8,14 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'test_peer.dart';
+import 'test_connection.dart';
+
+
+clearEnvironment() {
+  droppedPacketsNextConnection.clear();
+  testConnections.clear();
+  testPeers.clear();
+}
 
 Injector createWorldInjector(String id, [bool loadImages = true]) {
   TestPeer peer = new TestPeer(id);
