@@ -13,6 +13,7 @@ import 'test_connection.dart';
 
 clearEnvironment() {
   droppedPacketsNextConnection.clear();
+  droppedPacketsAfterNextConnection.clear();
   testConnections.clear();
   testPeers.clear();
 }

@@ -92,6 +92,12 @@ class TestPeer extends PeerMarker {
       c.eventHandlers['error'](c, "Simulated error");
     });
   }
+
+  void signalCloseOnAllConnections() {
+    connections.forEach((c) {
+      c.eventHandlers['close'](c);
+    });
+  }
 }
 
 class TestHudMessage extends HudMessages {
