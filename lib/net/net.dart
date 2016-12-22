@@ -70,6 +70,7 @@ class Network {
     if (activeIds == null) {
       return false;
     }
+    print("${activeIds} vs blacklist of ${blackListedIds}");
     return activeIds.length - blackListedIds.length == 0;
   }
 
@@ -224,6 +225,10 @@ class Network {
 
   bool isServer() {
     return _server;
+  }
+
+  void setIsServer(bool server) {
+    this._server = server;
   }
 
   bool hasReadyConnection() {
