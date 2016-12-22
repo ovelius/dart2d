@@ -117,7 +117,7 @@ class WormWorld extends World {
     this.playerName = name;
     }
     hudMessages.display("Connecting to ${id}");
-    network = new Network(this, peer, false);
+    network.setIsServer(false);
     network.localPlayerName = this.playerName;
     network.peer.connectTo(id);
     if (startGame) {
@@ -393,6 +393,7 @@ class WormWorld extends World {
   }
 
   startAsServer([String name]) {
+    network.setIsServer(true);
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
   }
