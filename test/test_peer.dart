@@ -49,8 +49,9 @@ class TestPeer extends PeerMarker {
   callMethod(String methodName, var jsonObject) {
     if ("connect" == methodName) {
       var otherId = jsonObject[0];
-      if (!testPeers.containsKey(otherId)) {
-        throw new ArgumentError("No peer with id ${otherId} in this test!");
+      if (!testPeers.containsKey(otherId)
+          && !failConnectionsTo.contains(otherId)) {
+        throw new ArgumentError("No peer with id ${otherId} in this test! (and not set to fail!)");
       }
       TestConnection localConnection = new TestConnection(otherId);
       connections.add(localConnection);

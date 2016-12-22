@@ -119,7 +119,7 @@ class GameState {
   convertToServer(var selfConnectionId) {
     for (PlayerInfo info in playerInfo) {
       if (info.connectionId == selfConnectionId) {
-        RemotePlayerSprite oldSprite = world.spriteIndex[info.spriteId];
+        LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
         playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());

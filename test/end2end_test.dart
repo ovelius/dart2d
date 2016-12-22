@@ -23,16 +23,16 @@ void main() {
     Logger.root.onRecord.listen((LogRecord rec) {
       print('${rec.level.name}: ${rec.time}: ${rec.message}');
     });
-    testConnections.clear();
-    testPeers.clear();
+    clearEnvironment();
     logConnectionData = true;
     remapKeyNamesForTest();
   });
 
-  group('Smoke tests', () {
-    test('TestBasicSmokeConnection', () {
+  group('End2End', () {
+    test('Resource loading tests', () {
       Injector injectorA = createWorldInjector("a", false);
       Injector injectorB = createWorldInjector("b", false);
+      Injector injectorC = createWorldInjector("c", false);
 
       WormWorld worldA = injectorA.get(WormWorld);
       TestPeer peerA = injectorA.get(TestPeer);
@@ -62,12 +62,48 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.describeStage(), equals(LoaderState.LOADING_COMPLETED));
 
-      // Ideally this does not mean connection to a game..
 
-      // TODO: Add tests here for
-      // 1) Client dies mid loading.
-      // 2) Client unable to connect.
-      // 3) Grabbing world state.
+      // Ideally this does not mean connection to a game.
+      // But Game comes underway after a couple of frames.
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
+      expect(worldA, hasSpriteWithNetworkId(playerId(0)));
+      expect(worldA, hasSpriteWithNetworkId(playerId(1)));
+      expect(worldB, hasSpriteWithNetworkId(playerId(0)));
+      expect(worldB, hasSpriteWithNetworkId(playerId(1)));
     });
+
+    test('Resource loading failing p2p', () {
+      Injector injectorC = createWorldInjector("c", false);
+      // Now comes a goofy client, unable to connect to anyone!
+      WormWorld worldC = injectorC.get(WormWorld);
+      Loader loaderC = worldC.loader;
+      TestPeer peerC = injectorC.get(TestPeer);
+      // Connections fail big time.
+      peerC.failConnectionsTo
+        ..add("a")
+        ..add("b");
+      expect(loaderC.describeStage(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      peerC.receiveActivePeer(['a', 'b']);
+      expect(loaderC.describeStage(), equals(LoaderState.CONNECTING_TO_PEER));
+      peerC.signalErrorAllConnections();
+      expect(loaderC.describeStage(), equals(LoaderState.LOADING_SERVER));
+      FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
+      fakeImageFactoryC.completeAllImages();
+      worldC.frameDraw(KEY_FRAME_DEFAULT);
+      expect(loaderC.describeStage(), equals(LoaderState.LOADING_COMPLETED));
+
+      expect(worldC, hasSpriteWithNetworkId(playerId(0)));
+      expect(worldC.spriteIndex[playerId(0)],
+          hasType('LocalPlayerSprite'));
+    });
+    // TODO: Add tests here for
+    // 1) Client dies mid loading.
+    // 2) Grabbing world state.
+    // 3) Disconnect/reconnect the RTC peer when max players is reached.
+
   });
 }
