@@ -224,7 +224,7 @@ class WormWorld extends World {
 
   void startGame() {
     if (!loader.completed()) {
-      throw new StateError("Can not start game! Loading not complete, stage: ${loader.describeStage()}");
+      throw new StateError("Can not start game! Loading not complete, stage: ${loader.currentState()}");
     }
     ConnectionWrapper serverConnection = this.network.getServerConnection();
     if (serverConnection == null) {

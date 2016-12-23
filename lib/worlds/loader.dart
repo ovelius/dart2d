@@ -41,9 +41,8 @@ class Loader {
   int height;
   
   DateTime startedAt;
-  
-  bool completed_ = false;
-  String _currentState = LoaderState.UNKNOWN.description;
+
+  LoaderState _currentState = LoaderState.UNKNOWN;
   
   Loader(@WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
@@ -59,17 +58,20 @@ class Loader {
    this._imageIndex = imageIndex;
   }
 
-  LoaderState describeStage() {
+  void _advanceStage(double duration) {
     if (_peerWrapper.id == null) {
       if (_peerWrapper.getLastError() != null) {
-        this._currentState = "${_peerWrapper.getLastError()}";
-        return LoaderState.ERROR;
+        this._currentState = new LoaderState._internal(2, "${_peerWrapper.getLastError()}");
+        return;
       }
-      return LoaderState.WEB_RTC_INIT;
+      this._currentState = LoaderState.WEB_RTC_INIT;
+      return;
     } else if (!_network.hasReceivedActiveIds()) {
-      return LoaderState.WAITING_FOR_PEER_DATA;
+      this._currentState =  LoaderState.WAITING_FOR_PEER_DATA;
+      return;
     } if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
-      return LoaderState.CONNECTING_TO_PEER;
+      this._currentState =  LoaderState.CONNECTING_TO_PEER;
+      return;
     } else if (!_imageIndex.finishedLoadingImages()) {
       if (_network.hasOpenConnection()) {
         if (!_imageIndex.imagesIndexed()) {
@@ -77,42 +79,45 @@ class Loader {
         }
         List<ConnectionWrapper> connections = _network.safeActiveConnections();
         assert(!connections.isEmpty);
-        _peerWrapper.chunkHelper.requestNetworkData(connections);
+        _peerWrapper.chunkHelper.requestNetworkData(connections, duration);
         // load from client.
-        _currentState = "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}";
-        return LoaderState.LOADING_OTHER_CLIENT;
+        _currentState = new LoaderState._internal(
+            5, "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}");
+        return;
       }
       if (!_imageIndex.imagesIndexed()) {
         // Load everythng from the server.
         _imageIndex.loadImagesFromServer();
       }
-      _currentState = "Loading images from server ${_imageIndex.imagesLoadedString()}";
-      return LoaderState.LOADING_SERVER;
+      _currentState = new LoaderState._internal(
+          4, "Loading images from server ${_imageIndex.imagesLoadedString()}");
+      return;
     }
     if (this.completed()) {
-      return LoaderState.LOADING_COMPLETED;
+      _currentState = LoaderState.LOADING_COMPLETED;
     }
-    return LoaderState.UNKNOWN;
+    return;
   }
 
-  String currentStateAsString() => _currentState;
+  LoaderState currentState() => _currentState;
   
-  bool completed() => completed_;
+  bool completed() => _currentState == LoaderState.LOADING_COMPLETED;
   
   bool frameDraw([double duration = 0.01]) {
-    if (completed_) {
+    if (completed()) {
       return true;
     }
+    _advanceStage(duration);
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
     context_.clearRect(0, 0, width, height);
     context_.setFillColorRgb(-0, 0, 0);
-    drawCenteredText(currentStateAsString());
+    drawCenteredText(currentState().description);
     context_.save();
 
     if (_imageIndex.finishedLoadingImages()) {
-      completed_ = true;
+      _currentState = LoaderState.LOADING_COMPLETED;
       return true;
     }
     return false;

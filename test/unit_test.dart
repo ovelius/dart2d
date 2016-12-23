@@ -13,19 +13,18 @@ void main() {
   TestConnectionWrapper connection1;
   TestConnectionWrapper connection2;
   ChunkHelper helper;
+  ChunkHelper helper2;
   ImageIndex imageIndex;
+  ImageIndex imageIndex2;
   setUp(() {
     connection1 = new TestConnectionWrapper();
     connection2 = new TestConnectionWrapper();
     imageIndex = new MockImageIndex();
+    imageIndex2 = new MockImageIndex();
     helper = new ChunkHelper(imageIndex, 4);
+    helper2 = new ChunkHelper(imageIndex, 4);
   });
   group('Chunk helper tests', () {
-    test('Build Request', () {
-      String name = imageSources[0];
-      expect(helper.buildImageChunkRequest(name),
-          equals({'name': name, 'start': 0, 'end': 4}));
-    });
     test('Reply with data', () {
       String name = imageSources[0];
       when(imageIndex.getImageDataUrl(name)).thenReturn(IMAGE_DATA);
@@ -73,7 +72,7 @@ void main() {
           }));
     });
 
-    test('Test end-2-end', () {
+    test('Test single load', () {
       String name = imageSources[0];
       when(imageIndex.getImageDataUrl(name)).thenReturn(IMAGE_DATA);
       Map request = helper.buildImageChunkRequest(name);
@@ -82,15 +81,43 @@ void main() {
 
       String fullData = IMAGE_DATA;
       String expectedData = fullData.substring(0, helper.chunkSize);
-      expect(helper.imageBuffer, equals({name: expectedData}));
+      expect(helper.getImageBuffer(), equals({name: expectedData}));
 
-      while (helper.imageBuffer.containsKey(name)) {
+      while (helper.getImageBuffer().containsKey(name)) {
         Map request = helper.buildImageChunkRequest(name);
         helper.replyWithImageData({IMAGE_DATA_REQUEST: request}, connection1);
         helper.parseImageChunkResponse(connection1.lastDataSent);
       }
 
       expect(IMAGE_DATA, equals(fullData));
+    });
+    test('Test end-2-end', () {
+      List connections = new List.filled(1, connection1);
+
+      Map map = {"image1.png":1, "image2.png":2};
+      when(imageIndex.getImageDataUrl("image1.png")).thenReturn(IMAGE_DATA);
+      when(imageIndex.getImageDataUrl("image2.png")).thenReturn(IMAGE_DATA);
+      when(imageIndex.imageIsLoaded("image2.png")).thenReturn(true);
+      when(imageIndex.imageIsLoaded("image1.png")).thenReturn(false);
+      when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex2.getImageDataUrl("image1.png")).thenReturn(IMAGE_DATA);
+
+      // Set image to be loaded.
+      when(imageIndex.addFromImageData("image1.png", IMAGE_DATA)).thenAnswer((i) {
+        when(imageIndex.imageIsLoaded("image1.png")).thenReturn(true);
+      });
+
+      // Loop until completed.
+      for (int i = 0; i < 20; i++) {
+        if (imageIndex.imageIsLoaded("image1.png")) {
+          break;
+        }
+        helper.requestNetworkData(connections, 0.01);
+        helper2.replyWithImageData(connection1.lastDataSent, connection1);
+        helper.parseImageChunkResponse(connection1.lastDataSent);
+      }
+      // Fully loaded.
+      expect(imageIndex.imageIsLoaded("image1.png"), isTrue);
     });
   });
 }
