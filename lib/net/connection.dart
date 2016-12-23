@@ -46,7 +46,7 @@ class ConnectionWrapper {
 
   ConnectionType connectionType;
   WormWorld world;
-  var id;
+  final String id;
   var connection;
   // True if connection was successfully opened.
   bool opened = false;

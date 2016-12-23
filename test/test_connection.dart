@@ -104,9 +104,12 @@ class TestConnection {
 
 class TestConnectionWrapper {
 
+  final String id;
   int sendCount = 0;
   Map lastDataSent = null;
-  
+
+  TestConnectionWrapper(this.id);
+
   void sendData(Map data) {
     this.lastDataSent = data;
     this.sendCount++;

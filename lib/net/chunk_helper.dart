@@ -16,6 +16,11 @@ class ChunkHelper {
   _DataCounter counter = new _DataCounter(3);
   int chunkSize;
   Map<String, DateTime> _lastImageRequest = new Map();
+  // Track failures by connection.
+  Map<String, int> _failures = new Map();
+  // Connection we requested image from.
+  Map<String, String> _imageToConnection = new Map();
+
   Map<String, String> _imageBuffer = new Map();
   DateTime _created;
   double _timePassed = 0.0;
@@ -63,6 +68,7 @@ class ChunkHelper {
     if (start == _imageBuffer[name].length) {
       _imageBuffer[name] = _imageBuffer[name] + data;
       _lastImageRequest.remove(name);
+      _imageToConnection.remove(name);
     } else {
       print("Dropping data for ${name}, out of order??");
     }
@@ -104,11 +110,23 @@ class ChunkHelper {
         return _requestImageData(name, connections);
       } else if (_now().difference(lastRequest).inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
         // Request smaller chunk. This was a retry.
+        _trackFailingConnection(name);
         this.chunkSize = (this.chunkSize * 0.3).toInt();
         return _requestImageData(name, connections);
       }     
     }
     return false;
+  }
+
+  void _trackFailingConnection(String imageName) {
+    String failingConnection = _imageToConnection[imageName];
+    if (failingConnection != null) {
+      if (_failures.containsKey(failingConnection)) {
+        _failures[failingConnection] = _failures[failingConnection] + 1;
+      } else {
+        _failures[failingConnection] = 1;
+      }
+    }
   }
   
   Map buildImageChunkRequest(String name) {
@@ -130,6 +148,7 @@ class ChunkHelper {
       var connection = connections[r.nextInt(connections.length)];
       connection.sendData({IMAGE_DATA_REQUEST:buildImageChunkRequest(name)});
       _lastImageRequest[name] = new DateTime.now();
+      _imageToConnection[name] = connection.id;
       return true;
     }
     return false;
@@ -138,6 +157,8 @@ class ChunkHelper {
   String getTransferSpeed() {
     return counter.format();
   }
+
+  Map<String, int> failuresByConnection() => new Map.from(_failures);
 }
 
 class _DataCounter {
@@ -162,7 +183,7 @@ class _DataCounter {
     }
     return bytesPerSecond;
   }
-  
+
   String format() {
     int bytesPerSecond = getBytes();
     if (bytesPerSecond > 2*1024*1024) {

@@ -17,8 +17,8 @@ void main() {
   ImageIndex imageIndex;
   ImageIndex imageIndex2;
   setUp(() {
-    connection1 = new TestConnectionWrapper();
-    connection2 = new TestConnectionWrapper();
+    connection1 = new TestConnectionWrapper("a");
+    connection2 = new TestConnectionWrapper("b");
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
     helper = new ChunkHelper(imageIndex, 4);
@@ -131,7 +131,10 @@ void main() {
       expect(connection1.sendCount, equals(1));
       // Next trigger is in 3 seconds.
       helper.requestNetworkData(connections, 3.00);
-      expect(connection1.sendCount, equals(2));
+      // Next trigger is in 3 seconds.
+      helper.requestNetworkData(connections, 3.00);
+      expect(connection1.sendCount, equals(3));
+      expect(helper.failuresByConnection(), equals({"a": 2}));
     });
   });
 }
