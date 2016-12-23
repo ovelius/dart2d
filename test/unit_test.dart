@@ -119,5 +119,19 @@ void main() {
       // Fully loaded.
       expect(imageIndex.imageIsLoaded("image1.png"), isTrue);
     });
+    test('Test retries', () {
+      List connections = new List.filled(1, connection1);
+      Map map = {"image1.png":1};
+      when(imageIndex.getImageDataUrl("image1.png")).thenReturn(IMAGE_DATA);
+      when(imageIndex.imageIsLoaded("image1.png")).thenReturn(false);
+      when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex2.getImageDataUrl("image1.png")).thenReturn(IMAGE_DATA);
+
+      helper.requestNetworkData(connections, 0.50);
+      expect(connection1.sendCount, equals(1));
+      // Next trigger is in 3 seconds.
+      helper.requestNetworkData(connections, 3.00);
+      expect(connection1.sendCount, equals(2));
+    });
   });
 }
