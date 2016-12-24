@@ -85,6 +85,11 @@ class Loader {
             5, "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}");
         return;
       }
+      // We're currently in the state of loading form other client.
+      // But somehow the connection closed on us :(
+      if (_currentState == LoaderState.LOADING_OTHER_CLIENT) {
+        _imageIndex.loadUnfinishedImagesFromServer();
+      }
       if (!_imageIndex.imagesIndexed()) {
         // Load everythng from the server.
         _imageIndex.loadImagesFromServer();

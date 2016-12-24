@@ -139,11 +139,18 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
 
+      // All connections just died.
       peerB.signalCloseOnAllConnections();
-      for (int i = 0; i < 2; i++) {
-        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      }
+      worldB.frameDraw();
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_SERVER));
+
       // Complete me, load from server.
+      FakeImageFactory fakeImageFactoryC = injectorB.get(FakeImageFactory);
+      fakeImageFactoryC.completeAllImages();
+
+      // Completed loading form server.
+      worldB.frameDraw();
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_COMPLETED));
     });
     // TODO: Add tests here for
     // 1) Client dies mid loading.

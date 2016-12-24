@@ -21,7 +21,10 @@ class PeerWrapper {
 
   // Store active ids from the server to connect to.
   List<String> _activeIds = null;
+  // Peers we've never been able to connect to.
   Set<String> _blackListedIds = new Set();
+  // Peers which we have has a connection to, but is now closed.
+  Set<String> _closedConnectionPeers = new Set();
 
   PeerWrapper(this._world, @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks) {
@@ -155,7 +158,9 @@ class PeerWrapper {
     // Connection was never open, blacklist the id.
     if (!wrapper.opened) {
       _blackListedIds.add(id);
+      _closedConnectionPeers.add(id);
     } else {
+      _closedConnectionPeers.add(id);
       print("Not blacklisting ${this.id} was opened!");
     }
     // Assign back.
@@ -163,13 +168,14 @@ class PeerWrapper {
   }
 
   /**
-   * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
+   * Return true if we have tried all possible ways of getting a connection
+   * and should retort to being server ourselves.
    */
   bool connectionsExhausted() {
     if (_activeIds == null) {
       return false;
     }
-    return _activeIds.length - _blackListedIds.length == 0;
+    return _closedConnectionPeers.containsAll(_activeIds);
   }
 
   /**

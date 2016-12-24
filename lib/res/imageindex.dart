@@ -37,8 +37,6 @@ class ImageIndex {
   Map imageByName = new Map<String, int>();
   Map loadedImages = new Map<String, bool>();
   List images = new List();
-  // Item 0 is always empty image.
-  List<Future> imageFutures = [];
 
   ImageIndex(@CanvasFactory() DynamicFactory canvasFactory,
       @ImageFactory() DynamicFactory imageFactory) {
@@ -119,21 +117,39 @@ class ImageIndex {
     return data;
   }
 
+  loadUnfinishedImagesFromServer([String path = "./img/"]) {
+    List<Future> imageFutures = [];
+    for (String imgName in imageSources) {
+      // Already loaded, skip.
+      if (loadedImages[imgName] == true) {
+        continue;
+      }
+      // Images already indexed. Just need to load the data.
+      int index = imageByName[imgName];
+      images[index] =  this._imageFactory.create([path + imgName]);
+      imageFutures.add(_imageLoadedFuture(images[index], imgName));
+    }
+    return Future.wait(imageFutures);
+  }
+
   loadImagesFromServer([String path = "./img/"]) {
-    // TODO: What if partially loaded from client?
-    // loadedImages[name] will be true then.
+    List<Future> imageFutures = [];
     for (var img in imageSources) {
+      assert (loadedImages.containsKey(img) == false);
       var element = this._imageFactory.create([path + img]);
       images.add(element);
-      imageFutures.add(element.onLoad.first);
-      element.onLoad.first.then((e) {
-        loadedImages[img] = true;
-      });
+      imageFutures.add(_imageLoadedFuture(element, img));
       imageByName[img] = images.length - 1;
     }
     return Future.wait(imageFutures);
   }
 
+  Future _imageLoadedFuture(var img, String imageName) {
+    img.onLoad.first.then((e) {
+      loadedImages[imageName] = true;
+    });
+    return img.onLoad.first;
+  }
 
   loadImagesFromNetwork() {
     for (var img in imageSources) {
