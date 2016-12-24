@@ -66,10 +66,10 @@ class Loader {
       }
       this._currentState = LoaderState.WEB_RTC_INIT;
       return;
-    } else if (!_network.hasReceivedActiveIds()) {
+    } else if (!_peerWrapper.hasReceivedActiveIds()) {
       this._currentState =  LoaderState.WAITING_FOR_PEER_DATA;
       return;
-    } if (!_network.hasOpenConnection() && !_network.connectionsExhausted()) {
+    } if (!_network.hasOpenConnection() && !_peerWrapper.connectionsExhausted()) {
       this._currentState =  LoaderState.CONNECTING_TO_PEER;
       return;
     } else if (!_imageIndex.finishedLoadingImages()) {

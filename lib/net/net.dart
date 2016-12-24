@@ -30,9 +30,6 @@ class Network {
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
-  // Store active ids from the server to connect to.
-  List<String> activeIds = null;
-  Set<String> blackListedIds = new Set();
 
   Network(this.world, this.peer, this._server) {
     gameState = new GameState(world);
@@ -62,23 +59,6 @@ class Network {
         }
       }
     }
-  }
-  /**
-   * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
-   */
-  bool connectionsExhausted() {
-    if (activeIds == null) {
-      return false;
-    }
-    print("${activeIds} vs blacklist of ${blackListedIds}");
-    return activeIds.length - blackListedIds.length == 0;
-  }
-
-  /**
-   * See if we've received a list of active peers.
-   */
-  bool hasReceivedActiveIds() {
-    return activeIds != null;
   }
   
   /**
@@ -154,9 +134,13 @@ class Network {
    */
   List<ConnectionWrapper> safeActiveConnections() {
     List<ConnectionWrapper> activeConnections = new List();
+    print("looking at ${peer.connections}");
     for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
       if (!wrapper.closed && wrapper.opened) {
         activeConnections.add(wrapper);
+      } else {
+        print("health checking ${wrapper.id}");
+        this.peer.healthCheckConnection(wrapper.id);
       }
     }
     return activeConnections;

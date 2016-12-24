@@ -168,10 +168,6 @@ class ConnectionWrapper {
 
   void close(unusedThis) {
     world.hudMessages.display("Connection to ${id} closed :(");
-    // Connection was never open, blacklist the id.
-    if (!opened) {
-      world.network.blackListedIds.add(this.id);
-    }
     opened = false;
     closed = true;
   }
@@ -207,13 +203,8 @@ class ConnectionWrapper {
   }
 
   void error(unusedThis, error) {
-    print("error ${error}");
-    world.hudMessages.display("Connection: ${error}");
-    // Connection was never open, blacklist the id.
-    if (!opened) {
-      world.network.blackListedIds.add(this.id);
-    }
-    opened = false;
+    print("Connection ${id}error ${error} ${opened}");
+    world.hudMessages.display("Connection ${id}: ${error}");
     closed = true;
   }
 
@@ -280,17 +271,21 @@ class ConnectionWrapper {
       }
     }); 
   }
-  
+
+  void checkIfShouldClose(int keyFrame) {
+    if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
+      print("${world}: Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+      close(null);
+      return;
+    }
+  }
+
   void sendData(Map data) {
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
-      if (keyFramesBehind(data[IS_KEY_FRAME_KEY]) > ALLOWED_KEYFRAMES_BEHIND) {
-        print("${world}: Connection to $id too many keyframes behind current: ${data[IS_KEY_FRAME_KEY]} connection:${lastLocalPeerKeyFrameVerified}, dropping");
-        close(null);
-        return;
-      }
+      checkIfShouldClose(data[IS_KEY_FRAME_KEY]);
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
       data = new Map.from(data);

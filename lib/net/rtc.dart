@@ -16,8 +16,12 @@ class PeerWrapper {
   bool autoConnect = true;
   var peer;
   var id = null;
-  Map connections = {};
+  Map<String, ConnectionWrapper> connections = {};
   var _error;
+
+  // Store active ids from the server to connect to.
+  List<String> _activeIds = null;
+  Set<String> _blackListedIds = new Set();
 
   PeerWrapper(this._world, @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks) {
@@ -59,7 +63,7 @@ class PeerWrapper {
   void receivePeers(unusedThis, List<String> ids) {
     ids.remove(this.id);
     log.info("Received active peers of $ids");
-    this._world.network.activeIds = ids;
+    _activeIds = ids;
     ids.forEach((String id) {
       if (autoConnect) {
         log.info("Auto connecting to id ${id}");
@@ -97,7 +101,7 @@ class PeerWrapper {
   }
 
   void sendDataWithKeyFramesToAll(data, [var dontSendTo]) {
-    List closedConnections = [];
+    List<String> closedConnections = [];
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
       if (connection.closed) {
@@ -113,24 +117,66 @@ class PeerWrapper {
       connection.sendData(data);
     }
     if (closedConnections.length > 0) {
-      Map connectionsCopy = new Map.from(this.connections);
-      for (var key in closedConnections) {
-        ConnectionWrapper wrapper = connectionsCopy[key];
-        print("${id}: Removing connection for $key");
-        connectionsCopy.remove(key);
-        if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
-          print("Removing Gamestate for $key");
-          _world.network.gameState.removeByConnectionId(key);
-        // The crucial step of verifying we still have a server.
-        } else if (_world.network.verifyOrTransferServerRole(connectionsCopy)) {
-          // We got eleceted the new server, first task is to remove the old.
-          print("Removing Gamestate for $key");
-          _world.network.gameState.removeByConnectionId(key);
-          _world.network.gameState.convertToServer(this.id);
-        }
+      for (String id in closedConnections) {
+        removeClosedConnection(id);
       }
-      this.connections = connectionsCopy;
     }
+  }
+
+  /**
+   * See if connection with this ID is healthy.
+   */
+  void healthCheckConnection(String id) {
+    ConnectionWrapper wrapper = connections[id];
+    if (wrapper != null && wrapper.closed) {
+      removeClosedConnection(id);
+    }
+  }
+
+  /**
+   * Remove connection with this ID.
+   */
+  void removeClosedConnection(String id) {
+    // Start with a copy.
+    Map connectionsCopy = new Map.from(this.connections);
+    ConnectionWrapper wrapper = connectionsCopy[id];
+    print("${this.id}: Removing connection for $id");
+    connectionsCopy.remove(id);
+    if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
+      print("Removing Gamestate for $id");
+      _world.network.gameState.removeByConnectionId(id);
+      // The crucial step of verifying we still have a server.
+    } else if (_world.network.verifyOrTransferServerRole(connectionsCopy)) {
+      // We got eleceted the new server, first task is to remove the old.
+      print("Removing Gamestate for $id");
+      _world.network.gameState.removeByConnectionId(id);
+      _world.network.gameState.convertToServer(this.id);
+    }
+    // Connection was never open, blacklist the id.
+    if (!wrapper.opened) {
+      _blackListedIds.add(id);
+    } else {
+      print("Not blacklisting ${this.id} was opened!");
+    }
+    // Assign back.
+    connections = connectionsCopy;
+  }
+
+  /**
+   * Return true if we have tried all possible ways of getting a connection and must retort to being server ourselves.
+   */
+  bool connectionsExhausted() {
+    if (_activeIds == null) {
+      return false;
+    }
+    return _activeIds.length - _blackListedIds.length == 0;
+  }
+
+  /**
+   * See if we've received a list of active peers.
+   */
+  bool hasReceivedActiveIds() {
+    return _activeIds != null;
   }
 
   getLastError() => this._error;
