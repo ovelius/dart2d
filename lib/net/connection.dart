@@ -314,6 +314,10 @@ class ConnectionWrapper {
     return sinceCreated().compareTo(_timeout) > 0;
   }
 
+  bool isActiveConnection() {
+    return opened && !closed;
+  }
+
   bool isValidConnection() {
     if (closed) {
       return false;
