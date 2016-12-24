@@ -61,8 +61,8 @@ class TestPeer extends PeerMarker {
         return localConnection;
       }
       TestConnection remoteConnection = new TestConnection(id);
-      remoteConnection.otherEnd = localConnection;
-      localConnection.otherEnd = remoteConnection;
+      remoteConnection.setOtherEnd(localConnection);
+      localConnection.setOtherEnd(remoteConnection);
       testPeers[otherId].eventHandlers["connection"](this, remoteConnection);
       return localConnection;
     }

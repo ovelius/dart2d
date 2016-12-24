@@ -22,7 +22,7 @@ bool logConnectionData = true;
 class TestConnection {
   int dropPackets = 0;
   int dropPacketsAfter = 900000000;
-  TestConnection otherEnd;
+  TestConnection _otherEnd;
   var id;
   var eventHandlers = {};
   
@@ -47,6 +47,13 @@ class TestConnection {
     }
   }
 
+  setOtherEnd(TestConnection otherEnd) {
+    if (otherEnd == null) {
+      throw new ArgumentError("otherEnd can not be null!");
+    }
+    this._otherEnd = otherEnd;
+  }
+
   operator [](index) => id;
   
   flushBuffer() {
@@ -55,22 +62,22 @@ class TestConnection {
   }
   
   sendAndReceivByOtherPeer(var jsonObject) {
-    if (otherEnd == null) {
-      throw new StateError('otherEnd is null');
+    if (_otherEnd == null) {
+      throw new StateError('_otherEnd is null: ${this.id}');
     }
     bool drop = dropPackets > 0 || dropPacketsAfter <=0;
     dropPackets--;
     dropPacketsAfter--;
     if (logConnectionData) {
-      print("Data ${drop ? "DROPPED" : ""} ${otherEnd.id} -> ${id}: ${jsonObject[0]}");
+      print("Data ${drop ? "DROPPED" : ""} ${_otherEnd.id} -> ${id}: ${jsonObject[0]}");
     }
     recentDataSent = jsonObject[0];
     if (!drop){
-      otherEnd.recentDataRecevied = jsonObject[0];
-      if (!otherEnd.eventHandlers.containsKey("data")) {
-        throw new StateError("otherEnd $otherEnd doesn't have a 'data' has ${otherEnd.eventHandlers.keys}");
+      _otherEnd.recentDataRecevied = jsonObject[0];
+      if (!_otherEnd.eventHandlers.containsKey("data")) {
+        throw new StateError("otherEnd $_otherEnd doesn't have a 'data' has ${_otherEnd.eventHandlers.keys}");
       }
-      otherEnd.eventHandlers["data"](this, jsonObject[0]);
+      _otherEnd.eventHandlers["data"](this, jsonObject[0]);
     }
   }
 
@@ -99,7 +106,7 @@ class TestConnection {
     return true;
   }
   
-  toString() => "TestConnection $id -> ${otherEnd.id}";
+  toString() => "TestConnection $id -> ${_otherEnd.id}";
 }
 
 class TestConnectionWrapper {

@@ -42,7 +42,7 @@ class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
   // How long until connection attempt times out.
-  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:5);
+  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:8);
 
   ConnectionType connectionType;
   WormWorld world;
@@ -64,12 +64,12 @@ class ConnectionWrapper {
   // Storage of our reliable key data.
   Map keyFrameData = {};
   // Keep track of how long connection has been open.
-  Stopwatch _connectionTimer;
+  Stopwatch _connectionTimer = new Stopwatch();
   // When we time out.
   Duration _timeout;
 
   ConnectionWrapper(this.world, this.id, this.connection, this.connectionType,
-      JsCallbacksWrapper peerWrapperCallbacks,[_timeout = DEFAULT_TIMEOUT]) {
+      JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
@@ -86,8 +86,8 @@ class ConnectionWrapper {
        ..bindOnFunction(connection, 'open', open)
        ..bindOnFunction(connection, 'error', error);
     // Start the connection timer.
-    _connectionTimer = new Stopwatch();
     _connectionTimer.start();
+    _timeout = timeout;
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -177,6 +177,7 @@ class ConnectionWrapper {
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
     opened = true;
+    _connectionTimer.stop();
   }
   
   void connectToGame() {
@@ -309,19 +310,26 @@ class ConnectionWrapper {
     return new Duration(milliseconds:_connectionTimer.elapsedMilliseconds);
   }
 
-  bool timedOut() {
+  bool _timedOut() {
     return sinceCreated().compareTo(_timeout) > 0;
   }
 
-  /**
-   * Checks if the connection has timed out and closes it if that is the case.
-   */
-  void checkForTimeout() {
-    if (timedOut()) {
-      close(null);
+  bool isValidConnection() {
+    if (closed) {
+      return false;
     }
+    // Timed out waiting to become open.
+    if (!opened && _timedOut()) {
+      return false;
+    }
+
+    return true;
   }
-  
+
+  bool isValidGameConnection() {
+    return this.isValidConnection() && this.handshakeReceived;
+  }
+
   toString() => "${connectionType} to ${id}";
 }
 

@@ -104,7 +104,7 @@ class PeerWrapper {
     List<String> closedConnections = [];
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
-      if (connection.closed) {
+      if (!connection.isValidConnection()) {
         closedConnections.add(key);
         continue;
       }
@@ -128,7 +128,7 @@ class PeerWrapper {
    */
   void healthCheckConnection(String id) {
     ConnectionWrapper wrapper = connections[id];
-    if (wrapper != null && wrapper.closed) {
+    if (wrapper != null && !wrapper.isValidConnection()) {
       removeClosedConnection(id);
     }
   }
