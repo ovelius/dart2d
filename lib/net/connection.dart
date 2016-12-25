@@ -12,31 +12,10 @@ import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:convert';
 import 'dart:core';
 
-class ConnectionType {
-  final value;
-  const ConnectionType._internal(this.value);
-
-  static const CLIENT_TO_SERVER = const ConnectionType._internal(0);
-  static const SERVER_TO_CLIENT = const ConnectionType._internal(1);
-  static const CLIENT_TO_CLIENT = const ConnectionType._internal(2);
-  
-  ConnectionType.fromInt(this.value);
-  operator ==(ConnectionType other) {
-    return value == other.value; 
-  }
-  
-  toString() {
-    switch (value) {
-      case 0:
-        return "CLIENT_TO_SERVER";
-      case 1:
-        return "SERVER_TO_CLIENT";
-      case 2:
-        return "CLIENT_TO_CLIENT";
-      default:
-        throw new StateError("ConnectionType with invalid value");
-    }
-  }
+enum ConnectionType {
+  CLIENT_TO_SERVER,
+  SERVER_TO_CLIENT,
+  CLIENT_TO_CLIENT
 }
 
 class ConnectionWrapper {

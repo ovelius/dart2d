@@ -134,7 +134,6 @@ class Network {
    */
   List<ConnectionWrapper> safeActiveConnections() {
     List<ConnectionWrapper> activeConnections = new List();
-    print("looking at ${peer.connections}");
     for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
       if (wrapper.isActiveConnection()) {
         activeConnections.add(wrapper);
