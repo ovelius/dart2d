@@ -238,11 +238,10 @@ class WormWorld extends World {
     connectedToGame = true;
   }
 
-  MovingSprite getOrCreateSprite(int networkId, int flags, ConnectionWrapper wrapper) {
+  MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
     Sprite sprite = spriteIndex[networkId];
     if (sprite == null) {
-      print("${this.playerName} - $networkId is missing from ${spriteIndex}");
-      sprite = SpriteIndex.fromWorldByIndex(this, flags);
+      sprite = SpriteIndex.fromWorldByIndex(this, constructor);
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;
       // This might not be 100% accurate, since onwer might be:

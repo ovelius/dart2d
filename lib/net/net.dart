@@ -269,7 +269,8 @@ void parseBundle(WormWorld world,
     if (!SPECIAL_KEYS.contains(networkId)) {
       int parsedNetworkId = int.parse(networkId);
       // TODO(erik) Prio data for the owner of the sprite instead.
-      MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, bundle[networkId][0], connection);
+      SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
+      MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
       if (!sprite.remoteControlled()) {
         log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
         continue;

@@ -63,8 +63,8 @@ class MovingSprite extends Sprite {
   int sendFlags() {
     return 0;
   }
-  
-  int remoteRepresentation() {
-    return SpriteIndex.MOVING_SPRITE;
+
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.MOVING_SPRITE;
   }
 }

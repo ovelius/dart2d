@@ -93,7 +93,7 @@ singleTonStoredValue(var a, var b) {
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   List<int> data = [];
   
-  data.add(sprite.remoteRepresentation());
+  data.add(sprite.remoteRepresentation().index);
   // Any special sauce flags needed.
   data.add(sprite.sendFlags());
     

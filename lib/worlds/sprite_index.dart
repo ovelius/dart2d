@@ -10,26 +10,27 @@ import 'package:di/di.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+enum SpriteConstructor {
+  MOVING_SPRITE,
+  REMOTE_PLAYER_CLIENT_SPRITE,
+  ROPE_SPRITE
+}
 /**
  * Contains the world sprite data, indexed by id.
  */
 @Injectable()
 class SpriteIndex {
   final Logger log = new Logger('SpriteIndex');
-  
-  static const int MOVING_SPRITE = 0;
-  static const int REMOTE_PLAYER_CLIENT_SPRITE = 1;
-  static const int ROPE_SPRITE = 2;
 
-  static final Map<int, dynamic> _spriteConstructors = {
-    MOVING_SPRITE: (WormWorld world) => new MovingSprite.imageBasedSprite(
+  static final Map<SpriteConstructor, dynamic> _spriteConstructors = {
+    SpriteConstructor.MOVING_SPRITE: (WormWorld world) => new MovingSprite.imageBasedSprite(
         new Vec2(), 0, world.imageIndex),
-    REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
-    ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
+    SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
+    SpriteConstructor.ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
   };
     
-  static MovingSprite fromWorldByIndex(WormWorld world, int number) {
-    return _spriteConstructors[number](world);
+  static MovingSprite fromWorldByIndex(WormWorld world, SpriteConstructor constructor) {
+    return _spriteConstructors[constructor](world);
   }
 
   // Current sprites in our world.

@@ -110,8 +110,8 @@ class Rope extends MovingSprite {
     }
     return 0;
   }
-  
-  int remoteRepresentation() {
-    return SpriteIndex.ROPE_SPRITE;
+
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.ROPE_SPRITE;
   }
 }

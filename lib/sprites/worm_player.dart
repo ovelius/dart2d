@@ -397,8 +397,8 @@ class LocalPlayerSprite extends MovingSprite {
   int sendFlags() {
     return 0;
   }
-  
-  int remoteRepresentation() {
-    return SpriteIndex.REMOTE_PLAYER_CLIENT_SPRITE;
+
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE;
   }
 }
