@@ -4,6 +4,7 @@ import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/net/state_updates.dart';
@@ -47,6 +48,7 @@ class ConnectionWrapper {
   ConnectionType connectionType;
   WormWorld world;
   Network _network;
+  HudMessages _hudMessages;
   final String id;
   var connection;
   // True if connection was successfully opened.
@@ -69,7 +71,7 @@ class ConnectionWrapper {
   // When we time out.
   Duration _timeout;
 
-  ConnectionWrapper(this.world, this._network, this.id, this.connection, this.connectionType,
+  ConnectionWrapper(this.world, this._network, this._hudMessages, this.id, this.connection, this.connectionType,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
@@ -150,14 +152,14 @@ class ConnectionWrapper {
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
-      world.hudMessages.display("Got server challenge from ${id}");
+      _hudMessages.display("Got server challenge from ${id}");
       assert(!_network.isServer());
       Map receivedServerData = dataMap[SERVER_PLAYER_REPLY];
       world.createLocalClient(receivedServerData["spriteId"],
           receivedServerData["spriteIndex"]);
     }
     if (dataMap.containsKey(SERVER_PLAYER_REJECT)) {
-      world.hudMessages.display("Game is full :/");
+      _hudMessages.display("Game is full :/");
       this.closed = true;
       return;
     }
@@ -168,12 +170,12 @@ class ConnectionWrapper {
   }
 
   void close(unusedThis) {
-    world.hudMessages.display("Connection to ${id} closed :(");
+    _hudMessages.display("Connection to ${id} closed :(");
     closed = true;
   }
   
   void open(unusedThis) {
-    world.hudMessages.display("Connection to ${id} open :)");
+    _hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
@@ -205,7 +207,7 @@ class ConnectionWrapper {
 
   void error(unusedThis, error) {
     print("Connection ${id}error ${error} ${opened}");
-    world.hudMessages.display("Connection ${id}: ${error}");
+    _hudMessages.display("Connection ${id}: ${error}");
     closed = true;
   }
 

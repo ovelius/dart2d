@@ -46,7 +46,7 @@ class PeerWrapper {
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, _world.network, peerId, connection, connectionType, this._peerWrapperCallbacks);
+        _world, _world.network, _world.hudMessages, peerId, connection, connectionType, this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
@@ -100,7 +100,8 @@ class PeerWrapper {
       // We are a client. This must be another client connecting to us.
       type = ConnectionType.CLIENT_TO_CLIENT;
     }
-    connections[peerId] = new ConnectionWrapper(_world, _world.network, peerId, connection,  type,
+    connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages,
+        peerId, connection,  type,
         this._peerWrapperCallbacks);
   }
 
