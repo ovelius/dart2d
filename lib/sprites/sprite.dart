@@ -5,42 +5,19 @@ import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
 
 
-class SpriteType {
-  final value;
-  const SpriteType._internal(this.value);
-  toString() => 'Enum.$value';
-
-  static const IMAGE = const SpriteType._internal(0);
-  static const RECT = const SpriteType._internal(1);
-  static const CIRCLE = const SpriteType._internal(2);
-  static const CUSTOM = const SpriteType._internal(3);
-  
-  SpriteType.fromInt(this.value);
-  operator ==(SpriteType other) {
-    return value == other.value; 
-  }
+enum SpriteType {
+  IMAGE,
+  RECT,
+  CIRCLE,
+  CUSTOM
 }
 
-class NetworkType {
-  final _value;
-  const NetworkType._internal(this._value);
-  toString() => 'Enum.$_value';
-
+enum NetworkType {
   // Network should never touch this sprite.
-  static const LOCAL_ONLY = const NetworkType._internal('LOCAL_ONLY');
-  // Controlled locally - should be sent to peers.
-  static const LOCAL = const NetworkType._internal('LOCAL');
-  // Sprite is controlled remotely.
-  static const REMOTE = const NetworkType._internal('REMOTE');
-  // Sprite is controlled remotely AND should be forwarded to other peers.
-  static const REMOTE_FORWARD = const NetworkType._internal('REMOTE_FORWARD');
-  
-  bool remoteControlled() {
-    return _value == 'REMOTE' || _value == 'REMOTE_FORWARD';
-  }
-  operator ==(NetworkType other) {
-    return _value == other._value; 
-  }
+  LOCAL_ONLY,
+  LOCAL,
+  REMOTE,
+  REMOTE_FORWARD
 }
 
 class Sprite {
@@ -182,6 +159,14 @@ class Sprite {
   
   setColor(var context) {
     context.fillStyle = color;
+  }
+
+  /**
+   * Is sprite controlled by remote world?
+   */
+  bool remoteControlled() {
+    return networkType == NetworkType.REMOTE
+        || networkType == NetworkType.REMOTE_FORWARD;
   }
 
   drawRect(var context) {

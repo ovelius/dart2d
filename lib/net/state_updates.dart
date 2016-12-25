@@ -106,7 +106,7 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   data.add(velocityScaled.y.toInt());
 
   if (keyFrame || sprite.fullFramesOverNetwork > 0) {
-    data.add(sprite.spriteType.value);
+    data.add(sprite.spriteType.index);
     data.add(sprite.imageId);
     
     data.add(sprite.size.x.toInt());
@@ -133,7 +133,7 @@ void intListToSpriteProperties(
   // At least two more items.
   // TODO: Figure out exact increase.
   if (data.length > 10) {
-    SpriteType type = new SpriteType.fromInt(data[7]);
+    SpriteType type = SpriteType.values[data[7]];
     sprite.spriteType = type;
     if (type == SpriteType.IMAGE) {
       sprite.setImage(data[8]);
