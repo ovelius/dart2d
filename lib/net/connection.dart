@@ -46,6 +46,7 @@ class ConnectionWrapper {
 
   ConnectionType connectionType;
   WormWorld world;
+  Network _network;
   final String id;
   var connection;
   // True if connection was successfully opened.
@@ -68,7 +69,7 @@ class ConnectionWrapper {
   // When we time out.
   Duration _timeout;
 
-  ConnectionWrapper(this.world, this.id, this.connection, this.connectionType,
+  ConnectionWrapper(this.world, this._network, this.id, this.connection, this.connectionType,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
@@ -78,7 +79,7 @@ class ConnectionWrapper {
       this.handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
-      lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+      lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
     }
     peerWrapperCallbacks
        ..bindOnFunction(connection, 'data', receiveData)
@@ -95,7 +96,7 @@ class ConnectionWrapper {
       lastKeyFrameFromPeer = dataMap[IS_KEY_FRAME_KEY];
     }
     // The server does not need to wait for keyframes.
-    return lastKeyFrameFromPeer > 0 || world.network.isServer();
+    return lastKeyFrameFromPeer > 0 || _network.isServer();
   }
   
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
@@ -112,11 +113,11 @@ class ConnectionWrapper {
    */
   void checkForHandshakeData(Map dataMap) {
     if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
-      if (world.network.gameState.gameIsFull()) {
+      if (_network.gameState.gameIsFull()) {
         sendData({
           SERVER_PLAYER_REJECT: 'Game full',
           KEY_FRAME_KEY: lastKeyFrameFromPeer, 
-          IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
+          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
         // Mark as closed.
         this.closed = true;
         return;
@@ -124,13 +125,13 @@ class ConnectionWrapper {
       // Consider the client CLIENT_PLAYER_SPEC as the client having seen
       // the latest keyframe.
       // It will anyway get the keyframe from our response.
-      lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+      lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
       assert(connectionType == ConnectionType.SERVER_TO_CLIENT);
       String name = dataMap[CLIENT_PLAYER_SPEC];
-      int spriteId = world.network.gameState.getNextUsablePlayerSpriteId();
-      int spriteIndex = world.network.gameState.getNextUsableSpriteImage();
+      int spriteId = _network.gameState.getNextUsablePlayerSpriteId();
+      int spriteIndex = _network.gameState.getNextUsableSpriteImage();
       PlayerInfo info = new PlayerInfo(name, id, spriteId);
-      world.network.gameState.playerInfo.add(info);
+      _network.gameState.playerInfo.add(info);
       assert(info.connectionId != null);
       
       LocalPlayerSprite sprite = new RemotePlayerServerSprite(
@@ -145,12 +146,12 @@ class ConnectionWrapper {
       sendData({
         SERVER_PLAYER_REPLY: serverData,
         KEY_FRAME_KEY:lastKeyFrameFromPeer, 
-        IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
+        IS_KEY_FRAME_KEY: _network.currentKeyFrame});
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
       world.hudMessages.display("Got server challenge from ${id}");
-      assert(!world.network.isServer());
+      assert(!_network.isServer());
       Map receivedServerData = dataMap[SERVER_PLAYER_REPLY];
       world.createLocalClient(receivedServerData["spriteId"],
           receivedServerData["spriteIndex"]);
@@ -175,7 +176,7 @@ class ConnectionWrapper {
     world.hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
-    lastLocalPeerKeyFrameVerified = world.network.currentKeyFrame;
+    lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
     opened = true;
     _connectionTimer.stop();
   }
@@ -185,9 +186,9 @@ class ConnectionWrapper {
       // Send out local data hello. We don't do this as part of the intial handshake but over
       // the actual connection.
       Map playerData = {
-          CLIENT_PLAYER_SPEC: world.network.localPlayerName,
+          CLIENT_PLAYER_SPEC: _network.localPlayerName,
           KEY_FRAME_KEY:lastKeyFrameFromPeer,
-          IS_KEY_FRAME_KEY: world.network.currentKeyFrame,
+          IS_KEY_FRAME_KEY: _network.currentKeyFrame,
       };
       sendData(playerData);
     }
@@ -199,7 +200,7 @@ class ConnectionWrapper {
   void sendPing() {
     sendData(
         {PING: new DateTime.now().millisecond.toString(),
-          IS_KEY_FRAME_KEY: world.network.currentKeyFrame});
+          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
   }
 
   void error(unusedThis, error) {

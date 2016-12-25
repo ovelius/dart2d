@@ -46,7 +46,7 @@ class PeerWrapper {
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, peerId, connection, connectionType, this._peerWrapperCallbacks);
+        _world, _world.network, peerId, connection, connectionType, this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
@@ -93,14 +93,15 @@ class PeerWrapper {
     var peerId = connection['peer'];
     assert(peerId != null);
     _world.hudMessages.display("Got connection from ${peerId}");
+    ConnectionType type;
     if (_world.network.isServer()) {
-      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.SERVER_TO_CLIENT,
-          this._peerWrapperCallbacks);
+      type = ConnectionType.SERVER_TO_CLIENT;
     } else {
       // We are a client. This must be another client connecting to us.
-      connections[peerId] = new ConnectionWrapper(_world, peerId, connection,  ConnectionType.CLIENT_TO_CLIENT,
-          this._peerWrapperCallbacks);
+      type = ConnectionType.CLIENT_TO_CLIENT;
     }
+    connections[peerId] = new ConnectionWrapper(_world, _world.network, peerId, connection,  type,
+        this._peerWrapperCallbacks);
   }
 
   void sendDataWithKeyFramesToAll(data, [var dontSendTo]) {
