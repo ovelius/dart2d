@@ -2,6 +2,7 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -41,6 +42,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(WormWorld)
       ..bind(ChunkHelper)
       ..bind(ImageIndex)
+      ..bind(ByteWorld)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)
   ]);

@@ -6,26 +6,29 @@ import 'package:di/di.dart';
 
 @Injectable()
 class ByteWorld {
+  DynamicFactory _canvasFactory;
   int width;
   int height;
   Vec2 viewSize;
   var canvas;
 
-  ByteWorld(var image, Vec2 viewSize, @CanvasFactory() DynamicFactory canvasFactory) {
-    canvas = canvasFactory.create([image.width, image.height]);
-    this.width = canvas.width;
-    this.height = canvas.height;
+  ByteWorld(
+      @WorldWidth() int width, @WorldHeight() int height,
+      @CanvasFactory() DynamicFactory canvasFactory) {
+    this.viewSize = new Vec2(width * 1.0, height * 1.0);
+    this._canvasFactory = canvasFactory;
+  }
+
+  /**
+   * Initialize the byteworld with this image.
+   */
+  void setWorldImage(var image) {
+    canvas = _canvasFactory.create([image.width, image.height]);
+    width = canvas.width;
+    height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
-    this.viewSize = viewSize;
   }
-  
-  ByteWorld.fromCanvas(var canvas, Vec2 viewSize) {
-    this.canvas = canvas;
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.viewSize = viewSize;
-  }
-  
+
   void drawAt(var canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,

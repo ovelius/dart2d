@@ -3,6 +3,7 @@ library spaceworld;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/worlds/sprite_index.dart';
 import 'package:dart2d/net/chunk_helper.dart';
@@ -54,6 +55,7 @@ void main() {
      ..bind(WormWorld)
      ..bind(ChunkHelper)
      ..bind(ImageIndex)
+     ..bind(ByteWorld)
      ..bind(JsCallbacksWrapper, toImplementation:  JsCallbacksWrapperImpl)
      ..bind(SpriteIndex)
   ]);

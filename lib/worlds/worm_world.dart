@@ -42,7 +42,8 @@ class WormWorld extends World {
   bool connectedToGame = false;
 
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
-      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex, JsCallbacksWrapper peerWrapperCallbacks)
+      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex,
+      ByteWorld byteWorld, JsCallbacksWrapper peerWrapperCallbacks)
       : super() {
     this._canvasFactory = canvasFactory;
     this.imageIndex = imageIndex;
@@ -50,6 +51,7 @@ class WormWorld extends World {
     this._width = _canvasElement.width;
     this._height = _canvasElement.height;
     this._canvas = _canvasElement.context2D;
+    this.byteWorld = byteWorld;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     // Order important here :(
@@ -398,9 +400,8 @@ class WormWorld extends World {
   }
 
   void initByteWorld([String map = 'world.png']) {
-    byteWorld = new ByteWorld(
-        imageIndex.getImageByName(map),
-        new Vec2(this.width() * 1.0,  this.height() * 1.0), _canvasFactory);
+    byteWorld.setWorldImage(
+        imageIndex.getImageByName(map));
   }
 
   void addSprite(Sprite sprite) {
