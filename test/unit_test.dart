@@ -21,8 +21,10 @@ void main() {
     connection2 = new TestConnectionWrapper("b");
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
-    helper = new ChunkHelper(imageIndex, 4);
-    helper2 = new ChunkHelper(imageIndex, 4);
+    helper = new ChunkHelper(imageIndex, null)
+      ..setChunkSizeForTest(4);
+    helper2 = new ChunkHelper(imageIndex, null)
+      ..setChunkSizeForTest(4);
   });
   group('Chunk helper tests', () {
     test('Reply with data', () {

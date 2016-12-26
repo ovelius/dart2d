@@ -3,6 +3,7 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
+import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -43,6 +44,7 @@ class WormWorld extends World {
 
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex,
+      ChunkHelper chunkHelper,
       ByteWorld byteWorld, JsCallbacksWrapper peerWrapperCallbacks)
       : super() {
     this._canvasFactory = canvasFactory;
@@ -55,7 +57,7 @@ class WormWorld extends World {
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     // Order important here :(
-    peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
+    peer = new PeerWrapper(this, jsPeer, chunkHelper, peerWrapperCallbacks);
     network = new Network(this, peer, true);
     this.loader = new Loader(_canvasElement, imageIndex, network, peer);
   }

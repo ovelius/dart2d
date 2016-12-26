@@ -2,6 +2,7 @@ library chunk_helper;
 
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'package:di/di.dart';
@@ -13,8 +14,9 @@ class ChunkHelper {
   static const Duration IMAGE_RETRY_DURATION =
       const Duration(milliseconds: 1500);
   ImageIndex _imageIndex;
+  ByteWorld _byteWorld;
   _DataCounter counter = new _DataCounter(3);
-  int chunkSize;
+  int chunkSize = DEFAULT_CHUNK_SIZE;
   Map<String, DateTime> _lastImageRequest = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
@@ -25,7 +27,7 @@ class ChunkHelper {
   DateTime _created;
   double _timePassed = 0.0;
   
-  ChunkHelper(this._imageIndex, [this.chunkSize = DEFAULT_CHUNK_SIZE]) {
+  ChunkHelper(this._imageIndex, this._byteWorld) {
     _created = new DateTime.now();
   }
 
@@ -159,6 +161,10 @@ class ChunkHelper {
   }
 
   Map<String, int> failuresByConnection() => new Map.from(_failures);
+
+  void setChunkSizeForTest(int chunkSize) {
+    this.chunkSize = chunkSize;
+  }
 }
 
 class _DataCounter {
@@ -186,10 +192,10 @@ class _DataCounter {
 
   String format() {
     int bytesPerSecond = getBytes();
-    if (bytesPerSecond > 2*1024*1024) {
+    if (bytesPerSecond > 2 * 1024 * 1024) {
       return "${bytesPerSecond ~/ (1024 * 1024)} MB";
     }
-    if (bytesPerSecond > 2*1024) {
+    if (bytesPerSecond > 2 * 1024) {
       return "${bytesPerSecond ~/ 1024} kB";
     }
     return "${bytesPerSecond} B";

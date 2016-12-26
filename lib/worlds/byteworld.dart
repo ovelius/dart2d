@@ -20,7 +20,7 @@ class ByteWorld {
   }
 
   /**
-   * Initialize the byteworld with this image.
+   * Initialize the world image.
    */
   void setWorldImage(var image) {
     canvas = _canvasFactory.create([image.width, image.height]);

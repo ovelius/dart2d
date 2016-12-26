@@ -27,11 +27,10 @@ class PeerWrapper {
   Set<String> _closedConnectionPeers = new Set();
 
   PeerWrapper(this._world, @PeerMarker() Object jsPeer,
-      JsCallbacksWrapper peerWrapperCallbacks) {
+      this.chunkHelper,
+      this._peerWrapperCallbacks) {
     this.peer = jsPeer;
-    this.chunkHelper = new ChunkHelper(this._world.imageIndex);
-    this._peerWrapperCallbacks = peerWrapperCallbacks;
-    peerWrapperCallbacks
+    _peerWrapperCallbacks
       ..bindOnFunction(jsPeer, 'open', openPeer)
       ..bindOnFunction(jsPeer, 'receiveActivePeers', receivePeers)
       ..bindOnFunction(jsPeer, 'connection', connectPeer)
