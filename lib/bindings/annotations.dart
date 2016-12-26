@@ -26,6 +26,10 @@ class PeerMarker {
   const PeerMarker();
 }
 
+/**
+ * A generic factory object.
+ * We use this to create fake HTML elements in testing.
+ */
 class DynamicFactory {
   DynamicFactory(this._factory);
   dynamic _factory;

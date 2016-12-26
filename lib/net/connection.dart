@@ -4,6 +4,7 @@ import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
@@ -28,6 +29,7 @@ class ConnectionWrapper {
   WormWorld world;
   Network _network;
   HudMessages _hudMessages;
+  ChunkHelper _chunkHelper;
   final String id;
   var connection;
   // True if connection was successfully opened.
@@ -50,7 +52,8 @@ class ConnectionWrapper {
   // When we time out.
   Duration _timeout;
 
-  ConnectionWrapper(this.world, this._network, this._hudMessages, this.id, this.connection, this.connectionType,
+  ConnectionWrapper(this.world, this._network, this._hudMessages,
+      this._chunkHelper, this.id, this.connection, this.connectionType,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
@@ -202,12 +205,12 @@ class ConnectionWrapper {
 
     // Allow sending and parsing imageData regardless of state.
     if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
-      world.peer.chunkHelper.replyWithImageData(dataMap, this);
+      _chunkHelper.replyWithImageData(dataMap, this);
     }
     if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
-      world.peer.chunkHelper.parseImageChunkResponse(dataMap);
+      _chunkHelper.parseImageChunkResponse(dataMap);
       // Request new data right away.
-      world.peer.chunkHelper.requestNetworkData(
+      _chunkHelper.requestNetworkData(
           // No time has passed.
           new List.filled(1, this), 0.0);
     }
