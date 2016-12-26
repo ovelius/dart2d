@@ -139,7 +139,7 @@ class WormWorld extends World {
 
   void frameDraw([double duration = 0.01]) {
       if (!loader.completedResources()) {
-        loader.frameDraw(duration);
+        loader.loaderTick(duration);
         return;
       } else if (!connectedToGame) {
         startGame();

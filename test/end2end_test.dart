@@ -60,6 +60,7 @@ void main() {
       worldB.frameDraw();
       peerB.receiveActivePeer(['a']);
       worldB.frameDraw();
+      worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
 
       // Ideally this does not mean connection to a game.

@@ -103,10 +103,6 @@ class Loader {
           4, "Loading images from server ${_imageIndex.imagesLoadedString()}");
       return;
     }
-    if (this.completedResources()) {
-      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
-    }
-    return;
   }
 
   LoaderState currentState() => _currentState;
@@ -115,8 +111,9 @@ class Loader {
 
   bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
   
-  void frameDraw([double duration = 0.01]) {
-    if (completedResources()) {
+  void loaderTick([double duration = 0.01]) {
+    if (_imageIndex.finishedLoadingImages()) {
+      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
       return;
     }
     _advanceStage(duration);
@@ -124,10 +121,6 @@ class Loader {
       startedAt = new DateTime.now();
     }
     drawCenteredText(currentState().description);
-    if (_imageIndex.finishedLoadingImages()) {
-      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
-      return;
-    }
     return;
   }
   
