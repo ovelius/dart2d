@@ -138,7 +138,8 @@ class WormWorld extends World {
   }
 
   void frameDraw([double duration = 0.01]) {
-      if (!loader.frameDraw(duration)) {
+      if (!loader.completedResources()) {
+        loader.frameDraw(duration);
         return;
       } else if (!connectedToGame) {
         startGame();
@@ -227,7 +228,7 @@ class WormWorld extends World {
   }
 
   void startGame() {
-    if (!loader.completed()) {
+    if (!loader.completedResources()) {
       throw new StateError("Can not start game! Loading not complete, stage: ${loader.currentState()}");
     }
     ConnectionWrapper serverConnection = this.network.getServerConnection();

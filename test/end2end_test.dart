@@ -52,7 +52,7 @@ void main() {
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_COMPLETED));
+      expect(loaderA.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
@@ -60,7 +60,7 @@ void main() {
       worldB.frameDraw();
       peerB.receiveActivePeer(['a']);
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_COMPLETED));
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
 
       // Ideally this does not mean connection to a game.
       // But Game comes underway after a couple of frames.
@@ -96,7 +96,8 @@ void main() {
       FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
       fakeImageFactoryC.completeAllImages();
       worldC.frameDraw(KEY_FRAME_DEFAULT);
-      expect(loaderC.currentState(), equals(LoaderState.LOADING_COMPLETED));
+      expect(loaderC.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      worldC.frameDraw(KEY_FRAME_DEFAULT);
 
       expect(worldC, hasSpriteWithNetworkId(playerId(0)));
       expect(worldC.spriteIndex[playerId(0)],
@@ -125,7 +126,7 @@ void main() {
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_COMPLETED));
+      expect(loaderA.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
@@ -150,7 +151,7 @@ void main() {
 
       // Completed loading form server.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_COMPLETED));
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
     });
     // TODO: Add tests here for
     // 1) Client dies mid loading.

@@ -60,6 +60,7 @@ class ChunkHelper {
     }
     String data = null;
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
+      // TODO: Snapshot events during loading.
       data = _byteWorld.asDataUrl();
     } else {
       data = _imageIndex.getImageDataUrl(index);
@@ -98,12 +99,19 @@ class ChunkHelper {
       print("Image complete ${index} :)");
     }
   }
-  
+
+
   void requestNetworkData(List<ConnectionWrapper> connections,
       double secondsDuration) {
+    requestSpecificNetworkData(
+        connections, secondsDuration, _imageIndex.allImagesByName().values);
+  }
+
+  void requestSpecificNetworkData(List<ConnectionWrapper> connections,
+      double secondsDuration, Iterable<int> IdsToFetch) {
     _timePassed += secondsDuration;
     int requestedImages = 0;
-    for (int index in _imageIndex.allImagesByName().values) {
+    for (int index in IdsToFetch) {
       // Don't request more than 2 images at a time.
       if (requestedImages > 2 && !_imageIndex.imageIsLoaded(index)) {
         _lastImageRequest[index] = new DateTime.now();

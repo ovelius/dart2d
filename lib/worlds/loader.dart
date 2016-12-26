@@ -24,7 +24,11 @@ class LoaderState {
   static const CONNECTING_TO_PEER = const LoaderState._internal(3, "Attempting to connect to a peer...");
   static const LOADING_SERVER = const LoaderState._internal(4, "Loading resources from server...");
   static const LOADING_OTHER_CLIENT = const LoaderState._internal(5, "Loading resources from client...");
-  static const LOADING_COMPLETED = const LoaderState._internal(6, "Completed");
+
+  static const LOADING_RESOURCES_COMPLETED = const LoaderState._internal(6, "Completed loading resources.");
+
+  static const LOADING_GAMESTATE =  const LoaderState._internal(8, "Loading gamestate...");
+  static const LOADING_GAMESTATE_COMPLETED =  const LoaderState._internal(9, "All done.");
 
   operator ==(LoaderState other) {
     return value == other.value;
@@ -99,40 +103,41 @@ class Loader {
           4, "Loading images from server ${_imageIndex.imagesLoadedString()}");
       return;
     }
-    if (this.completed()) {
-      _currentState = LoaderState.LOADING_COMPLETED;
+    if (this.completedResources()) {
+      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
     }
     return;
   }
 
   LoaderState currentState() => _currentState;
   
-  bool completed() => _currentState == LoaderState.LOADING_COMPLETED;
+  bool completedResources() => _currentState == LoaderState.LOADING_RESOURCES_COMPLETED;
+
+  bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
   
-  bool frameDraw([double duration = 0.01]) {
-    if (completed()) {
-      return true;
+  void frameDraw([double duration = 0.01]) {
+    if (completedResources()) {
+      return;
     }
     _advanceStage(duration);
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
-    context_.clearRect(0, 0, width, height);
-    context_.setFillColorRgb(-0, 0, 0);
     drawCenteredText(currentState().description);
-    context_.save();
-
     if (_imageIndex.finishedLoadingImages()) {
-      _currentState = LoaderState.LOADING_COMPLETED;
-      return true;
+      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
+      return;
     }
-    return false;
+    return;
   }
   
   void drawCenteredText(String text) {
+    context_.clearRect(0, 0, width, height);
+    context_.setFillColorRgb(-0, 0, 0);
     context_.font = "20px Arial";
     var metrics = context_.measureText(text);
     context_.fillText(
         text, width / 2 - metrics.width / 2, height / 2);
+    context_.save();
   }
 }
