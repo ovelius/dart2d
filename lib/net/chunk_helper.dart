@@ -26,7 +26,9 @@ class ChunkHelper {
   Map<int, String> _imageBuffer = new Map();
   DateTime _created;
   double _timePassed = 0.0;
-  
+
+  Map<int, String> _dataUrlCache = new Map();
+
   ChunkHelper(this._imageIndex, this._byteWorld) {
     _created = new DateTime.now();
   }
@@ -39,7 +41,7 @@ class ChunkHelper {
   void replyWithImageData(Map dataMap, var connection) {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
     int index = imageDataRequest['index'];
-    String data = _imageIndex.getImageDataUrl(index);
+    String data = _getData(index);
     int start = imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
     int end = imageDataRequest.containsKey("end") 
         ? imageDataRequest["end"]
@@ -50,6 +52,20 @@ class ChunkHelper {
     String chunk = data.substring(start, end);
     connection.sendData({IMAGE_DATA_RESPONSE: 
         {'index':index, 'data':chunk, 'start':start, 'size':data.length}});
+  }
+
+  String _getData(int index) {
+    if (this._dataUrlCache.containsKey(index)) {
+      return _dataUrlCache[index];
+    }
+    String data = null;
+    if (index == ImageIndex.WORLD_IMAGE_INDEX) {
+      data = _byteWorld.asDataUrl();
+    } else {
+      data = _imageIndex.getImageDataUrl(index);
+    }
+    _dataUrlCache[index] = data;
+    return data;
   }
   
   /**

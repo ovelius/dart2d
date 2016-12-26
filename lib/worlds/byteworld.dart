@@ -60,7 +60,7 @@ class ByteWorld {
   }
   
   String asDataUrl() {
-    return canvas.toDataUrl();
+    return canvas.toDataUrl("image/png");
   }
   
   clearAt(Vec2 pos, double radius) {

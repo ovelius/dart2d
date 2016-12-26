@@ -29,11 +29,11 @@ const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANS
 
 @Injectable()
 class ImageIndex {
+  static const int WORLD_IMAGE_INDEX = 1;
   var _EMPTY_IMAGE;
   var _WORLD_IMAGE;
   DynamicFactory _canvasFactory;
   DynamicFactory _imageFactory;
-  Map<int, String> dataUrlCache_ = new Map();
   // Map ImageName -> ImageIndex.
   Map imageByName = new Map<String, int>();
   // Map ImageName -> Loaded bool.
@@ -47,6 +47,7 @@ class ImageIndex {
     // Image 0 is always empty image.
     // Image 1 is always world image.
     _createBaseImages();
+    assert(images[WORLD_IMAGE_INDEX] == _WORLD_IMAGE);
   }
 
   void _createBaseImages() {
@@ -111,14 +112,10 @@ class ImageIndex {
    * Return and an img.src represenation of this image.
    */
   String getImageDataUrl(int index) {
-    if (dataUrlCache_.containsKey(index)) {
-      return dataUrlCache_[index];
-    }
     var image = images[index];
     var canvas = _canvasFactory.create([image.width, image.height]);
     canvas.context2D.drawImage(image, 0, 0);
     String data = canvas.toDataUrl("image/png");
-    dataUrlCache_[index] = data;
     return data;
   }
 

@@ -1,29 +1,35 @@
 import 'package:test/test.dart';
 import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:mockito/mockito.dart';
 import 'test_connection.dart';
 
 class MockImageIndex extends Mock implements ImageIndex {}
+class MockByteWorld extends Mock implements ByteWorld {}
 
 void main() {
   const String IMAGE_DATA =
       "12345678901234567890123456789012345678901234567890";
+  const String BYTE_WORLD_IMAGE_DATA =
+      "abcdefghijklmonpqrstuv";
   TestConnectionWrapper connection1;
   TestConnectionWrapper connection2;
   ChunkHelper helper;
   ChunkHelper helper2;
   ImageIndex imageIndex;
   ImageIndex imageIndex2;
+  ByteWorld byteWorld;
   setUp(() {
     connection1 = new TestConnectionWrapper("a");
     connection2 = new TestConnectionWrapper("b");
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
-    helper = new ChunkHelper(imageIndex, null)
+    byteWorld = new MockByteWorld();
+    helper = new ChunkHelper(imageIndex, byteWorld)
       ..setChunkSizeForTest(4);
-    helper2 = new ChunkHelper(imageIndex, null)
+    helper2 = new ChunkHelper(imageIndex, byteWorld)
       ..setChunkSizeForTest(4);
   });
   group('Chunk helper tests', () {
@@ -140,6 +146,28 @@ void main() {
       helper.requestNetworkData(connections, 3.00);
       expect(connection1.sendCount, equals(3));
       expect(helper.failuresByConnection(), equals({"a": 2}));
+    });
+    test('Test with byteworld state', () {
+      int requestedIndex = ImageIndex.WORLD_IMAGE_INDEX;
+      List connections = new List.filled(1, connection1);
+
+      Map map = {"image2.png":requestedIndex};
+      when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA);
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      when(imageIndex.allImagesByName()).thenReturn(map);
+
+      helper.requestNetworkData(connections, 0.01);
+      helper.replyWithImageData(connection1.lastDataSent, connection1);
+      expect(
+          connection1.lastDataSent,
+          equals({
+            '-i': {
+              'index': requestedIndex,
+              'data': 'abcde',
+              'start': 0,
+              'size': BYTE_WORLD_IMAGE_DATA.length
+            }
+          }));
     });
   });
 }
