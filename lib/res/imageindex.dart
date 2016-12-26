@@ -117,29 +117,25 @@ class ImageIndex {
     return data;
   }
 
-  loadUnfinishedImagesFromServer([String path = "./img/"]) {
+  loadImagesFromServer([String path = "./img/"]) {
     List<Future> imageFutures = [];
-    for (String imgName in imageSources) {
+    for (var imgName in imageSources) {
       // Already loaded, skip.
       if (loadedImages[imgName] == true) {
         continue;
       }
-      // Images already indexed. Just need to load the data.
+      var element = this._imageFactory.create([path + imgName]);
       int index = imageByName[imgName];
-      images[index] =  this._imageFactory.create([path + imgName]);
-      imageFutures.add(_imageLoadedFuture(images[index], imgName));
-    }
-    return Future.wait(imageFutures);
-  }
-
-  loadImagesFromServer([String path = "./img/"]) {
-    List<Future> imageFutures = [];
-    for (var img in imageSources) {
-      assert (loadedImages.containsKey(img) == false);
-      var element = this._imageFactory.create([path + img]);
-      images.add(element);
-      imageFutures.add(_imageLoadedFuture(element, img));
-      imageByName[img] = images.length - 1;
+      // Already indexed. Update existing item.
+      if (index != null) {
+        images[index] = element;
+      } else {
+        // Not indexed add it.
+        images.add(element);
+        index = images.length - 1;
+      }
+      imageFutures.add(_imageLoadedFuture(element, imgName));
+      imageByName[imgName] = index;
     }
     return Future.wait(imageFutures);
   }
