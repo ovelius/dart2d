@@ -5,6 +5,7 @@ import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'fake_canvas.dart';
 import 'test_env.dart';
@@ -17,7 +18,7 @@ WormWorld testWorld(String id, {var canvasElement}) {
   Injector injector = createWorldInjector(id);
   WormWorld world = injector.get(WormWorld);
   world.playerName = "name${id.toUpperCase()}";
-  world.loader.loaderTick();
+  world.loader.setStateForTest(LoaderState.LOADING_GAMESTATE_COMPLETED);
   world.initByteWorld();
   return world;
 }

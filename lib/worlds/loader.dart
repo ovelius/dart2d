@@ -37,6 +37,8 @@ class LoaderState {
 
 @Injectable() // TODO make fully injectable.
 class Loader {
+  final List<int> GAME_STATE_RESOURCES =
+      new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
   Network _network;
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
@@ -107,7 +109,8 @@ class Loader {
 
   LoaderState currentState() => _currentState;
   
-  bool completedResources() => _currentState == LoaderState.LOADING_RESOURCES_COMPLETED;
+  bool completedResources() => (_currentState == LoaderState.LOADING_RESOURCES_COMPLETED
+      || hasGameState());
 
   bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
   
@@ -116,12 +119,31 @@ class Loader {
       _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
       return;
     }
-    _advanceStage(duration);
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
+    _advanceStage(duration);
     drawCenteredText(currentState().description);
-    return;
+  }
+
+  void loaderGameStateTick([double duration = 0.01]) {
+    if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
+      _currentState = LoaderState.LOADING_GAMESTATE_COMPLETED;
+      return;
+    }
+    _loadGameStateStage(duration);
+    drawCenteredText(currentState().description);
+  }
+
+  void _loadGameStateStage(double duration) {
+    ConnectionWrapper serverConnection = _network.getServerConnection();
+    if (serverConnection == null) {
+      // TODO: Handle this.
+      throw new StateError("No server connection!");
+    }
+    _peerWrapper.chunkHelper.requestSpecificNetworkData(
+        new List.filled(1, serverConnection), duration, GAME_STATE_RESOURCES);
+    this._currentState == LoaderState.LOADING_GAMESTATE;
   }
   
   void drawCenteredText(String text) {
@@ -132,5 +154,9 @@ class Loader {
     context_.fillText(
         text, width / 2 - metrics.width / 2, height / 2);
     context_.save();
+  }
+
+  setStateForTest(LoaderState state) {
+    this._currentState = state;
   }
 }

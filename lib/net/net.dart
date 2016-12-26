@@ -26,6 +26,7 @@ class Network {
   PeerWrapper peer;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
+  @Deprecated("Should be replaced by gameStats.actingServerId")
   bool _server = false;
   // If we are client, this indicates that the server
   // is unable to ack our data.
@@ -89,6 +90,7 @@ class Network {
       // Start treating the other peer as server.
       ConnectionWrapper connection = connections[maxPeerKey];
       connection.connectionType = ConnectionType.CLIENT_TO_SERVER;
+      gameState.actingServerId = maxPeerKey;
       world.hudMessages.display("Elected new server ${info.name}");
     } else {
       // We are becoming server. Gosh.
@@ -212,6 +214,9 @@ class Network {
 
   void setIsServer(bool server) {
     this._server = server;
+    this.gameState.actingServerId = peer.id;
+    // TODO select me!
+    this.gameState.mapId = 1;
   }
 
   bool hasReadyConnection() {

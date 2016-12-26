@@ -51,7 +51,8 @@ class GameState {
 
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
-  int level = 0;
+  int mapId = 0;
+  String actingServerId;
   // True if we have urgent data for the network.
   bool urgentData = false;
   
@@ -76,13 +77,15 @@ class GameState {
     for (Map playerMap in players) {
       playerInfo.add(new PlayerInfo.fromMap(playerMap));
     }
-    level = map["l"];
+    mapId = map["m"];
+    actingServerId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
   
   Map toMap() {
     Map map = new Map();
-    map["l"] = level;
+    map["m"] = mapId;
+    map["e"] = actingServerId;
     map["s"] = startedAt.millisecondsSinceEpoch;
     List<Map> players = [];
     for (PlayerInfo info in playerInfo) {
@@ -117,6 +120,7 @@ class GameState {
    * Converts the world sprite state for us to become server.
    */
   convertToServer(var selfConnectionId) {
+    this.actingServerId = selfConnectionId;
     for (PlayerInfo info in playerInfo) {
       if (info.connectionId == selfConnectionId) {
         LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];

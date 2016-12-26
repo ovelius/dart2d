@@ -138,17 +138,35 @@ class WormWorld extends World {
   }
 
   void frameDraw([double duration = 0.01]) {
-      if (!loader.completedResources()) {
-        loader.loaderTick(duration);
-        return;
-      } else if (!connectedToGame) {
-        startGame();
-      }
+    // Phase 1 load resources.
+    if (!loader.completedResources()) {
+      loader.loaderTick(duration);
+      return;
+    }
+
+    // Phase 2 try and connect to game (or start own game).
+    if (!connectedToGame) {
+      // Signal starting of game.
+      startGame();
+    }
+
+    // Phase 3 load gamestate from server.
+    if (!network.isServer() && !loader.hasGameState()) {
+      // Load the gamestate from server.
+      loader.loaderGameStateTick(duration);
+      return;
+    }
+    // Phase 4 initialize world.
+    if (!byteWorld.initialized()) {
+      // Empty string means from server data.
+      initByteWorld("");
+    }
+
       if (restart) {
         clearScreen();
         restart = false;
       }
-      assert(byteWorld != null);
+      assert(byteWorld.initialized());
       int frames = advanceFrames(duration);
    
       for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
@@ -233,13 +251,12 @@ class WormWorld extends World {
     }
     ConnectionWrapper serverConnection = this.network.getServerConnection();
     if (serverConnection == null) {
-      startAsServer(); // true for two players.
+      startAsServer();
+      initByteWorld();
     } else {
       // Connect to the actual game.
       serverConnection.connectToGame();
     }
-    // Move elsewhere to allow choosing map...
-    this.initByteWorld();
     connectedToGame = true;
   }
 
@@ -403,8 +420,11 @@ class WormWorld extends World {
   }
 
   void initByteWorld([String map = 'world.png']) {
-    byteWorld.setWorldImage(
-        imageIndex.getImageByName(map));
+    var worldImage = map.isNotEmpty
+        ? imageIndex.getImageByName(map)
+        : imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
+    print("$worldImage ${worldImage.width} ${worldImage.height}");
+    byteWorld.setWorldImage(worldImage);
   }
 
   void addSprite(Sprite sprite) {

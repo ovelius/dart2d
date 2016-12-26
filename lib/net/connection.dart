@@ -166,16 +166,15 @@ class ConnectionWrapper {
   }
   
   void connectToGame() {
-    if (connectionType == ConnectionType.CLIENT_TO_SERVER) {
-      // Send out local data hello. We don't do this as part of the intial handshake but over
-      // the actual connection.
-      Map playerData = {
-          CLIENT_PLAYER_SPEC: _network.localPlayerName,
-          KEY_FRAME_KEY:lastKeyFrameFromPeer,
-          IS_KEY_FRAME_KEY: _network.currentKeyFrame,
-      };
-      sendData(playerData);
-    }
+    assert (connectionType == ConnectionType.CLIENT_TO_SERVER);
+    // Send out local data hello. We don't do this as part of the intial handshake but over
+    // the actual connection.
+    Map playerData = {
+        CLIENT_PLAYER_SPEC: _network.localPlayerName,
+        KEY_FRAME_KEY:lastKeyFrameFromPeer,
+        IS_KEY_FRAME_KEY: _network.currentKeyFrame,
+    };
+    sendData(playerData);
   }
 
   /**

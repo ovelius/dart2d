@@ -69,6 +69,9 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE_COMPLETED));
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
 
       expect(worldA, hasSpriteWithNetworkId(playerId(0)));
       expect(worldA, hasSpriteWithNetworkId(playerId(1)));

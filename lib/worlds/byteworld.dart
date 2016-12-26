@@ -29,6 +29,10 @@ class ByteWorld {
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
   }
 
+  bool initialized() {
+    return canvas != null;
+  }
+
   void drawAt(var canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,

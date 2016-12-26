@@ -61,6 +61,7 @@ class ChunkHelper {
     String data = null;
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
       // TODO: Snapshot events during loading.
+      // TODO: Empty cache after loading completed?
       data = _byteWorld.asDataUrl();
     } else {
       data = _imageIndex.getImageDataUrl(index);

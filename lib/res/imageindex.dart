@@ -96,7 +96,7 @@ class ImageIndex {
   }
 
   void addFromImageData(int index, String data) {
-    images[index].src = data;
+    images[index] = _imageFactory.create([data]);
     loadedImages[index] = true;
   }
 
