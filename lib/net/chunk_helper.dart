@@ -17,13 +17,13 @@ class ChunkHelper {
   ByteWorld _byteWorld;
   _DataCounter counter = new _DataCounter(3);
   int chunkSize = DEFAULT_CHUNK_SIZE;
-  Map<String, DateTime> _lastImageRequest = new Map();
+  Map<int, DateTime> _lastImageRequest = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
   // Connection we requested image from.
-  Map<String, String> _imageToConnection = new Map();
+  Map<int, String> _imageToConnection = new Map();
 
-  Map<String, String> _imageBuffer = new Map();
+  Map<int, String> _imageBuffer = new Map();
   DateTime _created;
   double _timePassed = 0.0;
   
@@ -38,8 +38,8 @@ class ChunkHelper {
    */
   void replyWithImageData(Map dataMap, var connection) {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
-    String name = imageDataRequest['name'];
-    String data = _imageIndex.getImageDataUrl(name);
+    int index = imageDataRequest['index'];
+    String data = _imageIndex.getImageDataUrl(index);
     int start = imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
     int end = imageDataRequest.containsKey("end") 
         ? imageDataRequest["end"]
@@ -49,7 +49,7 @@ class ChunkHelper {
     assert(start < end);
     String chunk = data.substring(start, end);
     connection.sendData({IMAGE_DATA_RESPONSE: 
-        {'name':name, 'data':chunk, 'start':start, 'size':data.length}});
+        {'index':index, 'data':chunk, 'start':start, 'size':data.length}});
   }
   
   /**
@@ -57,29 +57,29 @@ class ChunkHelper {
    */
   void parseImageChunkResponse(Map dataMap) {
     Map imageDataResponse = dataMap[IMAGE_DATA_RESPONSE];
-    String name = imageDataResponse['name'];
+    int index = imageDataResponse['index'];
     String data = imageDataResponse['data'];
     counter.collect(data.length);
     int start = imageDataResponse['start'];
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
-    if (!_imageBuffer.containsKey(name)) {
-      print("Got image data for ${name}, excpected any of ${_imageBuffer.keys}");
+    if (!_imageBuffer.containsKey(index)) {
+      print("Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
-    if (start == _imageBuffer[name].length) {
-      _imageBuffer[name] = _imageBuffer[name] + data;
-      _lastImageRequest.remove(name);
-      _imageToConnection.remove(name);
+    if (start == _imageBuffer[index].length) {
+      _imageBuffer[index] = _imageBuffer[index] + data;
+      _lastImageRequest.remove(index);
+      _imageToConnection.remove(index);
     } else {
-      print("Dropping data for ${name}, out of order??");
+      print("Dropping data for ${index}, out of order??");
     }
 
     // Image complete.
-    if (_imageBuffer[name].length == size) {
-      _imageIndex.addFromImageData(name, _imageBuffer[name]);
-      _imageBuffer.remove(name);
-      print("Image complete ${name} :)");
+    if (_imageBuffer[index].length == size) {
+      _imageIndex.addFromImageData(index, _imageBuffer[index]);
+      _imageBuffer.remove(index);
+      print("Image complete ${index} :)");
     }
   }
   
@@ -87,13 +87,13 @@ class ChunkHelper {
       double secondsDuration) {
     _timePassed += secondsDuration;
     int requestedImages = 0;
-    for (String name in _imageIndex.allImagesByName().keys) {
+    for (int index in _imageIndex.allImagesByName().values) {
       // Don't request more than 2 images at a time.
-      if (requestedImages > 2 && !_imageIndex.imageIsLoaded(name)) {
-        _lastImageRequest[name] = new DateTime.now();
+      if (requestedImages > 2 && !_imageIndex.imageIsLoaded(index)) {
+        _lastImageRequest[index] = new DateTime.now();
         continue;
       }
-      if (_maybeRequestImageLoad(name, connections)) {
+      if (_maybeRequestImageLoad(index, connections)) {
         requestedImages++; 
       }
     }
@@ -103,25 +103,25 @@ class ChunkHelper {
     return _created.add(new Duration(milliseconds: (_timePassed * 1000).toInt()));
   }
 
-  bool _maybeRequestImageLoad(String name, List<ConnectionWrapper> connections) {
-    if (!_imageIndex.imageIsLoaded(name)) {
-      DateTime lastRequest = _lastImageRequest[name];
+  bool _maybeRequestImageLoad(int index, List<ConnectionWrapper> connections) {
+    if (!_imageIndex.imageIsLoaded(index)) {
+      DateTime lastRequest = _lastImageRequest[index];
       if (lastRequest == null) {
         // Request larger chunk.
         this.chunkSize = min(MAX_CHUNK_SIZE, (this.chunkSize * 1.25).toInt());
-        return _requestImageData(name, connections);
+        return _requestImageData(index, connections);
       } else if (_now().difference(lastRequest).inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
         // Request smaller chunk. This was a retry.
-        _trackFailingConnection(name);
+        _trackFailingConnection(index);
         this.chunkSize = (this.chunkSize * 0.3).toInt();
-        return _requestImageData(name, connections);
+        return _requestImageData(index, connections);
       }     
     }
     return false;
   }
 
-  void _trackFailingConnection(String imageName) {
-    String failingConnection = _imageToConnection[imageName];
+  void _trackFailingConnection(int index) {
+    String failingConnection = _imageToConnection[index];
     if (failingConnection != null) {
       if (_failures.containsKey(failingConnection)) {
         _failures[failingConnection] = _failures[failingConnection] + 1;
@@ -131,26 +131,26 @@ class ChunkHelper {
     }
   }
   
-  Map buildImageChunkRequest(String name) {
-    if (!_imageBuffer.containsKey(name)) {
-      _imageBuffer[name] = "";
+  Map buildImageChunkRequest(int index) {
+    if (!_imageBuffer.containsKey(index)) {
+      _imageBuffer[index] = "";
     }
-    String currentData = _imageBuffer[name];
-    return {'name':name, 'start':currentData.length, 'end':currentData.length + chunkSize};
+    String currentData = _imageBuffer[index];
+    return {'index':index, 'start':currentData.length, 'end':currentData.length + chunkSize};
   }
 
   /**
    * Request image data from a random connection.
    */
-  bool _requestImageData(String name, List<dynamic> connections,
+  bool _requestImageData(int index, List<dynamic> connections,
       [bool retry = false]) {
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
       var connection = connections[r.nextInt(connections.length)];
-      connection.sendData({IMAGE_DATA_REQUEST:buildImageChunkRequest(name)});
-      _lastImageRequest[name] = new DateTime.now();
-      _imageToConnection[name] = connection.id;
+      connection.sendData({IMAGE_DATA_REQUEST:buildImageChunkRequest(index)});
+      _lastImageRequest[index] = new DateTime.now();
+      _imageToConnection[index] = connection.id;
       return true;
     }
     return false;

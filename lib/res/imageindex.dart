@@ -30,12 +30,14 @@ const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANS
 @Injectable()
 class ImageIndex {
   var _EMPTY_IMAGE;
+  var _WORLD_IMAGE;
   DynamicFactory _canvasFactory;
   DynamicFactory _imageFactory;
-  Map<String, String> dataUrlCache_ = new Map();
-  // Map ImageName -> ImageId.
+  Map<int, String> dataUrlCache_ = new Map();
+  // Map ImageName -> ImageIndex.
   Map imageByName = new Map<String, int>();
-  Map loadedImages = new Map<String, bool>();
+  // Map ImageName -> Loaded bool.
+  Map loadedImages = new Map<int, bool>();
   List images = new List();
 
   ImageIndex(@CanvasFactory() DynamicFactory canvasFactory,
@@ -43,13 +45,16 @@ class ImageIndex {
     this._imageFactory = imageFactory;
     this._canvasFactory = canvasFactory;
     // Image 0 is always empty image.
-    _createEmptyImage();
-    images.add(_EMPTY_IMAGE);
+    // Image 1 is always world image.
+    _createBaseImages();
   }
 
-  void _createEmptyImage() {
+  void _createBaseImages() {
     _EMPTY_IMAGE = _imageFactory.create([100, 100]);
     _EMPTY_IMAGE.src = _EMPTY_IMAGE_DATA_STRING;
+    _WORLD_IMAGE = _imageFactory.create([1, 1]);
+    images.add(_EMPTY_IMAGE);
+    images.add(_WORLD_IMAGE);
   }
 
   /**
@@ -58,8 +63,9 @@ class ImageIndex {
   useEmptyImagesForTest() {
     for (var img in imageSources) {
       images.add(_EMPTY_IMAGE);
-      imageByName[img] = images.length - 1;
-      loadedImages[img] = true;
+      int index = images.length - 1;
+      imageByName[img] = index;
+      loadedImages[index] = true;
     }
   }
 
@@ -88,9 +94,9 @@ class ImageIndex {
     loadImagesFromServer(path);
   }
 
-  void addFromImageData(String name, String data) {
-    images[imageByName[name]].src = data;
-    loadedImages[name] = true;
+  void addFromImageData(int index, String data) {
+    images[index].src = data;
+    loadedImages[index] = true;
   }
 
   void addImagesFromNetwork() {
@@ -104,16 +110,15 @@ class ImageIndex {
   /**
    * Return and an img.src represenation of this image.
    */
-  String getImageDataUrl(String name) {
-    if (dataUrlCache_.containsKey(name)) {
-      return dataUrlCache_[name];
+  String getImageDataUrl(int index) {
+    if (dataUrlCache_.containsKey(index)) {
+      return dataUrlCache_[index];
     }
-    int index = imageByName[name];
     var image = images[index];
     var canvas = _canvasFactory.create([image.width, image.height]);
     canvas.context2D.drawImage(image, 0, 0);
     String data = canvas.toDataUrl("image/png");
-    dataUrlCache_[name] = data;
+    dataUrlCache_[index] = data;
     return data;
   }
 
@@ -134,15 +139,15 @@ class ImageIndex {
         images.add(element);
         index = images.length - 1;
       }
-      imageFutures.add(_imageLoadedFuture(element, imgName));
+      imageFutures.add(_imageLoadedFuture(element, index));
       imageByName[imgName] = index;
     }
     return Future.wait(imageFutures);
   }
 
-  Future _imageLoadedFuture(var img, String imageName) {
+  Future _imageLoadedFuture(var img, int index) {
     img.onLoad.first.then((e) {
-      loadedImages[imageName] = true;
+      loadedImages[index] = true;
     });
     return img.onLoad.first;
   }
@@ -159,7 +164,7 @@ class ImageIndex {
     return imageByName;
   }
 
-  bool imageIsLoaded(String name) {
-    return loadedImages[name] == true;
+  bool imageIsLoaded(int index) {
+    return loadedImages[index] == true;
   }
 }
