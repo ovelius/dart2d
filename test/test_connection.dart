@@ -114,11 +114,17 @@ class TestConnectionWrapper {
   final String id;
   int sendCount = 0;
   Map lastDataSent = null;
+  List<Map> dataSent = [];
 
   TestConnectionWrapper(this.id);
 
+  void sampleLatency(Duration latency) {
+    print("Got latency data of $latency");
+  }
+
   void sendData(Map data) {
     this.lastDataSent = data;
+    this.dataSent.add(data);
     this.sendCount++;
   }
 }

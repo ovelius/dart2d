@@ -11,6 +11,7 @@ import 'package:di/di.dart';
 class ChunkHelper {
   static const int DEFAULT_CHUNK_SIZE = 512;
   static const int MAX_CHUNK_SIZE = 65000;
+  // TODO: Lower with ping time?
   static const Duration IMAGE_RETRY_DURATION =
       const Duration(milliseconds: 1500);
   ImageIndex _imageIndex;
@@ -23,10 +24,12 @@ class ChunkHelper {
   // Connection we requested image from.
   Map<int, String> _imageToConnection = new Map();
 
+  // Buffer partially completed images in this map.
   Map<int, String> _imageBuffer = new Map();
   DateTime _created;
   double _timePassed = 0.0;
 
+  // Our local cache.
   Map<int, String> _dataUrlCache = new Map();
 
   ChunkHelper(this._imageIndex, this._byteWorld) {
@@ -42,16 +45,23 @@ class ChunkHelper {
     Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
     int index = imageDataRequest['index'];
     String data = _getData(index);
-    int start = imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
-    int end = imageDataRequest.containsKey("end") 
+    int start =
+        imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
+    int end = imageDataRequest.containsKey("end")
         ? imageDataRequest["end"]
         : start + chunkSize;
     end = min(end, data.length);
 
     assert(start < end);
     String chunk = data.substring(start, end);
-    connection.sendData({IMAGE_DATA_RESPONSE: 
-        {'index':index, 'data':chunk, 'start':start, 'size':data.length}});
+    connection.sendData({
+      IMAGE_DATA_RESPONSE: {
+        'index': index,
+        'data': chunk,
+        'start': start,
+        'size': data.length
+      }
+    });
   }
 
   String _getData(int index) {
@@ -69,11 +79,11 @@ class ChunkHelper {
     _dataUrlCache[index] = data;
     return data;
   }
-  
+
   /**
    * Parse response with imageData.
    */
-  void parseImageChunkResponse(Map dataMap) {
+  void parseImageChunkResponse(Map dataMap, var connection) {
     Map imageDataResponse = dataMap[IMAGE_DATA_RESPONSE];
     int index = imageDataResponse['index'];
     String data = imageDataResponse['data'];
@@ -82,12 +92,16 @@ class ChunkHelper {
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
     if (!_imageBuffer.containsKey(index)) {
-      print("Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
+      print(
+          "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
     if (start == _imageBuffer[index].length) {
       _imageBuffer[index] = _imageBuffer[index] + data;
-      _lastImageRequest.remove(index);
+      if (_lastImageRequest.containsKey(index)) {
+        Duration latency = _now().difference(_lastImageRequest[index]);
+        connection.sampleLatency(latency);
+      }
       _imageToConnection.remove(index);
     } else {
       print("Dropping data for ${index}, out of order??");
@@ -101,9 +115,8 @@ class ChunkHelper {
     }
   }
 
-
-  void requestNetworkData(List<ConnectionWrapper> connections,
-      double secondsDuration) {
+  void requestNetworkData(
+      List<ConnectionWrapper> connections, double secondsDuration) {
     requestSpecificNetworkData(
         connections, secondsDuration, _imageIndex.allImagesByName().values);
   }
@@ -113,36 +126,40 @@ class ChunkHelper {
     _timePassed += secondsDuration;
     int requestedImages = 0;
     for (int index in IdsToFetch) {
-      // Don't request more than 2 images at a time.
-      if (requestedImages > 2 && !_imageIndex.imageIsLoaded(index)) {
-        _lastImageRequest[index] = new DateTime.now();
+      // Don't request more than 3 images at a time.
+      if (requestedImages > 2) {
         continue;
       }
-      if (_maybeRequestImageLoad(index, connections)) {
-        requestedImages++; 
+      if (!_imageIndex.imageIsLoaded(index)) {
+        if (_maybeRequestImageLoad(index, connections)) {
+          requestedImages++;
+        }
       }
     }
   }
 
   DateTime _now() {
-    return _created.add(new Duration(milliseconds: (_timePassed * 1000).toInt()));
+    return _created
+        .add(new Duration(milliseconds: (_timePassed * 1000).toInt()));
   }
 
   bool _maybeRequestImageLoad(int index, List<ConnectionWrapper> connections) {
-    if (!_imageIndex.imageIsLoaded(index)) {
-      DateTime lastRequest = _lastImageRequest[index];
-      if (lastRequest == null) {
-        // Request larger chunk.
-        this.chunkSize = min(MAX_CHUNK_SIZE, (this.chunkSize * 1.25).toInt());
-        return _requestImageData(index, connections);
-      } else if (_now().difference(lastRequest).inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
-        // Request smaller chunk. This was a retry.
-        _trackFailingConnection(index);
-        this.chunkSize = (this.chunkSize * 0.3).toInt();
-        return _requestImageData(index, connections);
-      }     
+    DateTime lastRequest = _lastImageRequest[index];
+    String connectionId = _imageToConnection[index];
+    if (connectionId == null) {
+      // Request larger chunk.
+      this.chunkSize = min(MAX_CHUNK_SIZE, (this.chunkSize * 1.25).toInt());
+      return _requestImageData(index, connections);
     }
-    return false;
+    Duration latency = _now().difference(lastRequest);
+    if (latency.inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
+      // Request smaller chunk. This was a retry.
+      _trackFailingConnection(index);
+      this.chunkSize = (this.chunkSize * 0.3).toInt();
+      return _requestImageData(index, connections);
+    }
+    // return true if image is not loaded. False otherwise.
+    return !_imageIndex.imageIsLoaded(index);
   }
 
   void _trackFailingConnection(int index) {
@@ -155,13 +172,17 @@ class ChunkHelper {
       }
     }
   }
-  
+
   Map buildImageChunkRequest(int index) {
     if (!_imageBuffer.containsKey(index)) {
       _imageBuffer[index] = "";
     }
     String currentData = _imageBuffer[index];
-    return {'index':index, 'start':currentData.length, 'end':currentData.length + chunkSize};
+    return {
+      'index': index,
+      'start': currentData.length,
+      'end': currentData.length + chunkSize
+    };
   }
 
   /**
@@ -173,14 +194,14 @@ class ChunkHelper {
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
       var connection = connections[r.nextInt(connections.length)];
-      connection.sendData({IMAGE_DATA_REQUEST:buildImageChunkRequest(index)});
+      connection.sendData({IMAGE_DATA_REQUEST: buildImageChunkRequest(index)});
       _lastImageRequest[index] = new DateTime.now();
       _imageToConnection[index] = connection.id;
       return true;
     }
     return false;
   }
-  
+
   String getTransferSpeed() {
     return counter.format();
   }
@@ -197,14 +218,14 @@ class _DataCounter {
 
   int secondsInterval;
   int bytesPerSecond = 0;
-  
+
   int bytesSinceLast = 0;
   DateTime lastCheck = new DateTime.now();
 
   collect(int bytes) {
     bytesSinceLast += bytes;
   }
-  
+
   int getBytes() {
     Duration diff = new DateTime.now().difference(lastCheck);
     if (diff.inSeconds >= secondsInterval) {

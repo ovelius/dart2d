@@ -51,6 +51,8 @@ class ConnectionWrapper {
   Stopwatch _connectionTimer = new Stopwatch();
   // When we time out.
   Duration _timeout;
+  // The monitored latency of the connection.
+  Duration latency = DEFAULT_TIMEOUT;
 
   ConnectionWrapper(this.world, this._network, this._hudMessages,
       this._chunkHelper, this.id, this.connection, this.connectionType,
@@ -207,7 +209,7 @@ class ConnectionWrapper {
       _chunkHelper.replyWithImageData(dataMap, this);
     }
     if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
-      _chunkHelper.parseImageChunkResponse(dataMap);
+      _chunkHelper.parseImageChunkResponse(dataMap, this);
       // Request new data right away.
       _chunkHelper.requestNetworkData(
           // No time has passed.
@@ -318,6 +320,10 @@ class ConnectionWrapper {
     return this.isValidConnection() && this.handshakeReceived;
   }
 
-  toString() => "${connectionType} to ${id}";
+  void sampleLatency(Duration latency) {
+    this.latency = latency;
+  }
+
+  toString() => "${connectionType} to ${id} latency ${latency}";
 }
 
