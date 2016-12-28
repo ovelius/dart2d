@@ -9,8 +9,9 @@ import 'package:di/di.dart';
 
 @Injectable()
 class ChunkHelper {
-  static const int DEFAULT_CHUNK_SIZE = 512;
+  static const int DEFAULT_CHUNK_SIZE = 1024;
   static const int MAX_CHUNK_SIZE = 65000;
+  static const int MIN_CHUNK_SIZE = 100;
   // TODO: Lower with ping time?
   static const Duration IMAGE_RETRY_DURATION =
       const Duration(milliseconds: 1500);
@@ -52,7 +53,9 @@ class ChunkHelper {
         : start + _chunkSize;
     end = min(end, data.length);
 
-    assert(start < end);
+    if (start >= end) {
+      throw new ArgumentError("Got request ${imageDataRequest} for data of ${data.length} calculated end $end");
+    }
     String chunk = data.substring(start, end);
     connection.sendData({
       IMAGE_DATA_RESPONSE: {
@@ -99,7 +102,7 @@ class ChunkHelper {
     if (start == _imageBuffer[index].length) {
       _imageBuffer[index] = _imageBuffer[index] + data;
       if (_lastImageRequest.containsKey(index)) {
-        Duration latency = _now().difference(_lastImageRequest[index]);
+        Duration latency = _lastImageRequest[index].difference(_now());
         connection.sampleLatency(latency);
       }
       _imageToConnection.remove(index);
@@ -159,7 +162,7 @@ class ChunkHelper {
     if (latency.inMilliseconds > _connectionLatencyMillis(connection)) {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
-      this._chunkSize = (this._chunkSize * 0.3).toInt();
+      this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * 0.3).toInt());
       return _requestImageData(index, connectionList);
     }
     // return true if image is not loaded. False otherwise.

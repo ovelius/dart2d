@@ -321,6 +321,7 @@ class ConnectionWrapper {
   }
 
   void sampleLatency(Duration latency) {
+    assert(latency.inMicroseconds > 0);
     this._latency = latency;
   }
 
