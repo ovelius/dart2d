@@ -129,7 +129,7 @@ void main() {
       expect(imageIndex.imageIsLoaded(requestedIndex), isTrue);
     });
     test('Test retries', () {
-      Map connections = {1: connection1};
+      Map connections = {connection1.id: connection1};
       Map map = {
         "image1.png": 4,
         "image2.png": 6,

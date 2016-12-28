@@ -122,6 +122,12 @@ class TestConnectionWrapper {
     print("Got latency data of $latency");
   }
 
+  sendPing() {
+    print("pinged connection ${id}");
+  }
+
+  expectedLatency() => new Duration(milliseconds: 400);
+
   void sendData(Map data) {
     this.lastDataSent = data;
     this.dataSent.add(data);

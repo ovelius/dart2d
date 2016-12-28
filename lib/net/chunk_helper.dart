@@ -157,11 +157,12 @@ class ChunkHelper {
       return _requestImageData(index, connectionList);
     }
     // Look if we should retry.
-    ConnectionWrapper connection = connections[connectionId];
+    var connection = connections[connectionId];
     Duration latency = _now().difference(lastRequest);
     if (latency.inMilliseconds > _connectionLatencyMillis(connection)) {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
+      connection.sendPing();
       this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * 0.3).toInt());
       return _requestImageData(index, connectionList);
     }
@@ -169,7 +170,7 @@ class ChunkHelper {
     return !_imageIndex.imageIsLoaded(index);
   }
 
-  int _connectionLatencyMillis(ConnectionWrapper wrapper) {
+  int _connectionLatencyMillis(var wrapper) {
     if (wrapper == null) {
       return IMAGE_RETRY_DURATION.inMilliseconds;
     }
