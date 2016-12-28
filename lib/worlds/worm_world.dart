@@ -154,6 +154,10 @@ class WormWorld extends World {
     if (!network.isServer() && !loader.hasGameState()) {
       // Load the gamestate from server.
       loader.loaderGameStateTick(duration);
+      if (loader.currentState() == LoaderState.LOADING_GAMESTATE_ERROR) {
+        // Fallback to starting as server.
+        this.startAsServer();
+      }
       return;
     }
     // Phase 4 initialize world.
@@ -252,7 +256,6 @@ class WormWorld extends World {
     ConnectionWrapper serverConnection = this.network.getServerConnection();
     if (serverConnection == null) {
       startAsServer();
-      initByteWorld();
     } else {
       // Connect to the actual game.
       serverConnection.connectToGame();
@@ -414,6 +417,7 @@ class WormWorld extends World {
   }
 
   startAsServer([String name]) {
+    initByteWorld();
     network.setIsServer(true);
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);

@@ -52,7 +52,7 @@ class ConnectionWrapper {
   // When we time out.
   Duration _timeout;
   // The monitored latency of the connection.
-  Duration latency = DEFAULT_TIMEOUT;
+  Duration _latency = DEFAULT_TIMEOUT;
 
   ConnectionWrapper(this.world, this._network, this._hudMessages,
       this._chunkHelper, this.id, this.connection, this.connectionType,
@@ -213,7 +213,7 @@ class ConnectionWrapper {
       // Request new data right away.
       _chunkHelper.requestNetworkData(
           // No time has passed.
-          new List.filled(1, this), 0.0);
+          {this.id : this}, 0.0);
     }
     
     if (!handshakeReceived) {
@@ -321,9 +321,11 @@ class ConnectionWrapper {
   }
 
   void sampleLatency(Duration latency) {
-    this.latency = latency;
+    this._latency = latency;
   }
 
-  toString() => "${connectionType} to ${id} latency ${latency}";
+  Duration expectedLatency() => _latency;
+
+  toString() => "${connectionType} to ${id} latency ${_latency}";
 }
 

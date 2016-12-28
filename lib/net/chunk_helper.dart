@@ -17,7 +17,7 @@ class ChunkHelper {
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
   _DataCounter counter = new _DataCounter(3);
-  int chunkSize = DEFAULT_CHUNK_SIZE;
+  int _chunkSize = DEFAULT_CHUNK_SIZE;
   Map<int, DateTime> _lastImageRequest = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
@@ -49,7 +49,7 @@ class ChunkHelper {
         imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
     int end = imageDataRequest.containsKey("end")
         ? imageDataRequest["end"]
-        : start + chunkSize;
+        : start + _chunkSize;
     end = min(end, data.length);
 
     assert(start < end);
@@ -116,12 +116,12 @@ class ChunkHelper {
   }
 
   void requestNetworkData(
-      List<ConnectionWrapper> connections, double secondsDuration) {
+      Map<String, ConnectionWrapper> connections, double secondsDuration) {
     requestSpecificNetworkData(
         connections, secondsDuration, _imageIndex.allImagesByName().values);
   }
 
-  void requestSpecificNetworkData(List<ConnectionWrapper> connections,
+  void requestSpecificNetworkData(Map<String, ConnectionWrapper> connections,
       double secondsDuration, Iterable<int> IdsToFetch) {
     _timePassed += secondsDuration;
     int requestedImages = 0;
@@ -143,23 +143,36 @@ class ChunkHelper {
         .add(new Duration(milliseconds: (_timePassed * 1000).toInt()));
   }
 
-  bool _maybeRequestImageLoad(int index, List<ConnectionWrapper> connections) {
+  bool _maybeRequestImageLoad(
+      int index, Map<String, ConnectionWrapper> connections) {
+    List<ConnectionWrapper> connectionList = new List.from(connections.values);
     DateTime lastRequest = _lastImageRequest[index];
     String connectionId = _imageToConnection[index];
     if (connectionId == null) {
       // Request larger chunk.
-      this.chunkSize = min(MAX_CHUNK_SIZE, (this.chunkSize * 1.25).toInt());
-      return _requestImageData(index, connections);
+      this._chunkSize = min(MAX_CHUNK_SIZE, (this._chunkSize * 1.25).toInt());
+      return _requestImageData(index, connectionList);
     }
+    // Look if we should retry.
+    ConnectionWrapper connection = connections[connectionId];
     Duration latency = _now().difference(lastRequest);
-    if (latency.inMilliseconds > IMAGE_RETRY_DURATION.inMilliseconds) {
+    if (latency.inMilliseconds > _connectionLatencyMillis(connection)) {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
-      this.chunkSize = (this.chunkSize * 0.3).toInt();
-      return _requestImageData(index, connections);
+      this._chunkSize = (this._chunkSize * 0.3).toInt();
+      return _requestImageData(index, connectionList);
     }
     // return true if image is not loaded. False otherwise.
     return !_imageIndex.imageIsLoaded(index);
+  }
+
+  int _connectionLatencyMillis(ConnectionWrapper wrapper) {
+    if (wrapper == null) {
+      return IMAGE_RETRY_DURATION.inMilliseconds;
+    }
+    Duration connectionLatency = wrapper.expectedLatency();
+    return min(connectionLatency.inMilliseconds * 2,
+        IMAGE_RETRY_DURATION.inMilliseconds);
   }
 
   void _trackFailingConnection(int index) {
@@ -181,7 +194,7 @@ class ChunkHelper {
     return {
       'index': index,
       'start': currentData.length,
-      'end': currentData.length + chunkSize
+      'end': currentData.length + _chunkSize
     };
   }
 
@@ -209,7 +222,7 @@ class ChunkHelper {
   Map<String, int> failuresByConnection() => new Map.from(_failures);
 
   void setChunkSizeForTest(int chunkSize) {
-    this.chunkSize = chunkSize;
+    this._chunkSize = chunkSize;
   }
 }
 

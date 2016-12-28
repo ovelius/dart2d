@@ -86,7 +86,7 @@ void main() {
       helper.parseImageChunkResponse(connection1.lastDataSent, connection1);
 
       String fullData = IMAGE_DATA;
-      String expectedData = fullData.substring(0, helper.chunkSize);
+      String expectedData = fullData.substring(0, 4);
       expect(helper.getImageBuffer(), equals({requestedIndex: expectedData}));
 
       while (helper.getImageBuffer().containsKey(requestedIndex)) {
@@ -100,7 +100,7 @@ void main() {
     test('Test end-2-end', () {
       int requestedIndex = 9;
       int requestedIndex2 = 6;
-      List connections = new List.filled(1, connection1);
+      Map connections = {1: connection1};
 
       Map map = {"image1.png": requestedIndex, "image2.png": requestedIndex2};
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
@@ -121,7 +121,7 @@ void main() {
         if (imageIndex.imageIsLoaded(requestedIndex)) {
           break;
         }
-        helper.requestNetworkData(connections, 0.01);
+        helper.requestNetworkData(connections, 0.1);
         helper2.replyWithImageData(connection1.lastDataSent, connection1);
         helper.parseImageChunkResponse(connection1.lastDataSent, connection1);
       }
@@ -129,7 +129,7 @@ void main() {
       expect(imageIndex.imageIsLoaded(requestedIndex), isTrue);
     });
     test('Test retries', () {
-      List connections = new List.filled(1, connection1);
+      Map connections = {1: connection1};
       Map map = {
         "image1.png": 4,
         "image2.png": 6,
@@ -171,7 +171,7 @@ void main() {
     });
     test('Test with byteworld state', () {
       int requestedIndex = ImageIndex.WORLD_IMAGE_INDEX;
-      List connections = new List.filled(1, connection1);
+      Map connections = {1: connection1};
 
       Map map = {"image2.png": requestedIndex};
       when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA);

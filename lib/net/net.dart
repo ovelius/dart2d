@@ -132,13 +132,13 @@ class Network {
   }
   
   /**
-   * Return a list of connections garantueed to be active.
+   * Return a map of connections garantueed to be active.
    */
-  List<ConnectionWrapper> safeActiveConnections() {
-    List<ConnectionWrapper> activeConnections = new List();
+  Map<String, ConnectionWrapper> safeActiveConnections() {
+    Map<String, ConnectionWrapper> activeConnections = {};
     for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
       if (wrapper.isActiveConnection()) {
-        activeConnections.add(wrapper);
+        activeConnections[wrapper.id] = wrapper;
       } else {
         print("health checking ${wrapper.id}");
         this.peer.healthCheckConnection(wrapper.id);

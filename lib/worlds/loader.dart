@@ -28,6 +28,7 @@ class LoaderState {
   static const LOADING_RESOURCES_COMPLETED = const LoaderState._internal(6, "Completed loading resources.");
 
   static const LOADING_GAMESTATE =  const LoaderState._internal(8, "Loading gamestate...");
+  static const LOADING_GAMESTATE_ERROR =  const LoaderState._internal(10, "Loading gamestate error!");
   static const LOADING_GAMESTATE_COMPLETED =  const LoaderState._internal(9, "All done.");
 
   operator ==(LoaderState other) {
@@ -83,7 +84,7 @@ class Loader {
         if (!_imageIndex.imagesIndexed()) {
           _imageIndex.loadImagesFromNetwork();
         }
-        List<ConnectionWrapper> connections = _network.safeActiveConnections();
+        Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
         assert(!connections.isEmpty);
         _peerWrapper.chunkHelper.requestNetworkData(connections, duration);
         // load from client.
@@ -138,11 +139,11 @@ class Loader {
   void _loadGameStateStage(double duration) {
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
-      // TODO: Handle this.
-      throw new StateError("No server connection!");
+      this._currentState = LoaderState.LOADING_GAMESTATE_ERROR;
+      return;
     }
     _peerWrapper.chunkHelper.requestSpecificNetworkData(
-        new List.filled(1, serverConnection), duration, GAME_STATE_RESOURCES);
+        {serverConnection.id : serverConnection}, duration, GAME_STATE_RESOURCES);
     this._currentState == LoaderState.LOADING_GAMESTATE;
   }
   
