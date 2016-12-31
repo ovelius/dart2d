@@ -13,7 +13,6 @@ class PeerWrapper {
   WormWorld _world;
   JsCallbacksWrapper _peerWrapperCallbacks;
   ChunkHelper chunkHelper;
-  bool autoConnect = true;
   var peer;
   var id = null;
   Map<String, ConnectionWrapper> connections = {};
@@ -67,7 +66,8 @@ class PeerWrapper {
     log.info("Received active peers of $ids");
     _activeIds = ids;
     ids.forEach((String id) {
-      if (autoConnect) {
+      // Don't connect to self...
+      if (id != this.id) {
         log.info("Auto connecting to id ${id}");
         this._world.restart = true;
         // Do no start game !
