@@ -162,6 +162,7 @@ void main() {
     // TODO: Add tests here for
     // 1) Client dies mid loading.
     // 2) Grabbing world state.
-    // 3) Disconnect/reconnect the RTC peer when max players is reached.
+    // 3) Disconnect/reconnect the RTC peer when max players is reached
+    // 4) Connection timeouts?
   });
 }

@@ -6,8 +6,8 @@ dependencies:
   browser: '>=0.9.0'
   di: '>=3.3.4 <4.0.0'
   logging: any
+dev_dependencies:
   test: '>=0.12.9'
-  unittest: any
   mockito: any
 transformers:
  - di
