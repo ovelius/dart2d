@@ -13,6 +13,7 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/rtc.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -58,7 +59,8 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
       worldB.frameDraw();
-      peerB.receiveActivePeer(['a']);
+      peerB.receiveActivePeer(['a', 'b']);
+      expect(worldB.peer.connections.length, equals(1));
       worldB.frameDraw();
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
@@ -91,7 +93,7 @@ void main() {
         ..add("b");
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
-      peerC.receiveActivePeer(['a', 'b']);
+      peerC.receiveActivePeer(['a', 'b', 'c']);
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.CONNECTING_TO_PEER));
       peerC.signalErrorAllConnections();
@@ -138,7 +140,7 @@ void main() {
       worldB.frameDraw();
       // Connection works for 5 packets;
       droppedPacketsAfterNextConnection.add(5);
-      peerB.receiveActivePeer(['a']);
+      peerB.receiveActivePeer(['a', 'b']);
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();

@@ -16,7 +16,7 @@ import 'package:dart2d/net/rtc.dart';
 import 'dart:html';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = true;
+const bool USE_LOCAL_HOST_PEER = false;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
@@ -133,7 +133,7 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
 createPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
     'key': 'peerconfig', // TODO: Change this.
-    'host': 'ng.locutus.se',
+    'host': 'anka.locutus.se',
     'port': 8089,
     'debug': 7,
     'config': {

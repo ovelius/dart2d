@@ -171,6 +171,11 @@ Peer.prototype._handleMessage = function(message) {
       this.open = true;
       break;
     case 'ACTIVE_IDS':
+      if (!this.open) {
+        util.log('Peer is not open, receiving active peers anyway. Forcing open!', this.id);
+        this.emit('open', this.id);
+        this.open = true;
+      }
       this.emit('receiveActivePeers', message.ids);
       break;
     case 'ERROR': // Server error.
