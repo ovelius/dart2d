@@ -48,6 +48,20 @@ class PeerWrapper {
     connections[peerId] = connectionWrapper;
   }
 
+  /**
+   * Disconnect this peer from the server.
+   */
+  void disconnect() {
+    this._peerWrapperCallbacks.callJsMethod(this.peer, "disconnect");
+  }
+
+  /**
+   * Re-connect this peer to the server.
+   */
+  void reconnect() {
+    this._peerWrapperCallbacks.callJsMethod(this.peer, "reconnect");
+  }
+
   void error(unusedThis, e) {
     _error = e;
     _world.hudMessages.display("Peer error: ${e}");

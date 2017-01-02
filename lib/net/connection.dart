@@ -133,6 +133,9 @@ class ConnectionWrapper {
         SERVER_PLAYER_REPLY: serverData,
         KEY_FRAME_KEY:lastKeyFrameFromPeer, 
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+
+      //  TODO: If game is now full, disconnect the peer.
+      // _network.gameState.gameIsFull()
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);

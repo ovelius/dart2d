@@ -119,6 +119,9 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
         'on',
         new JsObject.jsify([methodName, new JsFunction.withThis(callback)]));
   }
+  void callJsMethod(var jsObject, String methodName) {
+    jsObject.callMethod('methodName');
+  }
   dynamic connectToPeer(var jsPeer, String id) {
     var metaData = new JsObject.jsify({
       'label': 'dart2d',

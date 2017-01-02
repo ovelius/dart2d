@@ -31,6 +31,9 @@ class FakeJsCallbacksWrapper implements JsCallbacksWrapper {
         'on',
         [methodName, callback]);
   }
+  void callJsMethod(var jsObject, String methodName) {
+    jsObject.callMethod(methodName);
+  }
   dynamic connectToPeer(var jsPeer, String id) {
     return jsPeer.callMethod('connect', [id]);
   }
