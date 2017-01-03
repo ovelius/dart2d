@@ -4,7 +4,7 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:mockito/mockito.dart';
-import 'test_connection.dart';
+import 'lib/test_lib.dart';
 
 class MockImageIndex extends Mock implements ImageIndex {}
 

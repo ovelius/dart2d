@@ -1,7 +1,5 @@
 import 'package:test/test.dart';
-import 'test_connection.dart';
-import 'test_peer.dart';
-import 'matchers.dart';
+import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/sprites/movingsprite.dart';

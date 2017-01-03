@@ -1,11 +1,7 @@
 library dart2d;
 
 import 'package:test/test.dart';
-import 'test_connection.dart';
-import 'test_peer.dart';
-import 'test_env.dart';
-import 'fake_canvas.dart';
-import 'matchers.dart';
+import 'lib/test_lib.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:di/di.dart';
@@ -167,10 +163,5 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
     });
-    // TODO: Add tests here for
-    // 1) Client dies mid loading.
-    // 2) Grabbing world state.
-    // 3) Disconnect/reconnect the RTC peer when max players is reached
-    // 4) Connection timeouts?
   });
 }
