@@ -2,6 +2,7 @@ library gamestate;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -45,7 +46,7 @@ class PlayerInfo {
 class GameState {
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
-      ["duck.png", "dragon.png", "duck.png",  "dragon.png"];
+      ["duck.png", "cock.png", "donkey.png",  "dragon.png"];
 
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
@@ -129,15 +130,19 @@ class GameState {
         world.playerSprite = playerSprite;
       } else {
         MovingSprite oldSprite = world.spriteIndex[info.spriteId];
-        // TODO: Handle case of connection being gone here.
-        KeyState remoteKeyState =
-            world.peer.connections[info.connectionId].remoteKeyState;
-        RemotePlayerServerSprite remotePlayerSprite = 
-            new RemotePlayerServerSprite.copyFromMovingSprite(
-                world, remoteKeyState, info, oldSprite);
-        remotePlayerSprite.setImage(
-            oldSprite.imageId, oldSprite.size.x.toInt());
-        world.replaceSprite(info.spriteId, remotePlayerSprite);
+        ConnectionWrapper connection =
+            world.peer.connections[info.connectionId];
+        if (connection != null) {
+          RemotePlayerServerSprite remotePlayerSprite =
+          new RemotePlayerServerSprite.copyFromMovingSprite(
+              world, connection.remoteKeyState, info, oldSprite);
+          remotePlayerSprite.setImage(
+              oldSprite.imageId, oldSprite.size.x.toInt());
+          world.replaceSprite(info.spriteId, remotePlayerSprite);
+        } else {
+          // Connection isn't there :( Not much we can do but kill the playerinfo.
+          removeByConnectionId(info.connectionId);
+        }
       }
     }
   }

@@ -309,7 +309,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   void checkShouldFire() {
-    if (keyIsDown("Fire") && inGame()) {
+    if (keyIsDown("Fire") && inGame() && weaponState != null) {
       weaponState.fire();
     } 
   }

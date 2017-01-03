@@ -158,7 +158,7 @@ class Network {
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
   bool hasNetworkProblem() {
-    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND;
+    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isServer();
   }
 
   void sendMessage(String message) {

@@ -80,7 +80,6 @@ class SpriteIndex {
         continue;
       }
       _sprites[newSprite.networkId] = newSprite;
-      print("added ${newSprite.networkId} as ${newSprite}");
       added.add(newSprite);
     }
     _replacePending();
