@@ -14,9 +14,10 @@ import 'dart:convert';
 import 'dart:core';
 
 enum ConnectionType {
+  BOOTSTRAP, // No game yet initialized for connection.
   CLIENT_TO_SERVER,
   SERVER_TO_CLIENT,
-  CLIENT_TO_CLIENT
+  CLIENT_TO_CLIENT,
 }
 
 class ConnectionWrapper {
@@ -134,8 +135,10 @@ class ConnectionWrapper {
         KEY_FRAME_KEY:lastKeyFrameFromPeer, 
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
 
-      //  TODO: If game is now full, disconnect the peer.
-      // _network.gameState.gameIsFull()
+      // We don't expect any more players, disconnect the peer.
+      if (_network.peer.connectedToServer() && _network.gameState.gameIsFull()) {
+        _network.peer.disconnect();
+      }
     }
     if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
       assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
@@ -188,6 +191,7 @@ class ConnectionWrapper {
   void sendPing() {
     sendData(
         {PING: new DateTime.now().millisecond.toString(),
+          CONNECTION_TYPE: this.connectionType.index,
           IS_KEY_FRAME_KEY: _network.currentKeyFrame});
   }
 

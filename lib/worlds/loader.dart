@@ -66,7 +66,7 @@ class Loader {
   }
 
   void _advanceStage(double duration) {
-    if (_peerWrapper.id == null) {
+    if (!_peerWrapper.connectedToServer()) {
       if (_peerWrapper.getLastError() != null) {
         this._currentState = new LoaderState._internal(2, "${_peerWrapper.getLastError()}");
         return;

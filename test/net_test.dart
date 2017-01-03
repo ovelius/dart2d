@@ -212,7 +212,6 @@ void main() {
       int PLAYER_TWO_SPRITE_FRAMES = 4;
       
       logConnectionData = false;
-      print("Testing connecting with three players, server dies so a new server is elected");
       WormWorld worldA = testWorld("a");
       worldA.startGame();
 
@@ -236,6 +235,12 @@ void main() {
       expect(worldC, isGameStateOf(gameState));
       expect(worldD, isGameStateOf(gameState));
       expect(worldD.spriteIndex.count(), equals(4));
+
+      // All worlds should be disconnected from the server.
+      expect(worldA, isConnectedToServer(false));
+      expect(worldB, isConnectedToServer(false));
+      expect(worldC, isConnectedToServer(false));
+      expect(worldD, isConnectedToServer(false));
       
       // Now make a drop away.
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
@@ -270,7 +275,12 @@ void main() {
       expect(worldB.spriteIndex.count(), equals(3));
       expect(worldC.spriteIndex.count(), equals(3));
       expect(worldD.spriteIndex.count(), equals(3));
-      
+
+      // All worlds should be connected to server again.
+      expect(worldB, isConnectedToServer(true));
+      expect(worldC, isConnectedToServer(true));
+      expect(worldD, isConnectedToServer(true));
+
       expect(worldB.spriteIndex[playerId(1)].frames,
           equals(PLAYER_TWO_SPRITE_FRAMES));
       // TODO: Check type of playerId(1).

@@ -44,15 +44,19 @@ class TestPeer extends PeerMarker {
   var eventHandlers = {};
   Set<String> failConnectionsTo = new Set();
   List<TestConnection> connections = [];
+  bool connectedToServer = false;
 
   TestPeer(this.id) {
     assert(!testPeers.containsKey(id));
     testPeers[id] = this;
   }
 
-  callMethod(String methodName, var jsonObject) {
+  callMethod(String methodName, [List arguments]) {
     if ("connect" == methodName) {
-      var otherId = jsonObject[0];
+      if (!connectedToServer) {
+        throw new StateError("TestPeer can't connect to other peer, not connected to server!");
+      }
+      var otherId = arguments[0];
       if (!testPeers.containsKey(otherId)
           && !failConnectionsTo.contains(otherId)) {
         throw new ArgumentError("No peer with id ${otherId} in this test! (and not set to fail!)");
@@ -70,17 +74,25 @@ class TestPeer extends PeerMarker {
       testPeers[otherId].eventHandlers["connection"](this, remoteConnection);
       return localConnection;
     }
-    if (methodName == "on" && bindOnHandler(jsonObject[0], jsonObject[1])) {
+    if (methodName == "on" && bindOnHandler(arguments[0], arguments[1])) {
       return "OK";
     }
-    print("TestPeer Can't handle ${jsonObject}");
-    return "Not supported";
+    if (methodName == "disconnect") {
+      this.connectedToServer = false;
+      return "OK";
+    }
+    if (methodName == "reconnect") {
+      this.connectedToServer = true;
+      return "OK";
+    }
+    throw new ArgumentError("TestPeer Can't handle ${methodName} with args ${arguments}");
   }
 
   bool bindOnHandler(String methodName, var jsFunction) {
     eventHandlers[methodName] = jsFunction;
     if (methodName == "open") {
       // Signal an open connection right away.
+      connectedToServer = true;
       jsFunction(this, id);
     }
     return true;

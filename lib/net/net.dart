@@ -308,7 +308,11 @@ void parseBundle(WormWorld world,
   if (bundle.containsKey(GAME_STATE)) {
     assert(!world.network.isServer());
     Map gameStateMap = bundle[GAME_STATE];
-    world.network.gameState = new GameState.fromMap(world, gameStateMap);
+    GameState newGameState =  new GameState.fromMap(world, gameStateMap);
+    world.network.gameState = newGameState;
     world.network.connectToAllPeersInGameState();
+    if (world.network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
+      world.network.peer.disconnect();
+    }
   }
 }

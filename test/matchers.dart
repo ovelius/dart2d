@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:mirrors';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/connection.dart';
+import 'test_peer.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/sprites/sprite.dart';
 
@@ -71,6 +72,29 @@ class GameStateMatcher extends Matcher {
       Map matchState, bool verbose) {
     return mismatchDescription.add("Actual gameState: ${matchState['ActualGameState']}");
   }
+}
+
+PeerStateMatcher isConnectedToServer(bool connected) {
+  return new PeerStateMatcher(connected);
+}
+
+class PeerStateMatcher extends Matcher {
+  bool _connected;
+  PeerStateMatcher(this._connected);
+
+  bool matches(item, Map matchState) {
+    if (item is World) {
+      TestPeer peer = item.peer.peer;
+      return peer.connectedToServer == _connected;
+    }
+    return false;
+  }
+
+  Description describe(Description description) {
+    return description.add("World connected to server ${_connected}");
+  }
+
+  toString() => "PeerStateMatcher connected ${this._connected}";
 }
 
 class WorldSpriteMatcher extends Matcher {

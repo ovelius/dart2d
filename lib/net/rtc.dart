@@ -15,6 +15,7 @@ class PeerWrapper {
   ChunkHelper chunkHelper;
   var peer;
   var id = null;
+  var _connectedToServer = false;
   Map<String, ConnectionWrapper> connections = {};
   var _error;
 
@@ -52,6 +53,7 @@ class PeerWrapper {
    * Disconnect this peer from the server.
    */
   void disconnect() {
+    _connectedToServer = false;
     this._peerWrapperCallbacks.callJsMethod(this.peer, "disconnect");
   }
 
@@ -60,6 +62,7 @@ class PeerWrapper {
    */
   void reconnect() {
     this._peerWrapperCallbacks.callJsMethod(this.peer, "reconnect");
+    _connectedToServer = true;
   }
 
   void error(unusedThis, e) {
@@ -69,6 +72,7 @@ class PeerWrapper {
 
   void openPeer(unusedThis, id) {
     this.id = id;
+    _connectedToServer = true;
     log.info("Got id ${id}");
   }
   
@@ -165,10 +169,14 @@ class PeerWrapper {
       _world.network.gameState.removeByConnectionId(id);
       // The crucial step of verifying we still have a server.
     } else if (_world.network.verifyOrTransferServerRole(connectionsCopy)) {
-      // We got eleceted the new server, first task is to remove the old.
+      // We got elected the new server, first task is to remove the old.
       print("Removing Gamestate for $id");
       _world.network.gameState.removeByConnectionId(id);
       _world.network.gameState.convertToServer(this.id);
+    }
+    // Reconnect peer to server to allow receiving connections yet again.
+    if (!connectedToServer()) {
+      reconnect();
     }
     // Connection was never open, blacklist the id.
     if (!wrapper.opened) {
@@ -176,7 +184,6 @@ class PeerWrapper {
       _closedConnectionPeers.add(id);
     } else {
       _closedConnectionPeers.add(id);
-      print("Not blacklisting ${this.id} was opened!");
     }
     // Assign back.
     connections = connectionsCopy;
@@ -201,4 +208,8 @@ class PeerWrapper {
   }
 
   getLastError() => this._error;
+
+  bool connectedToServer() {
+    return _connectedToServer && id != null;
+  }
 }
