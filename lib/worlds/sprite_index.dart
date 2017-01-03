@@ -161,6 +161,7 @@ class SpriteIndex {
   int count() => _sprites.length;
   operator [](index) => _sprites[index];
   operator []=(int i, Sprite value) => _sprites[i] = value;
+  bool hasSprite(int id) => _sprites.containsKey(id);
 
   toString() => "SpriteIndex ${_sprites}";
 }

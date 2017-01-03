@@ -159,8 +159,13 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
   int getNextUsablePlayerSpriteId() {
-    return ID_OFFSET_FOR_NEW_CLIENT + 
+    int id = ID_OFFSET_FOR_NEW_CLIENT +
         world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+    // Make sure we don't pick and ID we already use.
+    while (world.spriteIndex.hasSprite(id)) {
+      id = id + ID_OFFSET_FOR_NEW_CLIENT;
+    }
+    return id;
   }
   int getNextUsableSpriteImage() {
     return world.imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
