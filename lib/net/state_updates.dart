@@ -22,6 +22,7 @@ String IMAGE_DATA_REQUEST = "_i";
 String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
+String CONNECTION_TYPE = "-t";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -40,10 +41,11 @@ void remapKeyNamesForTest() {
   WORLD_DESTRUCTION = "world_destruction";
   WORLD_PARTICLE = "world_particles";
   IMAGE_DATA_REQUEST = "image_request";
-  IMAGE_DATA_REQUEST = "image_response";
+  IMAGE_DATA_RESPONSE = "image_response";
   //
   PING = "ping";
   PONG = "pong";
+  CONNECTION_TYPE = "connection_type";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.

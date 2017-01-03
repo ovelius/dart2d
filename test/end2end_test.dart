@@ -31,6 +31,7 @@ void main() {
 
   group('End2End', () {
     test('Resource loading tests p2p', () {
+      logConnectionData = false;
       Injector injectorA = createWorldInjector("a", false);
       Injector injectorB = createWorldInjector("b", false);
 
@@ -54,6 +55,8 @@ void main() {
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
       expect(loaderA.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      worldA.frameDraw();
+      expect(worldA.network.isServer(), true);
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
@@ -67,13 +70,18 @@ void main() {
 
       // Ideally this does not mean connection to a game.
       // But Game comes underway after a couple of frames.
+      logConnectionData = true;
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE_COMPLETED));
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
+      worldA.frameDraw();
+      worldB.frameDraw();
+
+      expect(worldB.network.isServer(), false);
+      expect(worldA.network.isServer(), true);
 
       expect(worldA, hasSpriteWithNetworkId(playerId(0)));
       expect(worldA, hasSpriteWithNetworkId(playerId(1)));

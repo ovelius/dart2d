@@ -427,7 +427,6 @@ class WormWorld extends World {
     var worldImage = map.isNotEmpty
         ? imageIndex.getImageByName(map)
         : imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
-    print("$worldImage ${worldImage.width} ${worldImage.height}");
     byteWorld.setWorldImage(worldImage);
   }
 

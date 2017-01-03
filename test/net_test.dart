@@ -83,6 +83,8 @@ void main() {
     test('TestDroppedKeyFrame', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
+      // Tick a frame to start the game.
+      worldB.frameDraw();
       // First connection will drop one packet.
       droppedPacketsNextConnection.add(1);
       // Second connection will drop two.
@@ -105,6 +107,7 @@ void main() {
       // Advance two keyframes and data will be there!
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
       expect(recentReceviedDataFrom("b"),
           new MapKeysMatcher.containsKeys(
               [SERVER_PLAYER_REPLY, IS_KEY_FRAME_KEY, GAME_STATE]));

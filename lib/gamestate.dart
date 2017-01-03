@@ -52,7 +52,7 @@ class GameState {
   DateTime startedAt;
   List<PlayerInfo> playerInfo = [];
   int mapId = 0;
-  String actingServerId;
+  String actingServerId = null;
   // True if we have urgent data for the network.
   bool urgentData = false;
   
@@ -96,7 +96,6 @@ class GameState {
   }
   
   removeByConnectionId(var id) {
-    assert(world.network.isServer());
     for (int i = playerInfo.length -1; i >= 0; i--) {
       PlayerInfo info = playerInfo[i];
       if (info.connectionId == id) {
@@ -172,6 +171,6 @@ class GameState {
   }
   
   String toString() {
-    return "${playerInfo}";
+    return "GameState with map ${mapId} server ${actingServerId} ${playerInfo}";
   }
 }

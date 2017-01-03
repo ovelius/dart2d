@@ -36,7 +36,7 @@ class ConnectionWrapper {
   // True if connection was successfully opened.
   bool opened = false;
   bool closed = false;
-  bool handshakeReceived = false;
+  bool _handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
   int lastKeyFrameFromPeer = 0;
   // The last keyframe the peer said it received from us.
@@ -63,7 +63,7 @@ class ConnectionWrapper {
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
     if (connectionType == ConnectionType.CLIENT_TO_CLIENT) {
-      this.handshakeReceived = true;
+      this._handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
       lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
@@ -153,8 +153,8 @@ class ConnectionWrapper {
       this.closed = true;
       return;
     }
-    if (!handshakeReceived) {
-      handshakeReceived = dataMap.containsKey(CLIENT_PLAYER_SPEC)
+    if (!_handshakeReceived) {
+      _handshakeReceived = dataMap.containsKey(CLIENT_PLAYER_SPEC)
           || dataMap.containsKey(SERVER_PLAYER_REPLY);
     }
   }
@@ -223,7 +223,7 @@ class ConnectionWrapper {
           {this.id : this}, 0.0);
     }
     
-    if (!handshakeReceived) {
+    if (!_handshakeReceived) {
       // Try to handle the intial connection handshake.
       checkForHandshakeData(dataMap);
     }
@@ -232,14 +232,14 @@ class ConnectionWrapper {
       return;
     }
     // Don't continue handling data if handshake is not finished.
-    if (!handshakeReceived) {
+    if (!_handshakeReceived) {
       return;
     }
     // We got a remote key state.
     if (dataMap.containsKey(KEY_STATE_KEY)) {
       remoteKeyState.setEnabledKeys(dataMap[KEY_STATE_KEY]);
     }
-    parseBundle(world, this, dataMap);
+    _network.parseBundle(this, dataMap);
   }
  
   void alsoSendWithStoredData(var data) {
@@ -324,7 +324,7 @@ class ConnectionWrapper {
   }
 
   bool isValidGameConnection() {
-    return this.isValidConnection() && this.handshakeReceived;
+    return this.isValidConnection() && this._handshakeReceived;
   }
 
   void sampleLatency(Duration latency) {

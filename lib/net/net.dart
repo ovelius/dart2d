@@ -209,12 +209,14 @@ class Network {
   }
 
   bool isServer() {
-    return _server;
+    return gameState.actingServerId == this.peer.id;
   }
 
   void setIsServer(bool server) {
     this._server = server;
-    this.gameState.actingServerId = peer.id;
+    if (server) {
+      this.gameState.actingServerId = peer.id;
+    }
     // TODO select me!
     this.gameState.mapId = 1;
   }
@@ -243,6 +245,57 @@ class Network {
     }
     return debugString;
   }
+
+
+  void parseBundle(ConnectionWrapper connection, Map<String, dynamic> bundle) {
+    dataReceived();
+    for (String networkId in bundle.keys) {
+      if (!SPECIAL_KEYS.contains(networkId)) {
+        int parsedNetworkId = int.parse(networkId);
+        // TODO(erik) Prio data for the owner of the sprite instead.
+        SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
+        MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
+        if (!sprite.remoteControlled()) {
+          log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
+          continue;
+        }
+        intListToSpriteProperties(bundle[networkId], sprite);
+        // Forward sprite to others.
+        if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
+          Map data = {networkId: bundle[networkId]};
+          peer.sendDataWithKeyFramesToAll(data, connection.id);
+        }
+      }
+    }
+    if (bundle.containsKey(REMOVE_KEY)) {
+      List<int> removals = bundle[REMOVE_KEY];
+      for (int id in removals) {
+        world.removeSprite(id);
+      }
+    }
+    if (bundle.containsKey(MESSAGE_KEY)) {
+      for (String message in bundle[MESSAGE_KEY]) {
+        world.hudMessages.display(message);
+      }
+    }
+    if (bundle.containsKey(WORLD_DESTRUCTION)) {
+      world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
+    }
+    if (bundle.containsKey(WORLD_PARTICLE)) {
+      world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
+    }
+    if (bundle.containsKey(GAME_STATE)) {
+      assert(!world.network.isServer());
+      Map gameStateMap = bundle[GAME_STATE];
+      GameState newGameState =  new GameState.fromMap(world, gameStateMap);
+      world.network.gameState = newGameState;
+      world.network.connectToAllPeersInGameState();
+      if (world.network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
+        world.network.peer.disconnect();
+      }
+    }
+  }
+
 }
 
 Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
@@ -265,54 +318,4 @@ void dataReceived() {
   int millis = now.millisecondsSinceEpoch - lastNetworkFrameReceived.millisecondsSinceEpoch;
   networkFps.timeWithFrames(millis / 1000.0, 1);
   lastNetworkFrameReceived = now;
-}
-
-void parseBundle(WormWorld world,
-    ConnectionWrapper connection, Map<String, dynamic> bundle) {
-  dataReceived();
-  for (String networkId in bundle.keys) {
-    if (!SPECIAL_KEYS.contains(networkId)) {
-      int parsedNetworkId = int.parse(networkId);
-      // TODO(erik) Prio data for the owner of the sprite instead.
-      SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
-      MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
-      if (!sprite.remoteControlled()) {
-        log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
-        continue;
-      }
-      intListToSpriteProperties(bundle[networkId], sprite);
-      // Forward sprite to others.
-      if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-        Map data = {networkId: bundle[networkId]};
-        world.network.peer.sendDataWithKeyFramesToAll(data, connection.id);
-      }
-    }
-  }
-  if (bundle.containsKey(REMOVE_KEY)) {
-    List<int> removals = bundle[REMOVE_KEY];
-    for (int id in removals) {
-      world.removeSprite(id);
-    }
-  }
-  if (bundle.containsKey(MESSAGE_KEY)) {
-    for (String message in bundle[MESSAGE_KEY]) {
-      world.hudMessages.display(message);
-    }
-  }
-  if (bundle.containsKey(WORLD_DESTRUCTION)) {
-    world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
-  }
-  if (bundle.containsKey(WORLD_PARTICLE)) {
-    world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
-  }
-  if (bundle.containsKey(GAME_STATE)) {
-    assert(!world.network.isServer());
-    Map gameStateMap = bundle[GAME_STATE];
-    GameState newGameState =  new GameState.fromMap(world, gameStateMap);
-    world.network.gameState = newGameState;
-    world.network.connectToAllPeersInGameState();
-    if (world.network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
-      world.network.peer.disconnect();
-    }
-  }
 }
