@@ -58,7 +58,7 @@ class WormWorld extends World {
     this.spriteIndex = spriteIndex;
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, chunkHelper, peerWrapperCallbacks);
-    network = new Network(this, peer, true);
+    network = new Network(this, peer);
     this.loader = new Loader(_canvasElement, imageIndex, network, peer);
   }
   
@@ -121,7 +121,6 @@ class WormWorld extends World {
     this.playerName = name;
     }
     hudMessages.display("Connecting to ${id}");
-    network.setIsServer(false);
     network.localPlayerName = this.playerName;
     network.peer.connectTo(id);
     if (startGame) {
@@ -418,7 +417,7 @@ class WormWorld extends World {
 
   startAsServer([String name]) {
     initByteWorld();
-    network.setIsServer(true);
+    network.setActingServer();
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
   }
