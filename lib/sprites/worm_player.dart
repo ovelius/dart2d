@@ -1,19 +1,14 @@
-library playersprites;
 
-import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/gamestate.dart';
 import 'dart:math';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/worlds/sprite_index.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/sprites/stickysprite.dart';
-import 'package:dart2d/sprites/rope.dart';
 import 'package:dart2d/phys/vec2.dart';
 
 /**

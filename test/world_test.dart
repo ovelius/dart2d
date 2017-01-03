@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';

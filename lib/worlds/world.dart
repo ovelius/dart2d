@@ -1,14 +1,10 @@
 library world;
 
-import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/fps_counter.dart';
-import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/sprites/particles.dart';
-import 'package:dart2d/worlds/sprite_index.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';

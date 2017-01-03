@@ -1,4 +1,3 @@
-library stickysprite;
 
 import 'movingsprite.dart';
 import 'sprite.dart';

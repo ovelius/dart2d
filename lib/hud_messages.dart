@@ -2,10 +2,9 @@ library hud;
 
 import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/gamestate.dart';
 
 class _HudMessage {

@@ -1,8 +1,6 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/phys/vec2.dart';
