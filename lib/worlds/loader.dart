@@ -22,8 +22,10 @@ enum LoaderState {
   CONNECTING_TO_GAME,
 
   LOADING_GAMESTATE,
-  LOADING_GAMESTATE_COMPLETED,
-  LOADING_GAMESTATE_SERVER,
+
+  // End states.
+  LOADING_GAMESTATE_COMPLETED, // Client ready start game.
+  LOADED_AS_SERVER, // Server ready to start game.
 }
 
 @Injectable() // TODO make fully injectable.
@@ -34,8 +36,8 @@ class Loader {
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
   var context_;
-  int width;
-  int height;
+  int _width;
+  int _height;
   
   DateTime startedAt;
 
@@ -53,8 +55,8 @@ class Loader {
    // Hack the typesystem.
    var canvas = canvasElement;
    context_ = canvas.context2D;
-   width = canvas.width;
-   height = canvas.height;
+   _width = canvas.width;
+   _height = canvas.height;
    this._imageIndex = imageIndex;
   }
 
@@ -108,7 +110,7 @@ class Loader {
   LoaderState currentState() => _currentState;
 
   bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
-  bool loadedAsServer() => _currentState == LoaderState.LOADING_GAMESTATE_SERVER;
+  bool loadedAsServer() => _currentState == LoaderState.LOADED_AS_SERVER;
   
   void loaderTick([double duration = 0.01]) {
     if (_imageIndex.finishedLoadingImages()) {
@@ -136,7 +138,7 @@ class Loader {
 
   void _loadGameStateStage(double duration) {
     if (!_network.hasConnections()) {
-      setState(LoaderState.LOADING_GAMESTATE_SERVER);
+      setState(LoaderState.LOADED_AS_SERVER);
       return;
     }
     for (ConnectionWrapper connection in _network.safeActiveConnections().values) {
@@ -150,7 +152,7 @@ class Loader {
     }
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
-      setState(LoaderState.LOADING_GAMESTATE_SERVER);
+      setState(LoaderState.LOADED_AS_SERVER);
       return;
     }
 
@@ -168,12 +170,12 @@ class Loader {
   }
   
   void drawCenteredText(String text) {
-    context_.clearRect(0, 0, width, height);
+    context_.clearRect(0, 0, _width, _height);
     context_.setFillColorRgb(-0, 0, 0);
     context_.font = "20px Arial";
     var metrics = context_.measureText(text);
     context_.fillText(
-        text, width / 2 - metrics.width / 2, height / 2);
+        text, _width / 2 - metrics.width / 2, _height / 2);
     context_.save();
   }
 
@@ -208,5 +210,5 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.FINDING_SERVER: "Finding game to join..",
   LoaderState.LOADING_GAMESTATE: "Loading gamestate...",
   LoaderState.LOADING_GAMESTATE_COMPLETED: "Loading completed.",
-  LoaderState.LOADING_GAMESTATE_SERVER: "Start as server!",
+  LoaderState.LOADED_AS_SERVER: "Start as server!",
 };

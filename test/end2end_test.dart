@@ -52,7 +52,7 @@ void main() {
       worldA.frameDraw();
       worldA.frameDraw();
 
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
+      expect(loaderA.currentState(), equals(LoaderState.LOADED_AS_SERVER));
       worldA.frameDraw();
       expect(worldA.network.isServer(), true);
 
@@ -110,7 +110,7 @@ void main() {
       FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
       fakeImageFactoryC.completeAllImages();
       worldC.frameDraw(KEY_FRAME_DEFAULT);
-      expect(loaderC.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
+      expect(loaderC.currentState(), equals(LoaderState.LOADED_AS_SERVER));
       worldC.frameDraw(KEY_FRAME_DEFAULT);
       worldC.frameDraw(KEY_FRAME_DEFAULT);
 
@@ -141,7 +141,7 @@ void main() {
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
+      expect(loaderA.currentState(), equals(LoaderState.LOADED_AS_SERVER));
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
@@ -166,7 +166,7 @@ void main() {
 
       // Completed loading form server.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
+      expect(loaderB.currentState(), equals(LoaderState.LOADED_AS_SERVER));
     });
   });
 }
