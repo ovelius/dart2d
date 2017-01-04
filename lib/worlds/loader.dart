@@ -131,13 +131,10 @@ class Loader {
   }
 
   void _loaderGameStateTick([double duration = 0.01]) {
-    print("GameStateTick :D");
     if (loadedAsServer()) {
-      print("Stop loaded as server!");
       return;
     }
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
-      print("Loaded world image!!!");
       _currentState = LoaderState.LOADING_GAMESTATE_COMPLETED;
       return;
     }
@@ -146,10 +143,8 @@ class Loader {
   }
 
   void _loadGameStateStage(double duration) {
-    print("Blergh");
     if (!_network.hasConnections()) {
       this._currentState = LoaderState.LOADING_GAMESTATE_SERVER;
-      print("no connection blergh ${_currentState}");
       return;
     }
     for (ConnectionWrapper connection in _network.safeActiveConnections().values) {

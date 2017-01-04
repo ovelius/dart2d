@@ -265,7 +265,7 @@ class ConnectionWrapper {
     }
     // Don't continue handling data if handshake is not finished.
     if (!_handshakeReceived) {
-      print("${_network.peer.id} Not processing more, no handshake!! ${this.connectionType}");
+      log.fine("not handling data ${dataMap}, handshake not received.");
       return;
     }
     // We got a remote key state.

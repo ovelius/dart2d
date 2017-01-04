@@ -192,10 +192,6 @@ class Network {
   }
 
   void frame(double duration, List<int> removals) {
-    if (this.peer.id == 'b') {
-      print("Sending removals of ${removals}");
-    }
-
     if (!hasReadyConnection()) {
       serverFramesBehind = 0;
       return;

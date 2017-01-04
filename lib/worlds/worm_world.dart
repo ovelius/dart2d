@@ -137,101 +137,94 @@ class WormWorld extends World {
 
   void frameDraw([double duration = 0.01]) {
     if (!loader.completed()) {
-      print("Start loader as ${loader.currentState()}");
       if (loader.loadedAsServer()) {
         // We are server.
         startAsServer();
         loader.markCompleted();
-        print("Start as Server ! ${peer.id}");
       } else if (loader.hasGameState()) {
         // We are client.
         initByteWorld("");
         loader.markCompleted();
-        print("Start as client ! ${peer.id}");
       } else {
         // Tick the loader.
         loader.loaderTick(duration);
-        print("Ticking loader ${peer.id}");
       }
-      print("Stop loader as ${loader.currentState()}");
       // Don't run the generic game loop.
       return;
     }
 
-//    print("Generic tick ${peer.id} IsServer ${this.network.isServer()}");
+    if (restart) {
+      clearScreen();
+      restart = false;
+    }
+    assert(byteWorld.initialized());
+    int frames = advanceFrames(duration);
 
-      if (restart) {
-        clearScreen();
-        restart = false;
-      }
-      assert(byteWorld.initialized());
-      int frames = advanceFrames(duration);
-   
-      for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
-       if (sprite is Particles && sprite.sendToNetwork) {
-         Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
-         network.peer.sendDataWithKeyFramesToAll(data);
-       } 
-      }
-  
-      _canvas
-        ..clearRect(0, 0, _width, _height)
-        ..setFillColorRgb(135, 206, 250)
-        ..fillRect(0, 0, _width, _height)
-        ..save();
+    for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
+     if (sprite is Particles && sprite.sendToNetwork) {
+       Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
+       network.peer.sendDataWithKeyFramesToAll(data);
+     }
+    }
 
-      if (playerSprite != null) {
-        Vec2 playerCenter = playerSprite.centerPoint();
-        viewPoint.x = playerCenter.x - halfWorld.x;
-        viewPoint.y = playerCenter.y - halfWorld.y;
-        if (viewPoint.y > byteWorld.height - _height) {
-          viewPoint.y = byteWorld.height * 1.0 - _height;
-        }
-        if (viewPoint.x > byteWorld.width - _width) {
-          viewPoint.x = byteWorld.width * 1.0 - _width;
-        }
-        if (viewPoint.x < 0) {
-          viewPoint.x = 0.0;
-        } 
-        if (viewPoint.y < 0) {
-          viewPoint.y = 0.0;
-        }
+    _canvas
+      ..clearRect(0, 0, _width, _height)
+      ..setFillColorRgb(135, 206, 250)
+      ..fillRect(0, 0, _width, _height)
+      ..save();
+
+    if (playerSprite != null) {
+      Vec2 playerCenter = playerSprite.centerPoint();
+      viewPoint.x = playerCenter.x - halfWorld.x;
+      viewPoint.y = playerCenter.y - halfWorld.y;
+      if (viewPoint.y > byteWorld.height - _height) {
+        viewPoint.y = byteWorld.height * 1.0 - _height;
       }
-     
-     byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
-      _canvas.globalAlpha = 0.7;
-     byteWorld.drawAsMiniMap(_canvas, 0, 0);
+      if (viewPoint.x > byteWorld.width - _width) {
+        viewPoint.x = byteWorld.width * 1.0 - _width;
+      }
+      if (viewPoint.x < 0) {
+        viewPoint.x = 0.0;
+      }
+      if (viewPoint.y < 0) {
+        viewPoint.y = 0.0;
+      }
+    }
+
+   byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
+    _canvas.globalAlpha = 0.7;
+   byteWorld.drawAsMiniMap(_canvas, 0, 0);
+    _canvas.restore();
+
+    for (int networkId in spriteIndex.spriteIds()) {
+      var sprite = spriteIndex[networkId];
+      _canvas.save();
+      _canvas.translate(-viewPoint.x, -viewPoint.y);
+      if (!freeze && !network.hasNetworkProblem()) {
+        sprite.frame(duration, frames, gravity);
+      }
+      if(shouldDraw(sprite))
+        sprite.draw(_canvas, localKeyState.debug);
+      collisionCheck(networkId, duration);
+      if (sprite.remove) {
+        spriteIndex.removeSprite(sprite.networkId);
+      }
       _canvas.restore();
-     
-      for (int networkId in spriteIndex.spriteIds()) {
-        var sprite = spriteIndex[networkId];
-        _canvas.save();
-        _canvas.translate(-viewPoint.x, -viewPoint.y);
-        if (!freeze && !network.hasNetworkProblem()) {
-          sprite.frame(duration, frames, gravity);
-        }
-        if(shouldDraw(sprite))
-          sprite.draw(_canvas, localKeyState.debug);
-        collisionCheck(networkId, duration);
-        if (sprite.remove) {
-          spriteIndex.removeSprite(sprite.networkId);
-        }
-        _canvas.restore();
-      }
-      
-      if (explosionFlash > 0) {
-        _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
-        _canvas.fillRect(0, 0, _width, _height);
+    }
+
+    if (explosionFlash > 0) {
+      _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
+      _canvas.fillRect(0, 0, _width, _height);
       explosionFlash -= duration * 5;
     }
-    
+
     if (controlHelperTime > 0) {
       drawControlHelper(_canvas, controlHelperTime, playerSprite, _width, _height);
       controlHelperTime -= duration;
     }
-  
+
     spriteIndex.removePending();
-  
+
     // Only send to network if server frames has passed.
     if (frames > 0) {
       network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
@@ -240,7 +233,7 @@ class WormWorld extends World {
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
     hudMessages.render(_canvas, duration);
-      _canvas.restore();
+    _canvas.restore();
   }
 
   MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
