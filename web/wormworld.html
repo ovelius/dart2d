@@ -9,7 +9,6 @@
   <meta name="google-signin-callback" content="onSignIn" />
   <meta name="google-signin-scope" content="https://www.googleapis.com/auth/games" />
   <body>
-    <h1>Dart + WebRTC</h1>
 	<script>
 	  function signOut() {
 	    var auth2 = gapi.auth2.getAuthInstance();
@@ -20,13 +19,8 @@
 	</script>
     <div class="g-signin2" data-onsuccess="onSignIn"></div>
     <a href="#" onclick="signOut();">Sign out</a>
-    <p id="peerId"><p>
-    <input id="nameInput" value="TestName1" />
-    <input id="clientId" />
-    <input type="button" id="clientBtn" value="Client" />
-
     <div id="container">
-      <canvas id="canvas" width="800" height="600" class="center"></canvas>
+      <canvas id="canvas" width="1024" height="576" class="center"></canvas>
       <br/>
     </div>
     

@@ -40,12 +40,16 @@ class PeerWrapper {
   /**
    * Called to establish a connection to another peer.
    */
-  void connectTo(id, [ConnectionType connectionType = ConnectionType.CLIENT_TO_SERVER]) {
+  void connectTo(id, [ConnectionType connectionType = ConnectionType.BOOTSTRAP]) {
     assert(id != null);
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
+    if (connections.containsKey(id)) {
+      log.warning("Already a connection to ${id}!");
+    }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, _world.network, _world.hudMessages, this.chunkHelper, peerId, connection, connectionType, this._peerWrapperCallbacks);
+        _world, _world.network, _world.hudMessages, this.chunkHelper,
+        peerId, connection, connectionType, this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
@@ -87,9 +91,12 @@ class PeerWrapper {
       // Don't connect to self...
       if (id != this.id) {
         log.info("Auto connecting to id ${id}");
+
+        connectTo(id);
         this._world.restart = true;
         // Do no start game !
-        this._world.connectTo(id, "Auto connect name", false);
+        // this._world.connectTo(id, "Auto connect name", false);
+        // TODO: Add logic here instead. How many to connect to and why?
         return;
       }
     });
@@ -114,8 +121,16 @@ class PeerWrapper {
     if (_world.network.isServer()) {
       type = ConnectionType.SERVER_TO_CLIENT;
     } else {
-      // We are a client. This must be another client connecting to us.
-      type = ConnectionType.CLIENT_TO_CLIENT;
+      if (_world.network.gameState.playerInfoByConnectionId(peerId) != null) {
+        // We know this connection as a player.
+        type = ConnectionType.CLIENT_TO_CLIENT;
+      } else {
+        // We are not server. Assume generic bootstrap connection.
+        type = ConnectionType.BOOTSTRAP;
+      }
+    }
+    if (connections.containsKey(peerId)) {
+      log.warning("Already a connection to ${peerId}!");
     }
     connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages, this.chunkHelper,
         peerId, connection,  type,

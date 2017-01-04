@@ -37,8 +37,6 @@ class WormWorld extends World {
   int _width, _height;
   double explosionFlash = 0.0;
 
-  bool connectedToGame = false;
-
   WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex,
       ChunkHelper chunkHelper,
@@ -119,9 +117,13 @@ class WormWorld extends World {
     }
     hudMessages.display("Connecting to ${id}");
     network.localPlayerName = this.playerName;
-    network.peer.connectTo(id);
+    network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
+    network.gameState.actingServerId = null;
     if (startGame) {
-      this.startGame();
+      if (network.getServerConnection() == null) {
+        throw new StateError("No server connection, can't connect to game :S Got ${network.safeActiveConnections()}");
+      }
+      network.getServerConnection().connectToGame();
     }
   }
 
@@ -134,33 +136,29 @@ class WormWorld extends World {
   }
 
   void frameDraw([double duration = 0.01]) {
-    // Phase 1 load resources.
-    if (!loader.completedResources()) {
-      loader.loaderTick(duration);
-      return;
-    }
-
-    // Phase 2 try and connect to game (or start own game).
-    if (!connectedToGame) {
-      // Signal starting of game.
-      startGame();
-    }
-
-    // Phase 3 load gamestate from server.
-    if (!network.isServer() && !loader.hasGameState()) {
-      // Load the gamestate from server.
-      loader.loaderGameStateTick(duration);
-      if (loader.currentState() == LoaderState.LOADING_GAMESTATE_ERROR) {
-        // Fallback to starting as server.
-        this.startAsServer();
+    if (!loader.completed()) {
+      print("Start loader as ${loader.currentState()}");
+      if (loader.loadedAsServer()) {
+        // We are server.
+        startAsServer();
+        loader.markCompleted();
+        print("Start as Server ! ${peer.id}");
+      } else if (loader.hasGameState()) {
+        // We are client.
+        initByteWorld("");
+        loader.markCompleted();
+        print("Start as client ! ${peer.id}");
+      } else {
+        // Tick the loader.
+        loader.loaderTick(duration);
+        print("Ticking loader ${peer.id}");
       }
+      print("Stop loader as ${loader.currentState()}");
+      // Don't run the generic game loop.
       return;
     }
-    // Phase 4 initialize world.
-    if (!byteWorld.initialized()) {
-      // Empty string means from server data.
-      initByteWorld("");
-    }
+
+//    print("Generic tick ${peer.id} IsServer ${this.network.isServer()}");
 
       if (restart) {
         clearScreen();
@@ -243,20 +241,6 @@ class WormWorld extends World {
     drawFpsCounters();
     hudMessages.render(_canvas, duration);
       _canvas.restore();
-  }
-
-  void startGame() {
-    if (!loader.completedResources()) {
-      throw new StateError("Can not start game! Loading not complete, stage: ${loader.currentState()}");
-    }
-    ConnectionWrapper serverConnection = this.network.getServerConnection();
-    if (serverConnection == null) {
-      startAsServer();
-    } else {
-      // Connect to the actual game.
-      serverConnection.connectToGame();
-    }
-    connectedToGame = true;
   }
 
   MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {

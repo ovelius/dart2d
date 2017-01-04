@@ -63,13 +63,6 @@ void main() {
 
   setKeyListeners(world, canvasElement);
 
-  querySelector("#clientBtn").onClick.listen((e) {
-    var clientId = (querySelector("#clientId") as InputElement).value;
-    var name = (querySelector("#nameInput") as InputElement).value;
-    world.restart = true;
-    world.connectTo(clientId);
-  });
-
   querySelector("#sendMsg").onClick.listen((e) {
     var message = (querySelector("#chatMsg") as InputElement).value;
     world.displayHudMessageAndSendToNetwork(

@@ -6,6 +6,7 @@ import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/hud_messages.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
@@ -14,12 +15,16 @@ import 'dart:core';
 
 enum ConnectionType {
   BOOTSTRAP, // No game yet initialized for connection.
+  // This is a connection to a server.
   CLIENT_TO_SERVER,
+  // This is a connection to a client.
   SERVER_TO_CLIENT,
+  // This is a connection between clients.
   CLIENT_TO_CLIENT,
 }
 
 class ConnectionWrapper {
+  final Logger log = new Logger('Connection');
   // How many keyframes the connection can be behind before it is dropped.
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
   // How long until connection attempt times out.
@@ -35,6 +40,8 @@ class ConnectionWrapper {
   // True if connection was successfully opened.
   bool opened = false;
   bool closed = false;
+  bool _initialPingSent = false;
+  bool _initialPingReceived = false;
   bool _handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
   int lastKeyFrameFromPeer = 0;
@@ -64,7 +71,7 @@ class ConnectionWrapper {
     if (connectionType == ConnectionType.CLIENT_TO_CLIENT) {
       this._handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
-      // This is required since CLIENT_TO_CLIENT connections to not do a handshake.
+      // This is required since CLIENT_TO_CLIENT connections do not do a handshake.
       lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
     }
     peerWrapperCallbacks
@@ -75,6 +82,7 @@ class ConnectionWrapper {
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
+    log.fine("Opened connection to $id of type ${connectionType}");
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -158,6 +166,13 @@ class ConnectionWrapper {
     }
   }
 
+  void updateConnectionType(ConnectionType type) {
+    if (type == ConnectionType.CLIENT_TO_CLIENT) {
+      _handshakeReceived = true;
+    }
+    this.connectionType = type;
+  }
+
   void close(unusedThis) {
     _hudMessages.display("Connection to ${id} closed :(");
     closed = true;
@@ -185,14 +200,21 @@ class ConnectionWrapper {
   }
 
   /**
-   * Send ping message.
+   * Send ping message with metadata about the connection.
    */
-  void sendPing() {
+  void sendPing([bool gameStatePing = false]) {
+    if (gameStatePing) {
+      _initialPingSent = true;
+      _initialPingReceived = false;
+    }
     sendData(
-        {PING: new DateTime.now().millisecond.toString(),
+        {PING: new DateTime.now().millisecondsSinceEpoch,
           CONNECTION_TYPE: this.connectionType.index,
           IS_KEY_FRAME_KEY: _network.currentKeyFrame});
   }
+
+  bool initialPingReceived() => _initialPingReceived;
+  bool initialPingSent() => _initialPingSent;
 
   void error(unusedThis, error) {
     print("Connection ${id}error ${error} ${opened}");
@@ -206,7 +228,18 @@ class ConnectionWrapper {
     verifyLastKeyFrameHasBeenReceived(dataMap);
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
-      this.sendData({PONG: "y"});
+      sendData({
+          PONG: dataMap[PING],
+          CONNECTION_TYPE: this.connectionType.index});
+      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
+      return;
+    }
+    if (dataMap.containsKey(PONG)) {
+      DateTime now = new DateTime.now();
+      int latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
+      sampleLatency(new Duration(milliseconds: latencyMillis));
+      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
+      _initialPingReceived = true;
       return;
     }
 
@@ -232,6 +265,7 @@ class ConnectionWrapper {
     }
     // Don't continue handling data if handshake is not finished.
     if (!_handshakeReceived) {
+      print("${_network.peer.id} Not processing more, no handshake!! ${this.connectionType}");
       return;
     }
     // We got a remote key state.
@@ -239,6 +273,41 @@ class ConnectionWrapper {
       remoteKeyState.setEnabledKeys(dataMap[KEY_STATE_KEY]);
     }
     _network.parseBundle(this, dataMap);
+  }
+
+  void maybeUpdateConnectionType(int otherEndType) {
+    ConnectionType otherEndConnectionType = ConnectionType.values[otherEndType];
+    switch (otherEndConnectionType) {
+      case ConnectionType.BOOTSTRAP:
+        // Other end is bootstrap, not much we can do.
+        break;
+      // Other end thinks we are client.
+      case ConnectionType.SERVER_TO_CLIENT:
+        if (!_network.isServer()) {
+          // We are client.
+          connectionType = ConnectionType.CLIENT_TO_SERVER;
+        } else {
+          log.warning("Server to server connection detected, closing ${id}");
+          close(null);
+        }
+        break;
+      // Other end thinks we are client. If we are, confirm it.
+      case ConnectionType.CLIENT_TO_CLIENT:
+        if (!_network.isServer()) {
+          connectionType = ConnectionType.CLIENT_TO_CLIENT;
+        }
+        break;
+      // Other end thinks we are server.
+      case ConnectionType.CLIENT_TO_SERVER:
+        if (!_network.isServer()) {
+          // We are not server though. Strange.
+          log.warning("CLIENT_TO_SERVER connection without being server, dropping ${id}");
+          close(null);
+        } else {
+          connectionType = ConnectionType.SERVER_TO_CLIENT;
+        }
+
+    }
   }
  
   void alsoSendWithStoredData(var data) {

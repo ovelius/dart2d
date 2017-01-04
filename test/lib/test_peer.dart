@@ -18,7 +18,7 @@ WormWorld testWorld(String id, {var canvasElement}) {
   Injector injector = createWorldInjector(id);
   WormWorld world = injector.get(WormWorld);
   world.playerName = "name${id.toUpperCase()}";
-  world.loader.setStateForTest(LoaderState.LOADING_GAMESTATE_COMPLETED);
+  world.loader.markCompleted();
   world.initByteWorld();
   return world;
 }

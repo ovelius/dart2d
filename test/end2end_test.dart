@@ -50,7 +50,9 @@ void main() {
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      worldA.frameDraw();
+
+      expect(loaderA.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
       worldA.frameDraw();
       expect(worldA.network.isServer(), true);
 
@@ -62,11 +64,12 @@ void main() {
       expect(worldB.peer.connections.length, equals(1));
       worldB.frameDraw();
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
 
       // Ideally this does not mean connection to a game.
       // But Game comes underway after a couple of frames.
-      logConnectionData = true;
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -106,7 +109,8 @@ void main() {
       FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
       fakeImageFactoryC.completeAllImages();
       worldC.frameDraw(KEY_FRAME_DEFAULT);
-      expect(loaderC.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      expect(loaderC.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
+      worldC.frameDraw(KEY_FRAME_DEFAULT);
       worldC.frameDraw(KEY_FRAME_DEFAULT);
 
       expect(worldC, hasSpriteWithNetworkId(playerId(0)));
@@ -136,7 +140,7 @@ void main() {
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      expect(loaderA.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
@@ -161,7 +165,7 @@ void main() {
 
       // Completed loading form server.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_RESOURCES_COMPLETED));
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE_SERVER));
     });
   });
 }

@@ -118,11 +118,11 @@ class SpriteIndex {
       int id = _removeSprites.removeAt(0);
       Sprite sprite = _sprites[id];
       _sprites.remove(id);
-      log.fine("${this}: Removing sprite ${id} from world");
+      log.fine("Removing sprite ${id} from world");
       if (sprite != null) {
         sprite.remove = true;
         if (sprite.networkType != NetworkType.REMOTE) {
-          log.fine("${this}: Removing sprite ${id} from network");
+          log.fine("Removing sprite ${id} from network");
           _networkRemovals.add(id);
         }
       }

@@ -103,6 +103,7 @@ class GameState {
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
         Sprite sprite = world.spriteIndex[info.spriteId];
+        print("REmoving sprite ${sprite} id ${sprite.networkId}");
         if (sprite != null) {
           // The game engine will not remove things if the REMOTE NetworkType.
           // So make the old servers sprite REMOTE_FORWARD.
@@ -154,7 +155,7 @@ class GameState {
         return info;
       }
     }
-    throw new ArgumentError("${id} doesn't have a matching player?");
+    return null;
   }
   
   bool gameIsFull() {

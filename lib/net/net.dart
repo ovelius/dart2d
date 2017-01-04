@@ -53,6 +53,13 @@ class Network {
           world.hudMessages.display("Creating neighbour connection to ${info.name}");
           peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
         }
+      } else {
+        // Set connection type.
+        ConnectionWrapper connection = peer.connections[info.connectionId];
+        // Don't allow bootstrap connections.
+        if (connection != null && connection.connectionType == ConnectionType.BOOTSTRAP) {
+          connection.updateConnectionType(ConnectionType.CLIENT_TO_CLIENT);
+        }
       }
     }
   }
@@ -66,11 +73,15 @@ class Network {
    *  peers.
    */
   bool verifyOrTransferServerRole(Map connections) {
+    if (gameState.actingServerId == null) {
+      log.info("No active game found, no server to transfer.");
+      return false;
+    }
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
       if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
-        print("${peer.id} has a client to server connection using ${key}");
-        return false;  
+        log.info("${peer.id} has a client to server connection using ${key}");
+        return false;
       }
     }
     // We don't have a server connection. We need to elect a new one.
@@ -153,7 +164,11 @@ class Network {
     }
     return null;
   }
-  
+
+  bool hasConnections() {
+    return peer.connections.length > 0;
+  }
+
   /**
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
@@ -177,6 +192,10 @@ class Network {
   }
 
   void frame(double duration, List<int> removals) {
+    if (this.peer.id == 'b') {
+      print("Sending removals of ${removals}");
+    }
+
     if (!hasReadyConnection()) {
       serverFramesBehind = 0;
       return;
@@ -232,7 +251,7 @@ class Network {
     }
     String debugString = "";
     for (ConnectionWrapper connection in peer.connections.values) {
-      debugString += "${connection.id} R/X/D: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}/${connection.droppedKeyFrames}";
+      debugString += "${connection.id} ${connection.expectedLatency().inMilliseconds}ms R/X/D: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}/${connection.droppedKeyFrames}";
     }
     return debugString;
   }
@@ -259,6 +278,7 @@ class Network {
       }
     }
     if (bundle.containsKey(REMOVE_KEY)) {
+      print("${this.peer.id} get removals of ${bundle}");
       List<int> removals = bundle[REMOVE_KEY];
       for (int id in removals) {
         world.removeSprite(id);

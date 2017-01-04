@@ -25,10 +25,10 @@ class LoaderState {
   static const LOADING_SERVER = const LoaderState._internal(4, "Loading resources from server...");
   static const LOADING_OTHER_CLIENT = const LoaderState._internal(5, "Loading resources from client...");
 
-  static const LOADING_RESOURCES_COMPLETED = const LoaderState._internal(6, "Completed loading resources.");
-
+  static const FINDING_SERVER =  const LoaderState._internal(11, "Finding game...");
+  static const CONNECTING_TO_GAME =  const LoaderState._internal(12, "Connecting to game...");
   static const LOADING_GAMESTATE =  const LoaderState._internal(8, "Loading gamestate...");
-  static const LOADING_GAMESTATE_ERROR =  const LoaderState._internal(10, "Loading gamestate error!");
+  static const LOADING_GAMESTATE_SERVER =  const LoaderState._internal(10, "Loading gamestate as server");
   static const LOADING_GAMESTATE_COMPLETED =  const LoaderState._internal(9, "All done.");
 
   operator ==(LoaderState other) {
@@ -50,7 +50,9 @@ class Loader {
   DateTime startedAt;
 
   LoaderState _currentState = LoaderState.UNKNOWN;
-  
+  bool _completed = false;
+
+
   Loader(@WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
          Network network,
@@ -73,13 +75,16 @@ class Loader {
       }
       this._currentState = LoaderState.WEB_RTC_INIT;
       return;
-    } else if (!_peerWrapper.hasReceivedActiveIds()) {
+    }
+    if (!_peerWrapper.hasReceivedActiveIds()) {
       this._currentState =  LoaderState.WAITING_FOR_PEER_DATA;
       return;
-    } if (!_network.hasOpenConnection() && !_peerWrapper.connectionsExhausted()) {
+    }
+    if (!_network.hasOpenConnection() && !_peerWrapper.connectionsExhausted()) {
       this._currentState =  LoaderState.CONNECTING_TO_PEER;
       return;
-    } else if (!_imageIndex.finishedLoadingImages()) {
+    }
+    if (!_imageIndex.finishedLoadingImages()) {
       if (_network.hasOpenConnection()) {
         if (!_imageIndex.imagesIndexed()) {
           _imageIndex.loadImagesFromNetwork();
@@ -109,15 +114,13 @@ class Loader {
   }
 
   LoaderState currentState() => _currentState;
-  
-  bool completedResources() => (_currentState == LoaderState.LOADING_RESOURCES_COMPLETED
-      || hasGameState());
 
   bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
+  bool loadedAsServer() => _currentState == LoaderState.LOADING_GAMESTATE_SERVER;
   
   void loaderTick([double duration = 0.01]) {
     if (_imageIndex.finishedLoadingImages()) {
-      _currentState = LoaderState.LOADING_RESOURCES_COMPLETED;
+      this._loaderGameStateTick(duration);
       return;
     }
     if (startedAt == null) {
@@ -127,8 +130,14 @@ class Loader {
     drawCenteredText(currentState().description);
   }
 
-  void loaderGameStateTick([double duration = 0.01]) {
+  void _loaderGameStateTick([double duration = 0.01]) {
+    print("GameStateTick :D");
+    if (loadedAsServer()) {
+      print("Stop loaded as server!");
+      return;
+    }
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
+      print("Loaded world image!!!");
       _currentState = LoaderState.LOADING_GAMESTATE_COMPLETED;
       return;
     }
@@ -137,14 +146,38 @@ class Loader {
   }
 
   void _loadGameStateStage(double duration) {
-    ConnectionWrapper serverConnection = _network.getServerConnection();
-    if (serverConnection == null) {
-      this._currentState = LoaderState.LOADING_GAMESTATE_ERROR;
+    print("Blergh");
+    if (!_network.hasConnections()) {
+      this._currentState = LoaderState.LOADING_GAMESTATE_SERVER;
+      print("no connection blergh ${_currentState}");
       return;
     }
-    _peerWrapper.chunkHelper.requestSpecificNetworkData(
-        {serverConnection.id : serverConnection}, duration, GAME_STATE_RESOURCES);
-    this._currentState == LoaderState.LOADING_GAMESTATE;
+    for (ConnectionWrapper connection in _network.safeActiveConnections().values) {
+      if (!connection.initialPingSent()) {
+        connection.sendPing(true);
+      }
+      if (!connection.initialPingReceived()) {
+        this._currentState == LoaderState.FINDING_SERVER;
+        return;
+      }
+    }
+    ConnectionWrapper serverConnection = _network.getServerConnection();
+    if (serverConnection == null) {
+      this._currentState = LoaderState.LOADING_GAMESTATE_SERVER;
+      return;
+    }
+
+    if (!serverConnection.isValidGameConnection()) {
+      if (_currentState != LoaderState.CONNECTING_TO_GAME) {
+        serverConnection.connectToGame();
+      }
+      this._currentState == LoaderState.CONNECTING_TO_GAME;
+    } else {
+      _peerWrapper.chunkHelper.requestSpecificNetworkData(
+          {serverConnection.id : serverConnection}, duration,
+          GAME_STATE_RESOURCES);
+      this._currentState == LoaderState.LOADING_GAMESTATE;
+    }
   }
   
   void drawCenteredText(String text) {
@@ -156,6 +189,12 @@ class Loader {
         text, width / 2 - metrics.width / 2, height / 2);
     context_.save();
   }
+
+  void markCompleted() {
+    _completed = true;
+  }
+
+  bool completed() => _completed;
 
   setStateForTest(LoaderState state) {
     this._currentState = state;

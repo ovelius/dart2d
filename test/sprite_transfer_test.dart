@@ -26,10 +26,11 @@ void main() {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
-      worldA.startGame();
+      worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(playerId(0))
           .andNetworkType(NetworkType.LOCAL));
+      logConnectionData = true;
       worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
       for (int i = 0; i < 5; i++) {
@@ -37,6 +38,7 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
+      logConnectionData = false;
       expect(worldA, hasExactSprites([
           hasSpriteWithNetworkId(playerId(0))
               .andNetworkType(NetworkType.LOCAL),
@@ -165,7 +167,7 @@ void main() {
     test('TestGameStateTransfer', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      worldA.startGame();
+      worldA.startAsServer("nameA");
      
       worldB.connectTo("a", "nameB");
 
@@ -211,7 +213,7 @@ void main() {
     test('TestPlayerDeath', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
-      worldA.startGame();
+      worldA.startAsServer("nameA");
       worldA.frameDraw();
       worldB.connectTo("a", "nameB");
 

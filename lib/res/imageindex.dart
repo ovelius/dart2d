@@ -87,7 +87,7 @@ class ImageIndex {
     return images[id];
   }
   bool finishedLoadingImages() {
-    return loadedImages.length == imageSources.length;
+    return loadedImages.length >= imageSources.length;
   }
   String imagesLoadedString() {
     return "${loadedImages.length}/${imageSources.length}";
