@@ -86,10 +86,10 @@ class WormWorld extends World {
     
     if(sprite is MovingSprite) {
       if (sprite.collision) {
-        if (network.isServer()) {
+        if (network.isServer() || sprite.networkType == NetworkType.LOCAL) {
           for (int id in spriteIndex.spriteIds()) {
-            // Avoid duplicate checks.
-            if (networkId >= id) {
+            // Avoid duplicate checks, but only if server.
+            if (network.isServer() && networkId >= id) {
               continue;
             }
             var otherSprite = spriteIndex[id];
