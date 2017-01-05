@@ -54,6 +54,7 @@ void main() {
      ..bind(ChunkHelper)
      ..bind(ImageIndex)
      ..bind(ByteWorld)
+     ..bind(PacketListenerBindings)
      ..bind(JsCallbacksWrapper, toImplementation:  JsCallbacksWrapperImpl)
      ..bind(SpriteIndex)
   ]);

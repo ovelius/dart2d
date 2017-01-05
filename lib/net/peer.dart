@@ -47,7 +47,8 @@ class PeerWrapper {
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _world, _world.network, _world.hudMessages, this.chunkHelper,
-        peerId, connection, connectionType, this._peerWrapperCallbacks);
+        peerId, connection, connectionType, _world.packetListenerBindings,
+        this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
 
@@ -131,7 +132,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${peerId}!");
     }
     connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages, this.chunkHelper,
-        peerId, connection,  type,
+        peerId, connection,  type, _world.packetListenerBindings,
         this._peerWrapperCallbacks);
   }
 

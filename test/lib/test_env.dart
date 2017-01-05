@@ -43,6 +43,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(ChunkHelper)
       ..bind(ImageIndex)
       ..bind(ByteWorld)
+      ..bind(PacketListenerBindings)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)
   ]);

@@ -23,6 +23,8 @@ class WormWorld extends World {
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
   DynamicFactory _canvasFactory;
+  // TODO make private
+  PacketListenerBindings packetListenerBindings;
   var _canvas = null;
   var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
@@ -33,10 +35,15 @@ class WormWorld extends World {
   int _width, _height;
   double explosionFlash = 0.0;
 
-  WormWorld(@PeerMarker() Object jsPeer, @WorldCanvas() Object canvasElement, SpriteIndex spriteIndex,
-      @CanvasFactory() DynamicFactory canvasFactory, ImageIndex imageIndex,
+  WormWorld(@PeerMarker() Object jsPeer,
+      @WorldCanvas() Object canvasElement,
+      SpriteIndex spriteIndex,
+      @CanvasFactory() DynamicFactory canvasFactory,
+      ImageIndex imageIndex,
       ChunkHelper chunkHelper,
-      ByteWorld byteWorld, JsCallbacksWrapper peerWrapperCallbacks)
+      ByteWorld byteWorld,
+      JsCallbacksWrapper peerWrapperCallbacks,
+      PacketListenerBindings packetListenerBindings)
       : super() {
     this._canvasFactory = canvasFactory;
     this.imageIndex = imageIndex;
@@ -47,6 +54,7 @@ class WormWorld extends World {
     this.byteWorld = byteWorld;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
+    this.packetListenerBindings = packetListenerBindings;
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, chunkHelper, peerWrapperCallbacks);
     network = new Network(this, peer);

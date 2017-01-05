@@ -2,6 +2,7 @@ import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/network.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -33,6 +34,7 @@ class ConnectionWrapper {
   Network _network;
   HudMessages _hudMessages;
   ChunkHelper _chunkHelper;
+  PacketListenerBindings _packetListenerBindings;
   final String id;
   var connection;
   // True if connection was successfully opened.
@@ -61,6 +63,7 @@ class ConnectionWrapper {
 
   ConnectionWrapper(this.world, this._network, this._hudMessages,
       this._chunkHelper, this.id, this.connection, this.connectionType,
+      this._packetListenerBindings,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
