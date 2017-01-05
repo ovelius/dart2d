@@ -41,12 +41,12 @@ class ByteWorld {
        0, 0, viewSize.x , viewSize.y);
   }
   
-  void drawAsMiniMap(var canvas, x, y, [width = 100, height = 100]) {
+  void drawAsMiniMap(var canvas, x, y, [double wScale= 0.1, double hScale = 0.1]) {
     canvas.drawImageScaledFromSource(
        this.canvas,
        0, 0, // Source
-       this.width, this.height, // width.
-       x, y, width , height);
+       width, height, // width.
+       x, y, width * wScale, height * hScale);
   }
   
   bool isCanvasCollide(num x, num y, [num width = 1, num height = 1]) {
