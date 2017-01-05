@@ -1,5 +1,3 @@
-library connection;
-
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';

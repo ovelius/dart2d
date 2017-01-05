@@ -2,11 +2,9 @@ library loader;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/net_lib.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/net/rtc.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
@@ -35,6 +33,7 @@ class Loader {
   Network _network;
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
+  ChunkHelper _chunkHelper;
   var context_;
   int _width;
   int _height;
@@ -49,9 +48,11 @@ class Loader {
   Loader(@WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
          Network network,
-         PeerWrapper peerWrapper) {
+         PeerWrapper peerWrapper,
+         ChunkHelper chunkHelper) {
    this._network = network;
    this._peerWrapper = peerWrapper;
+   this._chunkHelper = chunkHelper;
    // Hack the typesystem.
    var canvas = canvasElement;
    context_ = canvas.context2D;
@@ -85,10 +86,10 @@ class Loader {
         }
         Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
         assert(!connections.isEmpty);
-        _peerWrapper.chunkHelper.requestNetworkData(connections, duration);
+        _chunkHelper.requestNetworkData(connections, duration);
         // load from client.
         setState(LoaderState.LOADING_OTHER_CLIENT,
-             "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_peerWrapper.chunkHelper.getTransferSpeed()}");
+             "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_chunkHelper.getTransferSpeed()}");
         return;
       }
 
@@ -162,7 +163,7 @@ class Loader {
       }
       setState(LoaderState.CONNECTING_TO_GAME);
     } else {
-      _peerWrapper.chunkHelper.requestSpecificNetworkData(
+      _chunkHelper.requestSpecificNetworkData(
           {serverConnection.id : serverConnection}, duration,
           GAME_STATE_RESOURCES);
       setState(LoaderState.LOADING_GAMESTATE);

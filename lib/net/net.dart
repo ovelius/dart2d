@@ -1,5 +1,3 @@
-library net;
-
 import 'connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/gamestate.dart';

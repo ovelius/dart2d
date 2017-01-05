@@ -1,5 +1,3 @@
-library chunk_helper;
-
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/worlds/byteworld.dart';

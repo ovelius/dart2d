@@ -3,12 +3,11 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
-import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/net/net_lib.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
-import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/worlds/world_util.dart';
@@ -16,9 +15,6 @@ import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/net/rtc.dart';
 import 'dart:math';
 
 @Injectable()
@@ -54,7 +50,7 @@ class WormWorld extends World {
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, chunkHelper, peerWrapperCallbacks);
     network = new Network(this, peer);
-    this.loader = new Loader(_canvasElement, imageIndex, network, peer);
+    this.loader = new Loader(_canvasElement, imageIndex, network, peer, chunkHelper);
   }
   
   void collisionCheck(int networkId, duration) {

@@ -1,5 +1,3 @@
-library rtc;
-
 import 'package:dart2d/worlds/worm_world.dart';
 import 'net.dart';
 import 'connection.dart';
