@@ -3,6 +3,7 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -19,6 +20,7 @@ import 'dart:math';
 
 @Injectable()
 class WormWorld extends World {
+  final Logger log = new Logger('WormWorld');
   Loader loader;
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
@@ -55,10 +57,21 @@ class WormWorld extends World {
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     this.packetListenerBindings = packetListenerBindings;
-    // Order important here :(
-    peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
-    network = new Network(this, peer, packetListenerBindings);
-    this.loader = new Loader(_canvasElement, imageIndex, network, peer, chunkHelper);
+    network = new Network(this, packetListenerBindings, jsPeer, peerWrapperCallbacks);
+    this.loader = new Loader(_canvasElement, imageIndex, network, network.peer, chunkHelper);
+
+    packetListenerBindings.bindHandler(GAME_STATE, (ConnectionWrapper connection, Map gameStateMap) {
+      assert(!network.isServer());
+      if (!connection.isValidGameConnection()) {
+        return;
+      }
+      GameState newGameState =  new GameState.fromMap(this, gameStateMap);
+      network.gameState = newGameState;
+      connectToAllPeersInGameState();
+      if (network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
+        network.peer.disconnect();
+      }
+    });
   }
   
   void collisionCheck(int networkId, duration) {
@@ -350,6 +363,41 @@ class WormWorld extends World {
     byteWorld.clearAt(location, radius);
     // Breaking away stuff is too slow :(
     // WorldPhys.lookAround(this, location.x, location.y, radius);
+  }
+
+  /**
+   * Ensures that we have a connection to all clients in the game.
+   * This is to be able to elect a new server in case the current server dies.
+   *
+   * We also ensure the sprites in the world have consitent owners.
+   */
+  void connectToAllPeersInGameState() {
+    for (PlayerInfo info in network.gameState.playerInfo) {
+      LocalPlayerSprite sprite = spriteIndex[info.spriteId];
+      if (sprite != null) {
+        // Make sure the ownerId is consistent with the connectionId.
+        sprite.ownerId = info.connectionId;
+        sprite.info = info;
+      } else {
+        log.warning("No matching sprite found for ${info}");
+      }
+      if (!network.peer.hasConnectionTo(info.connectionId)) {
+        // Decide if I'm responsible for the connection.
+        if (network.peer.id.compareTo(info.connectionId) < 0) {
+          hudMessages.display(
+              "Creating neighbour connection to ${info.name}");
+          network.peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
+        }
+      } else {
+        // Set connection type.
+        ConnectionWrapper connection = network.peer.connections[info.connectionId];
+        // Don't allow bootstrap connections.
+        if (connection != null &&
+            connection.connectionType == ConnectionType.BOOTSTRAP) {
+          connection.updateConnectionType(ConnectionType.CLIENT_TO_CLIENT);
+        }
+      }
+    }
   }
 
   clearFromNetworkUpdate(List<int> data) {

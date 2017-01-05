@@ -58,7 +58,7 @@ void main() {
       expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
       worldB.frameDraw();
       peerB.receiveActivePeer(['a', 'b']);
-      expect(worldB.peer.connections.length, equals(1));
+      expect(worldB.network.peer.connections.length, equals(1));
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();

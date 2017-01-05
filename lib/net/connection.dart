@@ -1,5 +1,4 @@
 import 'package:dart2d/keystate.dart';
-import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/network.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -50,7 +49,6 @@ class ConnectionWrapper {
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds:8);
 
   ConnectionType connectionType;
-  WormWorld world;
   Network _network;
   HudMessages _hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -80,7 +78,7 @@ class ConnectionWrapper {
   // The monitored latency of the connection.
   Duration _latency = DEFAULT_TIMEOUT;
 
-  ConnectionWrapper(this.world, this._network, this._hudMessages,
+  ConnectionWrapper(this._network, this._hudMessages,
       this.id, this.connection, this.connectionType,
       this._packetListenerBindings,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
@@ -291,7 +289,7 @@ class ConnectionWrapper {
 
   void checkIfShouldClose(int keyFrame) {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
-      print("${world}: Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+      log.warning("Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
       close(null);
       return;
     }

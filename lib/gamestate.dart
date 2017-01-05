@@ -132,7 +132,7 @@ class GameState {
       } else {
         MovingSprite oldSprite = world.spriteIndex[info.spriteId];
         ConnectionWrapper connection =
-            world.peer.connections[info.connectionId];
+            world.network.peer.connections[info.connectionId];
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
           new RemotePlayerServerSprite.copyFromMovingSprite(

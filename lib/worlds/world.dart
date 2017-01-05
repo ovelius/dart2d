@@ -26,12 +26,10 @@ abstract class World {
   String playerName = "Unkown";
   int invalidKeysPressed = 0;
 
-  PeerWrapper peer; 
   // Representing the player in the world.
   LocalPlayerSprite playerSprite;
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
-
 
   HudMessages hudMessages;
   KeyState localKeyState; 
@@ -87,7 +85,7 @@ abstract class World {
    */
   void createLocalClient(int spriteId, int spriteIndex);
 
-  toString() => "World[${peer.id}]";
+  toString() => "World[${network.peer.id}]";
 }
 
 

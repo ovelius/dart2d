@@ -44,7 +44,7 @@ class ChunkHelper {
     });
     _packetListenerBindings.bindHandler(IMAGE_DATA_RESPONSE,
             (ConnectionWrapper connection, Map dataMap) {
-          parseImageChunkResponse(dataMap, this);
+          parseImageChunkResponse(dataMap, connection);
           // Request new data right away.
           requestNetworkData(
           // No time has passed.

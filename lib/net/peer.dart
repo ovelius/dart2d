@@ -5,11 +5,15 @@ import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/hud_messages.dart';
 
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
-  WormWorld _world;
+  // TODO make private.
+  Network network;
+  HudMessages _hudMessages;
   JsCallbacksWrapper _peerWrapperCallbacks;
+  PacketListenerBindings _packetListenerBindings;
   var peer;
   var id = null;
   var _connectedToServer = false;
@@ -23,7 +27,7 @@ class PeerWrapper {
   // Peers which we have has a connection to, but is now closed.
   Set<String> _closedConnectionPeers = new Set();
 
-  PeerWrapper(this._world, @PeerMarker() Object jsPeer,
+  PeerWrapper(this.network, this._hudMessages, this._packetListenerBindings, @PeerMarker() Object jsPeer,
       this._peerWrapperCallbacks) {
     this.peer = jsPeer;
     _peerWrapperCallbacks
@@ -44,8 +48,8 @@ class PeerWrapper {
       log.warning("Already a connection to ${id}!");
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, _world.network, _world.hudMessages,
-        peerId, connection, connectionType, _world.packetListenerBindings,
+        network, _hudMessages,
+        peerId, connection, connectionType, _packetListenerBindings,
         this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
   }
@@ -68,7 +72,7 @@ class PeerWrapper {
 
   void error(unusedThis, e) {
     _error = e;
-    _world.hudMessages.display("Peer error: ${e}");
+    _hudMessages.display("Peer error: ${e}");
   }
 
   void openPeer(unusedThis, id) {
@@ -90,9 +94,6 @@ class PeerWrapper {
         log.info("Auto connecting to id ${id}");
 
         connectTo(id);
-        this._world.restart = true;
-        // Do no start game !
-        // this._world.connectTo(id, "Auto connect name", false);
         // TODO: Add logic here instead. How many to connect to and why?
         return;
       }
@@ -113,12 +114,12 @@ class PeerWrapper {
   void connectPeer(unusedThis, connection) {
     var peerId = connection['peer'];
     assert(peerId != null);
-    _world.hudMessages.display("Got connection from ${peerId}");
+    _hudMessages.display("Got connection from ${peerId}");
     ConnectionType type;
-    if (_world.network.isServer()) {
+    if (network.isServer()) {
       type = ConnectionType.SERVER_TO_CLIENT;
     } else {
-      if (_world.network.gameState.playerInfoByConnectionId(peerId) != null) {
+      if (network.gameState.playerInfoByConnectionId(peerId) != null) {
         // We know this connection as a player.
         type = ConnectionType.CLIENT_TO_CLIENT;
       } else {
@@ -129,8 +130,8 @@ class PeerWrapper {
     if (connections.containsKey(peerId)) {
       log.warning("Already a connection to ${peerId}!");
     }
-    connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages,
-        peerId, connection,  type, _world.packetListenerBindings,
+    connections[peerId] = new ConnectionWrapper(network, _hudMessages,
+        peerId, connection,  type, _packetListenerBindings,
         this._peerWrapperCallbacks);
   }
 
@@ -178,13 +179,13 @@ class PeerWrapper {
     connectionsCopy.remove(id);
     if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
       print("Removing Gamestate for $id");
-      _world.network.gameState.removeByConnectionId(id);
+      network.gameState.removeByConnectionId(id);
       // The crucial step of verifying we still have a server.
-    } else if (_world.network.verifyOrTransferServerRole(connectionsCopy)) {
+    } else if (network.verifyOrTransferServerRole(connectionsCopy)) {
       // We got elected the new server, first task is to remove the old.
       print("Removing Gamestate for $id");
-      _world.network.gameState.removeByConnectionId(id);
-      _world.network.gameState.convertToServer(this.id);
+      network.gameState.removeByConnectionId(id);
+      network.gameState.convertToServer(this.id);
     }
     // Reconnect peer to server to allow receiving connections yet again.
     if (!connectedToServer()) {

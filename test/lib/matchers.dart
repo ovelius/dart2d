@@ -84,7 +84,7 @@ class PeerStateMatcher extends Matcher {
 
   bool matches(item, Map matchState) {
     if (item is World) {
-      TestPeer peer = item.peer.peer;
+      TestPeer peer = item.network.peer.peer;
       return peer.connectedToServer == _connected;
     }
     return false;

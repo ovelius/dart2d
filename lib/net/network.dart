@@ -2,10 +2,12 @@ import 'connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/fps_counter.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -17,8 +19,8 @@ const PROBLEMATIC_FRAMES_BEHIND = 2;
 class Network {
   GameState gameState;
   WormWorld world;
-  String localPlayerName;
   PeerWrapper peer;
+  String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
@@ -26,8 +28,12 @@ class Network {
   // is unable to ack our data.
   int serverFramesBehind = 0;
 
-  Network(this.world, this.peer, this._packetListenerBindings) {
+  Network(
+      this.world, this._packetListenerBindings,
+      @PeerMarker() Object jsPeer,
+      JsCallbacksWrapper peerWrapperCallbacks) {
     gameState = new GameState(world);
+    peer = new PeerWrapper(this, world.hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY,
             (ConnectionWrapper connection, Map data) {
@@ -96,40 +102,7 @@ class Network {
       peer.disconnect();
     }
   }
-  
-  /**
-   * Ensures that we have a connection to all clients in the game.
-   * This is to be able to elect a new server in case the current server dies.
-   * 
-   * We also ensure the sprites in the world have consitent owners.
-   */
-  void connectToAllPeersInGameState() {
-    for (PlayerInfo info in gameState.playerInfo) {
-      LocalPlayerSprite sprite = world.spriteIndex[info.spriteId];
-      if (sprite != null) {
-        // Make sure the ownerId is consistent with the connectionId.
-        sprite.ownerId = info.connectionId;
-        sprite.info = info;
-      } else {
-        log.warning("No matching sprite found for ${info}");
-      }
-      if (!peer.hasConnectionTo(info.connectionId)) {
-        // Decide if I'm responsible for the connection.
-        if (peer.id.compareTo(info.connectionId) < 0) {
-          world.hudMessages.display("Creating neighbour connection to ${info.name}");
-          peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
-        }
-      } else {
-        // Set connection type.
-        ConnectionWrapper connection = peer.connections[info.connectionId];
-        // Don't allow bootstrap connections.
-        if (connection != null && connection.connectionType == ConnectionType.BOOTSTRAP) {
-          connection.updateConnectionType(ConnectionType.CLIENT_TO_CLIENT);
-        }
-      }
-    }
-  }
-  
+
   /**
    * Our goal is to always have a connection to a server.
    * This is checked when a connection is dropped. 
@@ -295,13 +268,14 @@ class Network {
     }
   }
 
+
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {
       return true;
     }
     return false;
   }
-  
+
   bool hasOpenConnection() {
     if (hasReadyConnection()) {
       return safeActiveConnections().length > 0;
@@ -358,16 +332,6 @@ class Network {
     }
     if (bundle.containsKey(WORLD_PARTICLE)) {
       world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
-    }
-    if (bundle.containsKey(GAME_STATE)) {
-      assert(!world.network.isServer());
-      Map gameStateMap = bundle[GAME_STATE];
-      GameState newGameState =  new GameState.fromMap(world, gameStateMap);
-      world.network.gameState = newGameState;
-      world.network.connectToAllPeersInGameState();
-      if (world.network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
-        world.network.peer.disconnect();
-      }
     }
   }
 
