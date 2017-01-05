@@ -121,70 +121,6 @@ class ConnectionWrapper {
       keyFrameData = {};
     }
   }
-  
-  /**
-   * Covers server <-> client handshake.
-   */
-  void checkForHandshakeData(Map dataMap) {
-    if (dataMap.containsKey(CLIENT_PLAYER_SPEC)) {
-      if (_network.gameState.gameIsFull()) {
-        sendData({
-          SERVER_PLAYER_REJECT: 'Game full',
-          KEY_FRAME_KEY: lastKeyFrameFromPeer, 
-          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
-        // Mark as closed.
-        this.closed = true;
-        return;
-      }
-      // Consider the client CLIENT_PLAYER_SPEC as the client having seen
-      // the latest keyframe.
-      // It will anyway get the keyframe from our response.
-      lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
-      assert(connectionType == ConnectionType.SERVER_TO_CLIENT);
-      String name = dataMap[CLIENT_PLAYER_SPEC];
-      int spriteId = _network.gameState.getNextUsablePlayerSpriteId();
-      int spriteIndex = _network.gameState.getNextUsableSpriteImage();
-      PlayerInfo info = new PlayerInfo(name, id, spriteId);
-      _network.gameState.playerInfo.add(info);
-      assert(info.connectionId != null);
-      
-      LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-          world, remoteKeyState, info, 0.0, 0.0, spriteIndex);
-      sprite.networkType =  NetworkType.REMOTE_FORWARD;
-      sprite.networkId = spriteId;
-      sprite.ownerId = id;
-      world.addSprite(sprite);
-
-      world.displayHudMessageAndSendToNetwork("${name} connected.");
-      Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
-      sendData({
-        SERVER_PLAYER_REPLY: serverData,
-        KEY_FRAME_KEY:lastKeyFrameFromPeer, 
-        IS_KEY_FRAME_KEY: _network.currentKeyFrame});
-
-      // We don't expect any more players, disconnect the peer.
-      if (_network.peer.connectedToServer() && _network.gameState.gameIsFull()) {
-        _network.peer.disconnect();
-      }
-    }
-    if (dataMap.containsKey(SERVER_PLAYER_REPLY)) {
-      assert(connectionType == ConnectionType.CLIENT_TO_SERVER);
-      _hudMessages.display("Got server challenge from ${id}");
-      assert(!_network.isServer());
-      Map receivedServerData = dataMap[SERVER_PLAYER_REPLY];
-      world.createLocalClient(receivedServerData["spriteId"],
-          receivedServerData["spriteIndex"]);
-    }
-    if (dataMap.containsKey(SERVER_PLAYER_REJECT)) {
-      _hudMessages.display("Game is full :/");
-      this.closed = true;
-      return;
-    }
-    if (!_handshakeReceived) {
-      _handshakeReceived = dataMap.containsKey(CLIENT_PLAYER_SPEC)
-          || dataMap.containsKey(SERVER_PLAYER_REPLY);
-    }
-  }
 
   void updateConnectionType(ConnectionType type) {
     if (type == ConnectionType.CLIENT_TO_CLIENT) {
@@ -235,6 +171,9 @@ class ConnectionWrapper {
 
   bool initialPingReceived() => _initialPingReceived;
   bool initialPingSent() => _initialPingSent;
+  void setHandshakeReceived() {
+    _handshakeReceived = true;
+  }
 
   void error(unusedThis, error) {
     print("Connection ${id}error ${error} ${opened}");
@@ -276,10 +215,6 @@ class ConnectionWrapper {
       }
     }
 
-    if (!_handshakeReceived) {
-      // Try to handle the intial connection handshake.
-      checkForHandshakeData(dataMap);
-    }
     // Wait for a first keyframe from this connection.
     if (!hasReceivedFirstKeyFrame(dataMap)) {
       return;

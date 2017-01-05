@@ -57,7 +57,7 @@ class WormWorld extends World {
     this.packetListenerBindings = packetListenerBindings;
     // Order important here :(
     peer = new PeerWrapper(this, jsPeer, peerWrapperCallbacks);
-    network = new Network(this, peer);
+    network = new Network(this, peer, packetListenerBindings);
     this.loader = new Loader(_canvasElement, imageIndex, network, peer, chunkHelper);
   }
   

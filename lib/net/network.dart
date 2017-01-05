@@ -19,14 +19,82 @@ class Network {
   WormWorld world;
   String localPlayerName;
   PeerWrapper peer;
+  PacketListenerBindings _packetListenerBindings;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
 
-  Network(this.world, this.peer) {
+  Network(this.world, this.peer, this._packetListenerBindings) {
     gameState = new GameState(world);
+
+    _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY,
+            (ConnectionWrapper connection, Map data) {
+      if (!connection.isValidGameConnection()) {
+        assert(connection.connectionType == ConnectionType.CLIENT_TO_SERVER);
+        assert(!isServer());
+        world.hudMessages.display("Got server challenge from ${connection.id}");
+        world.createLocalClient(data["spriteId"], data["spriteIndex"]);
+        connection.setHandshakeReceived();
+      } else {
+        log.warning("Duplicate handshake received from ${connection}!");
+      }
+    });
+
+    _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
+            (ConnectionWrapper connection, Map data) {
+      world.hudMessages.display("Game is full :/");
+      connection.close(null);
+    });
+
+    _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
+  }
+
+  _handleClientConnect(ConnectionWrapper connection, String name) {
+    if (connection.isValidGameConnection()) {
+      log.warning("Duplicate handshake received from ${connection}!");
+      return;
+    }
+    if (gameState.gameIsFull()) {
+      connection.sendData({
+        SERVER_PLAYER_REJECT: 'Game full',
+        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
+        IS_KEY_FRAME_KEY: currentKeyFrame});
+      // Mark as closed.
+      connection.close(null);
+      return;
+    }
+    // Consider the client CLIENT_PLAYER_SPEC as the client having seen
+    // the latest keyframe.
+    // It will anyway get the keyframe from our response.
+    connection.lastLocalPeerKeyFrameVerified = currentKeyFrame;
+    assert(connection.connectionType == ConnectionType.SERVER_TO_CLIENT);
+    int spriteId = gameState.getNextUsablePlayerSpriteId();
+    int spriteIndex = gameState.getNextUsableSpriteImage();
+    PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
+    gameState.playerInfo.add(info);
+    assert(info.connectionId != null);
+
+    LocalPlayerSprite sprite = new RemotePlayerServerSprite(
+        world, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
+    sprite.networkType =  NetworkType.REMOTE_FORWARD;
+    sprite.networkId = spriteId;
+    sprite.ownerId = connection.id;
+    world.addSprite(sprite);
+
+    world.displayHudMessageAndSendToNetwork("${name} connected.");
+    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
+    connection.sendData({
+      SERVER_PLAYER_REPLY: serverData,
+      KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
+      IS_KEY_FRAME_KEY: currentKeyFrame});
+
+    connection.setHandshakeReceived();
+    // We don't expect any more players, disconnect the peer.
+    if (peer.connectedToServer() && gameState.gameIsFull()) {
+      peer.disconnect();
+    }
   }
   
   /**
