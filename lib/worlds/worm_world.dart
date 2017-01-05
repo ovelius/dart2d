@@ -26,11 +26,10 @@ class WormWorld extends World {
   Loader loader;
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
-  DynamicFactory _canvasFactory;
   KeyState localKeyState;
   HudMessages hudMessages;
   // TODO make private
-  PacketListenerBindings packetListenerBindings;
+  PacketListenerBindings _packetListenerBindings;
   var _canvas = null;
   var _canvasElement = null;
   Vec2 viewPoint = new Vec2();
@@ -45,18 +44,14 @@ class WormWorld extends World {
       Network network,
       Loader loader,
       @LocalKeyState() KeyState localKeyState,
-      @PeerMarker() Object jsPeer,
       @WorldCanvas() Object canvasElement,
       SpriteIndex spriteIndex,
-      @CanvasFactory() DynamicFactory canvasFactory,
       ImageIndex imageIndex,
       ChunkHelper chunkHelper,
       ByteWorld byteWorld,
       HudMessages hudMessages,
-      JsCallbacksWrapper peerWrapperCallbacks,
       PacketListenerBindings packetListenerBindings)
       : super() {
-    this._canvasFactory = canvasFactory;
     this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
@@ -65,7 +60,7 @@ class WormWorld extends World {
     this.byteWorld = byteWorld;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
-    this.packetListenerBindings = packetListenerBindings;
+    this._packetListenerBindings = packetListenerBindings;
     this.localKeyState = localKeyState;
     localKeyState.world = this;
     localKeyState.registerGenericListener((e) {
