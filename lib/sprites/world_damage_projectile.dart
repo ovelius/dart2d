@@ -63,6 +63,9 @@ class WorldDamageProjectile extends MovingSprite {
       : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex);
 
   collide(MovingSprite other, ByteWorld world, int direction) {
+    if (networkType == NetworkType.REMOTE) {
+      return;
+    }
     assert(owner != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
       other.takeDamage(/*this.owner,*/ damage);
@@ -104,10 +107,12 @@ class WorldDamageProjectile extends MovingSprite {
   }
   
   frame(double duration, int frameStep, [Vec2 gravity]) {
-    if (explodeAfter != null) {
-      explodeAfter -= duration;
-      if (explodeAfter < 0) {
-        explode();
+    if (networkType != NetworkType.REMOTE) {
+      if (explodeAfter != null) {
+        explodeAfter -= duration;
+        if (explodeAfter < 0) {
+          explode();
+        }
       }
     }
     super.frame(duration, frames, gravity);
@@ -120,7 +125,22 @@ class WorldDamageProjectile extends MovingSprite {
         explodeAfter.toInt().toString(), position.x, position.y - size.y);
     }
     super.draw(context, debug);
-   
+  }
+
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.DAMAGE_PROJECTILE;
+  }
+
+  void addExtraNetworkData(List<int> data) {
+    if (explodeAfter != null) {
+      data.add(explodeAfter.toInt());
+    }
+  }
+
+  void parseExtraNetworkData(List<int> data, int startAt) {
+    if (data.length > startAt) {
+      this.explodeAfter = data[startAt].toDouble();
+    }
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)

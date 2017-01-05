@@ -3,6 +3,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/worm_player.dart';
+import 'package:dart2d/sprites/world_damage_projectile.dart';
 import 'package:dart2d/sprites/rope.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:di/di.dart';
@@ -11,6 +12,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 enum SpriteConstructor {
   MOVING_SPRITE,
+  DAMAGE_PROJECTILE,
   REMOTE_PLAYER_CLIENT_SPRITE,
   ROPE_SPRITE
 }
@@ -26,6 +28,7 @@ class SpriteIndex {
         new Vec2(), 0, world.imageIndex),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
     SpriteConstructor.ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
+    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex),
   };
     
   static MovingSprite fromWorldByIndex(WormWorld world, SpriteConstructor constructor) {
