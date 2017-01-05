@@ -2,7 +2,7 @@ library dart2d;
 
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/net/net_lib.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/worm_world.dart';

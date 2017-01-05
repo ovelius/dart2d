@@ -2,7 +2,7 @@ library loader;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/net_lib.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';

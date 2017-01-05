@@ -6,13 +6,11 @@ import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
-import 'package:dart2d/net/chunk_helper.dart';
-import 'package:dart2d/net/rtc.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
 import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/net/rtc.dart';
 import 'dart:html';
 import 'dart:async';
 

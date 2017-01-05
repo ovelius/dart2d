@@ -1,5 +1,5 @@
 import 'package:dart2d/worlds/worm_world.dart';
-import 'net.dart';
+import 'network.dart';
 import 'connection.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';

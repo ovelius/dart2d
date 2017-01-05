@@ -1,7 +1,7 @@
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
