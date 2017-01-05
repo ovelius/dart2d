@@ -7,7 +7,9 @@ import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
+import 'package:di/di.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -16,9 +18,11 @@ final Logger log = new Logger('Network');
 const KEY_FRAME_DEFAULT = 1.0/2;
 const PROBLEMATIC_FRAMES_BEHIND = 2;
 
+@Injectable()
 class Network {
-  GameState gameState;
   WormWorld world;
+  GameState gameState;
+  HudMessages _hudMessages;
   PeerWrapper peer;
   String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
@@ -29,78 +33,19 @@ class Network {
   int serverFramesBehind = 0;
 
   Network(
-      this.world, this._packetListenerBindings,
+      HudMessages hudMessages,
+      this._packetListenerBindings,
       @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks) {
-    gameState = new GameState(world);
-    peer = new PeerWrapper(this, world.hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
-
-    _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY,
-            (ConnectionWrapper connection, Map data) {
-      if (!connection.isValidGameConnection()) {
-        assert(connection.connectionType == ConnectionType.CLIENT_TO_SERVER);
-        assert(!isServer());
-        world.hudMessages.display("Got server challenge from ${connection.id}");
-        world.createLocalClient(data["spriteId"], data["spriteIndex"]);
-        connection.setHandshakeReceived();
-      } else {
-        log.warning("Duplicate handshake received from ${connection}!");
-      }
-    });
+    this._hudMessages = hudMessages;
+    gameState = new GameState();
+    peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
             (ConnectionWrapper connection, Map data) {
-      world.hudMessages.display("Game is full :/");
+      hudMessages.display("Game is full :/");
       connection.close(null);
     });
-
-    _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
-  }
-
-  _handleClientConnect(ConnectionWrapper connection, String name) {
-    if (connection.isValidGameConnection()) {
-      log.warning("Duplicate handshake received from ${connection}!");
-      return;
-    }
-    if (gameState.gameIsFull()) {
-      connection.sendData({
-        SERVER_PLAYER_REJECT: 'Game full',
-        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
-        IS_KEY_FRAME_KEY: currentKeyFrame});
-      // Mark as closed.
-      connection.close(null);
-      return;
-    }
-    // Consider the client CLIENT_PLAYER_SPEC as the client having seen
-    // the latest keyframe.
-    // It will anyway get the keyframe from our response.
-    connection.lastLocalPeerKeyFrameVerified = currentKeyFrame;
-    assert(connection.connectionType == ConnectionType.SERVER_TO_CLIENT);
-    int spriteId = gameState.getNextUsablePlayerSpriteId();
-    int spriteIndex = gameState.getNextUsableSpriteImage();
-    PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
-    gameState.playerInfo.add(info);
-    assert(info.connectionId != null);
-
-    LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-        world, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
-    sprite.networkType =  NetworkType.REMOTE_FORWARD;
-    sprite.networkId = spriteId;
-    sprite.ownerId = connection.id;
-    world.addSprite(sprite);
-
-    world.displayHudMessageAndSendToNetwork("${name} connected.");
-    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
-    connection.sendData({
-      SERVER_PLAYER_REPLY: serverData,
-      KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
-      IS_KEY_FRAME_KEY: currentKeyFrame});
-
-    connection.setHandshakeReceived();
-    // We don't expect any more players, disconnect the peer.
-    if (peer.connectedToServer() && gameState.gameIsFull()) {
-      peer.disconnect();
-    }
   }
 
   /**
@@ -267,7 +212,6 @@ class Network {
       connection.sendPing();
     }
   }
-
 
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {

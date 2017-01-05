@@ -179,13 +179,13 @@ class PeerWrapper {
     connectionsCopy.remove(id);
     if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
       print("Removing Gamestate for $id");
-      network.gameState.removeByConnectionId(id);
+      network.gameState.removeByConnectionId(network.world, id);
       // The crucial step of verifying we still have a server.
     } else if (network.verifyOrTransferServerRole(connectionsCopy)) {
       // We got elected the new server, first task is to remove the old.
       print("Removing Gamestate for $id");
-      network.gameState.removeByConnectionId(id);
-      network.gameState.convertToServer(this.id);
+      network.gameState.removeByConnectionId(network.world, id);
+      network.gameState.convertToServer(network.world, this.id);
     }
     // Reconnect peer to server to allow receiving connections yet again.
     if (!connectedToServer()) {

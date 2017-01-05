@@ -47,6 +47,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(HudMessages)
       ..bind(ImageIndex)
       ..bind(ByteWorld)
+      ..bind(Network)
       ..bind(PacketListenerBindings)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)

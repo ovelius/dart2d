@@ -42,6 +42,7 @@ class WormWorld extends World {
   double explosionFlash = 0.0;
 
   WormWorld(
+      Network network,
       @LocalKeyState() KeyState localKeyState,
       @PeerMarker() Object jsPeer,
       @WorldCanvas() Object canvasElement,
@@ -77,7 +78,8 @@ class WormWorld extends World {
       }
     });
     this.hudMessages = hudMessages;
-    network = new Network(this, packetListenerBindings, jsPeer, peerWrapperCallbacks);
+    this.network = network;
+    network.world = this;
     this.loader = new Loader(_canvasElement, imageIndex, network, network.peer, chunkHelper);
 
     packetListenerBindings.bindHandler(GAME_STATE, (ConnectionWrapper connection, Map gameStateMap) {
@@ -85,13 +87,28 @@ class WormWorld extends World {
       if (!connection.isValidGameConnection()) {
         return;
       }
-      GameState newGameState =  new GameState.fromMap(this, gameStateMap);
+      GameState newGameState =  new GameState.fromMap(gameStateMap);
       network.gameState = newGameState;
       connectToAllPeersInGameState();
       if (network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
         network.peer.disconnect();
       }
     });
+
+    packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY,
+            (ConnectionWrapper connection, Map data) {
+          if (!connection.isValidGameConnection()) {
+            assert(connection.connectionType == ConnectionType.CLIENT_TO_SERVER);
+            assert(!network.isServer());
+            hudMessages.display("Got server challenge from ${connection.id}");
+            createLocalClient(data["spriteId"], data["spriteIndex"]);
+            connection.setHandshakeReceived();
+          } else {
+            log.warning("Duplicate handshake received from ${connection}!");
+          }
+        });
+
+    packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -288,6 +305,52 @@ class WormWorld extends World {
     return sprite;
   }
 
+  _handleClientConnect(ConnectionWrapper connection, String name) {
+    if (connection.isValidGameConnection()) {
+      log.warning("Duplicate handshake received from ${connection}!");
+      return;
+    }
+    if (network.gameState.gameIsFull()) {
+      connection.sendData({
+        SERVER_PLAYER_REJECT: 'Game full',
+        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
+        IS_KEY_FRAME_KEY: network.currentKeyFrame});
+      // Mark as closed.
+      connection.close(null);
+      return;
+    }
+    // Consider the client CLIENT_PLAYER_SPEC as the client having seen
+    // the latest keyframe.
+    // It will anyway get the keyframe from our response.
+    connection.lastLocalPeerKeyFrameVerified = network.currentKeyFrame;
+    assert(connection.connectionType == ConnectionType.SERVER_TO_CLIENT);
+    int spriteId = network.gameState.getNextUsablePlayerSpriteId(this);
+    int spriteIndex = network.gameState.getNextUsableSpriteImage(imageIndex);
+    PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
+    network.gameState.playerInfo.add(info);
+    assert(info.connectionId != null);
+
+    LocalPlayerSprite sprite = new RemotePlayerServerSprite(
+        this, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
+    sprite.networkType =  NetworkType.REMOTE_FORWARD;
+    sprite.networkId = spriteId;
+    sprite.ownerId = connection.id;
+    addSprite(sprite);
+
+    displayHudMessageAndSendToNetwork("${name} connected.");
+    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
+    connection.sendData({
+      SERVER_PLAYER_REPLY: serverData,
+      KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
+      IS_KEY_FRAME_KEY: network.currentKeyFrame});
+
+    connection.setHandshakeReceived();
+    // We don't expect any more players, disconnect the peer.
+    if (network.peer.connectedToServer() && network.gameState.gameIsFull()) {
+      network.peer.disconnect();
+    }
+  }
+
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
       double xMin = viewPoint.x;                        //leftest x-value
@@ -325,8 +388,8 @@ class WormWorld extends World {
   }
   
   addLocalPlayerSprite(String name) {
-    int id = network.gameState.getNextUsablePlayerSpriteId();
-    int imageId = network.gameState.getNextUsableSpriteImage();
+    int id = network.gameState.getNextUsablePlayerSpriteId(this);
+    int imageId = network.gameState.getNextUsableSpriteImage(imageIndex);
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
     playerSprite = new LocalPlayerSprite(
         this, localKeyState, info,

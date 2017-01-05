@@ -65,13 +65,11 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
 
-  WormWorld world;
-  GameState(this.world) {
+  GameState() {
     startedAt = new DateTime.now();
   }
 
-  GameState.fromMap(WormWorld world, Map map) {
-    this.world = world;
+  GameState.fromMap(Map map) {
     List<Map> players = map["p"];
     for (Map playerMap in players) {
       playerInfo.add(new PlayerInfo.fromMap(playerMap));
@@ -94,7 +92,7 @@ class GameState {
     return map;
   }
   
-  removeByConnectionId(var id) {
+  removeByConnectionId(WormWorld world, var id) {
     for (int i = playerInfo.length -1; i >= 0; i--) {
       PlayerInfo info = playerInfo[i];
       if (info.connectionId == id) {
@@ -118,7 +116,7 @@ class GameState {
   /**
    * Converts the world sprite state for us to become server.
    */
-  convertToServer(var selfConnectionId) {
+  convertToServer(WormWorld world, var selfConnectionId) {
     this.actingServerId = selfConnectionId;
     for (PlayerInfo info in playerInfo) {
       if (info.connectionId == selfConnectionId) {
@@ -142,7 +140,7 @@ class GameState {
           world.replaceSprite(info.spriteId, remotePlayerSprite);
         } else {
           // Connection isn't there :( Not much we can do but kill the playerinfo.
-          removeByConnectionId(info.connectionId);
+          removeByConnectionId(world, info.connectionId);
         }
       }
     }
@@ -161,7 +159,7 @@ class GameState {
   bool gameIsFull() {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
-  int getNextUsablePlayerSpriteId() {
+  int getNextUsablePlayerSpriteId(WormWorld world) {
     int id = ID_OFFSET_FOR_NEW_CLIENT +
         world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
     // Make sure we don't pick and ID we already use.
@@ -170,8 +168,8 @@ class GameState {
     }
     return id;
   }
-  int getNextUsableSpriteImage() {
-    return world.imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
+  int getNextUsableSpriteImage(ImageIndex imageIndex) {
+    return imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
   }
   
   String toString() {
