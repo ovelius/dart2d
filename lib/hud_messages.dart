@@ -63,7 +63,8 @@ class HudMessages {
         Vec2 middle = sprite.centerPoint();
         int x = world.width() ~/ 3;
         int y = 40 + i*40;
-        context.fillText("${info.name} ${info.score} ${info.deaths}", x, y);
+        ConnectionWrapper connection = world.network.peer.connections[info.connectionId];
+        context.fillText("${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
         // TODO: Check that sprite is alive.
         if (sprite != null) {
           context.lineWidth = 2;

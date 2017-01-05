@@ -209,6 +209,10 @@ class LocalPlayerSprite extends MovingSprite {
     if (!inGame()) {
       this.velocity.x = 0.0;
       this.velocity.y = 0.0;
+      if (rope != null) {
+        rope.remove = true;
+        rope = null;
+      }
       return;
     }
     if (weaponState != null) {
