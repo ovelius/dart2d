@@ -2,12 +2,10 @@ library dart2d;
 
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/net/net_lib.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 

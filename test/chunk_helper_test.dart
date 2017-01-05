@@ -1,8 +1,7 @@
 import 'package:test/test.dart';
-import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/net/net_lib.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/net/state_updates.dart';
 import 'package:mockito/mockito.dart';
 import 'lib/test_lib.dart';
 

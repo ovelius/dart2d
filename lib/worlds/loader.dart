@@ -61,6 +61,18 @@ class Loader {
    this._imageIndex = imageIndex;
   }
 
+  void loaderTick([double duration = 0.01]) {
+    if (_imageIndex.finishedLoadingImages()) {
+      this._loaderGameStateTick(duration);
+      return;
+    }
+    if (startedAt == null) {
+      startedAt = new DateTime.now();
+    }
+    _advanceStage(duration);
+    drawCenteredText(_currentMessage);
+  }
+
   void _advanceStage(double duration) {
     if (!_peerWrapper.connectedToServer()) {
       if (_peerWrapper.getLastError() != null) {
@@ -80,50 +92,41 @@ class Loader {
       return;
     }
     if (!_imageIndex.finishedLoadingImages()) {
-      if (_network.hasOpenConnection()) {
-        if (!_imageIndex.imagesIndexed()) {
-          _imageIndex.loadImagesFromNetwork();
-        }
-        Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
-        assert(!connections.isEmpty);
-        _chunkHelper.requestNetworkData(connections, duration);
-        // load from client.
-        setState(LoaderState.LOADING_OTHER_CLIENT,
-             "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_chunkHelper.getTransferSpeed()}");
-        return;
-      }
+      _loadImagesStage(duration);
+    }
+  }
 
-      // Either we
-      // 1) Didn't find a client to load data from OR
-      // 2) We're currently in the state of loading form other client.
-      // But somehow the connection closed on us :(
-      if (!_imageIndex.imagesIndexed()
-          || _currentState == LoaderState.LOADING_OTHER_CLIENT) {
-        // Load everythng from the server.
-        _imageIndex.loadImagesFromServer();
+  void _loadImagesStage(double duration) {
+    if (_network.hasOpenConnection()) {
+      if (!_imageIndex.imagesIndexed()) {
+        _imageIndex.loadImagesFromNetwork();
       }
-      setState(LoaderState.LOADING_SERVER,
-          "Loading images from server ${_imageIndex.imagesLoadedString()}");
+      Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
+      assert(!connections.isEmpty);
+      _chunkHelper.requestNetworkData(connections, duration);
+      // load from client.
+      setState(LoaderState.LOADING_OTHER_CLIENT,
+          "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_chunkHelper.getTransferSpeed()}");
       return;
     }
+
+    // Either we
+    // 1) Didn't find a client to load data from OR
+    // 2) We're currently in the state of loading form other client.
+    // But somehow the connection closed on us :(
+    if (!_imageIndex.imagesIndexed()
+        || _currentState == LoaderState.LOADING_OTHER_CLIENT) {
+      // Load everythng from the server.
+      _imageIndex.loadImagesFromServer();
+    }
+    setState(LoaderState.LOADING_SERVER,
+        "Loading images from server ${_imageIndex.imagesLoadedString()}");
   }
 
   LoaderState currentState() => _currentState;
 
   bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
   bool loadedAsServer() => _currentState == LoaderState.LOADED_AS_SERVER;
-  
-  void loaderTick([double duration = 0.01]) {
-    if (_imageIndex.finishedLoadingImages()) {
-      this._loaderGameStateTick(duration);
-      return;
-    }
-    if (startedAt == null) {
-      startedAt = new DateTime.now();
-    }
-    _advanceStage(duration);
-    drawCenteredText(_currentMessage);
-  }
 
   void _loaderGameStateTick([double duration = 0.01]) {
     if (loadedAsServer()) {

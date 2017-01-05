@@ -219,6 +219,12 @@ class Network {
     gameState.actingServerId = peer.id;
     // TODO select me!
     this.gameState.mapId = 1;
+    // If we have any connetions, consider them to be SERVER_TO_CLIENT now.
+    for (ConnectionWrapper connection in safeActiveConnections().values) {
+      connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
+      // Announce change in type.
+      connection.sendPing();
+    }
   }
 
   bool hasReadyConnection() {
