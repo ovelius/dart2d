@@ -4,6 +4,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'fake_canvas.dart';
@@ -48,6 +49,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(ImageIndex)
       ..bind(ByteWorld)
       ..bind(Network)
+      ..bind(Loader)
       ..bind(PacketListenerBindings)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)

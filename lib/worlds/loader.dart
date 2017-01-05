@@ -26,7 +26,7 @@ enum LoaderState {
   LOADED_AS_SERVER, // Server ready to start game.
 }
 
-@Injectable() // TODO make fully injectable.
+@Injectable()
 class Loader {
   final List<int> GAME_STATE_RESOURCES =
       new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
@@ -48,10 +48,9 @@ class Loader {
   Loader(@WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
          Network network,
-         PeerWrapper peerWrapper,
          ChunkHelper chunkHelper) {
    this._network = network;
-   this._peerWrapper = peerWrapper;
+   this._peerWrapper = network.getPeer();
    this._chunkHelper = chunkHelper;
    // Hack the typesystem.
    var canvas = canvasElement;

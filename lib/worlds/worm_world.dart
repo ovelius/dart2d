@@ -43,6 +43,7 @@ class WormWorld extends World {
 
   WormWorld(
       Network network,
+      Loader loader,
       @LocalKeyState() KeyState localKeyState,
       @PeerMarker() Object jsPeer,
       @WorldCanvas() Object canvasElement,
@@ -80,7 +81,7 @@ class WormWorld extends World {
     this.hudMessages = hudMessages;
     this.network = network;
     network.world = this;
-    this.loader = new Loader(_canvasElement, imageIndex, network, network.peer, chunkHelper);
+    this.loader = loader;
 
     packetListenerBindings.bindHandler(GAME_STATE, (ConnectionWrapper connection, Map gameStateMap) {
       assert(!network.isServer());

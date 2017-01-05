@@ -59,6 +59,7 @@ void main() {
      ..bind(HudMessages)
      ..bind(ByteWorld)
      ..bind(Network)
+     ..bind(Loader)
      ..bind(PacketListenerBindings)
      ..bind(JsCallbacksWrapper, toImplementation:  JsCallbacksWrapperImpl)
      ..bind(SpriteIndex)

@@ -101,6 +101,8 @@ class Network {
     return false;
   }
 
+  PeerWrapper getPeer() => peer;
+
   bool checkForKeyFrame(double duration) {
     untilNextKeyFrame -= duration;
     if (untilNextKeyFrame < 0) {

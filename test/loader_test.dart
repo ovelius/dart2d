@@ -28,8 +28,9 @@ void main() {
     mockNetwork = new MockNetwork();
     mockPeerWrapper = new MockPeerWrapper();
     mockChunkHelper = new MockChunkHelper();
+    when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     loader = new Loader(new FakeCanvas(),
-      mockImageIndex, mockNetwork,  mockPeerWrapper, mockChunkHelper);
+      mockImageIndex, mockNetwork, mockChunkHelper);
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);
   });
