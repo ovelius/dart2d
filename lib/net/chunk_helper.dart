@@ -1,12 +1,14 @@
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'package:di/di.dart';
 
 @Injectable()
 class ChunkHelper {
+  final Logger log = new Logger('ChunkHelper');
   static const int DEFAULT_CHUNK_SIZE = 1024;
   static const int MAX_CHUNK_SIZE = 65000;
   static const int MIN_CHUNK_SIZE = 100;
@@ -93,8 +95,7 @@ class ChunkHelper {
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
     if (!_imageBuffer.containsKey(index)) {
-      print(
-          "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
+      log.warning("Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
     if (start == _imageBuffer[index].length) {
@@ -105,14 +106,14 @@ class ChunkHelper {
       }
       _imageToConnection.remove(index);
     } else {
-      print("Dropping data for ${index}, out of order??");
+      log.warning("Dropping data for ${index}, out of order??");
     }
 
     // Image complete.
     if (_imageBuffer[index].length == size) {
       _imageIndex.addFromImageData(index, _imageBuffer[index]);
       _imageBuffer.remove(index);
-      print("Image complete ${index} :)");
+      log.info("Image complete ${index} :)");
     }
   }
 
