@@ -116,16 +116,3 @@ class TestPeer extends PeerMarker {
   }
 }
 
-class TestHudMessage extends HudMessages {
-  
-  TestHudMessage(World w) : super(w);
-
-  void displayAndSendToNetwork(String message, [double period]) {
-     print("HUD(${world.network.peer.id})_NET: $message");
-     world.network.sendMessage(message);
-   }
-
-   void display(String message, [double period]) {
-     print("HUD(${world.network.peer.id}): $message");
-   }
-}

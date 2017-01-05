@@ -3,6 +3,8 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
+import 'package:dart2d/keystate.dart';
+import 'package:dart2d/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
@@ -25,6 +27,8 @@ class WormWorld extends World {
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
   DynamicFactory _canvasFactory;
+  KeyState localKeyState;
+  HudMessages hudMessages;
   // TODO make private
   PacketListenerBindings packetListenerBindings;
   var _canvas = null;
@@ -37,13 +41,16 @@ class WormWorld extends World {
   int _width, _height;
   double explosionFlash = 0.0;
 
-  WormWorld(@PeerMarker() Object jsPeer,
+  WormWorld(
+      @LocalKeyState() KeyState localKeyState,
+      @PeerMarker() Object jsPeer,
       @WorldCanvas() Object canvasElement,
       SpriteIndex spriteIndex,
       @CanvasFactory() DynamicFactory canvasFactory,
       ImageIndex imageIndex,
       ChunkHelper chunkHelper,
       ByteWorld byteWorld,
+      HudMessages hudMessages,
       JsCallbacksWrapper peerWrapperCallbacks,
       PacketListenerBindings packetListenerBindings)
       : super() {
@@ -57,6 +64,19 @@ class WormWorld extends World {
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     this.packetListenerBindings = packetListenerBindings;
+    this.localKeyState = localKeyState;
+    localKeyState.world = this;
+    localKeyState.registerGenericListener((e) {
+      if (!playerSprite.isMappedKey(e)) {
+        invalidKeysPressed++;
+        if (invalidKeysPressed > 2) {
+          controlHelperTime = 4.0;
+        }
+      } else {
+        invalidKeysPressed = 0;
+      }
+    });
+    this.hudMessages = hudMessages;
     network = new Network(this, packetListenerBindings, jsPeer, peerWrapperCallbacks);
     this.loader = new Loader(_canvasElement, imageIndex, network, network.peer, chunkHelper);
 
@@ -249,7 +269,7 @@ class WormWorld extends World {
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
-    hudMessages.render(_canvas, duration);
+    hudMessages.render(this, _canvas, duration);
     _canvas.restore();
   }
 

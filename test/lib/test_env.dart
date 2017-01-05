@@ -4,7 +4,8 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/keystate.dart';
+import 'package:dart2d/hud_messages.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
@@ -40,8 +41,10 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
+      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
       ..bind(WormWorld)
       ..bind(ChunkHelper)
+      ..bind(HudMessages)
       ..bind(ImageIndex)
       ..bind(ByteWorld)
       ..bind(PacketListenerBindings)

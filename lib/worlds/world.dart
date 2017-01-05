@@ -31,8 +31,6 @@ abstract class World {
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
 
-  HudMessages hudMessages;
-  KeyState localKeyState; 
   // For debuggging.
   FpsCounter drawFps = new FpsCounter();
   FpsCounter serverFps = new FpsCounter();
@@ -43,21 +41,6 @@ abstract class World {
   Network network;
 
   double controlHelperTime = 0.0;
-
-  World() {
-    localKeyState = new KeyState(this);
-    localKeyState.registerGenericListener((e) {
-      if (!playerSprite.isMappedKey(e)) {
-        invalidKeysPressed++;
-        if (invalidKeysPressed > 2) {
-          controlHelperTime = 4.0;
-        }
-      } else {
-        invalidKeysPressed = 0;
-      }
-    });
-    hudMessages = new HudMessages(this);
-  }
 
   /**
    * Connect to the given id.

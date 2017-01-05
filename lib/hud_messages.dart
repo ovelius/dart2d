@@ -3,8 +3,10 @@ library hud;
 import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:di/di.dart';
 import 'package:dart2d/gamestate.dart';
 
 class _HudMessage {
@@ -16,13 +18,15 @@ class _HudMessage {
   }
 }
 
-// TODO: Make injectable.
+@Injectable()
 class HudMessages {
   static const DEFAULT_DURATION = 4.0;
-  WormWorld world;
+  KeyState _localKeyState;
   List<_HudMessage> messages = [];
 
-  HudMessages(this.world);
+  HudMessages(@LocalKeyState() KeyState localKeyState) {
+   this._localKeyState = localKeyState;
+  }
 
   void display(String message, [double period]) {
     messages.add(new _HudMessage(
@@ -30,14 +34,14 @@ class HudMessages {
   }
 
   bool shouldDrawTable() {
-    return world.localKeyState.keyIsDown(KeyCode.SHIFT) ||
-        world.localKeyState.keyIsDown(KeyCode.CTRL) ||
-        world.localKeyState.keyIsDown(KeyCode.H) ||
-        world.localKeyState.keyIsDown(KeyCode.HOME) ||
-        world.localKeyState.keyIsDown(KeyCode.ALT);
+    return _localKeyState.keyIsDown(KeyCode.SHIFT) ||
+        _localKeyState.keyIsDown(KeyCode.CTRL) ||
+        _localKeyState.keyIsDown(KeyCode.H) ||
+        _localKeyState.keyIsDown(KeyCode.HOME) ||
+        _localKeyState.keyIsDown(KeyCode.ALT);
   }
 
-  void showGameTable(var /*CanvasRenderingContext2D*/ context) {
+  void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
       GameState gameState = world.network.gameState;
       context.setFillColorRgb(200, 0, 0);
@@ -64,10 +68,10 @@ class HudMessages {
     }    
   }
 
-  void render(var /*CanvasRenderingContext2D*/ context, double timeSpent) {
+  void render(WormWorld world, var /*CanvasRenderingContext2D*/ context, double timeSpent) {
     context.font = '16pt Calibri';
     context.resetTransform();
-    showGameTable(context);
+    showGameTable(world, context);
     for (int i = 0; i < messages.length; i++) {
       _HudMessage m = messages[i];
       m.remainingTime -= timeSpent;

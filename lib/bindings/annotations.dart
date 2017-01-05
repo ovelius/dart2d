@@ -10,6 +10,10 @@ class WorldCanvas {
   const WorldCanvas();
 }
 
+class LocalKeyState {
+  const LocalKeyState();
+}
+
 class CanvasFactory {
   const CanvasFactory();
 }
