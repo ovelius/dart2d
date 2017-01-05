@@ -1,5 +1,3 @@
-import 'package:di/di.dart';
-
 class WorldWidth {
   const WorldWidth();
 }
@@ -37,19 +35,5 @@ class DynamicFactory {
   dynamic _factory;
   create(var args) {
     return _factory(args);
-  }
-}
-
-@Injectable()
-class PacketListenerBindings {
-  Map<String, dynamic> _handlers;
-
-  bindHandler(String key, dynamic handler) {
-    _handlers[key] = handler;
-  }
-
-  handlerFor(String key) {
-    assert (_handlers.containsKey(key));
-    return _handlers[key];
   }
 }

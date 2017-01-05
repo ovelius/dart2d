@@ -9,12 +9,16 @@ class MockImageIndex extends Mock implements ImageIndex {}
 
 class MockByteWorld extends Mock implements ByteWorld {}
 
+class MockPacketListenerBindings extends Mock
+    implements PacketListenerBindings {}
+
 void main() {
   const String IMAGE_DATA =
       "12345678901234567890123456789012345678901234567890";
   const String BYTE_WORLD_IMAGE_DATA = "abcdefghijklmonpqrstuv";
   TestConnectionWrapper connection1;
   TestConnectionWrapper connection2;
+  PacketListenerBindings packetListenerBindings;
   ChunkHelper helper;
   ChunkHelper helper2;
   ImageIndex imageIndex;
@@ -26,16 +30,17 @@ void main() {
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
     byteWorld = new MockByteWorld();
-    helper = new ChunkHelper(imageIndex, byteWorld)..setChunkSizeForTest(4);
-    helper2 = new ChunkHelper(imageIndex, byteWorld)..setChunkSizeForTest(4);
+    packetListenerBindings = new MockPacketListenerBindings();
+    helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
+      ..setChunkSizeForTest(4);
+    helper2 = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
+      ..setChunkSizeForTest(4);
   });
   group('Chunk helper tests', () {
     test('Reply with data', () {
       int requestedIndex = 5;
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
-      helper.replyWithImageData({
-        IMAGE_DATA_REQUEST: {'index': requestedIndex}
-      }, connection1);
+      helper.replyWithImageData({'index': requestedIndex}, connection1);
       // Default chunk size.
       expect(
           connection1.lastDataSent,
@@ -47,9 +52,8 @@ void main() {
               'size': IMAGE_DATA.length
             }
           }));
-      helper.replyWithImageData({
-        IMAGE_DATA_REQUEST: {'index': requestedIndex, 'start': 1, 'end': 2}
-      }, connection1);
+      helper.replyWithImageData(
+          {'index': requestedIndex, 'start': 1, 'end': 2}, connection1);
       // Explicit request.
       expect(
           connection1.lastDataSent,
@@ -62,9 +66,8 @@ void main() {
             }
           }));
       // Explicit request of final byte.
-      helper.replyWithImageData({
-        IMAGE_DATA_REQUEST: {'index': requestedIndex, 'start': 49, 'end': 900}
-      }, connection1);
+      helper.replyWithImageData(
+          {'index': requestedIndex, 'start': 49, 'end': 900}, connection1);
       expect(
           connection1.lastDataSent,
           equals({
@@ -81,8 +84,9 @@ void main() {
       int requestedIndex = 6;
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       Map request = helper.buildImageChunkRequest(requestedIndex);
-      helper.replyWithImageData({IMAGE_DATA_REQUEST: request}, connection1);
-      helper.parseImageChunkResponse(connection1.lastDataSent, connection1);
+      helper.replyWithImageData(request, connection1);
+      helper.parseImageChunkResponse(
+          connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
 
       String fullData = IMAGE_DATA;
       String expectedData = fullData.substring(0, 4);
@@ -90,8 +94,9 @@ void main() {
 
       while (helper.getImageBuffer().containsKey(requestedIndex)) {
         Map request = helper.buildImageChunkRequest(requestedIndex);
-        helper.replyWithImageData({IMAGE_DATA_REQUEST: request}, connection1);
-        helper.parseImageChunkResponse(connection1.lastDataSent, connection1);
+        helper.replyWithImageData(request, connection1);
+        helper.parseImageChunkResponse(
+            connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
       }
 
       expect(IMAGE_DATA, equals(fullData));
@@ -121,8 +126,10 @@ void main() {
           break;
         }
         helper.requestNetworkData(connections, 0.1);
-        helper2.replyWithImageData(connection1.lastDataSent, connection1);
-        helper.parseImageChunkResponse(connection1.lastDataSent, connection1);
+        helper2.replyWithImageData(
+            connection1.lastDataSent[IMAGE_DATA_REQUEST], connection1);
+        helper.parseImageChunkResponse(
+            connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
       }
       // Fully loaded.
       expect(imageIndex.imageIsLoaded(requestedIndex), isTrue);
@@ -178,7 +185,8 @@ void main() {
       when(imageIndex.allImagesByName()).thenReturn(map);
 
       helper.requestNetworkData(connections, 0.01);
-      helper.replyWithImageData(connection1.lastDataSent, connection1);
+      helper.replyWithImageData(
+          connection1.lastDataSent[IMAGE_DATA_REQUEST], connection1);
       expect(
           connection1.lastDataSent,
           equals({

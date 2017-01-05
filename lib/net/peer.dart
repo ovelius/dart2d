@@ -10,7 +10,6 @@ import 'package:dart2d/net/chunk_helper.dart';
 class PeerWrapper {
   WormWorld _world;
   JsCallbacksWrapper _peerWrapperCallbacks;
-  ChunkHelper chunkHelper;
   var peer;
   var id = null;
   var _connectedToServer = false;
@@ -25,7 +24,6 @@ class PeerWrapper {
   Set<String> _closedConnectionPeers = new Set();
 
   PeerWrapper(this._world, @PeerMarker() Object jsPeer,
-      this.chunkHelper,
       this._peerWrapperCallbacks) {
     this.peer = jsPeer;
     _peerWrapperCallbacks
@@ -46,7 +44,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${id}!");
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        _world, _world.network, _world.hudMessages, this.chunkHelper,
+        _world, _world.network, _world.hudMessages,
         peerId, connection, connectionType, _world.packetListenerBindings,
         this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
@@ -131,7 +129,7 @@ class PeerWrapper {
     if (connections.containsKey(peerId)) {
       log.warning("Already a connection to ${peerId}!");
     }
-    connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages, this.chunkHelper,
+    connections[peerId] = new ConnectionWrapper(_world, _world.network, _world.hudMessages,
         peerId, connection,  type, _world.packetListenerBindings,
         this._peerWrapperCallbacks);
   }

@@ -1,5 +1,5 @@
-import 'package:dart2d/net/connection.dart';
-import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
@@ -15,8 +15,11 @@ class ChunkHelper {
   // TODO: Lower with ping time?
   static const Duration IMAGE_RETRY_DURATION =
       const Duration(milliseconds: 1500);
+
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
+  PacketListenerBindings _packetListenerBindings;
+
   _DataCounter counter = new _DataCounter(3);
   int _chunkSize = DEFAULT_CHUNK_SIZE;
   Map<int, DateTime> _lastImageRequest = new Map();
@@ -33,8 +36,20 @@ class ChunkHelper {
   // Our local cache.
   Map<int, String> _dataUrlCache = new Map();
 
-  ChunkHelper(this._imageIndex, this._byteWorld) {
+  ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings) {
     _created = new DateTime.now();
+    _packetListenerBindings.bindHandler(IMAGE_DATA_REQUEST,
+            (ConnectionWrapper connection, Map dataMap) {
+      replyWithImageData(dataMap, connection);
+    });
+    _packetListenerBindings.bindHandler(IMAGE_DATA_RESPONSE,
+            (ConnectionWrapper connection, Map dataMap) {
+          parseImageChunkResponse(dataMap, this);
+          // Request new data right away.
+          requestNetworkData(
+          // No time has passed.
+                  {connection.id : connection}, 0.0);
+    });
   }
 
   getImageBuffer() => new Map.from(_imageBuffer);
@@ -42,8 +57,7 @@ class ChunkHelper {
   /**
    * Send a reply with the requested image data.
    */
-  void replyWithImageData(Map dataMap, var connection) {
-    Map imageDataRequest = dataMap[IMAGE_DATA_REQUEST];
+  void replyWithImageData(Map imageDataRequest, var connection) {
     int index = imageDataRequest['index'];
     String data = _getData(index);
     int start =
@@ -86,8 +100,7 @@ class ChunkHelper {
   /**
    * Parse response with imageData.
    */
-  void parseImageChunkResponse(Map dataMap, var connection) {
-    Map imageDataResponse = dataMap[IMAGE_DATA_RESPONSE];
+  void parseImageChunkResponse(Map imageDataResponse, var connection) {
     int index = imageDataResponse['index'];
     String data = imageDataResponse['data'];
     counter.collect(data.length);

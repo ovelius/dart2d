@@ -10,6 +10,7 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:convert';
+import 'package:di/di.dart';
 import 'dart:core';
 
 enum ConnectionType {
@@ -20,6 +21,25 @@ enum ConnectionType {
   SERVER_TO_CLIENT,
   // This is a connection between clients.
   CLIENT_TO_CLIENT,
+}
+
+@Injectable()
+class PacketListenerBindings {
+  Map<String, dynamic> _handlers = {};
+
+  bindHandler(String key, dynamic handler) {
+    _handlers[key] = handler;
+  }
+
+  handlerFor(String key) {
+    assert (_handlers.containsKey(key));
+    return _handlers[key];
+  }
+
+  // Transition method. Eventually there will be handler everywhere.
+  bool hasHandler(String key) {
+    return _handlers.containsKey(key);
+  }
 }
 
 class ConnectionWrapper {
@@ -33,7 +53,6 @@ class ConnectionWrapper {
   WormWorld world;
   Network _network;
   HudMessages _hudMessages;
-  ChunkHelper _chunkHelper;
   PacketListenerBindings _packetListenerBindings;
   final String id;
   var connection;
@@ -62,7 +81,7 @@ class ConnectionWrapper {
   Duration _latency = DEFAULT_TIMEOUT;
 
   ConnectionWrapper(this.world, this._network, this._hudMessages,
-      this._chunkHelper, this.id, this.connection, this.connectionType,
+      this.id, this.connection, this.connectionType,
       this._packetListenerBindings,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
@@ -227,6 +246,7 @@ class ConnectionWrapper {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     verifyLastKeyFrameHasBeenReceived(dataMap);
+
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
       sendData({
@@ -244,18 +264,18 @@ class ConnectionWrapper {
       return;
     }
 
-    // Allow sending and parsing imageData regardless of state.
-    if (dataMap.containsKey(IMAGE_DATA_REQUEST)) {
-      _chunkHelper.replyWithImageData(dataMap, this);
+    // New path.
+    for (String key in dataMap.keys) {
+      if (SPECIAL_KEYS.contains(key)) {
+        if (_packetListenerBindings.hasHandler(key)) {
+          dynamic handler = _packetListenerBindings.handlerFor(key);
+          handler(this, dataMap[key]);
+        } else {
+          log.warning("No handler bound for key ${key}!");
+        }
+      }
     }
-    if (dataMap.containsKey(IMAGE_DATA_RESPONSE)) {
-      _chunkHelper.parseImageChunkResponse(dataMap, this);
-      // Request new data right away.
-      _chunkHelper.requestNetworkData(
-          // No time has passed.
-          {this.id : this}, 0.0);
-    }
-    
+
     if (!_handshakeReceived) {
       // Try to handle the intial connection handshake.
       checkForHandshakeData(dataMap);
