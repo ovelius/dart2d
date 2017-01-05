@@ -54,6 +54,9 @@ class Rope extends MovingSprite {
   }
   
   frame(double duration, int frames, [Vec2 gravity]) {
+    if (owner != null && owner.remove) {
+      this.remove = true;
+    }
     if (locked && owner != null) {
       // When locked we have no gravity.
       if (lockedOnOther != null) {

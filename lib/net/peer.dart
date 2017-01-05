@@ -9,8 +9,7 @@ import 'package:dart2d/hud_messages.dart';
 
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
-  // TODO make private.
-  Network network;
+  Network _network;
   HudMessages _hudMessages;
   JsCallbacksWrapper _peerWrapperCallbacks;
   PacketListenerBindings _packetListenerBindings;
@@ -27,7 +26,7 @@ class PeerWrapper {
   // Peers which we have has a connection to, but is now closed.
   Set<String> _closedConnectionPeers = new Set();
 
-  PeerWrapper(this.network, this._hudMessages, this._packetListenerBindings, @PeerMarker() Object jsPeer,
+  PeerWrapper(this._network, this._hudMessages, this._packetListenerBindings, @PeerMarker() Object jsPeer,
       this._peerWrapperCallbacks) {
     this.peer = jsPeer;
     _peerWrapperCallbacks
@@ -48,7 +47,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${id}!");
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
-        network, _hudMessages,
+        _network, _hudMessages,
         peerId, connection, connectionType, _packetListenerBindings,
         this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
@@ -116,10 +115,10 @@ class PeerWrapper {
     assert(peerId != null);
     _hudMessages.display("Got connection from ${peerId}");
     ConnectionType type;
-    if (network.isServer()) {
+    if (_network.isServer()) {
       type = ConnectionType.SERVER_TO_CLIENT;
     } else {
-      if (network.gameState.playerInfoByConnectionId(peerId) != null) {
+      if (_network.gameState.playerInfoByConnectionId(peerId) != null) {
         // We know this connection as a player.
         type = ConnectionType.CLIENT_TO_CLIENT;
       } else {
@@ -130,7 +129,7 @@ class PeerWrapper {
     if (connections.containsKey(peerId)) {
       log.warning("Already a connection to ${peerId}!");
     }
-    connections[peerId] = new ConnectionWrapper(network, _hudMessages,
+    connections[peerId] = new ConnectionWrapper(_network, _hudMessages,
         peerId, connection,  type, _packetListenerBindings,
         this._peerWrapperCallbacks);
   }
@@ -175,17 +174,17 @@ class PeerWrapper {
     // Start with a copy.
     Map connectionsCopy = new Map.from(this.connections);
     ConnectionWrapper wrapper = connectionsCopy[id];
-    print("${this.id}: Removing connection for $id");
+    log.info("Removing connection for ${id}");
     connectionsCopy.remove(id);
     if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
-      print("Removing Gamestate for $id");
-      network.gameState.removeByConnectionId(network.world, id);
+      log.info("Removing GameState for ${id}");
+      _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.
-    } else if (network.verifyOrTransferServerRole(connectionsCopy)) {
+    } else if (_network.verifyOrTransferServerRole(connectionsCopy)) {
       // We got elected the new server, first task is to remove the old.
-      print("Removing Gamestate for $id");
-      network.gameState.removeByConnectionId(network.world, id);
-      network.gameState.convertToServer(network.world, this.id);
+      log.info("Server: Removing GameState for ${id}");
+      _network.gameState.removeByConnectionId(_network.world, id);
+      _network.gameState.convertToServer(_network.world, this.id);
     }
     // Reconnect peer to server to allow receiving connections yet again.
     if (!connectedToServer()) {

@@ -133,8 +133,18 @@ class LocalPlayerSprite extends MovingSprite {
     sprite.health = convertSprite.health;
     sprite.networkId = convertSprite.networkId;
     sprite.networkType = NetworkType.LOCAL;
+    sprite.rope = convertSprite.rope;
+    if (sprite.rope != null) {
+      sprite.rope.owner = sprite;
+    }
     sprite.weaponState = new WeaponState(
         sprite.world, sprite.keyState, sprite, sprite.gun);
+    sprite.listenFor("Next weapon", () {
+      sprite.weaponState.nextWeapon();
+    });
+    sprite.listenFor("Prev weapon", () {
+      sprite.weaponState.prevWeapon();
+    });
     return sprite;
   }
   
