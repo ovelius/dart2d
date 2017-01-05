@@ -268,11 +268,6 @@ class Network {
         world.removeSprite(id);
       }
     }
-    if (bundle.containsKey(MESSAGE_KEY)) {
-      for (String message in bundle[MESSAGE_KEY]) {
-        world.hudMessages.display(message);
-      }
-    }
     if (bundle.containsKey(WORLD_DESTRUCTION)) {
       world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
     }

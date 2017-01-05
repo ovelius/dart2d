@@ -5,6 +5,7 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/keystate.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/gamestate.dart';
@@ -24,8 +25,15 @@ class HudMessages {
   KeyState _localKeyState;
   List<_HudMessage> messages = [];
 
-  HudMessages(@LocalKeyState() KeyState localKeyState) {
+  HudMessages(
+      @LocalKeyState() KeyState localKeyState,
+      PacketListenerBindings packetListenerBindings) {
    this._localKeyState = localKeyState;
+   packetListenerBindings.bindHandler(MESSAGE_KEY, (c, List data) {
+     for (String message in data) {
+       display(message);
+     }
+   });
   }
 
   void display(String message, [double period]) {
