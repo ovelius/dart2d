@@ -138,7 +138,7 @@ class Loader {
   }
 
   void _loadGameStateStage(double duration) {
-    if (!_network.hasConnections()) {
+    if (!_network.hasOpenConnection()) {
       setState(LoaderState.LOADED_AS_SERVER);
       return;
     }

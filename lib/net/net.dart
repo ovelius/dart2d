@@ -163,10 +163,6 @@ class Network {
     return null;
   }
 
-  bool hasConnections() {
-    return peer.connections.length > 0;
-  }
-
   /**
    * Returns true if the network is in such a problemetic state we should notify the user.
    */

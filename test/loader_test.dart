@@ -11,6 +11,8 @@ class MockPeerWrapper extends Mock implements PeerWrapper {}
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
 class MockChunkHelper extends Mock implements ChunkHelper {}
 
+const double TICK_TIME = 0.01;
+
 void main() {
   Loader loader;
   MockImageIndex mockImageIndex;
@@ -18,7 +20,7 @@ void main() {
   MockPeerWrapper mockPeerWrapper;
   MockChunkHelper mockChunkHelper;
   void tickAndAssertState(LoaderState state) {
-    loader.loaderTick();
+    loader.loaderTick(TICK_TIME);
     expect(loader.currentState(), equals(state));
   }
   setUp(() {
@@ -50,7 +52,7 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_SERVER);
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(1)).thenReturn(false);
-      when(mockNetwork.hasConnections()).thenReturn(false);
+      when(mockNetwork.hasOpenConnection()).thenReturn(false);
       // Loaded from server, assert we'll start as server.
       tickAndAssertState(LoaderState.LOADED_AS_SERVER);
       expect(loader.loadedAsServer(), isTrue);
@@ -58,10 +60,8 @@ void main() {
 
     test('Base state and load from other client', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
-      MockConnectionWrapper connection2 = new MockConnectionWrapper();
       Map connections = {
         'a': connection1,
-        'b': connection2,
       };
       when(mockPeerWrapper.connectedToServer()).thenReturn(true);
       when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
@@ -72,7 +72,27 @@ void main() {
       when(mockImageIndex.imagesIndexed()).thenReturn(false);
       when(mockNetwork.safeActiveConnections()).thenReturn(connections);
       tickAndAssertState(LoaderState.LOADING_OTHER_CLIENT);
-      // TODO: Complete test.
+      // We requested data.
+      verify(mockChunkHelper.requestNetworkData(connections, TICK_TIME));
+
+      when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(false);
+      when(connection1.initialPingSent()).thenReturn(true);
+      when(connection1.initialPingReceived()).thenReturn(false);
+      tickAndAssertState(LoaderState.FINDING_SERVER);
+
+      when(connection1.initialPingReceived()).thenReturn(true);
+      when(connection1.isValidGameConnection()).thenReturn(false);
+      when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
+
+      when(connection1.isValidGameConnection()).thenReturn(true);
+      tickAndAssertState(LoaderState.LOADING_GAMESTATE);
+
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(true);
+      tickAndAssertState(LoaderState.LOADING_GAMESTATE_COMPLETED);
+
+      expect(loader.hasGameState(), isTrue);
     });
   });
 }
