@@ -3,6 +3,7 @@ library wormworld;
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
+import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -50,8 +51,8 @@ class WormWorld extends World {
       ChunkHelper chunkHelper,
       ByteWorld byteWorld,
       HudMessages hudMessages,
-      PacketListenerBindings packetListenerBindings)
-      : super() {
+      WorldListener worldListener,
+      PacketListenerBindings packetListenerBindings) {
     this.imageIndex = imageIndex;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
@@ -77,34 +78,7 @@ class WormWorld extends World {
     this.network = network;
     network.world = this;
     this.loader = loader;
-
-    packetListenerBindings.bindHandler(GAME_STATE, (ConnectionWrapper connection, Map gameStateMap) {
-      assert(!network.isServer());
-      if (!connection.isValidGameConnection()) {
-        return;
-      }
-      GameState newGameState =  new GameState.fromMap(gameStateMap);
-      network.gameState = newGameState;
-      connectToAllPeersInGameState();
-      if (network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
-        network.peer.disconnect();
-      }
-    });
-
-    packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY,
-            (ConnectionWrapper connection, Map data) {
-          if (!connection.isValidGameConnection()) {
-            assert(connection.connectionType == ConnectionType.CLIENT_TO_SERVER);
-            assert(!network.isServer());
-            hudMessages.display("Got server challenge from ${connection.id}");
-            createLocalClient(data["spriteId"], data["spriteIndex"]);
-            connection.setHandshakeReceived();
-          } else {
-            log.warning("Duplicate handshake received from ${connection}!");
-          }
-        });
-
-    packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
+    worldListener.setWorld(this);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -299,52 +273,6 @@ class WormWorld extends World {
       addSprite(sprite);
     }
     return sprite;
-  }
-
-  _handleClientConnect(ConnectionWrapper connection, String name) {
-    if (connection.isValidGameConnection()) {
-      log.warning("Duplicate handshake received from ${connection}!");
-      return;
-    }
-    if (network.gameState.gameIsFull()) {
-      connection.sendData({
-        SERVER_PLAYER_REJECT: 'Game full',
-        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
-        IS_KEY_FRAME_KEY: network.currentKeyFrame});
-      // Mark as closed.
-      connection.close(null);
-      return;
-    }
-    // Consider the client CLIENT_PLAYER_SPEC as the client having seen
-    // the latest keyframe.
-    // It will anyway get the keyframe from our response.
-    connection.lastLocalPeerKeyFrameVerified = network.currentKeyFrame;
-    assert(connection.connectionType == ConnectionType.SERVER_TO_CLIENT);
-    int spriteId = network.gameState.getNextUsablePlayerSpriteId(this);
-    int spriteIndex = network.gameState.getNextUsableSpriteImage(imageIndex);
-    PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
-    network.gameState.playerInfo.add(info);
-    assert(info.connectionId != null);
-
-    LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-        this, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
-    sprite.networkType =  NetworkType.REMOTE_FORWARD;
-    sprite.networkId = spriteId;
-    sprite.ownerId = connection.id;
-    addSprite(sprite);
-
-    displayHudMessageAndSendToNetwork("${name} connected.");
-    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
-    connection.sendData({
-      SERVER_PLAYER_REPLY: serverData,
-      KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
-      IS_KEY_FRAME_KEY: network.currentKeyFrame});
-
-    connection.setHandshakeReceived();
-    // We don't expect any more players, disconnect the peer.
-    if (network.peer.connectedToServer() && network.gameState.gameIsFull()) {
-      network.peer.disconnect();
-    }
   }
 
   bool shouldDraw(Sprite sprite){

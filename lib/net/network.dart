@@ -261,19 +261,6 @@ class Network {
         }
       }
     }
-    if (bundle.containsKey(REMOVE_KEY)) {
-      print("${this.peer.id} get removals of ${bundle}");
-      List<int> removals = bundle[REMOVE_KEY];
-      for (int id in removals) {
-        world.removeSprite(id);
-      }
-    }
-    if (bundle.containsKey(WORLD_DESTRUCTION)) {
-      world.clearFromNetworkUpdate(bundle[WORLD_DESTRUCTION]);
-    }
-    if (bundle.containsKey(WORLD_PARTICLE)) {
-      world.addParticlesFromNetworkData(bundle[WORLD_PARTICLE]);
-    }
   }
 
 }

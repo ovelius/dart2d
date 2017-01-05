@@ -3,6 +3,7 @@ library spaceworld;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/byteworld.dart';
@@ -54,6 +55,7 @@ void main() {
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
      ..bind(WormWorld)
+     ..bind(WorldListener)
      ..bind(ChunkHelper)
      ..bind(ImageIndex)
      ..bind(HudMessages)

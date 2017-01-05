@@ -3,6 +3,7 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
+import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/keystate.dart';
@@ -44,6 +45,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
       ..bind(WormWorld)
+      ..bind(WorldListener)
       ..bind(ChunkHelper)
       ..bind(HudMessages)
       ..bind(ImageIndex)
