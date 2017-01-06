@@ -32,6 +32,7 @@ class Particles extends Sprite {
     this.particleType = particleType;
     this.shrinkPerStep = shrinkPerStep;
     this.networkType = NetworkType.LOCAL_ONLY;
+    this.invisibleOutsideCanvas = false;
     Random r = new Random();
     particles = new List();
     for (int i = 0; i < count; i++) {
@@ -57,6 +58,7 @@ class Particles extends Sprite {
       this.followId = data[10];
     }
     this.networkType = NetworkType.LOCAL_ONLY;
+    this.invisibleOutsideCanvas = false;
     Random r = new Random();
     particles = new List();
     for (int i = 0; i < count; i++) {

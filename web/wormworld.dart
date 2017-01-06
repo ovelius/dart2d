@@ -24,13 +24,14 @@ DateTime lastStep;
 WormWorld world;
 
 void main() {
-  context['onSignIn'] = (param) {
+  context['onSignInDart'] = (param) {
     JsObject user = param;
     JsObject profile = user.callMethod('getBasicProfile');
     String name = profile.callMethod('getName');
     (querySelector("#nameInput") as InputElement).value = name;
     world.playerName = name;
   };
+  context['onPanDart'] = onPanDart;
 
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
 
@@ -130,6 +131,44 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
       'serialization': 'none',
     });
     return jsPeer.callMethod('connect', [id, metaData]);
+  }
+}
+
+class _fakeKeyCode {
+  int keyCode;
+  _fakeKeyCode(this.keyCode);
+}
+
+void onPanDart(event) {
+  int deltaY = event['deltaY'];
+  int deltaX = event['deltaX'];
+  int dir = event['direction'];
+  if (deltaX > 5) {
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCode.D));
+  } else {
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCode.D));
+  }
+  if (deltaX < -5) {
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCode.A));
+  } else {
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCode.A));
+  }
+
+  if (deltaY > 5) {
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCode.DOWN));
+  } else {
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCode.DOWN));
+  }
+  if (deltaY < -5) {
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCode.UP));
+  } else {
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCode.UP));
+  }
+
+  if (deltaY < -15) {
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCode.W));
+  } else {
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCode.W));
   }
 }
 

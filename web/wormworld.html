@@ -17,13 +17,15 @@
 	    });
 	  }
 	</script>
-    <div class="g-signin2" data-onsuccess="onSignIn"></div>
-    <a href="#" onclick="signOut();">Sign out</a>
     <div id="container">
-      <canvas id="canvas" width="1024" height="576" class="center"></canvas>
+      <canvas id="canvas" width="1024" height="576" class="center">
+      </canvas>
+      <div id="hitarea" style="background-color:white;width:100px;height:100px;position:fixed;top:0px;opacity:0.25;"></div>
       <br/>
     </div>
-    
+    <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    <a href="#" onclick="signOut();">Sign out</a>
+
     <input id="chatMsg" />
     <input type="button" id="sendMsg" value="Send" />
 
@@ -32,7 +34,47 @@
     <script src="packages/browser/interop.js"></script>
     <script src="util.js"></script>
     <script src="peer.js"></script>
+    <script src="hammer-time.min.js"></script>
+    <script src="hammer.min.js"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
+    <script type="text/javascript">
+  	var el = document.querySelector("#hitarea");
+  	var START_X
+  	var START_Y
+    function init() {
+      var screen = document.querySelector("#canvas");
+
+  	  START_X = Math.round((screen.offsetWidth - el.offsetWidth) / 4);
+	  START_Y = Math.round((screen.offsetHeight - el.offsetHeight) / 2);
+	  translateElementTransform(el, START_X, START_Y);
+
+
+	  var mc = new Hammer.Manager(el);
+   	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+   	  mc.on("panstart panmove", onPan);
+   	  mc.on("hammer.input", function(ev) {
+	    if(ev.isFinal) {
+	      translateElementTransform(el, START_X, START_Y);
+	    }
+	});
+    }
+    function translateElementTransform(el, x, y) {
+      el.className = "";
+      var value = 'translate3d(' +  x + 'px, ' + y + 'px, 0)';
+      el.style.webkitTransform = value;
+      el.style.mozTransform = value;
+      el.style.transform = value;
+    }
+    function onPan(ev) {
+	    translateElementTransform(el, START_X + ev.deltaX, START_Y + ev.deltaY);
+	    onPanDart(ev);
+	}
+    init();
+
+    function onSignIn(user) {
+      onSignInDart(user);
+    }
+    </script>
   </body>
 </html>
