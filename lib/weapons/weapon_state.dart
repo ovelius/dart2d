@@ -12,7 +12,7 @@ class WeaponState {
   static const double SHOW_WEAPON_NAME_TIME = 0.5;
   WormWorld world;
   KeyState keyState;
-  Sprite owner;
+  MovingSprite owner;
   Sprite gun;
   
   double changeTime = 0.0;
@@ -28,20 +28,35 @@ class WeaponState {
     }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       Random r = new Random();
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
         sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
         sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
-           
+        // Add recoil in y axis only.
+        weaponState.owner.velocity.y -= sprite.velocity.y * 0.1;
+
         sprite.gravityAffect = 0.5;
         
         sprite.size = new Vec2(8.0, 8.0);
         sprite.radius = 8.0;
         weaponState.world.addSprite(sprite);
       }
+    }),
+    new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
+      Random r = new Random();
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
+      sprite.spriteType = SpriteType.RECT;
+      sprite.owner = weaponState.owner;
+      double sum = sprite.velocity.sum();
+      sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
+      sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
+      sprite.gravityAffect = 0.3;
+      sprite.size = new Vec2(5.0, 5.0);
+      sprite.radius = 2.0;
+      weaponState.world.addSprite(sprite);
     }),
     new Weapon("Cofee Burn", 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
