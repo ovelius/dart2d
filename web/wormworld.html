@@ -20,7 +20,7 @@
     <div id="container">
       <canvas id="canvas" width="1024" height="576" class="center">
       </canvas>
-      <div id="hitarea" style="background-color:white;width:100px;height:100px;position:fixed;top:0px;opacity:0.25;"></div>
+      <div id="hitarea" style="display:none;background-color:white;width:100px;height:100px;position:fixed;top:0px;opacity:0.25;"></div>
       <br/>
     </div>
     <div class="g-signin2" data-onsuccess="onSignIn"></div>
@@ -43,6 +43,10 @@
   	var START_X
   	var START_Y
     function init() {
+      if (!isMobileDevice()) {
+        return;
+      }
+      el.style.display = "inline";
       var screen = document.querySelector("#canvas");
 
   	  START_X = Math.round((screen.offsetWidth - el.offsetWidth) / 4);
@@ -57,7 +61,10 @@
 	    if(ev.isFinal) {
 	      translateElementTransform(el, START_X, START_Y);
 	    }
-	});
+	  });
+    }
+    function isMobileDevice() {
+      return navigator.userAgent.match(/Mobile|Windows Phone|Lumia|Android|webOS|iPhone|iPod|Blackberry|PlayBook|BB10|Opera Mini|\bCrMo\/|Opera Mobi/i);
     }
     function translateElementTransform(el, x, y) {
       el.className = "";
