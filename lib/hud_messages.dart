@@ -51,9 +51,11 @@ class HudMessages {
 
   void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
+      context.save();
       GameState gameState = world.network.gameState;
       context.setFillColorRgb(200, 0, 0);
       context.setStrokeColorRgb(200, 0, 0);
+      context.globalAlpha = 0.5;
       for (int i = gameState.playerInfo.length - 1; i >= 0; i--) {
         PlayerInfo info = gameState.playerInfo[i];
         MovingSprite sprite = world.spriteIndex[info.spriteId];
@@ -66,15 +68,16 @@ class HudMessages {
         ConnectionWrapper connection = world.network.peer.connections[info.connectionId];
         context.fillText("${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
         // TODO: Check that sprite is alive.
-        if (sprite != null) {
+        if (sprite != null && info.inGame) {
           context.lineWidth = 2;
           context.beginPath();
           context.moveTo(x, y);
-          context.lineTo(middle.x, middle.y);
+          context.lineTo(middle.x - world.viewPoint.x, middle.y - world.viewPoint.y);
           context.stroke();
         }
       }
-    }    
+    }
+    context.restore();
   }
 
   void render(WormWorld world, var /*CanvasRenderingContext2D*/ context, double timeSpent) {
