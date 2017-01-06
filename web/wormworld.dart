@@ -28,7 +28,6 @@ void main() {
     JsObject user = param;
     JsObject profile = user.callMethod('getBasicProfile');
     String name = profile.callMethod('getName');
-    (querySelector("#nameInput") as InputElement).value = name;
     world.playerName = name;
   };
   context['onPanDart'] = onPanDart;
