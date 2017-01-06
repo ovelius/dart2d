@@ -93,15 +93,15 @@ class LocalPlayerSprite extends MovingSprite {
   static const MAX_SPEED = 500.0;
   
   static Map<String, int> _default_controls = {
-      "Left": KeyCode.A,
-      "Right": KeyCode.D,
-      "Aim up": KeyCode.UP,
-      "Aim down": KeyCode.DOWN,
-      "Jump": KeyCode.W,
-      "Fire": KeyCode.F,
-      "Rope": KeyCode.S,
-      "Next weapon": KeyCode.E,
-      "Prev weapon": KeyCode.Q,
+      "Left": KeyCodeDart.A,
+      "Right": KeyCodeDart.D,
+      "Aim up": KeyCodeDart.UP,
+      "Aim down": KeyCodeDart.DOWN,
+      "Jump": KeyCodeDart.W,
+      "Fire": KeyCodeDart.F,
+      "Rope": KeyCodeDart.S,
+      "Next weapon": KeyCodeDart.E,
+      "Prev weapon": KeyCodeDart.Q,
   };
   
   static Set<int> _mappedControls = new Set.from(_default_controls.values);

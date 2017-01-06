@@ -42,11 +42,11 @@ class HudMessages {
   }
 
   bool shouldDrawTable() {
-    return _localKeyState.keyIsDown(KeyCode.SHIFT) ||
-        _localKeyState.keyIsDown(KeyCode.CTRL) ||
-        _localKeyState.keyIsDown(KeyCode.H) ||
-        _localKeyState.keyIsDown(KeyCode.HOME) ||
-        _localKeyState.keyIsDown(KeyCode.ALT);
+    return _localKeyState.keyIsDown(KeyCodeDart.SHIFT) ||
+        _localKeyState.keyIsDown(KeyCodeDart.CTRL) ||
+        _localKeyState.keyIsDown(KeyCodeDart.H) ||
+        _localKeyState.keyIsDown(KeyCodeDart.HOME) ||
+        _localKeyState.keyIsDown(KeyCodeDart.ALT);
   }
 
   void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {

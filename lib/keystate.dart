@@ -13,10 +13,10 @@ class KeyState {
   KeyState(this.world);
   
   void onKeyDown(var /*KeyboardEvent*/ e) {
-    if (e.keyCode == KeyCode.F2) {
+    if (e.keyCode == KeyCodeDart.F2) {
       debug = !debug;
     }
-    if (e.keyCode == KeyCode.F4) {
+    if (e.keyCode == KeyCodeDart.F4) {
       world.freeze = !world.freeze;
     }
     if (!keysDown.containsKey(e.keyCode)) {
@@ -73,7 +73,7 @@ class KeyState {
 /**
  * Copy paste of KeyCode from the Dart HTML package.
  */
-abstract class KeyCode {
+abstract class KeyCodeDart {
   // These constant names were borrowed from Closure's Keycode enumeration
   // class.
   // http://closure-library.googlecode.com/svn/docs/closure_goog_events_keycodes.js.source.html

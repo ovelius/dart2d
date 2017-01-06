@@ -2,10 +2,10 @@ import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/keystate.dart';
 
 Map<int, String> _KEY_TO_NAME = {
-  KeyCode.LEFT: "Left",
-  KeyCode.RIGHT: "Right",
-  KeyCode.DOWN: "Down",
-  KeyCode.UP: "Up",
+  KeyCodeDart.LEFT: "Left",
+  KeyCodeDart.RIGHT: "Right",
+  KeyCodeDart.DOWN: "Down",
+  KeyCodeDart.UP: "Up",
 };
 
 String toKey(int code) {
