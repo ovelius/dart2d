@@ -39,6 +39,8 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   maybeRespawn(double duration) {
    // Client should not control this. 
   }
+
+  bool drawWeaponHelpers() => false;
 }
 
 /**
@@ -65,6 +67,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
   }
 
   hasServerToOwnerData() => true;
+  drawWeaponHelpers() => false;
 
   addServerToOwnerData(List data) {
     data.add(health);
@@ -195,6 +198,8 @@ class LocalPlayerSprite extends MovingSprite {
     sprite.size = new Vec2(30, 7);
     return sprite;
   }
+
+  bool drawWeaponHelpers() => true;
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {

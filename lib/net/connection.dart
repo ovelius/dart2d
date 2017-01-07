@@ -46,7 +46,7 @@ class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
   // How long until connection attempt times out.
-  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:8);
+  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:6);
 
   ConnectionType connectionType;
   Network _network;

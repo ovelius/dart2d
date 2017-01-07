@@ -12,7 +12,7 @@ class WeaponState {
   static const double SHOW_WEAPON_NAME_TIME = 0.5;
   WormWorld world;
   KeyState keyState;
-  MovingSprite owner;
+  LocalPlayerSprite owner;
   Sprite gun;
   
   double changeTime = 0.0;
@@ -127,16 +127,20 @@ class WeaponState {
   }
   
   draw(var /*CanvasRenderingContext2D*/ context) {
-    context.fillStyle = "#ffffff";
-    Vec2 center = owner.centerPoint();
-    if (changeTime > 0) {
-      var metrics =
+    if (owner.drawWeaponHelpers()) {
+      context.fillStyle = "#ffffff";
+      Vec2 center = owner.centerPoint();
+      if (changeTime > 0) {
+        var metrics =
         context.measureText(weapons[selectedWeaponIndex].name);
-      context.fillText(weapons[selectedWeaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
-    }
-    if (reloading()) {
-      context.fillText(reloadPercent().toString(),
-          center.x, center.y - owner.size.y);
+        context.fillText(
+            weapons[selectedWeaponIndex].name, center.x - metrics.width / 2,
+            center.y - owner.size.y);
+      }
+      if (reloading()) {
+        context.fillText(reloadPercent().toString(),
+            center.x, center.y - owner.size.y);
+      }
     }
   }
 
