@@ -63,6 +63,12 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
   void checkControlKeys(double duration) {
     // Don't execute remote movements on the server.
   }
+
+  hasServerToOwnerData() => true;
+
+  addServerToOwnerData(List data) {
+    data.add(health);
+  }
 }
 
 /**
@@ -79,6 +85,10 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   
   maybeRespawn(double duration) {
    // Client should not control this. 
+  }
+
+  void parseServerToOwnerData(List data) {
+    health = data[1];
   }
 }
 

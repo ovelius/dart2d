@@ -124,28 +124,30 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 void intListToSpriteProperties(
     List<int> data, MovingSprite sprite) {
   sprite.flags = data[1];
-  sprite.position.x = data[2].toDouble();
-  sprite.position.y = data[3].toDouble();
-  sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
+  if (data.length > 4) {
+    sprite.position.x = data[2].toDouble();
+    sprite.position.y = data[3].toDouble();
+    sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
 
-  sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
-  sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
-  
-  // At least two more items.
-  // TODO: Figure out exact increase.
-  if (data.length > 10) {
-    SpriteType type = SpriteType.values[data[7]];
-    sprite.spriteType = type;
-    if (type == SpriteType.IMAGE) {
-      sprite.setImage(data[8]);
+    sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
+    sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
+
+    // At least two more items.
+    // TODO: Figure out exact increase.
+    if (data.length > 10) {
+      SpriteType type = SpriteType.values[data[7]];
+      sprite.spriteType = type;
+      if (type == SpriteType.IMAGE) {
+        sprite.setImage(data[8]);
+      }
+
+      sprite.size.x = data[9].toDouble();
+      sprite.size.y = data[10].toDouble();
+      sprite.frames = data[11];
+      sprite.rotationVelocity = data[12] / DOUBLE_INT_CONVERSION;
+      sprite.parseExtraNetworkData(data, 13);
+    } else {
+      sprite.parseExtraNetworkData(data, 7);
     }
-
-    sprite.size.x = data[9].toDouble();
-    sprite.size.y = data[10].toDouble();
-    sprite.frames = data[11];
-    sprite.rotationVelocity = data[12] / DOUBLE_INT_CONVERSION;
-    sprite.parseExtraNetworkData(data, 13);
-  } else {
-    sprite.parseExtraNetworkData(data, 7);
   }
 }

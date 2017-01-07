@@ -262,7 +262,7 @@ class WormWorld extends World {
 
   MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
     Sprite sprite = spriteIndex[networkId];
-    if (sprite == null) {
+    if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
       sprite = SpriteIndex.fromWorldByIndex(this, constructor);
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;

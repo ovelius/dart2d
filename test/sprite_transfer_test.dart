@@ -235,8 +235,24 @@ void main() {
             ]));
 
       LocalPlayerSprite playerBSprite = worldA.spriteIndex[playerId(1)];
-      playerBSprite.takeDamage(playerBSprite.health);
+      playerBSprite.takeDamage(playerBSprite.health - 1);
+      int healthRemaining = playerBSprite.health;
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
+      // Check state in worldB.
+      LocalPlayerSprite playerBSpriteInB = worldB.spriteIndex[playerId(1)];
+      expect(playerBSpriteInB.health, equals(playerBSprite.health));
+
+      playerBSprite.takeDamage(1);
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
       expect(playerBSprite.inGame(), equals(false));
+      expect(playerBSpriteInB.inGame(), equals(false));
+
 
       expect(recentReceviedDataFrom("a"), 
           new MapKeysMatcher.containsKeys([MESSAGE_KEY]));

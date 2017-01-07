@@ -11,6 +11,7 @@ import 'package:di/di.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 enum SpriteConstructor {
+  DO_NOT_CREATE,
   MOVING_SPRITE,
   DAMAGE_PROJECTILE,
   REMOTE_PLAYER_CLIENT_SPRITE,

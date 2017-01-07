@@ -202,14 +202,37 @@ class Sprite {
   void takeDamage(int damage) {
 
   }
-  
+
+  /**
+   * Extra data to be sent to clients.
+   */
   void addExtraNetworkData(List<int> data) {
-    
   }
-  
+
+  /**
+   * Parsing of above extra data.
+   */
   void parseExtraNetworkData(List<int> data, int startAt) {
-    
   }
-  
+
+  /**
+   * If the below methods should be inspected for data.
+   */
+
+  bool hasServerToOwnerData() => false;
+  /**
+   * Data flowing the other way, from Server to the sprite owner.
+   */
+  void addServerToOwnerData(List data) {
+
+  }
+
+  /**
+   * Parse the above data.
+   */
+  void parseServerToOwnerData(List data) {
+
+  }
+
   toString() => "Sprite[${this.networkType}] p:$position";
 }

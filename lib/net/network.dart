@@ -246,35 +246,50 @@ class Network {
     for (String networkId in bundle.keys) {
       if (!SPECIAL_KEYS.contains(networkId)) {
         int parsedNetworkId = int.parse(networkId);
-        // TODO(erik) Prio data for the owner of the sprite instead.
         SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
         MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
-        if (!sprite.remoteControlled()) {
-          log.warning("Warning: Attempt to update local sprite ${sprite.networkId} from network ${connection.id}.");
+        if (sprite == null) {
+          log.warning("Not creating sprite from update ${networkId}");
           continue;
         }
-        intListToSpriteProperties(bundle[networkId], sprite);
-        // Forward sprite to others.
-        if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-          Map data = {networkId: bundle[networkId]};
-          peer.sendDataWithKeyFramesToAll(data, connection.id);
+        // TODO(erik) Prio data for the owner of the sprite instead.
+        if (!sprite.remoteControlled()) {
+          if (isServer()) {
+            log.warning("Warning: Attempt to update local sprite ${sprite
+                .networkId} from network ${connection.id}.");
+            continue;
+          }
+          // Since we are not remote controlled, parse as Server to owner data.
+          List data = bundle[networkId];
+          sprite.parseServerToOwnerData(data);
+        } else {
+          print("${peer.id} Handlign ${networkId} as type ${sprite.networkType}");
+          intListToSpriteProperties(bundle[networkId], sprite);
+          // Forward sprite to others.
+          if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
+            Map data = {networkId: bundle[networkId]};
+            peer.sendDataWithKeyFramesToAll(data, connection.id);
+          }
         }
       }
     }
   }
 
-}
-
-Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
-  Map<String, List<int>> allData = {};
-  for (int networkId in spriteIndex.spriteIds()) {
-    Sprite sprite = spriteIndex[networkId];
-    if (sprite.networkType == NetworkType.LOCAL) {
-      List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
-      allData[sprite.networkId.toString()] = dataAsList; 
+  Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
+    Map<String, List<int>> allData = {};
+    for (int networkId in spriteIndex.spriteIds()) {
+      Sprite sprite = spriteIndex[networkId];
+      if (sprite.networkType == NetworkType.LOCAL) {
+        List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
+        allData[sprite.networkId.toString()] = dataAsList;
+      } else if (isServer() && sprite.hasServerToOwnerData()) {
+        List dataAsList = [SpriteConstructor.DO_NOT_CREATE.index];
+        sprite.addServerToOwnerData(dataAsList);
+        allData[sprite.networkId.toString()] = dataAsList;
+      }
     }
+    return allData;
   }
-  return allData;
 }
 
 DateTime lastNetworkFrameReceived = new DateTime.now();
