@@ -17,7 +17,9 @@ class WeaponState {
   
   double changeTime = 0.0;
   int selectedWeaponIndex = 2;
-  
+
+  int manualReloadPercent = null;
+
   List<Weapon> weapons = [
     new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world, weaponState.gun, 50);
@@ -132,10 +134,12 @@ class WeaponState {
         context.measureText(weapons[selectedWeaponIndex].name);
       context.fillText(weapons[selectedWeaponIndex].name, center.x - metrics.width/2, center.y - owner.size.y);
     }
-    if (weapons[selectedWeaponIndex].reloading()) {
-      context.fillText(weapons[selectedWeaponIndex].reloadPercent().toString(),
+    if (reloading()) {
+      context.fillText(reloadPercent().toString(),
           center.x, center.y - owner.size.y);
     }
   }
-  
+
+  bool reloading() => manualReloadPercent != null || weapons[selectedWeaponIndex].reloading();
+  int reloadPercent() => manualReloadPercent == null ? weapons[selectedWeaponIndex].reloadPercent() : manualReloadPercent;
 }
