@@ -11,6 +11,7 @@ String IS_KEY_FRAME_KEY = "_k";
 String MESSAGE_KEY = "_s";
 String KEY_STATE_KEY = "-k";
 String CLIENT_PLAYER_SPEC = "_c";
+String CLIENT_PLAYER_ENTER = "_e";
 String SERVER_PLAYER_REPLY = "-c";
 String SERVER_PLAYER_REJECT = "-r";
 String GAME_STATE = "-g";
@@ -32,6 +33,7 @@ void remapKeyNamesForTest() {
   MESSAGE_KEY = "player_message";
   KEY_STATE_KEY = "key_state";
   CLIENT_PLAYER_SPEC = "client_spec";
+  CLIENT_PLAYER_ENTER = "client_enter";
   SERVER_PLAYER_REPLY = "server_client_reply";
   SERVER_PLAYER_REJECT = "server_client_reject";
   GAME_STATE = "game_state";
@@ -61,6 +63,7 @@ Map RELIABLE_KEYS = {
 // Keys that should not be handled as sprite state updates.
 Set<String> SPECIAL_KEYS = new Set.from(
     [CLIENT_PLAYER_SPEC,
+     CLIENT_PLAYER_ENTER,
      SERVER_PLAYER_REPLY,
      REMOVE_KEY,
      GAME_STATE,

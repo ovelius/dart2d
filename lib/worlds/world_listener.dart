@@ -29,7 +29,11 @@ class WorldListener {
     });
     _packetListenerBindings.bindHandler(WORLD_DESTRUCTION, (ConnectionWrapper c, List data) {
       if (c.isValidGameConnection()) {
-        _world.clearFromNetworkUpdate(data);
+        if (_world.byteWorld.initialized()) {
+          _world.clearFromNetworkUpdate(data);
+        } else {
+          log.warning("TODO buffer byteworld data sent when world is loading!");
+        }
       }
     });
     _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List data) {
@@ -37,6 +41,14 @@ class WorldListener {
         _world.addParticlesFromNetworkData(data);
       }
     });
+    _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
+      assert(_network.isServer());
+      GameState game = _network.gameState;
+      PlayerInfo info = game.playerInfoByConnectionId(c.id);
+      info.inGame = true;
+      game.urgentData = true;
+    });
+
   }
 
   setWorld(WormWorld world) {

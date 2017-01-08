@@ -220,6 +220,7 @@ class PeerWrapper {
   }
 
   getLastError() => this._error;
+  getId() => this.id;
 
   bool connectedToServer() {
     return _connectedToServer && id != null;

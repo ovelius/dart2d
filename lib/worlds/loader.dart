@@ -7,6 +7,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/gamestate.dart';
 
 enum LoaderState {
   ERROR,
@@ -20,9 +21,10 @@ enum LoaderState {
   CONNECTING_TO_GAME,
 
   LOADING_GAMESTATE,
+  LOADING_ENTERING_GAME, // Waiting to enter game.
 
   // End states.
-  LOADING_GAMESTATE_COMPLETED, // Client ready start game.
+  LOADING_AS_CLIENT_COMPLETED, // Client ready start game.
   LOADED_AS_SERVER, // Server ready to start game.
 }
 
@@ -124,7 +126,7 @@ class Loader {
 
   LoaderState currentState() => _currentState;
 
-  bool hasGameState() => _currentState == LoaderState.LOADING_GAMESTATE_COMPLETED;
+  bool hasGameState() => _currentState == LoaderState.LOADING_AS_CLIENT_COMPLETED;
   bool loadedAsServer() => _currentState == LoaderState.LOADED_AS_SERVER;
 
   void _loaderGameStateTick([double duration = 0.01]) {
@@ -132,7 +134,20 @@ class Loader {
       return;
     }
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
-      setState(LoaderState.LOADING_GAMESTATE_COMPLETED);
+      PlayerInfo ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+      if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
+        if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
+          ConnectionWrapper serverConnection = _network.getServerConnection();
+          if (serverConnection == null) {
+            setState(LoaderState.LOADED_AS_SERVER);
+            return;
+          }
+          serverConnection.sendClientEnter();
+        }
+        setState(LoaderState.LOADING_ENTERING_GAME);
+      } else {
+        setState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
+      }
       return;
     }
     _loadGameStateStage(duration);
@@ -212,6 +227,7 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
 
   LoaderState.FINDING_SERVER: "Finding game to join..",
   LoaderState.LOADING_GAMESTATE: "Loading gamestate...",
-  LoaderState.LOADING_GAMESTATE_COMPLETED: "Loading completed.",
+  LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",
   LoaderState.LOADED_AS_SERVER: "Start as server!",
+  LoaderState.LOADING_ENTERING_GAME: "Entering game...",
 };

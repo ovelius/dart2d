@@ -102,6 +102,7 @@ class Network {
   }
 
   PeerWrapper getPeer() => peer;
+  GameState getGameState() => gameState;
 
   bool checkForKeyFrame(double duration) {
     untilNextKeyFrame -= duration;
@@ -263,7 +264,6 @@ class Network {
           List data = bundle[networkId];
           sprite.parseServerToOwnerData(data);
         } else {
-          print("${peer.id} Handlign ${networkId} as type ${sprite.networkType}");
           intListToSpriteProperties(bundle[networkId], sprite);
           // Forward sprite to others.
           if (sprite.networkType == NetworkType.REMOTE_FORWARD) {

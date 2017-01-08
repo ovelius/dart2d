@@ -40,6 +40,10 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
    // Client should not control this. 
   }
 
+  _drawHealthBar(var context) {
+    // Don't draw client health bars on OTHER CLIENTS!
+  }
+
   bool drawWeaponHelpers() => false;
 }
 
@@ -64,6 +68,10 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 
   void checkControlKeys(double duration) {
     // Don't execute remote movements on the server.
+  }
+
+  _drawHealthBar(var context) {
+    // Don't draw client health bars on server!
   }
 
   hasServerToOwnerData() => true;
@@ -141,8 +149,9 @@ class LocalPlayerSprite extends MovingSprite {
   WeaponState weaponState;
   
   bool onGround = false;
-    
-  double spawnIn = 0.0;
+
+  // Don't spawn player when created.
+  double spawnIn = 10000000000.0;
   
   MovingSprite gun;
 
@@ -176,7 +185,10 @@ class LocalPlayerSprite extends MovingSprite {
      this.networkType = convertSprite.networkType;
      this.gun = _createGun(world.imageIndex);
    }
-  
+
+  /**
+   * Server constructor.
+   */
   LocalPlayerSprite(WormWorld world, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
       : super.imageBasedSprite(new Vec2(x, y), imageId, world.imageIndex) {
     this.world = world;

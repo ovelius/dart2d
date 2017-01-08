@@ -157,6 +157,15 @@ class ConnectionWrapper {
   }
 
   /**
+   * Send command to enter game.
+   */
+  void sendClientEnter() {
+    sendData(
+        {CLIENT_PLAYER_ENTER: new DateTime.now().millisecondsSinceEpoch,
+          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+  }
+
+  /**
    * Send ping message with metadata about the connection.
    */
   void sendPing([bool gameStatePing = false]) {
@@ -211,8 +220,9 @@ class ConnectionWrapper {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
             handler(this, dataMap[key]);
           }
-        } else {
-          log.warning("No handler bound for key ${key}!");
+          // TODO remove special cases!
+        } else if (key != IS_KEY_FRAME_KEY && key != KEY_FRAME_KEY && key != KEY_STATE_KEY) {
+          throw new ArgumentError("Onbound network listener for ${key}");
         }
       }
     }
@@ -227,6 +237,7 @@ class ConnectionWrapper {
       return;
     }
     // We got a remote key state.
+    // TODO move to PlayerInfo.
     if (dataMap.containsKey(KEY_STATE_KEY)) {
       remoteKeyState.setEnabledKeys(dataMap[KEY_STATE_KEY]);
     }

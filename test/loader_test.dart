@@ -3,6 +3,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
+import 'package:dart2d/gamestate.dart';
 import 'lib/test_lib.dart';
 
 class MockImageIndex extends Mock implements ImageIndex {}
@@ -10,6 +11,7 @@ class MockNetwork extends Mock implements Network {}
 class MockPeerWrapper extends Mock implements PeerWrapper {}
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
 class MockChunkHelper extends Mock implements ChunkHelper {}
+class MockGameState extends Mock implements GameState {}
 
 const double TICK_TIME = 0.01;
 
@@ -19,6 +21,7 @@ void main() {
   MockNetwork mockNetwork;
   MockPeerWrapper mockPeerWrapper;
   MockChunkHelper mockChunkHelper;
+  MockGameState mockGameState;
   void tickAndAssertState(LoaderState state) {
     loader.loaderTick(TICK_TIME);
     expect(loader.currentState(), equals(state));
@@ -28,7 +31,10 @@ void main() {
     mockNetwork = new MockNetwork();
     mockPeerWrapper = new MockPeerWrapper();
     mockChunkHelper = new MockChunkHelper();
+    mockGameState = new MockGameState();
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
+    when(mockNetwork.getGameState()).thenReturn(mockGameState);
+    when(mockPeerWrapper.getId()).thenReturn('b');
     loader = new Loader(new FakeCanvas(),
       mockImageIndex, mockNetwork, mockChunkHelper);
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
@@ -91,7 +97,19 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_GAMESTATE);
 
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(true);
-      tickAndAssertState(LoaderState.LOADING_GAMESTATE_COMPLETED);
+      when(mockGameState.playerInfoByConnectionId('b')).thenReturn(null);
+
+      tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
+      verify(connection1.sendClientEnter());
+
+      PlayerInfo info = new PlayerInfo(null, null, null);
+      when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
+
+      tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
+
+      info.inGame = true;
+
+      tickAndAssertState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
 
       expect(loader.hasGameState(), isTrue);
     });

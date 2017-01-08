@@ -68,12 +68,18 @@ void main() {
       // But Game comes underway after a couple of frames.
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
-      expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE_COMPLETED));
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_GAMESTATE));
 
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_ENTERING_GAME));
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      expect(loaderB.currentState(), equals(LoaderState.LOADING_AS_CLIENT_COMPLETED));
+
+      worldA.frameDraw();
+      worldB.frameDraw();
       worldA.frameDraw();
       worldB.frameDraw();
 

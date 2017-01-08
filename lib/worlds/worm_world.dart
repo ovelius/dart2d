@@ -322,6 +322,7 @@ class WormWorld extends World {
         imageId);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.networkId = id;
+    playerSprite.spawnIn = 1.0;
     playerSprite.setImage(imageId, 24);
     network.gameState.playerInfo.add(info);
     addSprite(playerSprite);

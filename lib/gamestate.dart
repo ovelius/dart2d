@@ -15,7 +15,7 @@ class PlayerInfo {
   int spriteId;
   int score = 0;
   int deaths = 0;
-  bool inGame = true;
+  bool inGame = false;
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
   PlayerInfo.fromMap(Map map) {
