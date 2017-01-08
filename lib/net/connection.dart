@@ -24,13 +24,16 @@ enum ConnectionType {
 
 @Injectable()
 class PacketListenerBindings {
-  Map<String, dynamic> _handlers = {};
+  Map<String, List<dynamic>> _handlers = {};
 
   bindHandler(String key, dynamic handler) {
-    _handlers[key] = handler;
+    if (!_handlers.containsKey(key)) {
+      _handlers[key] = [];
+    }
+    _handlers[key].add(handler);
   }
 
-  handlerFor(String key) {
+  List<dynamic> handlerFor(String key) {
     assert (_handlers.containsKey(key));
     return _handlers[key];
   }
@@ -205,8 +208,9 @@ class ConnectionWrapper {
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
         if (_packetListenerBindings.hasHandler(key)) {
-          dynamic handler = _packetListenerBindings.handlerFor(key);
-          handler(this, dataMap[key]);
+          for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
+            handler(this, dataMap[key]);
+          }
         } else {
           log.warning("No handler bound for key ${key}!");
         }
