@@ -71,7 +71,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 
   addServerToOwnerData(List data) {
     data.add(health);
-    if (weaponState.reloading()) {
+    if (weaponState != null && weaponState.reloading()) {
       data.add(weaponState.reloadPercent());
     }
   }
