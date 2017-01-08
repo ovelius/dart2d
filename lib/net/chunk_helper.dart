@@ -36,30 +36,38 @@ class ChunkHelper {
   // Our local cache.
   Map<int, String> _dataUrlCache = new Map();
 
+  // Caching from Connection -> ByteWorld data.
+  Map<String, String> _byteWorldDataUrlCache = new Map();
+
   ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings) {
     _created = new DateTime.now();
     _packetListenerBindings.bindHandler(IMAGE_DATA_REQUEST,
-            (ConnectionWrapper connection, Map dataMap) {
+        (ConnectionWrapper connection, Map dataMap) {
       replyWithImageData(dataMap, connection);
     });
     _packetListenerBindings.bindHandler(IMAGE_DATA_RESPONSE,
-            (ConnectionWrapper connection, Map dataMap) {
-          parseImageChunkResponse(dataMap, connection);
-          // Request new data right away.
-          requestNetworkData(
+        (ConnectionWrapper connection, Map dataMap) {
+      parseImageChunkResponse(dataMap, connection);
+      // Request new data right away.
+      requestNetworkData(
           // No time has passed.
-                  {connection.id : connection}, 0.0);
+          {connection.id: connection}, 0.0);
+    });
+    _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER,
+        (var connection, dynamic unused) {
+      _byteWorldDataUrlCache.remove(connection.id);
     });
   }
 
   getImageBuffer() => new Map.from(_imageBuffer);
+  getByteWorldCache() => new Map.from(_byteWorldDataUrlCache);
 
   /**
    * Send a reply with the requested image data.
    */
   void replyWithImageData(Map imageDataRequest, var connection) {
     int index = imageDataRequest['index'];
-    String data = _getData(index);
+    String data = _getData(index, connection);
     int start =
         imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
     int end = imageDataRequest.containsKey("end")
@@ -68,7 +76,8 @@ class ChunkHelper {
     end = min(end, data.length);
 
     if (start >= end) {
-      throw new ArgumentError("Got request ${imageDataRequest} for data of ${data.length} calculated end $end");
+      throw new ArgumentError(
+          "Got request ${imageDataRequest} for data of ${data.length} calculated end $end");
     }
     String chunk = data.substring(start, end);
     connection.sendData({
@@ -81,15 +90,23 @@ class ChunkHelper {
     });
   }
 
-  String _getData(int index) {
+  String _getData(int index, var connection) {
+    // Cached in byteworld cache.
+    if (index == ImageIndex.WORLD_IMAGE_INDEX) {
+      if (_byteWorldDataUrlCache.containsKey(connection.id)) {
+        return _byteWorldDataUrlCache[connection.id];
+      }
+    }
+    // Cached in regular cache? (Immutable)
     if (this._dataUrlCache.containsKey(index)) {
       return _dataUrlCache[index];
     }
     String data = null;
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
-      // TODO: Snapshot events during loading.
-      // TODO: Empty cache after loading completed?
+      // Special case the mutable byteworld.
       data = _byteWorld.asDataUrl();
+      _byteWorldDataUrlCache[connection.id] = data;
+      return data;
     } else {
       data = _imageIndex.getImageDataUrl(index);
     }
@@ -108,7 +125,8 @@ class ChunkHelper {
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
     if (!_imageBuffer.containsKey(index)) {
-      log.warning("Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
+      log.warning(
+          "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
     if (start == _imageBuffer[index].length) {

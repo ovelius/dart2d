@@ -9,13 +9,11 @@ class MockImageIndex extends Mock implements ImageIndex {}
 
 class MockByteWorld extends Mock implements ByteWorld {}
 
-class MockPacketListenerBindings extends Mock
-    implements PacketListenerBindings {}
-
 void main() {
   const String IMAGE_DATA =
       "12345678901234567890123456789012345678901234567890";
   const String BYTE_WORLD_IMAGE_DATA = "abcdefghijklmonpqrstuv";
+  const String BYTE_WORLD_IMAGE_DATA2 = "aaaaaaaaaaaaaaaaaaa";
   TestConnectionWrapper connection1;
   TestConnectionWrapper connection2;
   PacketListenerBindings packetListenerBindings;
@@ -30,7 +28,7 @@ void main() {
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
     byteWorld = new MockByteWorld();
-    packetListenerBindings = new MockPacketListenerBindings();
+    packetListenerBindings = new PacketListenerBindings();
     helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
       ..setChunkSizeForTest(4);
     helper2 = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
@@ -197,6 +195,35 @@ void main() {
               'size': BYTE_WORLD_IMAGE_DATA.length
             }
           }));
+      expect(
+          helper.getByteWorldCache(), equals({'a': 'abcdefghijklmonpqrstuv'}));
+
+      // Another connection comes along.
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA2);
+      Map connections2 = {2: connection2};
+      helper2.requestNetworkData(connections2, 0.01);
+      helper.replyWithImageData(
+          connection2.lastDataSent[IMAGE_DATA_REQUEST], connection2);
+      // Gets Byteworld 2 data.
+      expect(
+          connection2.lastDataSent,
+          equals({
+            '-i': {
+              'index': requestedIndex,
+              'data': 'aaaaa',
+              'start': 0,
+              'size': BYTE_WORLD_IMAGE_DATA2.length
+            }
+          }));
+      // Two versions cached.
+      expect(helper.getByteWorldCache(),
+          equals({'a': 'abcdefghijklmonpqrstuv', 'b': 'aaaaaaaaaaaaaaaaaaa'}));
+      // Trigger a client enter for a.
+      packetListenerBindings.handlerFor(CLIENT_PLAYER_ENTER)[0](
+          connection1, null);
+      // This cleared the cache for a.
+      expect(helper.getByteWorldCache(), equals({'b': 'aaaaaaaaaaaaaaaaaaa'}));
     });
   });
 }
