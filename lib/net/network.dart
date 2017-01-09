@@ -6,7 +6,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/keystate.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:di/di.dart';
@@ -24,6 +24,7 @@ class Network {
   GameState gameState;
   HudMessages _hudMessages;
   SpriteIndex _spriteIndex;
+  KeyState _localKeyState;
   PeerWrapper peer;
   String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
@@ -38,9 +39,11 @@ class Network {
       this._packetListenerBindings,
       @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks,
-      SpriteIndex spriteIndex) {
+      SpriteIndex spriteIndex,
+      @LocalKeyState() KeyState localKeyState) {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
+    this._localKeyState = localKeyState;
     gameState = new GameState();
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
@@ -171,7 +174,7 @@ class Network {
   void maybeSendLocalKeyStateUpdate() {
     if (!isServer()) {
       Map data = {};
-      data[KEY_STATE_KEY] = world.localKeyState.getEnabledState();
+      data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
       peer.sendDataWithKeyFramesToAll(data);
     }
   }
@@ -193,7 +196,7 @@ class Network {
       data[REMOVE_KEY] = removals;
     }
     if (!isServer()) {
-      data[KEY_STATE_KEY] = world.localKeyState.getEnabledState();
+      data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
     } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
       data[GAME_STATE] = gameState.toMap();
     }
