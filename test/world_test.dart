@@ -1,17 +1,9 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/worlds/world_phys.dart';
-import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/net/network.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'dart:async';
-import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 ByteWorld byteWorld;
 

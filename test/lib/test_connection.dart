@@ -1,5 +1,7 @@
 library test_connection;
 
+import 'dart:convert';
+
 recentSentDataTo(id) {
   return testConnections[id][0].recentDataSent;
 }
@@ -28,6 +30,8 @@ class TestConnection {
   
   var recentDataSent = null;
   var recentDataRecevied = null;
+
+  dynamic decodedRecentDataRecevied() => JSON.decode(recentDataRecevied);
   
   bool buffer = false;
   List dataBuffer = [];
