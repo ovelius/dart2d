@@ -23,6 +23,7 @@ class Network {
   WormWorld world;
   GameState gameState;
   HudMessages _hudMessages;
+  SpriteIndex _spriteIndex;
   PeerWrapper peer;
   String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
@@ -36,8 +37,10 @@ class Network {
       HudMessages hudMessages,
       this._packetListenerBindings,
       @PeerMarker() Object jsPeer,
-      JsCallbacksWrapper peerWrapperCallbacks) {
+      JsCallbacksWrapper peerWrapperCallbacks,
+      SpriteIndex spriteIndex) {
     this._hudMessages = hudMessages;
+    this._spriteIndex = spriteIndex;
     gameState = new GameState();
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
@@ -81,7 +84,7 @@ class Network {
       ConnectionWrapper connection = connections[maxPeerKey];
       connection.connectionType = ConnectionType.CLIENT_TO_SERVER;
       gameState.actingServerId = maxPeerKey;
-      world.hudMessages.display("Elected new server ${info.name}");
+      _hudMessages.display("Elected new server ${info.name}");
     } else {
       // We are becoming server. Gosh.
       for (var id in connections.keys) {
@@ -89,12 +92,12 @@ class Network {
         connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
         // Make it our responsibility to foward data from other players.
-        Sprite sprite = world.spriteIndex[info.spriteId];
+        Sprite sprite = _spriteIndex[info.spriteId];
         if (sprite.networkType == NetworkType.REMOTE) {
           sprite.networkType = NetworkType.REMOTE_FORWARD;
         }
       }
-      world.hudMessages.display("Server role tranferred to you :)");
+      _hudMessages.display("Server role tranferred to you :)");
       // TODO: Add self sprite.
       return true;
     }
@@ -132,7 +135,6 @@ class Network {
       if (wrapper.isActiveConnection()) {
         activeConnections[wrapper.id] = wrapper;
       } else {
-        print("health checking ${wrapper.id}");
         this.peer.healthCheckConnection(wrapper.id);
       }
     }
@@ -162,7 +164,7 @@ class Network {
   void sendMessage(String message) {
     Map data = {
       MESSAGE_KEY: [message],
-      IS_KEY_FRAME_KEY: world.network.currentKeyFrame};
+      IS_KEY_FRAME_KEY: currentKeyFrame};
     peer.sendDataWithKeyFramesToAll(data);    
   }
 
@@ -181,7 +183,7 @@ class Network {
     }
     // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
-    Map data = stateBundle(world.spriteIndex, keyFrame);
+    Map data = stateBundle(keyFrame);
     // A keyframe indicates that we are sending data with garantueed delivery.
     if (keyFrame) {
       registerDroppedFrames(data);
@@ -275,10 +277,10 @@ class Network {
     }
   }
 
-  Map<String, List<int>> stateBundle(SpriteIndex spriteIndex, bool keyFrame) {
+  Map<String, List<int>> stateBundle(bool keyFrame) {
     Map<String, List<int>> allData = {};
-    for (int networkId in spriteIndex.spriteIds()) {
-      Sprite sprite = spriteIndex[networkId];
+    for (int networkId in _spriteIndex.spriteIds()) {
+      Sprite sprite = _spriteIndex[networkId];
       if (sprite.networkType == NetworkType.LOCAL) {
         List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
         allData[sprite.networkId.toString()] = dataAsList;
