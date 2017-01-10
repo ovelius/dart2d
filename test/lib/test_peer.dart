@@ -23,7 +23,7 @@ WormWorld testWorld(String id, {var canvasElement}) {
   return world;
 }
 
-Map testPeers = {};
+Map<String, TestPeer> testPeers = {};
 
 class FakeJsCallbacksWrapper implements JsCallbacksWrapper {
   void bindOnFunction(var jsObject, String methodName, dynamic callback) {
@@ -71,6 +71,9 @@ class TestPeer extends PeerMarker {
       TestConnection remoteConnection = new TestConnection(id);
       remoteConnection.setOtherEnd(localConnection);
       localConnection.setOtherEnd(remoteConnection);
+      if (!testPeers[otherId].eventHandlers.containsKey("connection")) {
+        throw new StateError("TestPeer $otherId has no connection handler! Has ${testPeers[otherId].eventHandlers}");
+      }
       testPeers[otherId].eventHandlers["connection"](this, remoteConnection);
       return localConnection;
     }

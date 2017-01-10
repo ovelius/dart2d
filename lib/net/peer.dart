@@ -9,6 +9,8 @@ import 'package:dart2d/hud_messages.dart';
 
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
+  static const MAX_AUTO_CONNECTIONS = 5;
+  static const MAX_CONNECTION = 8;
   Network _network;
   HudMessages _hudMessages;
   JsCallbacksWrapper _peerWrapperCallbacks;
@@ -76,6 +78,8 @@ class PeerWrapper {
 
   void openPeer(unusedThis, id) {
     this.id = id;
+    // We blacklist from connection to self.
+    _blackListedIds.add(id);
     _connectedToServer = true;
     log.info("Got id ${id}");
   }
@@ -87,16 +91,24 @@ class PeerWrapper {
     ids.remove(this.id);
     log.info("Received active peers of $ids");
     _activeIds = ids;
-    ids.forEach((String id) {
-      // Don't connect to self...
-      if (id != this.id) {
-        log.info("Auto connecting to id ${id}");
+    _autoConnectToPeers();
+  }
 
-        connectTo(id);
-        // TODO: Add logic here instead. How many to connect to and why?
+  /**
+   * Connect to peers. Maintain connectios.
+   */
+  void _autoConnectToPeers() {
+    for (String id in _activeIds) {
+      // Don't connect to too many peers...
+      if (connections.length >= MAX_AUTO_CONNECTIONS) {
         return;
       }
-    });
+      if (_closedConnectionPeers.contains(id) || _blackListedIds.contains(id)) {
+        continue;
+      }
+      log.info("Auto connecting to id ${id}");
+      connectTo(id);
+    }
   }
 
   bool hasConnections() {

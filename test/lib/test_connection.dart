@@ -58,13 +58,24 @@ class TestConnection {
     this._otherEnd = otherEnd;
   }
 
+  TestConnection getOtherEnd() => _otherEnd;
+
   operator [](index) => id;
   
   flushBuffer() {
     dataBuffer.forEach((e) { sendAndReceivByOtherPeer(e); });
     dataBuffer.clear();
   }
-  
+
+
+  sendAndReceivByOtherPeerNativeObject(Map object) {
+    sendAndReceivByOtherPeer([JSON.encode(object)]);
+  }
+
+  void signalClose() {
+    eventHandlers['close'](this);
+  }
+
   sendAndReceivByOtherPeer(var jsonObject) {
     if (_otherEnd == null) {
       throw new StateError('_otherEnd is null: ${this.id}');

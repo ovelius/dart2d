@@ -59,7 +59,7 @@ class Network {
    * This is checked when a connection is dropped. 
    * Potentially this method will elect a new server.
    * returns true if we became the new server.
-   * TODO(Erik): Conside more factors when electing servers, like number of connected
+   * TODO(Erik): Consider more factors when electing servers, like number of connected
    *  peers.
    */
   bool verifyOrTransferServerRole(Map connections) {
@@ -149,7 +149,7 @@ class Network {
    */
   ConnectionWrapper getServerConnection() {
     for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
-      if (!wrapper.closed && wrapper.opened
+      if (wrapper.isActiveConnection()
           && wrapper.connectionType == ConnectionType.CLIENT_TO_SERVER) {
         return wrapper;
       }
