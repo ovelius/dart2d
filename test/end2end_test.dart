@@ -62,6 +62,8 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();
+      expect(loaderB.currentState(), equals(LoaderState.FINDING_SERVER));
+      worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.CONNECTING_TO_GAME));
 
       // Ideally this does not mean connection to a game.

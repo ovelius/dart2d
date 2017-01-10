@@ -91,13 +91,13 @@ class PeerWrapper {
     ids.remove(this.id);
     log.info("Received active peers of $ids");
     _activeIds = ids;
-    _autoConnectToPeers();
+    autoConnectToPeers();
   }
 
   /**
    * Connect to peers. Maintain connectios.
    */
-  void _autoConnectToPeers() {
+  void autoConnectToPeers() {
     for (String id in _activeIds) {
       // Don't connect to too many peers...
       if (connections.length >= MAX_AUTO_CONNECTIONS) {

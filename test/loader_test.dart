@@ -84,13 +84,12 @@ void main() {
 
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(false);
-      when(connection1.initialPingSent()).thenReturn(true);
-      when(connection1.initialPingReceived()).thenReturn(false);
+      when(mockNetwork.findServer()).thenReturn(false);
       tickAndAssertState(LoaderState.FINDING_SERVER);
 
-      when(connection1.initialPingReceived()).thenReturn(true);
-      when(connection1.isValidGameConnection()).thenReturn(false);
+      when(mockNetwork.findServer()).thenReturn(true);
       when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      when(connection1.isValidGameConnection()).thenReturn(false);
       tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
 
       when(connection1.isValidGameConnection()).thenReturn(true);

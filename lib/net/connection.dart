@@ -61,7 +61,7 @@ class ConnectionWrapper {
   bool opened = false;
   bool closed = false;
   bool _initialPingSent = false;
-  bool _initialPingReceived = false;
+  bool _initialPongReceived = false;
   bool _handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
   int lastKeyFrameFromPeer = 0;
@@ -171,7 +171,7 @@ class ConnectionWrapper {
   void sendPing([bool gameStatePing = false]) {
     if (gameStatePing) {
       _initialPingSent = true;
-      _initialPingReceived = false;
+      _initialPongReceived = false;
     }
     sendData(
         {PING: new DateTime.now().millisecondsSinceEpoch,
@@ -179,7 +179,7 @@ class ConnectionWrapper {
           IS_KEY_FRAME_KEY: _network.currentKeyFrame});
   }
 
-  bool initialPingReceived() => _initialPingReceived;
+  bool initialPongReceived() => _initialPongReceived;
   bool initialPingSent() => _initialPingSent;
   void setHandshakeReceived() {
     _handshakeReceived = true;
@@ -209,7 +209,7 @@ class ConnectionWrapper {
       int latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
       sampleLatency(new Duration(milliseconds: latencyMillis));
       maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
-      _initialPingReceived = true;
+      _initialPongReceived = true;
       return;
     }
 

@@ -29,6 +29,7 @@ class TestConnection {
   var eventHandlers = {};
   
   var recentDataSent = null;
+  int dataReceivedCount = 0;
   var recentDataRecevied = null;
 
   dynamic decodedRecentDataRecevied() => JSON.decode(recentDataRecevied);
@@ -89,6 +90,7 @@ class TestConnection {
     recentDataSent = jsonObject[0];
     if (!drop){
       _otherEnd.recentDataRecevied = jsonObject[0];
+      _otherEnd.dataReceivedCount++;
       if (!_otherEnd.eventHandlers.containsKey("data")) {
         throw new StateError("otherEnd $_otherEnd doesn't have a 'data' has ${_otherEnd.eventHandlers.keys}");
       }

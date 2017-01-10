@@ -159,14 +159,9 @@ class Loader {
       setState(LoaderState.LOADED_AS_SERVER);
       return;
     }
-    for (ConnectionWrapper connection in _network.safeActiveConnections().values) {
-      if (!connection.initialPingSent()) {
-        connection.sendPing(true);
-      }
-      if (!connection.initialPingReceived()) {
-        setState(LoaderState.FINDING_SERVER);
-        return;
-      }
+    if (!_network.findServer()) {
+      setState(LoaderState.FINDING_SERVER);
+      return;
     }
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {

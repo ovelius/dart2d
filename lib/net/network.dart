@@ -158,6 +158,28 @@ class Network {
   }
 
   /**
+   * Try and find a connection to a server.
+   */
+  bool findServer() {
+    Map connections = safeActiveConnections();
+    List<ConnectionWrapper> closeAbleNotServer = [];
+    for (ConnectionWrapper connection in connections.values) {
+      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        return true;
+      }
+      if (!connection.initialPingSent()) {
+        connection.sendPing(true);
+      }
+      if (connection.initialPongReceived()) {
+        closeAbleNotServer.add(connection);
+      }
+    }
+    // TODO: Close connections if max.
+    // peer.autoConnectToPeers();
+    return false;
+  }
+
+  /**
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
   bool hasNetworkProblem() {

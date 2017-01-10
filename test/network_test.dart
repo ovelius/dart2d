@@ -106,7 +106,7 @@ void main() {
         ]));
   });
 
-  test('Test many connections differnt types', () {
+  test('Test many connections different types', () {
     List<TestPeer> peers = [];
     List<String> ids = [];
     Map<String, TestConnection> connections = {};
@@ -117,13 +117,15 @@ void main() {
       peer.bindOnHandler('connection', (peer, TestConnection connection) {
         connections[i.toString()] = connection;
         connection.bindOnHandler('data',
-            (TestConnection connection, String data) {
-          // Unused.
-        });
+                (TestConnection connection, String data) {
+              // Unused.
+            });
       });
     }
     network.peer.receivePeers(null, ids);
-    expect(network.safeActiveConnections().length,
+    expect(network
+        .safeActiveConnections()
+        .length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     network.frame(0.01, new List());
@@ -139,15 +141,69 @@ void main() {
       connectionNr++;
     }
     // This causes a connection to drop - the one that thinks we are server.
-    expect(network.safeActiveConnections().length,
+    expect(network
+        .safeActiveConnections()
+        .length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
     // And we now have a server connection.
     expect(network.getServerConnection(), isNotNull);
 
+    // Close down every connection.
     for (TestConnection connection in connections.values) {
       connection.getOtherEnd().signalClose();
     }
-    expect(network.safeActiveConnections().length, equals(0));
+    expect(network
+        .safeActiveConnections()
+        .length, equals(0));
+  });
+
+  test('Test find server', () {
+    List<TestPeer> peers = [];
+    List<String> ids = [];
+    Map<String, TestConnection> connections = {};
+    for (int i = 0; i < 10; i++) {
+      TestPeer peer = new TestPeer(i.toString());
+      ids.add(i.toString());
+      peers.add(peer);
+      peer.bindOnHandler('connection', (peer, TestConnection connection) {
+        connections[i.toString()] = connection;
+        connection.bindOnHandler('data',
+                (TestConnection connection, String data) {
+            });
+      });
+    }
+    network.peer.receivePeers(null, ids);
+
+    expect(network.findServer(), isFalse);
+
+    // All connections got pinged.
+    for (TestConnection connection in connections.values) {
+      Map data = connection.decodedRecentDataRecevied();
+      data[PING] = 123;
+      expect(data, equals({
+        PING: 123,
+        CONNECTION_TYPE: 0,
+        KEY_FRAME_KEY: 0,
+        IS_KEY_FRAME_KEY: 0
+      }));
+      expect(connection.dataReceivedCount, equals(1));
+    }
+
+    // Respond with a Pong - this is the server.
+    connections['0'].sendAndReceivByOtherPeerNativeObject({
+      PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      // Signal all types of connection
+      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      KEY_FRAME_KEY: 0
+    });
+
+    // We now have a server.
+    expect(network.findServer(), isTrue);
+    expect(network.getServerConnection(), isNotNull);
+
+    for (TestConnection connection in connections.values) {
+      expect(connection.dataReceivedCount, equals(1));
+    }
   });
 }
 
