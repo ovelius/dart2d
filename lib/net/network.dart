@@ -20,6 +20,7 @@ const PROBLEMATIC_FRAMES_BEHIND = 2;
 
 @Injectable()
 class Network {
+  final Logger log = new Logger('Network');
   WormWorld world;
   GameState gameState;
   HudMessages _hudMessages;
@@ -167,15 +168,24 @@ class Network {
       if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
         return true;
       }
-      if (!connection.initialPingSent()) {
-        connection.sendPing(true);
-      }
       if (connection.initialPongReceived()) {
         closeAbleNotServer.add(connection);
       }
+      if (!connection.initialPingSent()) {
+        connection.sendPing(true);
+      }
     }
-    // TODO: Close connections if max.
-    // peer.autoConnectToPeers();
+    // We examined all connections and found no server. Time to take action.
+    if (closeAbleNotServer.length == connections.length) {
+      for (int i = 0; i < closeAbleNotServer.length; i++) {
+        // TODO close by some heuristic here?
+        if (i > 1) break;
+        ConnectionWrapper connection = closeAbleNotServer[i];
+        log.info("Closing connection $connection in search for server.");
+        connection.close(null);
+      }
+    }
+    peer.autoConnectToPeers();
     return false;
   }
 

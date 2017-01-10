@@ -117,15 +117,13 @@ void main() {
       peer.bindOnHandler('connection', (peer, TestConnection connection) {
         connections[i.toString()] = connection;
         connection.bindOnHandler('data',
-                (TestConnection connection, String data) {
-              // Unused.
-            });
+            (TestConnection connection, String data) {
+          // Unused.
+        });
       });
     }
     network.peer.receivePeers(null, ids);
-    expect(network
-        .safeActiveConnections()
-        .length,
+    expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     network.frame(0.01, new List());
@@ -141,9 +139,7 @@ void main() {
       connectionNr++;
     }
     // This causes a connection to drop - the one that thinks we are server.
-    expect(network
-        .safeActiveConnections()
-        .length,
+    expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
     // And we now have a server connection.
     expect(network.getServerConnection(), isNotNull);
@@ -152,9 +148,7 @@ void main() {
     for (TestConnection connection in connections.values) {
       connection.getOtherEnd().signalClose();
     }
-    expect(network
-        .safeActiveConnections()
-        .length, equals(0));
+    expect(network.safeActiveConnections().length, equals(0));
   });
 
   test('Test find server', () {
@@ -167,9 +161,8 @@ void main() {
       peers.add(peer);
       peer.bindOnHandler('connection', (peer, TestConnection connection) {
         connections[i.toString()] = connection;
-        connection.bindOnHandler('data',
-                (TestConnection connection, String data) {
-            });
+        connection.bindOnHandler(
+            'data', (TestConnection connection, String data) {});
       });
     }
     network.peer.receivePeers(null, ids);
@@ -180,12 +173,14 @@ void main() {
     for (TestConnection connection in connections.values) {
       Map data = connection.decodedRecentDataRecevied();
       data[PING] = 123;
-      expect(data, equals({
-        PING: 123,
-        CONNECTION_TYPE: 0,
-        KEY_FRAME_KEY: 0,
-        IS_KEY_FRAME_KEY: 0
-      }));
+      expect(
+          data,
+          equals({
+            PING: 123,
+            CONNECTION_TYPE: 0,
+            KEY_FRAME_KEY: 0,
+            IS_KEY_FRAME_KEY: 0
+          }));
       expect(connection.dataReceivedCount, equals(1));
     }
 
@@ -204,6 +199,50 @@ void main() {
     for (TestConnection connection in connections.values) {
       expect(connection.dataReceivedCount, equals(1));
     }
+
+    // Close it.
+    network.getServerConnection().close(null);
+
+    expect(network.safeActiveConnections().length,
+        equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
+
+    // No longer having a server.
+    expect(network.findServer(), isFalse);
+    expect(network.getServerConnection(), isNull);
+
+    // This opened more connections, since we are no longer at max.
+    expect(network.safeActiveConnections().length,
+        equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
+
+    // Returns pongs for all connection.
+    for (TestConnection connection in connections.values) {
+      connection.sendAndReceivByOtherPeerNativeObject({
+        PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+        // Signal all types of connection
+        CONNECTION_TYPE: ConnectionType.BOOTSTRAP.index,
+        KEY_FRAME_KEY: 0
+      });
+    }
+
+    // Still false.
+    expect(network.findServer(), isFalse);
+    expect(network.findServer(), isFalse);
+    expect(network.findServer(), isFalse);
+
+    // We're back at max connections again.
+    expect(network.safeActiveConnections().length,
+         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
+
+    // Respond with a Pong - this is the server.
+    connections['6'].sendAndReceivByOtherPeerNativeObject({
+      PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      // Signal all types of connection
+      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      KEY_FRAME_KEY: 0
+    });
+
+    // Number 6 came through as our server :)
+    expect(network.findServer(), isTrue);
   });
 }
 

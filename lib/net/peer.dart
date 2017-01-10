@@ -103,7 +103,8 @@ class PeerWrapper {
       if (connections.length >= MAX_AUTO_CONNECTIONS) {
         return;
       }
-      if (_closedConnectionPeers.contains(id) || _blackListedIds.contains(id)) {
+      if (connections.containsKey(id) ||
+          _closedConnectionPeers.contains(id) || _blackListedIds.contains(id)) {
         continue;
       }
       log.info("Auto connecting to id ${id}");
