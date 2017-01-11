@@ -6,7 +6,6 @@ import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 class MockHudMessages extends Mock implements HudMessages {}
 
@@ -26,10 +25,7 @@ void main() {
   TestConnection connectionC;
 
   setUp(() {
-    Logger.root.level = Level.ALL;
-    Logger.root.onRecord.listen((LogRecord rec) {
-      print('${rec.level.name}: ${rec.time}: ${rec.message}');
-    });
+    logOutputForTest();
     clearEnvironment();
     mockHudMessages = new MockHudMessages();
     mockSpriteIndex = new MockSpriteIndex();
@@ -49,6 +45,10 @@ void main() {
     connectionC.bindOnHandler('data', (unused, data) {
       print("Got data ${data}");
     });
+  });
+
+  tearDown((){
+    assertNoLoggedWarnings();
   });
 
   test('Test basic client network update single connection', () {
@@ -127,6 +127,8 @@ void main() {
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     network.frame(0.01, new List());
+
+    expectWarningContaining("CLIENT_TO_SERVER connection without being server");
 
     int connectionNr = 0;
     for (TestConnection connection in connections.values) {
@@ -262,6 +264,7 @@ void main() {
     }
 
     // We gave up finding a server.
+    expectWarningContaining("didn't find any servers, and not able to connect to any more peers. Giving up");
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNull);
   });

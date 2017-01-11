@@ -23,6 +23,7 @@ void main() {
   ImageIndex imageIndex2;
   ByteWorld byteWorld;
   setUp(() {
+    logOutputForTest();
     connection1 = new TestConnectionWrapper("a");
     connection2 = new TestConnectionWrapper("b");
     imageIndex = new MockImageIndex();
@@ -33,6 +34,9 @@ void main() {
       ..setChunkSizeForTest(4);
     helper2 = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
       ..setChunkSizeForTest(4);
+  });
+  tearDown(() {
+    assertNoLoggedWarnings();
   });
   group('Chunk helper tests', () {
     test('Reply with data', () {

@@ -27,6 +27,7 @@ void main() {
     expect(loader.currentState(), equals(state));
   }
   setUp(() {
+    logOutputForTest();
     mockImageIndex = new MockImageIndex();
     mockNetwork = new MockNetwork();
     mockPeerWrapper = new MockPeerWrapper();
@@ -39,6 +40,9 @@ void main() {
       mockImageIndex, mockNetwork, mockChunkHelper);
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);
+  });
+  tearDown((){
+    assertNoLoggedWarnings();
   });
   group('Loader tests', () {
     test('Base state and load from server', () {

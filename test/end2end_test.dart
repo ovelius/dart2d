@@ -3,23 +3,24 @@ library dart2d;
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
   setUp(() {
-    Logger.root.level = Level.ALL;
-    Logger.root.onRecord.listen((LogRecord rec) {
-      print('${rec.level.name}: ${rec.time}: ${rec.message}');
-    });
+    logOutputForTest();
+    expectWarningContaining('No matching sprite');
+    expectWarningContaining('Duplicate handshake');
+    expectWarningContaining('DO_NOT_CREATE');
+    expectWarningContaining('would overwrite existing sprite');
     clearEnvironment();
     logConnectionData = true;
     remapKeyNamesForTest();
+  });
+
+  tearDown((){
+    assertNoLoggedWarnings();
   });
 
   group('End2End', () {

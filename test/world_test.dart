@@ -9,6 +9,7 @@ ByteWorld byteWorld;
 
 void main() {
   setUp(() {
+    logOutputForTest();
     testConnections.clear();
     testPeers.clear();
   });

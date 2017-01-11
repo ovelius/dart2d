@@ -298,7 +298,7 @@ class Network {
         SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
         MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
         if (sprite == null) {
-          log.warning("Not creating sprite from update ${networkId}");
+          log.info("Not creating sprite from update ${networkId}, constructor is ${constructor}");
           continue;
         }
         // TODO(erik) Prio data for the owner of the sprite instead.

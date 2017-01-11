@@ -4,17 +4,11 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 void main() {
   setUp(() {
-    Logger.root.level = Level.ALL;
-    Logger.root.onRecord.listen((LogRecord rec) {
-      print('${rec.level.name}: ${rec.time}: ${rec.message}');
-    });
+    logOutputForTest();
     clearEnvironment();
     logConnectionData = true;
     remapKeyNamesForTest();
