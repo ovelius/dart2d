@@ -160,32 +160,43 @@ class Network {
 
   /**
    * Try and find a connection to a server.
+   * Returns true once the search is complete.
    */
   bool findServer() {
     Map connections = safeActiveConnections();
-    List<ConnectionWrapper> closeAbleNotServer = [];
+    List<String> closeAbleNotServer = [];
     for (ConnectionWrapper connection in connections.values) {
       if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+        // TODO probe if full?
         return true;
       }
       if (connection.initialPongReceived()) {
-        closeAbleNotServer.add(connection);
+        closeAbleNotServer.add(connection.id);
       }
       if (!connection.initialPingSent()) {
         connection.sendPing(true);
       }
     }
     // We examined all connections and found no server. Time to take action.
-    if (closeAbleNotServer.length == connections.length) {
+    if (new Set.from(closeAbleNotServer).containsAll(connections.keys)) {
       for (int i = 0; i < closeAbleNotServer.length; i++) {
         // TODO close by some heuristic here?
         if (i > 1) break;
-        ConnectionWrapper connection = closeAbleNotServer[i];
+        ConnectionWrapper connection = connections[closeAbleNotServer[i]];
         log.info("Closing connection $connection in search for server.");
         connection.close(null);
+
+        // Remove right away, so autoConnectToPeers doesn't count this connection.
+        // TODO: Should we instead clean connections in autoConnectToPeers?
+        peer.removeClosedConnection(connection.id);
+
+        if (!peer.autoConnectToPeers()) {
+          // We didn't add any new peers. Bail.
+          log.warning("didn't find any servers, and not able to connect to any more peers. Giving up.");
+          return true;
+        }
       }
     }
-    peer.autoConnectToPeers();
     return false;
   }
 

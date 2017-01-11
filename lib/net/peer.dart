@@ -97,19 +97,22 @@ class PeerWrapper {
   /**
    * Connect to peers. Maintain connectios.
    */
-  void autoConnectToPeers() {
+  bool autoConnectToPeers() {
+    bool addedConnection = false;
     for (String id in _activeIds) {
       // Don't connect to too many peers...
       if (connections.length >= MAX_AUTO_CONNECTIONS) {
-        return;
+        return addedConnection;
       }
       if (connections.containsKey(id) ||
           _closedConnectionPeers.contains(id) || _blackListedIds.contains(id)) {
         continue;
       }
+      addedConnection = true;
       log.info("Auto connecting to id ${id}");
       connectTo(id);
     }
+    return addedConnection;
   }
 
   bool hasConnections() {

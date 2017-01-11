@@ -210,9 +210,9 @@ void main() {
     expect(network.findServer(), isFalse);
     expect(network.getServerConnection(), isNull);
 
-    // This opened more connections, since we are no longer at max.
+    // This did not open more connections - as we don't know the type of the other connections yet.
     expect(network.safeActiveConnections().length,
-        equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
+        equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
 
     // Returns pongs for all connection.
     for (TestConnection connection in connections.values) {
@@ -243,6 +243,27 @@ void main() {
 
     // Number 6 came through as our server :)
     expect(network.findServer(), isTrue);
+    expect(network.getServerConnection(), isNotNull);
+
+    // aaaand it's gone.
+    connections['6'].getOtherEnd().signalClose();
+
+    // No server again.
+    expect(network.findServer(), isFalse);
+
+    // Returns pongs for all connections again - no server connection.
+    for (TestConnection connection in connections.values) {
+      connection.sendAndReceivByOtherPeerNativeObject({
+        PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+        // Signal all types of connection
+        CONNECTION_TYPE: ConnectionType.BOOTSTRAP.index,
+        KEY_FRAME_KEY: 0
+      });
+    }
+
+    // We gave up finding a server.
+    expect(network.findServer(), isTrue);
+    expect(network.getServerConnection(), isNull);
   });
 }
 
