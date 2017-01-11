@@ -46,13 +46,16 @@
       if (!isMobileDevice()) {
         return;
       }
+      if (typeof document.body.requestFullscreen === "function") {
+        document.body.requestFullscreen();
+      }
       el.style.display = "inline";
       var screen = document.querySelector("#canvas");
 
   	  START_X = Math.round((screen.offsetWidth - el.offsetWidth) / 4);
 	  START_Y = Math.round((screen.offsetHeight - el.offsetHeight) / 2);
-	  translateElementTransform(el, START_X, START_Y);
 
+	  translateElementTransform(el, START_X, START_Y);
 
 	  var mc = new Hammer.Manager(el);
    	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
