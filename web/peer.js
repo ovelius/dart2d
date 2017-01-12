@@ -569,7 +569,7 @@ DataConnection.prototype._configureDataChannel = function() {
 
   // Use the Reliable shim for non Firefox browsers
   if (!util.supports.sctp && this.reliable) {
-    this._reliable = new Reliable(this._dc, util.debug);
+    throw new Error("Not supported!");
   }
 
   if (this._reliable) {
