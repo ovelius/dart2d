@@ -47,6 +47,7 @@
   	var b1 = document.querySelector("#b1");
   	var b2 = document.querySelector("#b2");
   	var b3 = document.querySelector("#b3");
+  	var canvas = document.querySelector("#canvas");
   	var START_X
   	var START_Y
 
@@ -60,8 +61,8 @@
         return;
       }
       var screen = document.querySelector("#canvas");
-      if (typeof document.body.webkitRequestFullscreen === "function") {
-        document.body.webkitRequestFullscreen();
+      if (typeof canvas.webkitRequestFullscreen === "function") {
+        canvas.webkitRequestFullscreen();
       }
       el.style.display = "inline";
       buttonStyle(b1);
@@ -75,7 +76,7 @@
 	  translateElementTransform(el, START_X, START_Y);
 
 	  translateElementTransform(b1, sixt * 3, START_Y - updownDiff);
-	  translateElementTransform(b2, sixt * 4, START_Y + updownDiff);
+	  translateElementTransform(b2, sixt * 4 - (sixt / 2), START_Y + updownDiff);
 	  translateElementTransform(b3, sixt * 4, START_Y - updownDiff);
 
 
@@ -87,6 +88,10 @@
 	      translateElementTransform(el, START_X, START_Y);
 	    }
 	  });
+
+	  mc = new Hammer.Manager(b1);
+   	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+   	  mc.on("hammer.input", onBtnDown);
     }
     function isMobileDevice() {
       return navigator.userAgent.match(/Mobile|Windows Phone|Lumia|Android|webOS|iPhone|iPod|Blackberry|PlayBook|BB10|Opera Mini|\bCrMo\/|Opera Mobi/i);
@@ -101,6 +106,9 @@
     function onPan(ev) {
 	    translateElementTransform(el, START_X + ev.deltaX, START_Y + ev.deltaY);
 	    onPanDart(ev);
+	}
+	function onBtnDown(ev) {
+	  console.log(ev);
 	}
     init();
 

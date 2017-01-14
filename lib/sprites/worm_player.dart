@@ -313,9 +313,13 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   void checkControlKeys(double duration) {
-    if (keyIsDown("Left")) {
+    double left = keyIsDownStrength("Left");
+    double right = keyIsDownStrength("Right");
+    double aimUp = keyIsDownStrength("Aim up");
+    double aimDown = keyIsDownStrength("Aim down");
+    if (left != null) {
       if (velocity.x > -100) {
-        velocity.x -= 20.0;
+        velocity.x -= 20.0 * left;
       } if (velocity.x < -100) {
         velocity.x = -100.0;
       }
@@ -323,9 +327,9 @@ class LocalPlayerSprite extends MovingSprite {
         gun.angle -= (gun.angle + PI / 2) * 2;
         angle = PI * 2 + 0.01;
       }
-    } else if (keyIsDown("Right")) {
+    } else if (right != null) {
       if (velocity.x < 100) {
-        velocity.x += 20.0;
+        velocity.x += 20.0 * right;
       } if (velocity.x > 100) {
         velocity.x = 100.0;
       }
@@ -346,10 +350,10 @@ class LocalPlayerSprite extends MovingSprite {
       this.velocity.y -= 200.0; 
       this.onGround = false;
      
-    } else if (keyIsDown("Aim down")) {
-      gunDown(duration);
-    } else if (keyIsDown("Aim up")) {
-      gunUp(duration);
+    } else if (aimUp != null) {
+      gunUp(duration * aimUp);
+    } else if (aimDown != null) {
+      gunDown(duration * aimDown);
     }
    
     if (keyIsDown("Rope")) {
@@ -424,6 +428,11 @@ class LocalPlayerSprite extends MovingSprite {
   bool keyIsDown(String key) {
     assert(getControls().containsKey(key));
     return keyState.keyIsDown(getControls()[key]);
+  }
+
+  double keyIsDownStrength(String key) {
+    assert(getControls().containsKey(key));
+    return keyState.keyIsDownStrength(getControls()[key]);
   }
   
   void addExtraNetworkData(List<int> data) {

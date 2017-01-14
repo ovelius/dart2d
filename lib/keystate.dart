@@ -3,16 +3,18 @@ library keystate;
 import 'package:dart2d/worlds/world.dart';
 
 class KeyState {
+  static const double MAX_KEY_TRIGGER = 0.999;
   World world;
   bool debug = false;
   
-  Map<int, bool> keysDown = new Map<int, bool>();
+  Map<int, double> keysDown = new Map<int, double>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
   List<dynamic> _genericListeners = new List();
   
   KeyState(this.world);
   
-  void onKeyDown(var /*KeyboardEvent*/ e) {
+  void onKeyDown(var /*KeyboardEvent*/ e,
+      [double strength = MAX_KEY_TRIGGER]) {
     if (e.keyCode == KeyCodeDart.F2) {
       debug = !debug;
     }
@@ -29,28 +31,32 @@ class KeyState {
       }
       _genericListeners.forEach((f) { f(e.keyCode); });
     }
-    keysDown[e.keyCode] = true;
+    keysDown[e.keyCode] = strength;
   }
   
   void onKeyUp(var /*KeyboardEvent*/ e) {
     keysDown.remove(e.keyCode);
   }
   
-  bool keyIsDown(num key) {
-    return keysDown.containsKey(key);
+  bool keyIsDown(num key, [double strength = MAX_KEY_TRIGGER]) {
+    return keysDown.containsKey(key) && keysDown[key] >= MAX_KEY_TRIGGER;
+  }
+
+  double keyIsDownStrength(num key) {
+    return keysDown[key];
   }
 
   void setEnabledKeys(Map<String, bool> keysDown) {
     this.keysDown = {};
     for (String key in keysDown.keys) {
-      this.keysDown[int.parse(key)] = true;
+      this.keysDown[int.parse(key)] = MAX_KEY_TRIGGER;
     }
   }
 
   Map<String, bool> getEnabledState() {
     Map<String, bool> keys = {};
     for (int key in keysDown.keys) {
-      if (keysDown[key]) {
+      if (keysDown[key] >= MAX_KEY_TRIGGER) {
         keys[key.toString()] = true;
       }
     }

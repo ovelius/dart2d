@@ -142,30 +142,37 @@ void onPanDart(event) {
   int deltaY = event['deltaY'];
   int deltaX = event['deltaX'];
   int dir = event['direction'];
+  double deltaXstrengh = (deltaX / 80).abs();
+  double deltaYstrengh = (deltaY / 120).abs();
   if (deltaX > 5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.D));
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.D),
+        deltaXstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.D));
   }
   if (deltaX < -5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.A));
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.A),
+        deltaXstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.A));
   }
 
   if (deltaY > 5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.DOWN));
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.DOWN),
+        deltaYstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.DOWN));
   }
   if (deltaY < -5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.UP));
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.UP),
+        deltaYstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.UP));
   }
 
   if (deltaY < -15) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W));
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W),
+        deltaYstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.W));
   }
