@@ -76,6 +76,26 @@ void main() {
         "${world.network.localPlayerName}: ${message}");
   });
 
+  // TODO register using named keys instead.
+  querySelector("#b1").onTouchStart.listen((TouchEvent e ) {
+    world.localKeyState.onKeyDown(KeyCodeDart.W);
+  });
+  querySelector("#b1").onTouchEnd.listen((TouchEvent e ) {
+    world.localKeyState.onKeyUp(KeyCodeDart.W);
+  });
+  querySelector("#b2").onTouchStart.listen((TouchEvent e ) {
+    world.localKeyState.onKeyDown(KeyCodeDart.F);
+  });
+  querySelector("#b2").onTouchEnd.listen((TouchEvent e ) {
+    world.localKeyState.onKeyUp(KeyCodeDart.F);
+  });
+  querySelector("#b3").onTouchStart.listen((TouchEvent e ) {
+    world.localKeyState.onKeyDown(KeyCodeDart.S);
+  });
+  querySelector("#b3").onTouchEnd.listen((TouchEvent e ) {
+    world.localKeyState.onKeyUp(KeyCodeDart.S);
+  });
+
   startTimer();
 }
 
@@ -139,11 +159,12 @@ class _fakeKeyCode {
 }
 
 void onPanDart(event) {
+  // TODO register using named keys instead.
   int deltaY = event['deltaY'];
   int deltaX = event['deltaX'];
   int dir = event['direction'];
   double deltaXstrengh = (deltaX / 80).abs();
-  double deltaYstrengh = (deltaY / 120).abs();
+  double deltaYstrengh = (deltaY / 80).abs();
   if (deltaX > 5) {
     world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.D),
         deltaXstrengh);

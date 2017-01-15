@@ -320,7 +320,11 @@ class LocalPlayerSprite extends MovingSprite {
     if (left != null) {
       if (velocity.x > -100) {
         velocity.x -= 20.0 * left;
-      } if (velocity.x < -100) {
+      }
+      if (velocity.x < -100 * left) {
+        velocity.x = -100.0 * left;
+      }
+      if (velocity.x < -100) {
         velocity.x = -100.0;
       }
       if (angle <  PI * 2) {
@@ -328,9 +332,13 @@ class LocalPlayerSprite extends MovingSprite {
         angle = PI * 2 + 0.01;
       }
     } else if (right != null) {
-      if (velocity.x < 100) {
+      if (velocity.x < 100 * right) {
         velocity.x += 20.0 * right;
-      } if (velocity.x > 100) {
+      }
+      if (velocity.x > 100 * right) {
+        velocity.x = 100.0 * right;
+      }
+      if (velocity.x > 100) {
         velocity.x = 100.0;
       }
       if (angle != 0.0) {

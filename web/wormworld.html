@@ -42,7 +42,7 @@
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
-    var buttonSize = "60px";
+    var buttonSize = "120";
   	var el = document.querySelector("#hitarea");
   	var b1 = document.querySelector("#b1");
   	var b2 = document.querySelector("#b2");
@@ -53,8 +53,8 @@
 
   	function buttonStyle(b) {
   	   b.style.display = "inline";
-  	   b.style.height = buttonSize;
-  	   b.style.width = buttonSize;
+  	   b.style.height = buttonSize + "px";
+  	   b.style.width = buttonSize + "px";
   	}
     function init() {
       if (!isMobileDevice()) {
@@ -70,14 +70,15 @@
       buttonStyle(b3);
 
   	  START_X = Math.round((screen.offsetWidth - el.offsetWidth) / 4);
-  	  var sixt = Math.round((screen.offsetWidth - el.offsetWidth) / 5);
-  	  var updownDiff = 40;
+  	  var third = Math.round((screen.offsetWidth - el.offsetWidth) / 3);
+  	  var updownDiff = 100 ;
+  	  var xDiff = 140;
 	  START_Y = Math.round((screen.offsetHeight - el.offsetHeight) / 2);
 	  translateElementTransform(el, START_X, START_Y);
 
-	  translateElementTransform(b1, sixt * 3, START_Y - updownDiff);
-	  translateElementTransform(b2, sixt * 4 - (sixt / 2), START_Y + updownDiff);
-	  translateElementTransform(b3, sixt * 4, START_Y - updownDiff);
+	  translateElementTransform(b1, third * 2 - xDiff, START_Y - updownDiff);
+	  translateElementTransform(b2, third * 2, START_Y + updownDiff);
+	  translateElementTransform(b3, third * 2 + xDiff, START_Y - updownDiff);
 
 
 	  var mc = new Hammer.Manager(el);
@@ -89,9 +90,14 @@
 	    }
 	  });
 
-	  mc = new Hammer.Manager(b1);
+	  mc = new Hammer.Manager(canvas);
    	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
-   	  mc.on("hammer.input", onBtnDown);
+   	  mc.on("panstart panmove", onPan);
+   	  mc.on("hammer.input", function(ev) {
+	    if(ev.isFinal) {
+	      translateElementTransform(el, START_X, START_Y);
+	    }
+	  });
     }
     function isMobileDevice() {
       return navigator.userAgent.match(/Mobile|Windows Phone|Lumia|Android|webOS|iPhone|iPod|Blackberry|PlayBook|BB10|Opera Mini|\bCrMo\/|Opera Mobi/i);
@@ -106,9 +112,6 @@
     function onPan(ev) {
 	    translateElementTransform(el, START_X + ev.deltaX, START_Y + ev.deltaY);
 	    onPanDart(ev);
-	}
-	function onBtnDown(ev) {
-	  console.log(ev);
 	}
     init();
 
