@@ -8,6 +8,7 @@
   <meta name="google-signin-cookiepolicy" content="single_host_origin" />
   <meta name="google-signin-callback" content="onSignIn" />
   <meta name="google-signin-scope" content="https://www.googleapis.com/auth/games" />
+  <!-- <meta name="viewport" content="width=device-width, maximum-scale=1.0" /> -->
   <body>
 	<script>
 	  function signOut() {
@@ -18,9 +19,8 @@
 	  }
 	</script>
     <div id="container">
-      <canvas id="canvas" width="1024" height="576" class="center">
+      <canvas id="canvas" width="1024" height="576" class="center" onclick="fullscreen();">
       </canvas>
-      <div id="hitarea" style="display:none;background-color:white;width:100px;height:100px;position:fixed;top:0px;opacity:0.25;"></div>
       <div id="b1" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
       <div id="b2" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
       <div id="b3" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
@@ -43,14 +43,20 @@
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
     var buttonSize = "120";
-  	var el = document.querySelector("#hitarea");
   	var b1 = document.querySelector("#b1");
   	var b2 = document.querySelector("#b2");
   	var b3 = document.querySelector("#b3");
   	var canvas = document.querySelector("#canvas");
   	var START_X
   	var START_Y
+  	var fullscreenRequested = false;
 
+    function fullscreen() {
+      if (!fullscreenRequested) {
+        canvas.webkitRequestFullscreen();
+        fullscreenRequested = true;
+      }
+    }
   	function buttonStyle(b) {
   	   b.style.display = "inline";
   	   b.style.height = buttonSize + "px";
@@ -61,43 +67,23 @@
         return;
       }
       var screen = document.querySelector("#canvas");
-      if (typeof canvas.webkitRequestFullscreen === "function") {
-        canvas.webkitRequestFullscreen();
-      }
-      el.style.display = "inline";
       buttonStyle(b1);
       buttonStyle(b2);
       buttonStyle(b3);
 
-  	  START_X = Math.round((screen.offsetWidth - el.offsetWidth) / 4);
-  	  var third = Math.round((screen.offsetWidth - el.offsetWidth) / 3);
+  	  START_X = Math.round((screen.offsetWidth - b1.offsetWidth) / 4);
+  	  var third = Math.round((screen.offsetWidth - b1.offsetWidth) / 3);
   	  var updownDiff = 100 ;
   	  var xDiff = 140;
-	  START_Y = Math.round((screen.offsetHeight - el.offsetHeight) / 2);
-	  translateElementTransform(el, START_X, START_Y);
+	  START_Y = Math.round((screen.offsetHeight - b1.offsetHeight) / 2);
 
 	  translateElementTransform(b1, third * 2 - xDiff, START_Y - updownDiff);
 	  translateElementTransform(b2, third * 2, START_Y + updownDiff);
 	  translateElementTransform(b3, third * 2 + xDiff, START_Y - updownDiff);
 
-
-	  var mc = new Hammer.Manager(el);
+	  var mc = new Hammer.Manager(canvas);
    	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
    	  mc.on("panstart panmove", onPan);
-   	  mc.on("hammer.input", function(ev) {
-	    if(ev.isFinal) {
-	      translateElementTransform(el, START_X, START_Y);
-	    }
-	  });
-
-	  mc = new Hammer.Manager(canvas);
-   	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
-   	  mc.on("panstart panmove", onPan);
-   	  mc.on("hammer.input", function(ev) {
-	    if(ev.isFinal) {
-	      translateElementTransform(el, START_X, START_Y);
-	    }
-	  });
     }
     function isMobileDevice() {
       return navigator.userAgent.match(/Mobile|Windows Phone|Lumia|Android|webOS|iPhone|iPod|Blackberry|PlayBook|BB10|Opera Mini|\bCrMo\/|Opera Mobi/i);
@@ -110,8 +96,7 @@
       el.style.transform = value;
     }
     function onPan(ev) {
-	    translateElementTransform(el, START_X + ev.deltaX, START_Y + ev.deltaY);
-	    onPanDart(ev);
+	  onPanDart(ev);
 	}
     init();
 

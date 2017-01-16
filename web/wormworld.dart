@@ -78,22 +78,29 @@ void main() {
 
   // TODO register using named keys instead.
   querySelector("#b1").onTouchStart.listen((TouchEvent e ) {
-    world.localKeyState.onKeyDown(KeyCodeDart.W);
+    e.preventDefault();
+    canvasElement.requestFullscreen();
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W));
   });
   querySelector("#b1").onTouchEnd.listen((TouchEvent e ) {
-    world.localKeyState.onKeyUp(KeyCodeDart.W);
+    e.preventDefault();
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.W));
   });
   querySelector("#b2").onTouchStart.listen((TouchEvent e ) {
-    world.localKeyState.onKeyDown(KeyCodeDart.F);
+    e.preventDefault();
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.F));
   });
   querySelector("#b2").onTouchEnd.listen((TouchEvent e ) {
-    world.localKeyState.onKeyUp(KeyCodeDart.F);
+    e.preventDefault();
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.F));
   });
   querySelector("#b3").onTouchStart.listen((TouchEvent e ) {
-    world.localKeyState.onKeyDown(KeyCodeDart.S);
+    e.preventDefault();
+    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.S));
   });
   querySelector("#b3").onTouchEnd.listen((TouchEvent e ) {
-    world.localKeyState.onKeyUp(KeyCodeDart.S);
+    e.preventDefault();
+    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.S));
   });
 
   startTimer();
@@ -189,13 +196,6 @@ void onPanDart(event) {
         deltaYstrengh);
   } else {
     world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.UP));
-  }
-
-  if (deltaY < -15) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W),
-        deltaYstrengh);
-  } else {
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.W));
   }
 }
 
