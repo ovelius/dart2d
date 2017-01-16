@@ -33,6 +33,9 @@ void main() {
   context['onPanDart'] = onPanDart;
 
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
+  //TODO should we really to this?
+  canvasElement.width = window.screen.width;
+  canvasElement.height = window.screen.height;
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
@@ -79,7 +82,6 @@ void main() {
   // TODO register using named keys instead.
   querySelector("#b1").onTouchStart.listen((TouchEvent e ) {
     e.preventDefault();
-    canvasElement.requestFullscreen();
     world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W));
   });
   querySelector("#b1").onTouchEnd.listen((TouchEvent e ) {
