@@ -5,6 +5,7 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/keystate.dart';
+import 'package:dart2d/mobile_controls.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
@@ -54,6 +55,7 @@ void main() {
              return new ImageElement(width: args[0], height: args[1]);
            }
          }))
+     ..bind(bool, withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
      ..bind(Object, withAnnotation: const WorldCanvas(), toValue: canvasElement)
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
@@ -61,6 +63,7 @@ void main() {
      ..bind(WorldListener)
      ..bind(ChunkHelper)
      ..bind(ImageIndex)
+     ..bind(MobileControls)
      ..bind(HudMessages)
      ..bind(ByteWorld)
      ..bind(Network)
@@ -80,29 +83,16 @@ void main() {
   });
 
   // TODO register using named keys instead.
-  querySelector("#b1").onTouchStart.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.W));
+  MobileControls controls = injector.get(MobileControls);
+  canvasElement.onTouchStart.listen((TouchEvent e ) {
+    e.changedTouches.forEach((Touch t) {
+      controls.TouchDown(t.identifier, t.page.x, t.page.y);
+    });
   });
-  querySelector("#b1").onTouchEnd.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.W));
-  });
-  querySelector("#b2").onTouchStart.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.F));
-  });
-  querySelector("#b2").onTouchEnd.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.F));
-  });
-  querySelector("#b3").onTouchStart.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.S));
-  });
-  querySelector("#b3").onTouchEnd.listen((TouchEvent e ) {
-    e.preventDefault();
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.S));
+  canvasElement.onTouchEnd.listen((TouchEvent e ) {
+    e.changedTouches.forEach((Touch t) {
+      controls.TouchUp(t.identifier);
+    });
   });
 
   startTimer();

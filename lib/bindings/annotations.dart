@@ -10,6 +10,10 @@ class WorldCanvas {
   const WorldCanvas();
 }
 
+class TouchControls {
+  const TouchControls();
+}
+
 class LocalKeyState {
   const LocalKeyState();
 }

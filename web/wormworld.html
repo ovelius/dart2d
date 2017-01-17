@@ -21,9 +21,6 @@
     <div id="container">
       <canvas id="canvas" width="1024" height="576" class="center" onclick="fullscreen();">
       </canvas>
-      <div id="b1" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
-      <div id="b2" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
-      <div id="b3" style="display:none;border-radius:50%;background-color:white;position:fixed;top:0px;opacity:0.25;"></div>
       <br/>
     </div>
     <div class="g-signin2" data-onsuccess="onSignIn"></div>
@@ -42,44 +39,20 @@
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
-    var buttonSize = "120";
-  	var b1 = document.querySelector("#b1");
-  	var b2 = document.querySelector("#b2");
-  	var b3 = document.querySelector("#b3");
   	var canvas = document.querySelector("#canvas");
   	var START_X
   	var START_Y
-  	var fullscreenRequested = false;
 
     function fullscreen() {
-      if (!fullscreenRequested) {
+      if (!document.fullscreen) {
         canvas.webkitRequestFullscreen();
-        fullscreenRequested = true;
       }
     }
-  	function buttonStyle(b) {
-  	   b.style.display = "inline";
-  	   b.style.height = buttonSize + "px";
-  	   b.style.width = buttonSize + "px";
-  	}
     function init() {
       if (!isMobileDevice()) {
         return;
       }
       var screen = document.querySelector("#canvas");
-      buttonStyle(b1);
-      buttonStyle(b2);
-      buttonStyle(b3);
-
-  	  START_X = Math.round((screen.offsetWidth - b1.offsetWidth) / 4);
-  	  var third = Math.round((screen.offsetWidth - b1.offsetWidth) / 3);
-  	  var updownDiff = 100 ;
-  	  var xDiff = 140;
-	  START_Y = Math.round((screen.offsetHeight - b1.offsetHeight) / 2);
-
-	  translateElementTransform(b1, third * 2 - xDiff, START_Y - updownDiff);
-	  translateElementTransform(b2, third * 2, START_Y + updownDiff);
-	  translateElementTransform(b3, third * 2 + xDiff, START_Y - updownDiff);
 
 	  var mc = new Hammer.Manager(canvas);
    	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));

@@ -5,6 +5,7 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/keystate.dart';
+import 'package:dart2d/mobile_controls.dart';
 import 'package:dart2d/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/net.dart';
@@ -27,6 +28,7 @@ class WormWorld extends World {
   Loader loader;
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
+  MobileControls _mobileControls;
   KeyState localKeyState;
   HudMessages hudMessages;
   // TODO make private
@@ -52,8 +54,10 @@ class WormWorld extends World {
       ByteWorld byteWorld,
       HudMessages hudMessages,
       WorldListener worldListener,
+      MobileControls mobileControls,
       PacketListenerBindings packetListenerBindings) {
     this.imageIndex = imageIndex;
+    this._mobileControls = mobileControls;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
     this._height = _canvasElement.height;
@@ -257,6 +261,9 @@ class WormWorld extends World {
     drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
     hudMessages.render(this, _canvas, duration);
+
+    _mobileControls.draw();
+
     _canvas.restore();
   }
 
