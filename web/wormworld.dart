@@ -85,13 +85,21 @@ void main() {
   // TODO register using named keys instead.
   MobileControls controls = injector.get(MobileControls);
   canvasElement.onTouchStart.listen((TouchEvent e ) {
+    e.preventDefault();
     e.changedTouches.forEach((Touch t) {
       controls.TouchDown(t.identifier, t.page.x, t.page.y);
     });
   });
   canvasElement.onTouchEnd.listen((TouchEvent e ) {
+    e.preventDefault();
     e.changedTouches.forEach((Touch t) {
       controls.TouchUp(t.identifier);
+    });
+  });
+  canvasElement.onTouchMove.listen((TouchEvent e ) {
+    e.preventDefault();
+    e.changedTouches.forEach((Touch t) {
+      controls.TouchMove(t.identifier, t.page.x, t.page.y);
     });
   });
 

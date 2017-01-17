@@ -6,6 +6,7 @@ import 'dart:math';
 @Injectable()
 class MobileControls {
   static const int BUTTON_SIZE = 40;
+  static const int NO_BUTTON_TOUCH = -1;
   bool _isMobileBrowser;
   KeyState _localKeyState;
   int _width, _height;
@@ -13,6 +14,7 @@ class MobileControls {
   List<Point<int>> _buttons = [];
   Map<int, _fakeKeyCode> _buttonToKey = {};
   Map<int, int> _buttonsDown = {};
+  Map<int, Point<int>> _touchStartPoints = {};
 
   MobileControls(
       @LocalKeyState() KeyState localKeyState,
@@ -71,6 +73,7 @@ class MobileControls {
         }
       }
     }
+    _touchStartPoints[id] = new Point(x, y);
   }
 
   void TouchUp(int id) {
@@ -78,6 +81,12 @@ class MobileControls {
     if (index != null) {
       _localKeyState.onKeyUp(_buttonToKey[index]);
     }
+    _touchStartPoints.remove(id);
+  }
+
+  void TouchMove(int id, int x, int y) {
+    Point<int> startPoint = _touchStartPoints[id];
+    print("Delta X ${startPoint.x - x} Delta Y ${startPoint.y - y}");
   }
 }
 
