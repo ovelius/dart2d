@@ -18,8 +18,8 @@
 	    });
 	  }
 	</script>
-    <div id="container">
-      <canvas id="canvas" width="1024" height="576" class="center" onclick="fullscreen();">
+    <div id="container" onclick="fullscreen();">
+      <canvas id="canvas" width="1024" height="576" class="center">
       </canvas>
       <br/>
     </div>
@@ -34,44 +34,16 @@
     <script src="packages/browser/interop.js"></script>
     <script src="util.js"></script>
     <script src="peer.js"></script>
-    <script src="hammer-time.min.js"></script>
-    <script src="hammer.min.js"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
   	var canvas = document.querySelector("#canvas");
-  	var START_X
-  	var START_Y
 
     function fullscreen() {
       if (!document.fullscreen) {
         canvas.webkitRequestFullscreen();
       }
     }
-    function init() {
-      if (!isMobileDevice()) {
-        return;
-      }
-      var screen = document.querySelector("#canvas");
-
-	  var mc = new Hammer.Manager(canvas);
-   	  mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
-   	  mc.on("panstart panmove", onPan);
-    }
-    function isMobileDevice() {
-      return navigator.userAgent.match(/Mobile|Windows Phone|Lumia|Android|webOS|iPhone|iPod|Blackberry|PlayBook|BB10|Opera Mini|\bCrMo\/|Opera Mobi/i);
-    }
-    function translateElementTransform(el, x, y) {
-      el.className = "";
-      var value = 'translate3d(' +  x + 'px, ' + y + 'px, 0)';
-      el.style.webkitTransform = value;
-      el.style.mozTransform = value;
-      el.style.transform = value;
-    }
-    function onPan(ev) {
-	  onPanDart(ev);
-	}
-    init();
 
     function onSignIn(user) {
       onSignInDart(user);

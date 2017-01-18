@@ -31,7 +31,6 @@ void main() {
     String name = profile.callMethod('getName');
     world.playerName = name;
   };
-  context['onPanDart'] = onPanDart;
 
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
@@ -87,19 +86,19 @@ void main() {
   canvasElement.onTouchStart.listen((TouchEvent e ) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
-      controls.TouchDown(t.identifier, t.page.x, t.page.y);
+      controls.touchDown(t.identifier, t.page.x, t.page.y);
     });
   });
   canvasElement.onTouchEnd.listen((TouchEvent e ) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
-      controls.TouchUp(t.identifier);
+      controls.touchUp(t.identifier);
     });
   });
   canvasElement.onTouchMove.listen((TouchEvent e ) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
-      controls.TouchMove(t.identifier, t.page.x, t.page.y);
+      controls.touchMove(t.identifier, t.page.x, t.page.y);
     });
   });
 
@@ -163,40 +162,6 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
 class _fakeKeyCode {
   int keyCode;
   _fakeKeyCode(this.keyCode);
-}
-
-void onPanDart(event) {
-  // TODO register using named keys instead.
-  int deltaY = event['deltaY'];
-  int deltaX = event['deltaX'];
-  int dir = event['direction'];
-  double deltaXstrengh = (deltaX / 80).abs();
-  double deltaYstrengh = (deltaY / 80).abs();
-  if (deltaX > 5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.D),
-        deltaXstrengh);
-  } else {
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.D));
-  }
-  if (deltaX < -5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.A),
-        deltaXstrengh);
-  } else {
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.A));
-  }
-
-  if (deltaY > 5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.DOWN),
-        deltaYstrengh);
-  } else {
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.DOWN));
-  }
-  if (deltaY < -5) {
-    world.localKeyState.onKeyDown(new _fakeKeyCode(KeyCodeDart.UP),
-        deltaYstrengh);
-  } else {
-    world.localKeyState.onKeyUp(new _fakeKeyCode(KeyCodeDart.UP));
-  }
 }
 
 createPeerJs() {

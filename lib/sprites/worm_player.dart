@@ -152,6 +152,7 @@ class LocalPlayerSprite extends MovingSprite {
   Rope rope;
   KeyState keyState;
   MobileControls _mobileControls;
+  double _gunAngleTouchLock = null;
   WeaponState weaponState;
   
   bool onGround = false;
@@ -324,37 +325,8 @@ class LocalPlayerSprite extends MovingSprite {
     double right = keyIsDownStrength("Right");
     double aimUp = keyIsDownStrength("Aim up");
     double aimDown = keyIsDownStrength("Aim down");
-    if (left != null) {
-      if (velocity.x > -100) {
-        velocity.x -= 20.0 * left;
-      }
-      if (velocity.x < -100 * left) {
-        velocity.x = -100.0 * left;
-      }
-      if (velocity.x < -100) {
-        velocity.x = -100.0;
-      }
-      if (angle <  PI * 2) {
-        gun.angle -= (gun.angle + PI / 2) * 2;
-        angle = PI * 2 + 0.01;
-      }
-    } else if (right != null) {
-      if (velocity.x < 100 * right) {
-        velocity.x += 20.0 * right;
-      }
-      if (velocity.x > 100 * right) {
-        velocity.x = 100.0 * right;
-      }
-      if (velocity.x > 100) {
-        velocity.x = 100.0;
-      }
-      if (angle != 0.0) {
-        angle = 0.0;
-        gun.angle -= (gun.angle + PI / 2) * 2;
-      }
-    } else {
-      velocity.x = velocity.x * 0.94; 
-    }
+
+    _applyVel(right, left);
     
     if (keyIsDown("Jump") && rope != null) {
       world.removeSprite(rope.networkId);
@@ -373,6 +345,87 @@ class LocalPlayerSprite extends MovingSprite {
    
     if (keyIsDown("Rope")) {
       fireRope();
+    }
+
+    assert(_mobileControls != null);
+    Point<int> delta = _mobileControls.getTouchDeltaForButton();
+    if (_mobileControls.buttonIsDown()) {
+      if (_gunAngleTouchLock == null) {
+        _gunAngleTouchLock = gun.angle;
+      }
+      if (delta != null) {
+        checkMobileControls(delta.x, delta.y);
+      }
+    } else {
+      _gunAngleTouchLock = null;
+    }
+  }
+
+  void _applyVel(double right, double left) {
+    if (left != null) {
+      if (velocity.x > -100) {
+        velocity.x -= 20.0 * left;
+      }
+      if (velocity.x < -100 * left) {
+        velocity.x = -100.0 * left;
+      }
+      if (velocity.x < -100) {
+        velocity.x = -100.0;
+      }
+      if (angle <  PI * 2) {
+        double gunRotation = (gun.angle + PI / 2) * 2;
+        gun.angle -= gunRotation;
+        if (_gunAngleTouchLock != null) {
+          _gunAngleTouchLock -= gunRotation;
+        }
+        angle = PI * 2 + 0.01;
+      }
+    } else if (right != null) {
+      if (velocity.x < 100 * right) {
+        velocity.x += 20.0 * right;
+      }
+      if (velocity.x > 100 * right) {
+        velocity.x = 100.0 * right;
+      }
+      if (velocity.x > 100) {
+        velocity.x = 100.0;
+      }
+      if (angle != 0.0) {
+        angle = 0.0;
+        double gunRotation = (gun.angle + PI / 2) * 2;
+        gun.angle -= gunRotation;
+        if (_gunAngleTouchLock != null) {
+          _gunAngleTouchLock -= gunRotation;
+        }
+      }
+    } else {
+      velocity.x = velocity.x * 0.94;
+    }
+  }
+
+  void checkMobileControls(int xD, yD) {
+    if (angle != 0.0) {
+      gun.angle = _gunAngleTouchLock + (yD * 0.012);
+      if (gun.angle > -PI/2) {
+        gun.angle = -PI/2;
+      }
+      if (gun.angle < -(PI + PI/3)) {
+        gun.angle = -(PI + PI/3);
+      }
+    } else {
+      gun.angle = _gunAngleTouchLock - (yD * 0.012);
+      if (gun.angle > PI/3) {
+        gun.angle = PI / 3;
+      }
+      if (gun.angle < -PI/2) {
+        gun.angle = -PI/2;
+      }
+    }
+
+    if (xD > 0) {
+      _applyVel(null, xD.abs() / 60);
+    } else {
+      _applyVel(xD.abs() / 60, null);
     }
   }
   

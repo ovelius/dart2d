@@ -13,8 +13,10 @@ class MobileControls {
   var _canvas = null;
   List<Point<int>> _buttons = [];
   Map<int, _fakeKeyCode> _buttonToKey = {};
-  Map<int, int> _buttonsDown = {};
+  Map<int, int> _touchIdToButtonDown = {};
+  Map<int, int> _buttonIdToTouchId = {};
   Map<int, Point<int>> _touchStartPoints = {};
+  Map<int, Point<int>> _touchDeltas = {};
 
   MobileControls(
       @LocalKeyState() KeyState localKeyState,
@@ -52,8 +54,13 @@ class MobileControls {
   draw() {
     if (_isMobileBrowser) {
       _canvas.save();
-      _canvas.setFillColorRgb(255, 255, 255,  0.3);
-      for (Point<int> btn in _buttons) {
+      for (int i = 0; i < _buttons.length; i++) {
+        Point<int> btn = _buttons[i];
+        if (buttonIsDown(i)) {
+          _canvas.setFillColorRgb(255, 255, 255, 0.3);
+        } else {
+          _canvas.setFillColorRgb(255, 255, 255, 0.5);
+        }
         _canvas.beginPath();
         _canvas.arc(btn.x, btn.y, BUTTON_SIZE, 0, PI * 2);
         _canvas.closePath();
@@ -63,30 +70,53 @@ class MobileControls {
     }
   }
 
-  void TouchDown(int id, int x, int y) {
+  void touchDown(int id, int x, int y) {
+    bool buttonFound = false;
     for (int i = 0; i < _buttons.length; i++) {
       Point<int> btn = _buttons[i];
       if (x >= btn.x - BUTTON_SIZE && x <= btn.x + BUTTON_SIZE) {
         if (y >= btn.y - BUTTON_SIZE && y <= btn.y + BUTTON_SIZE) {
-          _buttonsDown[id] = i;
+          _touchIdToButtonDown[id] = i;
+          _buttonIdToTouchId[i] = id;
           _localKeyState.onKeyDown(_buttonToKey[i]);
+          buttonFound = true;
         }
       }
+    }
+    if (!buttonFound) {
+      _touchIdToButtonDown[id] = NO_BUTTON_TOUCH;
+      _buttonIdToTouchId[NO_BUTTON_TOUCH] = id;
     }
     _touchStartPoints[id] = new Point(x, y);
   }
 
-  void TouchUp(int id) {
-    int index = _buttonsDown.remove(id);
-    if (index != null) {
+  void touchUp(int id) {
+    int index = _touchIdToButtonDown.remove(id);
+    if (index != NO_BUTTON_TOUCH) {
       _localKeyState.onKeyUp(_buttonToKey[index]);
     }
+    _buttonIdToTouchId.remove(index);
     _touchStartPoints.remove(id);
   }
 
-  void TouchMove(int id, int x, int y) {
+  void touchMove(int id, int x, int y) {
     Point<int> startPoint = _touchStartPoints[id];
-    print("Delta X ${startPoint.x - x} Delta Y ${startPoint.y - y}");
+    _touchDeltas[id] = new Point(startPoint.x - x, startPoint.y - y);
+  }
+
+  bool buttonIsDown([int index = NO_BUTTON_TOUCH]) {
+    return _buttonIdToTouchId.containsKey(index);
+  }
+
+  /**
+   * Get the current touch delta for a button.
+   */
+  Point<int> getTouchDeltaForButton([int index = NO_BUTTON_TOUCH]) {
+    int id = _buttonIdToTouchId[index];
+    if (id != null) {
+      return _touchDeltas[id];
+    }
+    return null;
   }
 }
 
