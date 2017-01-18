@@ -167,6 +167,7 @@ class LocalPlayerSprite extends MovingSprite {
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;
+    sprite._mobileControls = convertSprite._mobileControls;
     sprite.health = convertSprite.health;
     sprite.networkId = convertSprite.networkId;
     sprite.networkType = NetworkType.LOCAL;
