@@ -7,16 +7,19 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/keystate.dart';
+import 'package:dart2d/mobile_controls.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 
+
+// TODO cleanup the constructor hell in this file!
 /**
  * Created on clients to represent other players.
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
   RemotePlayerClientSprite(World world)
-      : super(world, null, null, 0.0, 0.0, 0);
+      : super(world, null, null, null, 0.0, 0.0, 0);
 
   /**
    * This sprite should not execute controls.
@@ -51,13 +54,15 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
  * Created on the server to represent clients.
  */
 class RemotePlayerServerSprite extends LocalPlayerSprite {
+
   RemotePlayerServerSprite(
-      World world, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, keyState, info, x, y, imageIndex);
-  
+      World world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
+      : super(world, mobileControls, keyState, info, x, y, imageIndex);
+
   RemotePlayerServerSprite.copyFromMovingSprite(
       WormWorld world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
       : super.copyFromMovingSprite(world, sprite) {
+    // TODO what about key bindings??
     this.world = world;
     this.info = info;
     this.keyState = keystate;
@@ -89,8 +94,8 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  * Created on the client and streamed to the Server.
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
-  RemotePlayerSprite(World world, KeyState keyState, double x, double y, int imageIndex)
-      : super(world, keyState, null, x, y, imageIndex);
+  RemotePlayerSprite(World world, MobileControls mobileControls, KeyState keyState, double x, double y, int imageIndex)
+      : super(world, mobileControls, keyState, null, x, y, imageIndex);
   
   void checkShouldFire() {
     // Don't do anything in the local client.
@@ -146,6 +151,7 @@ class LocalPlayerSprite extends MovingSprite {
   PlayerInfo info;
   Rope rope;
   KeyState keyState;
+  MobileControls _mobileControls;
   WeaponState weaponState;
   
   bool onGround = false;
@@ -189,10 +195,11 @@ class LocalPlayerSprite extends MovingSprite {
   /**
    * Server constructor.
    */
-  LocalPlayerSprite(WormWorld world, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
+  LocalPlayerSprite(WormWorld world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
       : super.imageBasedSprite(new Vec2(x, y), imageId, world.imageIndex) {
     this.world = world;
     this.info = info;
+    this._mobileControls = mobileControls;
     this.keyState = keyState;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(world.imageIndex);

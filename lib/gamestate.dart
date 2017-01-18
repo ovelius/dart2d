@@ -118,6 +118,7 @@ class GameState {
   convertToServer(WormWorld world, var selfConnectionId) {
     this.actingServerId = selfConnectionId;
     for (PlayerInfo info in playerInfo) {
+      // Convert self info to server.
       if (info.connectionId == selfConnectionId) {
         LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
@@ -127,7 +128,8 @@ class GameState {
         oldSprite.info = info;
         world.playerSprite = playerSprite;
       } else {
-        MovingSprite oldSprite = world.spriteIndex[info.spriteId];
+      // Convert other players.
+        RemotePlayerClientSprite oldSprite = world.spriteIndex[info.spriteId];
         ConnectionWrapper connection =
             world.network.peer.connections[info.connectionId];
         if (connection != null) {

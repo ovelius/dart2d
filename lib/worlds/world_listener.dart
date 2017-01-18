@@ -2,6 +2,7 @@ import 'package:di/di.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/mobile_controls.dart';
 import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -14,9 +15,10 @@ class WorldListener {
   ImageIndex _imageIndex;
   PacketListenerBindings _packetListenerBindings;
   Network _network;
+  MobileControls _mobileControls;
   HudMessages hudMessages;
 
-  WorldListener(this._packetListenerBindings, this._network, this.hudMessages, this._imageIndex) {
+  WorldListener(this._packetListenerBindings, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
@@ -106,7 +108,7 @@ class WorldListener {
     assert(info.connectionId != null);
 
     LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-        _world, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
+        _world, _mobileControls, connection.remoteKeyState, info, 0.0, 0.0, spriteIndex);
     sprite.networkType =  NetworkType.REMOTE_FORWARD;
     sprite.networkId = spriteId;
     sprite.ownerId = connection.id;

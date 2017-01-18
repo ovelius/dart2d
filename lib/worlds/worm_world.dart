@@ -307,12 +307,12 @@ class WormWorld extends World {
     }
     return true;
   }
-  
+
   void createLocalClient(int spriteId, int localSpriteIndex) {
     spriteIndex.spriteNetworkId = spriteId;
     int playerSpriteIndex = localSpriteIndex;
     playerSprite = new RemotePlayerSprite(
-        this, localKeyState, 400.0, 200.0, playerSpriteIndex);
+        this, _mobileControls, localKeyState, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.setImage(playerSpriteIndex, 24);
     addSprite(playerSprite);
@@ -323,7 +323,7 @@ class WormWorld extends World {
     int imageId = network.gameState.getNextUsableSpriteImage(imageIndex);
     PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
     playerSprite = new LocalPlayerSprite(
-        this, localKeyState, info,
+        this, _mobileControls, localKeyState, info,
         new Random().nextInt(_width).toDouble(),
         new Random().nextInt(_height).toDouble(),
         imageId);
