@@ -374,10 +374,9 @@ class LocalPlayerSprite extends MovingSprite {
         velocity.x = -100.0;
       }
       if (angle <  PI * 2) {
-        double gunRotation = (gun.angle + PI / 2) * 2;
-        gun.angle -= gunRotation;
+        gun.angle -= (gun.angle + PI / 2) * 2;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= gunRotation;
+          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;;
         }
         angle = PI * 2 + 0.01;
       }
@@ -393,10 +392,9 @@ class LocalPlayerSprite extends MovingSprite {
       }
       if (angle != 0.0) {
         angle = 0.0;
-        double gunRotation = (gun.angle + PI / 2) * 2;
-        gun.angle -= gunRotation;
+        gun.angle -= (gun.angle + PI / 2) * 2;;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= gunRotation;
+          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;;
         }
       }
     } else {
@@ -406,7 +404,7 @@ class LocalPlayerSprite extends MovingSprite {
 
   void checkMobileControls(int xD, yD) {
     if (angle != 0.0) {
-      gun.angle = _gunAngleTouchLock + (yD * 0.012);
+      gun.angle = _gunAngleTouchLock + (yD * 0.02);
       if (gun.angle > -PI/2) {
         gun.angle = -PI/2;
       }
@@ -414,7 +412,7 @@ class LocalPlayerSprite extends MovingSprite {
         gun.angle = -(PI + PI/3);
       }
     } else {
-      gun.angle = _gunAngleTouchLock - (yD * 0.012);
+      gun.angle = _gunAngleTouchLock - (yD * 0.02);
       if (gun.angle > PI/3) {
         gun.angle = PI / 3;
       }
@@ -424,9 +422,9 @@ class LocalPlayerSprite extends MovingSprite {
     }
 
     if (xD > 0) {
-      _applyVel(null, xD.abs() / 60);
+      _applyVel(null, xD.abs() / 40);
     } else {
-      _applyVel(xD.abs() / 60, null);
+      _applyVel(xD.abs() / 40, null);
     }
   }
   
