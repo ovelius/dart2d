@@ -8,6 +8,11 @@ import 'package:di/di.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+class ConnectionInfo {
+  String to;
+  int latencyMillis;
+}
+
 class PlayerInfo {
   String name;
   var connectionId;
@@ -120,7 +125,8 @@ class GameState {
    */
   convertToServer(WormWorld world, var selfConnectionId) {
     this.actingServerId = selfConnectionId;
-    for (PlayerInfo info in playerInfo) {
+    for (int i = playerInfo.length -1; i >= 0; i--) {
+      PlayerInfo info = playerInfo[i];
       // Convert self info to server.
       if (info.connectionId == selfConnectionId) {
         LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];
