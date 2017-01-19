@@ -248,7 +248,7 @@ var util = {
   CLOUD_PORT: 9000,
 
   // Browsers that need chunking:
-  chunkedBrowsers: {'Chrome': 1},
+  // chunkedBrowsers: {'Chrome': 1},
   chunkedMTU: 16300, // The original 60000 bytes setting does not work when sending data from Firefox to Chrome, which is "cut off" after 16384 bytes and delivered individually.
 
   // Logging logic
@@ -487,32 +487,6 @@ var util = {
   }(this)),
 
   // Binary stuff
-
-  // chunks a blob.
-  chunk: function(bl) {
-    var chunks = [];
-    var size = bl.size;
-    var start = index = 0;
-    var total = Math.ceil(size / util.chunkedMTU);
-    while (start < size) {
-      var end = Math.min(size, start + util.chunkedMTU);
-      var b = bl.slice(start, end);
-
-      var chunk = {
-        __peerData: dataCount,
-        n: index,
-        data: b,
-        total: total
-      };
-
-      chunks.push(chunk);
-
-      start = end;
-      index += 1;
-    }
-    dataCount += 1;
-    return chunks;
-  },
 
   blobToArrayBuffer: function(blob, cb){
     var fr = new FileReader();
