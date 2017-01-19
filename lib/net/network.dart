@@ -37,6 +37,7 @@ class Network {
 
   Network(
       HudMessages hudMessages,
+      this.gameState,
       this._packetListenerBindings,
       @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks,
@@ -45,7 +46,6 @@ class Network {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
     this._localKeyState = localKeyState;
-    gameState = new GameState();
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,

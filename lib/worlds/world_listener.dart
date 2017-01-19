@@ -12,13 +12,14 @@ import 'package:dart2d/worlds/worm_world.dart';
 class WorldListener {
   final Logger log = new Logger('WorldListener');
   WormWorld _world;
+  GameState _gameState;
   ImageIndex _imageIndex;
   PacketListenerBindings _packetListenerBindings;
   Network _network;
   MobileControls _mobileControls;
   HudMessages hudMessages;
 
-  WorldListener(this._packetListenerBindings, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
+  WorldListener(this._packetListenerBindings, this._gameState, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
@@ -45,7 +46,7 @@ class WorldListener {
     });
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
       assert(_network.isServer());
-      GameState game = _network.gameState;
+      GameState game = _gameState;
       PlayerInfo info = game.playerInfoByConnectionId(c.id);
       info.inGame = true;
       game.urgentData = true;
@@ -62,10 +63,9 @@ class WorldListener {
     if (!connection.isValidGameConnection()) {
       return;
     }
-    GameState newGameState = new GameState.fromMap(data);
-    _network.gameState = newGameState;
+    _gameState.updateFromMap(data);
     _world.connectToAllPeersInGameState();
-    if (_network.peer.connectedToServer() && newGameState.isAtMaxPlayers()) {
+    if (_network.peer.connectedToServer() &&  _gameState.isAtMaxPlayers()) {
       _network.peer.disconnect();
     }
   }
@@ -87,7 +87,7 @@ class WorldListener {
       log.warning("Duplicate handshake received from ${connection}!");
       return;
     }
-    if (_network.gameState.gameIsFull()) {
+    if (_gameState.gameIsFull()) {
       connection.sendData({
         SERVER_PLAYER_REJECT: 'Game full',
         KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
@@ -123,7 +123,7 @@ class WorldListener {
 
     connection.setHandshakeReceived();
     // We don't expect any more players, disconnect the peer.
-    if (_network.peer.connectedToServer() && _network.gameState.gameIsFull()) {
+    if (_network.peer.connectedToServer() && _gameState.gameIsFull()) {
       _network.peer.disconnect();
     }
   }

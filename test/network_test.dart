@@ -2,6 +2,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:mockito/mockito.dart';
@@ -32,7 +33,7 @@ void main() {
     mockKeyState = new MockKeyState();
     packetListenerBindings = new PacketListenerBindings();
     peer = new TestPeer('a');
-    network = new Network(mockHudMessages, packetListenerBindings, peer,
+    network = new Network(mockHudMessages, new GameState(), packetListenerBindings, peer,
         new FakeJsCallbacksWrapper(), mockSpriteIndex, mockKeyState);
     network.peer.openPeer(null, 'a');
     when(mockSpriteIndex.spriteIds()).thenReturn(new List());

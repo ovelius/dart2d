@@ -7,6 +7,7 @@ import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:dart2d/mobile_controls.dart';
 import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
@@ -61,6 +62,7 @@ void main() {
      ..bind(WormWorld)
      ..bind(WorldListener)
      ..bind(ChunkHelper)
+     ..bind(GameState)
      ..bind(ImageIndex)
      ..bind(MobileControls)
      ..bind(HudMessages)

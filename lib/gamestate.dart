@@ -4,6 +4,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:di/di.dart';
 import 'package:dart2d/keystate.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -43,6 +44,7 @@ class PlayerInfo {
   String toString() => "${spriteId} ${name} ${inGame}";  
 }
 
+@Injectable()
 class GameState {
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
@@ -69,11 +71,13 @@ class GameState {
     startedAt = new DateTime.now();
   }
 
-  GameState.fromMap(Map map) {
+  updateFromMap(Map map) {
     List<Map> players = map["p"];
+    List<PlayerInfo> newInfo = [];
     for (Map playerMap in players) {
-      playerInfo.add(new PlayerInfo.fromMap(playerMap));
+      newInfo.add(new PlayerInfo.fromMap(playerMap));
     }
+    playerInfo = newInfo;
     mapId = map["m"];
     actingServerId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
