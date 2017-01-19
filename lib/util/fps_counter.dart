@@ -1,5 +1,8 @@
 library fps_counter;
 
+import 'package:di/di.dart';
+
+@Injectable()
 class FpsCounter extends _FrameTrigger {
   FpsCounter() : super(1.0);
 }

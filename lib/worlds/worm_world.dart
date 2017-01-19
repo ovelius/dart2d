@@ -4,9 +4,7 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';
 import 'package:dart2d/worlds/world_listener.dart';
-import 'package:dart2d/keystate.dart';
-import 'package:dart2d/mobile_controls.dart';
-import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
@@ -14,7 +12,6 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/gamestate.dart';
 import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/phys/phys.dart';
@@ -29,6 +26,7 @@ class WormWorld extends World {
   SpriteIndex spriteIndex;
   ImageIndex imageIndex;
   MobileControls _mobileControls;
+  FpsCounter _serverFps;
   KeyState localKeyState;
   HudMessages hudMessages;
   // TODO make private
@@ -48,6 +46,7 @@ class WormWorld extends World {
       Loader loader,
       @LocalKeyState() KeyState localKeyState,
       @WorldCanvas() Object canvasElement,
+      @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       ImageIndex imageIndex,
       ChunkHelper chunkHelper,
@@ -57,6 +56,7 @@ class WormWorld extends World {
       MobileControls mobileControls,
       PacketListenerBindings packetListenerBindings) {
     this.imageIndex = imageIndex;
+    this._serverFps = serverFrameCounter;
     this._mobileControls = mobileControls;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
@@ -360,7 +360,7 @@ class WormWorld extends World {
       frames++;
     }
     serverFrame += frames;
-    serverFps.timeWithFrames(duration, frames);
+    _serverFps.timeWithFrames(duration, frames);
     return frames;
   }
 
@@ -496,7 +496,7 @@ class WormWorld extends World {
       _canvas.fillStyle = "#ffffff";
       _canvas.font = '16pt Calibri';
       _canvas.fillText("DrawFps: $drawFps", 0, 20);
-      _canvas.fillText("ServerFps: $serverFps", 0, 40);
+      _canvas.fillText("ServerFps: $_serverFps", 0, 40);
       _canvas.fillText("NetworkFps: $networkFps", 0, 60);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 80);
       _canvas.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);

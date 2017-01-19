@@ -1,6 +1,6 @@
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'dart:math';
 
 @Injectable()

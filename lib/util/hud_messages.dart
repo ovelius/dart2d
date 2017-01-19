@@ -4,11 +4,11 @@ import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/util/gamestate.dart';
 
 class _HudMessage {
   final String message;

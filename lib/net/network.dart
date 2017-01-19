@@ -1,19 +1,18 @@
 import 'connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/fps_counter.dart';
+import 'package:dart2d/util/gamestate.dart';
+import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/keystate.dart';
-import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/util/keystate.dart';
+import 'package:dart2d/util/hud_messages.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:di/di.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-final Logger log = new Logger('Network');
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0/2;
 const PROBLEMATIC_FRAMES_BEHIND = 2;

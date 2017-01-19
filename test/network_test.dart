@@ -1,9 +1,9 @@
 import 'package:dart2d/net/net.dart';
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/hud_messages.dart';
-import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/hud_messages.dart';
+import 'package:dart2d/util/gamestate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';

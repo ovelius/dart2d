@@ -1,22 +1,22 @@
 library world;
 
 import 'package:dart2d/phys/phys.dart';
-import 'package:dart2d/gamestate.dart';
-import 'package:dart2d/fps_counter.dart';
+import 'package:dart2d/util/gamestate.dart';
+import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/world_util.dart';
-import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/util/hud_messages.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 int serverFrame = 0;
-// 25 server frames per second.
+// 15 server frames per second.
 const FRAME_SPEED = 1.0/15;
 double untilNextFrame = FRAME_SPEED;
 
@@ -33,7 +33,6 @@ abstract class World {
 
   // For debuggging.
   FpsCounter drawFps = new FpsCounter();
-  FpsCounter serverFps = new FpsCounter();
   
   bool restart = false;
   bool freeze = false;

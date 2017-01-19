@@ -7,7 +7,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/util/gamestate.dart';
 
 enum LoaderState {
   ERROR,

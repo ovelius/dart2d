@@ -5,10 +5,12 @@ import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/net/chunk_helper.dart';
-import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/util/hud_messages.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 @Injectable() // TODO: Make Injectable.
 class PeerWrapper {
+  final Logger log = new Logger('Peer');
   static const MAX_AUTO_CONNECTIONS = 5;
   static const MAX_CONNECTION = 8;
   Network _network;

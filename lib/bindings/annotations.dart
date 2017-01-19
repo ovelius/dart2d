@@ -14,6 +14,10 @@ class TouchControls {
   const TouchControls();
 }
 
+class ServerFrameCounter {
+  const ServerFrameCounter();
+}
+
 class LocalKeyState {
   const LocalKeyState();
 }

@@ -1,6 +1,6 @@
 library weapon_state;
 
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/sprites/sprites.dart';

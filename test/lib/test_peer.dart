@@ -1,7 +1,7 @@
 library test_peer;
 
 import 'test_connection.dart';
-import 'package:dart2d/hud_messages.dart';
+import 'package:dart2d/util/hud_messages.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';

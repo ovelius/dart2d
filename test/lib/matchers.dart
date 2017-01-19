@@ -6,7 +6,7 @@ import 'dart:mirrors';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'test_peer.dart';
-import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/util/gamestate.dart';
 import 'package:dart2d/sprites/sprite.dart';
 
 playerId(int count) {

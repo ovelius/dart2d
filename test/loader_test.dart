@@ -3,7 +3,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
-import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 
 class MockImageIndex extends Mock implements ImageIndex {}

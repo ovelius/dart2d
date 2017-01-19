@@ -5,10 +5,7 @@ import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/keystate.dart';
-import 'package:dart2d/mobile_controls.dart';
-import 'package:dart2d/hud_messages.dart';
-import 'package:dart2d/gamestate.dart';
+import 'package:dart2d/util/util.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
@@ -46,6 +43,8 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..bind(bool, withAnnotation: const TouchControls(), toValue: false)
       ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
+      ..bind(FpsCounter)
+      ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
       ..bind(WormWorld)
       ..bind(WorldListener)
       ..bind(ChunkHelper)

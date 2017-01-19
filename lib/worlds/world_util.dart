@@ -1,5 +1,5 @@
 import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 
 Map<int, String> _KEY_TO_NAME = {
   KeyCodeDart.LEFT: "Left",

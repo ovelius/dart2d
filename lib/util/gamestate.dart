@@ -5,10 +5,8 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/keystate.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-
-final Logger log = new Logger('GameState');
 
 class PlayerInfo {
   String name;
@@ -46,6 +44,7 @@ class PlayerInfo {
 
 @Injectable()
 class GameState {
+  final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
       ["duck.png", "cock.png", "donkey.png",  "dragon.png"];
