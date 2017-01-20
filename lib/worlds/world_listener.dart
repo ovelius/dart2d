@@ -104,7 +104,7 @@ class WorldListener {
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
     int spriteIndex = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
-    _network.gameState.playerInfo.add(info);
+    _network.gameState.addPlayerInfo(info);
     assert(info.connectionId != null);
 
     LocalPlayerSprite sprite = new RemotePlayerServerSprite(

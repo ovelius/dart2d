@@ -47,10 +47,10 @@ class GameStateMatcher extends Matcher {
       gameState = item;
     }
     matchState["ActualGameState"] = gameState;
-    if (gameState.playerInfo.length == _playersWithName.length) {
+    if (gameState.playerInfoList().length == _playersWithName.length) {
       for (int id in _playersWithName.keys) {
         bool hasMatch = false;
-        for (PlayerInfo info in gameState.playerInfo) {
+        for (PlayerInfo info in gameState.playerInfoList()) {
           if (info.spriteId == id && info.name == _playersWithName[id]) {
             hasMatch = true;
           }
@@ -60,7 +60,7 @@ class GameStateMatcher extends Matcher {
         }
       }
     }
-    return gameState.playerInfo.length == _playersWithName.length;
+    return gameState.playerInfoList().length == _playersWithName.length;
   }
   
   Description describe(Description description) {

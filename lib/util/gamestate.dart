@@ -60,7 +60,8 @@ class GameState {
       ["duck.png", "cock.png", "donkey.png",  "dragon.png"];
 
   DateTime startedAt;
-  List<PlayerInfo> playerInfo = [];
+  List<PlayerInfo> _playerInfo = [];
+  Map<String, PlayerInfo> _playerInfoById = {};
   int mapId = 0;
   String actingServerId = null;
   // True if we have urgent data for the network.
@@ -73,7 +74,15 @@ class GameState {
   }
   
   bool isAtMaxPlayers() {
-    return playerInfo.length >= USEABLE_SPRITES.length;
+    return _playerInfo.length >= USEABLE_SPRITES.length;
+  }
+
+  List<PlayerInfo> playerInfoList() => new List.from(_playerInfo);
+
+  void addPlayerInfo(PlayerInfo info) {
+    assert(info.connectionId != null);
+    _playerInfo.add(info);
+    _playerInfoById[info.connectionId] = info;
   }
 
   GameState(this._packetListenerBindings) {
@@ -91,10 +100,18 @@ class GameState {
   updateFromMap(Map map) {
     List<Map> players = map["p"];
     List<PlayerInfo> newInfo = [];
+    Map<String, PlayerInfo> byId = {};
     for (Map playerMap in players) {
-      newInfo.add(new PlayerInfo.fromMap(playerMap));
+      PlayerInfo info = new PlayerInfo.fromMap(playerMap);
+      PlayerInfo oldInfo = playerInfoByConnectionId(info.connectionId);
+      if (oldInfo != null) {
+        info.remoteKeyState = oldInfo.remoteKeyState;
+      }
+      newInfo.add(info);
+      byId[info.connectionId] = info;
     }
-    playerInfo = newInfo;
+    _playerInfo = newInfo;
+    _playerInfoById = byId;
     mapId = map["m"];
     actingServerId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
@@ -106,7 +123,7 @@ class GameState {
     map["e"] = actingServerId;
     map["s"] = startedAt.millisecondsSinceEpoch;
     List<Map> players = [];
-    for (PlayerInfo info in playerInfo) {
+    for (PlayerInfo info in _playerInfo) {
       players.add(info.toMap());
     }
     map["p"] = players;
@@ -114,10 +131,11 @@ class GameState {
   }
   
   removeByConnectionId(WormWorld world, var id) {
-    for (int i = playerInfo.length -1; i >= 0; i--) {
-      PlayerInfo info = playerInfo[i];
+    for (int i = _playerInfo.length -1; i >= 0; i--) {
+      PlayerInfo info = _playerInfo[i];
       if (info.connectionId == id) {
-        playerInfo.removeAt(i);
+        _playerInfo.removeAt(i);
+        _playerInfoById.remove(info.connectionId);
         world.network.sendMessage("${info.name} disconnected :/");
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
@@ -138,8 +156,8 @@ class GameState {
    */
   convertToServer(WormWorld world, var selfConnectionId) {
     this.actingServerId = selfConnectionId;
-    for (int i = playerInfo.length -1; i >= 0; i--) {
-      PlayerInfo info = playerInfo[i];
+    for (int i = _playerInfo.length -1; i >= 0; i--) {
+      PlayerInfo info = _playerInfo[i];
       // Convert self info to server.
       if (info.connectionId == selfConnectionId) {
         LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];
@@ -170,21 +188,15 @@ class GameState {
   }
   
   PlayerInfo playerInfoByConnectionId(var id) {
-    for (int i = playerInfo.length -1; i >= 0; i--) {
-      PlayerInfo info = playerInfo[i];
-      if (info.connectionId == id) {
-        return info;
-      }
-    }
-    return null;
+    return _playerInfoById[id];
   }
   
   bool gameIsFull() {
-    return playerInfo.length >= USEABLE_SPRITES.length;
+    return _playerInfo.length >= USEABLE_SPRITES.length;
   }
   int getNextUsablePlayerSpriteId(WormWorld world) {
     int id = ID_OFFSET_FOR_NEW_CLIENT +
-        world.spriteNetworkId + playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+        world.spriteNetworkId + _playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
     // Make sure we don't pick and ID we already use.
     while (world.spriteIndex.hasSprite(id)) {
       id = id + ID_OFFSET_FOR_NEW_CLIENT;
@@ -192,10 +204,10 @@ class GameState {
     return id;
   }
   int getNextUsableSpriteImage(ImageIndex imageIndex) {
-    return imageIndex.getImageIdByName(USEABLE_SPRITES[playerInfo.length]);
+    return imageIndex.getImageIdByName(USEABLE_SPRITES[_playerInfo.length]);
   }
   
   String toString() {
-    return "GameState with map ${mapId} server ${actingServerId} ${playerInfo}";
+    return "GameState with map ${mapId} server ${actingServerId} ${_playerInfo}";
   }
 }

@@ -330,7 +330,7 @@ class WormWorld extends World {
     playerSprite.networkId = id;
     playerSprite.spawnIn = 1.0;
     playerSprite.setImage(imageId, 24);
-    network.gameState.playerInfo.add(info);
+    network.gameState.addPlayerInfo(info);
     addSprite(playerSprite);
   }
   
@@ -390,7 +390,7 @@ class WormWorld extends World {
    * We also ensure the sprites in the world have consitent owners.
    */
   void connectToAllPeersInGameState() {
-    for (PlayerInfo info in network.gameState.playerInfo) {
+    for (PlayerInfo info in network.gameState.playerInfoList()) {
       LocalPlayerSprite sprite = spriteIndex[info.spriteId];
       if (sprite != null) {
         // Make sure the ownerId is consistent with the connectionId.
