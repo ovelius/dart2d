@@ -52,7 +52,7 @@ class HudMessages {
   void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
       context.save();
-      GameState gameState = world.network.gameState;
+      GameState gameState = world.network().gameState;
       context.setFillColorRgb(200, 0, 0);
       context.setStrokeColorRgb(200, 0, 0);
       context.globalAlpha = 0.5;
@@ -66,7 +66,7 @@ class HudMessages {
         Vec2 middle = sprite.centerPoint();
         int x = world.width() ~/ 3;
         int y = 40 + i*40;
-        ConnectionWrapper connection = world.network.peer.connections[info.connectionId];
+        ConnectionWrapper connection = world.network().peer.connections[info.connectionId];
         context.fillText("${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
         // TODO: Check that sprite is alive.
         if (sprite != null && info.inGame) {

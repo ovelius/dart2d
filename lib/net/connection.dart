@@ -195,10 +195,10 @@ class ConnectionWrapper {
 
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
+      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
       sendData({
           PONG: dataMap[PING],
           CONNECTION_TYPE: _connectionType.index});
-      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
       return;
     }
     if (dataMap.containsKey(PONG)) {
@@ -219,7 +219,7 @@ class ConnectionWrapper {
           }
           // TODO remove special cases!
         } else if (key != IS_KEY_FRAME_KEY && key != KEY_FRAME_KEY && key != KEY_STATE_KEY) {
-          throw new ArgumentError("Onbound network listener for ${key}");
+          throw new ArgumentError("No bound network listener for ${key}");
         }
       }
     }
@@ -256,6 +256,7 @@ class ConnectionWrapper {
       case ConnectionType.CLIENT_TO_CLIENT:
         if (!_network.isCommander()) {
           _connectionType = ConnectionType.CLIENT_TO_CLIENT;
+          log.info("Updated connection type to ${_connectionType} for ${id}");
         }
         break;
       // Other end thinks we are server.

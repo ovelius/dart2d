@@ -53,13 +53,16 @@ class PlayerInfo {
 
 @Injectable()
 class GameState {
-  PacketListenerBindings _packetListenerBindings;
-  final Logger log = new Logger('GameState');
+   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
       ["duck.png", "cock.png", "donkey.png",  "dragon.png"];
 
-  DateTime startedAt;
+   // Injected members.
+   PacketListenerBindings _packetListenerBindings;
+   SpriteIndex _spriteIndex;
+
+   DateTime startedAt;
   List<PlayerInfo> _playerInfo = [];
   Map<String, PlayerInfo> _playerInfoById = {};
   int mapId = 0;
@@ -90,7 +93,7 @@ class GameState {
     _playerInfoById[info.connectionId] = info;
   }
 
-  GameState(this._packetListenerBindings) {
+  GameState(this._packetListenerBindings, this._spriteIndex) {
     _packetListenerBindings.bindHandler(KEY_STATE_KEY, (ConnectionWrapper connection, Map keyState) {
       PlayerInfo info = playerInfoByConnectionId(connection.id);
       if (info == null) {
@@ -141,10 +144,10 @@ class GameState {
       if (info.connectionId == id) {
         _playerInfo.removeAt(i);
         _playerInfoById.remove(info.connectionId);
-        world.network.sendMessage("${info.name} disconnected :/");
+        world.network().sendMessage("${info.name} disconnected :/");
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
-        Sprite sprite = world.spriteIndex[info.spriteId];
+        Sprite sprite = _spriteIndex[info.spriteId];
         if (sprite != null) {
           // The game engine will not remove things if the REMOTE NetworkType.
           // So make the old servers sprite REMOTE_FORWARD.
@@ -165,7 +168,7 @@ class GameState {
       PlayerInfo info = _playerInfo[i];
       // Convert self info to server.
       if (info.connectionId == selfConnectionId) {
-        LocalPlayerSprite oldSprite = world.spriteIndex[info.spriteId];
+        LocalPlayerSprite oldSprite = _spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
             new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
         playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());
@@ -174,9 +177,9 @@ class GameState {
         world.playerSprite = playerSprite;
       } else {
       // Convert other players.
-        RemotePlayerClientSprite oldSprite = world.spriteIndex[info.spriteId];
+        RemotePlayerClientSprite oldSprite = _spriteIndex[info.spriteId];
         ConnectionWrapper connection =
-            world.network.peer.connections[info.connectionId];
+            world.network().peer.connections[info.connectionId];
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
           new RemotePlayerServerSprite.copyFromMovingSprite(

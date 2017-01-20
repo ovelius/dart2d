@@ -103,7 +103,7 @@ void main() {
       // Now test transferring a sprite over the network.
       MovingSprite sprite = new MovingSprite(new Vec2(), new Vec2(1.0, 2.0), SpriteType.RECT);
       MovingSprite imageSprite = new MovingSprite.imageBasedSprite(
-          new Vec2(), 0, worldB.imageIndex);
+          new Vec2(), 0, worldB.imageIndex());
       worldB.addSprite(sprite);
       worldB.addSprite(imageSprite);
       worldB.frameDraw();
@@ -171,9 +171,9 @@ void main() {
       }
 
       // Both worlds are in the same gamestate.
-      expect(worldB.network.gameState,
+      expect(worldB.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
-      expect(worldA.network.gameState,
+      expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
 
       // The player B sprite is hooked up to the gameState.

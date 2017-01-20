@@ -41,15 +41,15 @@ void main() {
       worldB.frameDraw(0.01);
       
       // Simulate a keyframe from A and verify that it is received.
-      expect(worldA.network.currentKeyFrame, equals(0));
+      expect(worldA.network().currentKeyFrame, equals(0));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldA.network.currentKeyFrame, equals(1));
+      expect(worldA.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("a"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
       
-      expect(worldB.network.currentKeyFrame, equals(0));
+      expect(worldB.network().currentKeyFrame, equals(0));
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldB.network.currentKeyFrame, equals(1));
+      expect(worldB.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
   
@@ -63,9 +63,9 @@ void main() {
       expect(worldB, hasSpriteWithNetworkId(playerId(1)));
 
       // Both worlds are in the same gamestate.
-      expect(worldB.network.gameState,
+      expect(worldB.network().gameState,
           isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
-      expect(worldA.network.gameState,
+      expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
     });
 
@@ -349,7 +349,7 @@ void main() {
       worldB.startAsServer("nameB");
       worldA.connectTo("b", "nameA");
   
-      expect(worldB.network.gameState,
+      expect(worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"}));
       
       for (int i = 0; i < 4; i++) {
@@ -357,13 +357,13 @@ void main() {
       }
       
       // B hasn't responded in a long time.
-      expect(worldA.network.hasNetworkProblem(), equals(true));
+      expect(worldA.network().hasNetworkProblem(), equals(true));
 
       for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       
-      expect(worldB.network.gameState,
+      expect(worldB.network().gameState,
           isGameStateOf({playerId(0): "nameB"}));
       expect(worldB.spriteIndex.count(), equals(1));
     });
@@ -397,7 +397,7 @@ void main() {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
-      expect(worldA.network.gameState,
+      expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
     
@@ -410,7 +410,7 @@ void main() {
         
         testConnections['b'].forEach((e) { e.dropPackets = 1;});
         
-        worldA.network.sendMessage("test me");
+        worldA.network().sendMessage("test me");
         
         // This got dropped.
         expect(recentReceviedDataFrom("a"),

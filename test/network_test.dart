@@ -1,16 +1,24 @@
 import 'package:dart2d/net/net.dart';
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
-import 'package:dart2d/util/hud_messages.dart';
-import 'package:dart2d/util/gamestate.dart';
-import 'package:dart2d/util/keystate.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
 
 class MockHudMessages extends Mock implements HudMessages {}
 
 class MockSpriteIndex extends Mock implements SpriteIndex {}
+
+class MockImageIndex extends Mock implements ImageIndex {}
+
+class MockWormWorld extends Mock implements WormWorld {}
+
+class MockRemotePlayerClientSprite extends Mock implements RemotePlayerClientSprite {
+  Vec2 size = new Vec2(1, 1);
+}
 
 class MockKeyState extends Mock implements KeyState {}
 
@@ -19,22 +27,32 @@ void main() {
   PacketListenerBindings packetListenerBindings;
   MockHudMessages mockHudMessages;
   MockSpriteIndex mockSpriteIndex;
+  MockImageIndex mockImageIndex;
   MockKeyState mockKeyState;
   TestPeer peer;
+  GameState gameState;
   Network network;
+  MockWormWorld mockWormWorld;
   TestConnection connectionB;
   TestConnection connectionC;
 
   setUp(() {
     logOutputForTest();
     clearEnvironment();
+    remapKeyNamesForTest();
     mockHudMessages = new MockHudMessages();
+    mockImageIndex = new MockImageIndex();
     mockSpriteIndex = new MockSpriteIndex();
+    mockWormWorld = new MockWormWorld();
     mockKeyState = new MockKeyState();
     packetListenerBindings = new PacketListenerBindings();
+    gameState = new GameState(packetListenerBindings, mockSpriteIndex);
     peer = new TestPeer('a');
-    network = new Network(mockHudMessages, new GameState(packetListenerBindings), packetListenerBindings, peer,
-        new FakeJsCallbacksWrapper(), mockSpriteIndex, mockKeyState);
+    network = new Network(mockHudMessages, gameState, packetListenerBindings,
+        peer, new FakeJsCallbacksWrapper(), mockSpriteIndex, mockKeyState);
+    network.world = mockWormWorld;
+    when(mockWormWorld.network()).thenReturn(network);
+    when(mockWormWorld.imageIndex()).thenReturn(mockImageIndex);
     network.peer.openPeer(null, 'a');
     when(mockSpriteIndex.spriteIds()).thenReturn(new List());
     when(mockKeyState.getEnabledState()).thenReturn(FAKE_ENABLED_KEYS);
@@ -48,16 +66,20 @@ void main() {
     });
   });
 
-  tearDown((){
+  tearDown(() {
     assertNoLoggedWarnings();
   });
 
+  frame([double duration = 0.01]) {
+    network.frame(duration, new List());
+  }
+
   test('Test basic client network update single connection', () {
-    network.frame(0.01, new List());
+    frame();
 
     network.peer.connectPeer(null, connectionB);
 
-    network.frame(0.01, new List());
+    frame();
     expect(connectionC.decodedRecentDataRecevied(),
         equals({KEY_STATE_KEY: FAKE_ENABLED_KEYS, KEY_FRAME_KEY: 0}));
 
@@ -65,7 +87,7 @@ void main() {
     when(mockSpriteIndex.spriteIds()).thenReturn(new List.filled(1, 1000));
     when(mockSpriteIndex[1000]).thenReturn(sprite);
 
-    network.frame(0.01, new List());
+    frame();
 
     // Full state sent over network.
     expect(
@@ -88,7 +110,7 @@ void main() {
 
     // Sprites only send full state of a while.
     while (sprite.fullFramesOverNetwork > 0) {
-      network.frame(0.01, new List());
+      frame();
     }
 
     // Now only delta updates.
@@ -127,7 +149,7 @@ void main() {
     expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
-    network.frame(0.01, new List());
+    frame();
 
     expectWarningContaining("CLIENT_TO_SERVER connection without being server");
 
@@ -152,6 +174,111 @@ void main() {
       connection.getOtherEnd().signalClose();
     }
     expect(network.safeActiveConnections().length, equals(0));
+  });
+
+  test('Test set as acting commander', () {
+    network.peer.connectPeer(null, connectionB);
+    expect(network.isCommander(), isFalse);
+    expect(network.safeActiveConnections(), hasLength(1));
+    expect(network.safeActiveConnections().values.first.getConnectionType(),
+        equals(ConnectionType.BOOTSTRAP));
+    network.setAsActingCommander();
+
+    // Now a server to client connection.
+    expect(network.safeActiveConnections().values.first.getConnectionType(),
+        equals(ConnectionType.SERVER_TO_CLIENT));
+
+    // Change of type was announced.
+    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
+        containsPair(CONNECTION_TYPE, ConnectionType.SERVER_TO_CLIENT.index));
+  });
+
+  test('Test no game no active commander', () {
+    network.peer.connectPeer(null, connectionB);
+    expect(network.isCommander(), isFalse);
+    expect(network.safeActiveConnections(), hasLength(1));
+    expect(network.safeActiveConnections().values.first.getConnectionType(),
+        equals(ConnectionType.BOOTSTRAP));
+
+    connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+      PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      // Signal all types of connection
+      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      KEY_FRAME_KEY: 0
+    });
+
+    // Now a client to server connection.
+    expect(network.safeActiveConnections().values.first.getConnectionType(),
+        equals(ConnectionType.CLIENT_TO_SERVER));
+
+    // Change of type was reciprocated.
+    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
+        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_SERVER.index));
+    // Now close it.
+    connectionB.signalClose();
+    frame();
+    // We didn't do anything. No game underway!
+    expect(network.isCommander(), isFalse);
+  });
+
+  test('Test transfer commander to self', () {
+    TestConnection connectionD = new TestConnection('d');
+    TestConnection connectionOtherEndD = new TestConnection('e');
+    connectionOtherEndD.setOtherEnd(connectionD);
+    connectionOtherEndD.bindOnHandler('data', (unused, data) {
+      print("Got data ${data}");
+    });
+
+    connectionD.setOtherEnd(connectionOtherEndD);
+
+    // Connect to two peers.
+    network.peer.connectPeer(null, connectionB);
+    network.peer.connectPeer(null, connectionD);
+
+    frame();
+
+    connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+      PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      // Signal all types of connection
+      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      KEY_FRAME_KEY: 0
+    });
+    connectionOtherEndD.sendAndReceivByOtherPeerNativeObject({
+      PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      // Signal all types of connection
+      CONNECTION_TYPE: ConnectionType.CLIENT_TO_CLIENT.index,
+      KEY_FRAME_KEY: 0
+    });
+
+    // Out setup now has two connections, one client to server and
+    // one client to client.
+    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
+        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_SERVER.index));
+    expect(connectionOtherEndD.decodedRecentDataRecevied(),
+        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_CLIENT.index));
+
+    MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
+    when(mockSpriteIndex[1]).thenReturn(sprite);
+    when(mockSpriteIndex[2]).thenReturn(sprite);
+    when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
+
+    network.gameState.actingCommanderId = 'c';
+    network.gameState.addPlayerInfo(new PlayerInfo("testC", "c", 1));
+    network.gameState.addPlayerInfo(new PlayerInfo("testB", "d", 2));
+
+    frame();
+
+    connectionB.signalClose();
+
+    frame();
+
+    // We are now the commander.
+    expect(network.isCommander(), isTrue);
+
+    // Assert state of connections.
+    expect(network.safeActiveConnections(), hasLength(1));
+    expect(network.safeActiveConnections().values.first.getConnectionType(),
+        equals(ConnectionType.SERVER_TO_CLIENT));
   });
 
   test('Test find server', () {
@@ -234,7 +361,7 @@ void main() {
 
     // We're back at max connections again.
     expect(network.safeActiveConnections().length,
-         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
+        equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     // Respond with a Pong - this is the server.
     connections['6'].sendAndReceivByOtherPeerNativeObject({
@@ -265,10 +392,15 @@ void main() {
     }
 
     // We gave up finding a server.
-    expectWarningContaining("didn't find any servers, and not able to connect to any more peers. Giving up");
+    expectWarningContaining(
+        "didn't find any servers, and not able to connect to any more peers. Giving up");
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNull);
   });
+}
+
+class _TestPlayerSprite extends LocalPlayerSprite {
+  _TestPlayerSprite(MockImageIndex index) : super(null, index, null, new KeyState(null), null, 0.0, 0.0, 0);
 }
 
 class _TestSprite extends MovingSprite {

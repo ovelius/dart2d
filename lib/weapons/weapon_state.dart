@@ -83,7 +83,7 @@ class WeaponState {
       sprite.size = new Vec2(140.0 * 0.3, 129.0 * 0.3);
       sprite.angle = 0.0;
       sprite.velocity = sprite.velocity.multiply(0.2);
-      sprite.setImage(weaponState.world.imageIndex.getImageIdByName("box.png"), 140);
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 140);
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Zooka", 3, 3.0, 1.0, (WeaponState weaponState) {
@@ -92,7 +92,7 @@ class WeaponState {
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.0;
       // sprite.velocity = sprite.velocity.multiply(0.2);
-      sprite.setImage(weaponState.world.imageIndex.getImageIdByName("zooka.png"));
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("zooka.png"));
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2));
       p.sendToNetwork = true;
       // The order is important here.

@@ -16,7 +16,7 @@ class Rope extends MovingSprite {
   MovingSprite lockedOnOther = null;
 
   Rope.createEmpty(WormWorld world)
-        : super.empty(world.imageIndex) {
+        : super.empty(world.imageIndex()) {
     this.world = world;
     this.invisibleOutsideCanvas = false;
     owner = null;

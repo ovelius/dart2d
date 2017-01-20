@@ -131,6 +131,7 @@ class PeerWrapper {
   void connectPeer(unusedThis, connection) {
     var peerId = connection['peer'];
     assert(peerId != null);
+    log.info("Got connection from ${peerId}");
     _hudMessages.display("Got connection from ${peerId}");
     ConnectionType type;
     if (_network.isCommander()) {

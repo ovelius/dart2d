@@ -74,7 +74,7 @@ void main() {
   querySelector("#sendMsg").onClick.listen((e) {
     var message = (querySelector("#chatMsg") as InputElement).value;
     world.displayHudMessageAndSendToNetwork(
-        "${world.network.localPlayerName}: ${message}");
+        "${world.network().localPlayerName}: ${message}");
   });
 
   // TODO register using named keys instead.

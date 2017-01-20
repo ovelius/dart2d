@@ -18,8 +18,8 @@ import 'package:dart2d/phys/vec2.dart';
  * Created on clients to represent other players.
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
-  RemotePlayerClientSprite(World world)
-      : super(world, null, null, null, 0.0, 0.0, 0);
+  RemotePlayerClientSprite(WormWorld world)
+      : super(world, world.imageIndex(), null, null, null, 0.0, 0.0, 0);
 
   /**
    * This sprite should not execute controls.
@@ -56,8 +56,8 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
 class RemotePlayerServerSprite extends LocalPlayerSprite {
 
   RemotePlayerServerSprite(
-      World world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, mobileControls, keyState, info, x, y, imageIndex);
+      WormWorld world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
+      : super(world, world.imageIndex(), mobileControls, keyState, info, x, y, imageIndex);
 
   RemotePlayerServerSprite.copyFromMovingSprite(
       WormWorld world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
@@ -94,8 +94,8 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  * Created on the client and streamed to the Server.
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
-  RemotePlayerSprite(World world, MobileControls mobileControls, KeyState keyState, double x, double y, int imageIndex)
-      : super(world, mobileControls, keyState, null, x, y, imageIndex);
+  RemotePlayerSprite(WormWorld world, MobileControls mobileControls, KeyState keyState, double x, double y, int imageIndex)
+      : super(world, world.imageIndex(), mobileControls, keyState, null, x, y, imageIndex);
   
   void checkShouldFire() {
     // Don't do anything in the local client.
@@ -187,24 +187,24 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   LocalPlayerSprite.copyFromMovingSprite(WormWorld world, MovingSprite convertSprite)
-       : super.imageBasedSprite(convertSprite.position, convertSprite.imageId, world.imageIndex) {
+       : super.imageBasedSprite(convertSprite.position, convertSprite.imageId, world.imageIndex()) {
      this.size = convertSprite.size;
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
-     this.gun = _createGun(world.imageIndex);
+     this.gun = _createGun(world.imageIndex());
    }
 
   /**
    * Server constructor.
    */
-  LocalPlayerSprite(WormWorld world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
-      : super.imageBasedSprite(new Vec2(x, y), imageId, world.imageIndex) {
+  LocalPlayerSprite(WormWorld world, ImageIndex imageIndex, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
+      : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
     this.world = world;
     this.info = info;
     this._mobileControls = mobileControls;
     this.keyState = keyState;
     this.size = DEFAULT_PLAYER_SIZE;
-    this.gun = _createGun(world.imageIndex);
+    this.gun = _createGun(imageIndex);
     this.weaponState = new WeaponState(world, keyState, this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
@@ -297,7 +297,7 @@ class LocalPlayerSprite extends MovingSprite {
       if (spawnIn < 0) {
         velocity = new Vec2();
         world.displayHudMessageAndSendToNetwork("${info.name} is back!");
-        world.network.gameState.markAsUrgent();
+        world.network().gameState.markAsUrgent();
         info.inGame = true;
         collision = true;
         health = MAX_HEALTH;
@@ -479,7 +479,7 @@ class LocalPlayerSprite extends MovingSprite {
     health -= damage;
     if (health <= 0) {
       world.displayHudMessageAndSendToNetwork("${info.name} died!");
-      world.network.gameState.markAsUrgent();
+      world.network().gameState.markAsUrgent();
       info.deaths++;
       info.inGame = false;
       collision = false;

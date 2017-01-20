@@ -4,6 +4,7 @@ import 'package:matcher/matcher.dart';
 import 'dart:convert';
 import 'dart:mirrors';
 import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'test_peer.dart';
 import 'package:dart2d/util/gamestate.dart';
@@ -41,7 +42,7 @@ class GameStateMatcher extends Matcher {
   bool matches(item, Map matchState) {
     GameState gameState = null;
     if (item is World) {
-      gameState = (item as World).network.gameState;
+      gameState = (item as WormWorld).network().gameState;
     }
     if (item is GameState) {
       gameState = item;
@@ -84,7 +85,7 @@ class PeerStateMatcher extends Matcher {
 
   bool matches(item, Map matchState) {
     if (item is World) {
-      TestPeer peer = item.network.peer.peer;
+      TestPeer peer = item.network().peer.peer;
       return peer.connectedToServer == _connected;
     }
     return false;
@@ -287,8 +288,8 @@ class WorldConnectionMatcher extends Matcher {
 
   bool matches(item, Map matchState) {
     if (item is World) {
-      World world = item;
-      Map connections = world.network.peer.connections;
+      WormWorld world = item;
+      Map connections = world.network().peer.connections;
       for (String id in _expectedConnections.keys) {
         if (!connections.containsKey(id)) {
           matchState[id] = "Expected but missing! No such key ${id} in ${connections}";

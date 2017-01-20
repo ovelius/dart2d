@@ -26,10 +26,10 @@ class SpriteIndex {
 
   static final Map<SpriteConstructor, dynamic> _spriteConstructors = {
     SpriteConstructor.MOVING_SPRITE: (WormWorld world) => new MovingSprite.imageBasedSprite(
-        new Vec2(), 0, world.imageIndex),
+        new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
     SpriteConstructor.ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
-    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex),
+    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),
   };
     
   static MovingSprite fromWorldByIndex(WormWorld world, SpriteConstructor constructor) {

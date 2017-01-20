@@ -10,7 +10,7 @@ import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
   BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
-       : super(0.0, 0.0, world.imageIndex.getImageIdByName("cake.png"), world.imageIndex) {
+       : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
       this.world = world;
       this.owner = owner;
       this.damage = damage;
@@ -32,7 +32,7 @@ class BananaCake extends WorldDamageProjectile {
     Random r = new Random();
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this, 30);
-      sprite.setImage(world.imageIndex.getImageIdByName("banana.png"));
+      sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
       sprite.velocity.x += r.nextDouble() * PI * 4;
@@ -144,7 +144,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)
-     : super.imageBasedSprite(new Vec2(), world.imageIndex.getImageIdByName("fire.png"), world.imageIndex) {
+     : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("fire.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;

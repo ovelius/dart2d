@@ -1,10 +1,10 @@
 library keystate;
 
-import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/worm_world.dart';
 
 class KeyState {
   static const double MAX_KEY_TRIGGER = 0.999;
-  World world;
+  WormWorld world;
   bool debug = false;
   
   Map<int, double> keysDown = new Map<int, double>();
@@ -24,7 +24,7 @@ class KeyState {
     if (!keysDown.containsKey(e.keyCode)) {
       // If this a newly pushed key, send it to the network right away.
       if (world != null) {
-        world.network.maybeSendLocalKeyStateUpdate();
+        world.network().maybeSendLocalKeyStateUpdate();
       }
       if (_listeners.containsKey(e.keyCode)) {
         _listeners[e.keyCode].forEach((f) { f(); });

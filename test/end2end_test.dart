@@ -52,14 +52,14 @@ void main() {
 
       expect(loaderA.currentState(), equals(LoaderState.LOADED_AS_SERVER));
       worldA.frameDraw();
-      expect(worldA.network.isCommander(), true);
+      expect(worldA.network().isCommander(), true);
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
       worldB.frameDraw();
       peerB.receiveActivePeer(['a', 'b']);
-      expect(worldB.network.peer.connections.length, equals(1));
+      expect(worldB.network().peer.connections.length, equals(1));
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();
@@ -86,8 +86,8 @@ void main() {
       worldA.frameDraw();
       worldB.frameDraw();
 
-      expect(worldB.network.isCommander(), false);
-      expect(worldA.network.isCommander(), true);
+      expect(worldB.network().isCommander(), false);
+      expect(worldA.network().isCommander(), true);
 
       expect(worldA, hasSpriteWithNetworkId(playerId(0)));
       expect(worldA, hasSpriteWithNetworkId(playerId(1)));

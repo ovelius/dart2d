@@ -252,6 +252,7 @@ class Network {
   }
 
   void setAsActingCommander() {
+    log.info("Setting ${peer.id} as acting commander.");
     gameState.actingCommanderId = peer.id;
     gameState.markAsUrgent();
     // TODO select me!

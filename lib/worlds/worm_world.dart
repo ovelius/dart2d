@@ -24,9 +24,10 @@ class WormWorld extends World {
   final Logger log = new Logger('WormWorld');
   Loader loader;
   SpriteIndex spriteIndex;
-  ImageIndex imageIndex;
+  ImageIndex _imageIndex;
   MobileControls _mobileControls;
   FpsCounter _serverFps;
+  Network _network;
   KeyState localKeyState;
   HudMessages hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -54,7 +55,7 @@ class WormWorld extends World {
       WorldListener worldListener,
       MobileControls mobileControls,
       PacketListenerBindings packetListenerBindings) {
-    this.imageIndex = imageIndex;
+    this._imageIndex = imageIndex;
     this._serverFps = serverFrameCounter;
     this._mobileControls = mobileControls;
     this._canvasElement = canvasElement;
@@ -78,7 +79,7 @@ class WormWorld extends World {
       }
     });
     this.hudMessages = hudMessages;
-    this.network = network;
+    this._network = network;
     network.world = this;
     this.loader = loader;
     worldListener.setWorld(this);
@@ -89,10 +90,10 @@ class WormWorld extends World {
     
     if(sprite is MovingSprite) {
       if (sprite.collision) {
-        if (network.isCommander() || sprite.networkType == NetworkType.LOCAL) {
+        if (_network.isCommander() || sprite.networkType == NetworkType.LOCAL) {
           for (int id in spriteIndex.spriteIds()) {
             // Avoid duplicate checks, but only if server.
-            if (network.isCommander() && networkId >= id) {
+            if (_network.isCommander() && networkId >= id) {
               continue;
             }
             var otherSprite = spriteIndex[id];
@@ -143,14 +144,14 @@ class WormWorld extends World {
     this.playerName = name;
     }
     hudMessages.display("Connecting to ${id}");
-    network.localPlayerName = this.playerName;
-    network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
-    network.gameState.actingCommanderId = null;
+    _network.localPlayerName = this.playerName;
+    _network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
+    _network.gameState.actingCommanderId = null;
     if (startGame) {
-      if (network.getServerConnection() == null) {
-        throw new StateError("No server connection, can't connect to game :S Got ${network.safeActiveConnections()}");
+      if (_network.getServerConnection() == null) {
+        throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
       }
-      network.getServerConnection().connectToGame();
+      _network.getServerConnection().connectToGame();
     }
   }
 
@@ -159,7 +160,7 @@ class WormWorld extends World {
    */
   void displayHudMessageAndSendToNetwork(String message, [double period]) {
     hudMessages.display(message, period);
-    network.sendMessage(message);
+    _network.sendMessage(message);
   }
 
   void frameDraw([double duration = 0.01]) {
@@ -190,7 +191,7 @@ class WormWorld extends World {
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
      if (sprite is Particles && sprite.sendToNetwork) {
        Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
-       network.peer.sendDataWithKeyFramesToAll(data);
+       _network.peer.sendDataWithKeyFramesToAll(data);
      }
     }
 
@@ -227,7 +228,7 @@ class WormWorld extends World {
       var sprite = spriteIndex[networkId];
       _canvas.save();
       _canvas.translate(-viewPoint.x, -viewPoint.y);
-      if (!freeze && !network.hasNetworkProblem()) {
+      if (!freeze && !_network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
       if(shouldDraw(sprite))
@@ -254,7 +255,7 @@ class WormWorld extends World {
 
     // Only send to network if server frames has passed.
     if (frames > 0) {
-      network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
+      _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
     }
     // 1 since we count how many times this method is called.
     drawFps.timeWithFrames(duration, 1);
@@ -318,11 +319,11 @@ class WormWorld extends World {
   }
   
   addLocalPlayerSprite(String name) {
-    int id = network.gameState.getNextUsablePlayerSpriteId(this);
-    int imageId = network.gameState.getNextUsableSpriteImage(imageIndex);
-    PlayerInfo info = new PlayerInfo(name, network.peer.id, id);
+    int id = _network.gameState.getNextUsablePlayerSpriteId(this);
+    int imageId = _network.gameState.getNextUsableSpriteImage(_imageIndex);
+    PlayerInfo info = new PlayerInfo(name, _network.peer.id, id);
     playerSprite = new LocalPlayerSprite(
-        this, _mobileControls, localKeyState, info,
+        this, _imageIndex, _mobileControls, localKeyState, info,
         new Random().nextInt(_width).toDouble(),
         new Random().nextInt(_height).toDouble(),
         imageId);
@@ -330,7 +331,7 @@ class WormWorld extends World {
     playerSprite.networkId = id;
     playerSprite.spawnIn = 1.0;
     playerSprite.setImage(imageId, 24);
-    network.gameState.addPlayerInfo(info);
+    _network.gameState.addPlayerInfo(info);
     addSprite(playerSprite);
   }
   
@@ -346,7 +347,7 @@ class WormWorld extends World {
     addVelocityFromExplosion(location, damage, radius, !fromNetwork);
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: asNetworkUpdate(location, velocity, radius, damage)};
-      network.peer.sendDataWithKeyFramesToAll(data);
+      _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
 
@@ -373,7 +374,7 @@ class WormWorld extends World {
     }
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
-      network.peer.sendDataWithKeyFramesToAll(data);
+      _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
   
@@ -390,7 +391,7 @@ class WormWorld extends World {
    * We also ensure the sprites in the world have consitent owners.
    */
   void connectToAllPeersInGameState() {
-    for (PlayerInfo info in network.gameState.playerInfoList()) {
+    for (PlayerInfo info in _network.gameState.playerInfoList()) {
       LocalPlayerSprite sprite = spriteIndex[info.spriteId];
       if (sprite != null) {
         // Make sure the ownerId is consistent with the connectionId.
@@ -399,16 +400,16 @@ class WormWorld extends World {
       } else {
         log.warning("No matching sprite found for ${info}");
       }
-      if (!network.peer.hasConnectionTo(info.connectionId)) {
+      if (!_network.peer.hasConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
-        if (network.peer.id.compareTo(info.connectionId) < 0) {
+        if (_network.peer.id.compareTo(info.connectionId) < 0) {
           hudMessages.display(
               "Creating neighbour connection to ${info.name}");
-          network.peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
+          _network.peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
         }
       } else {
         // Set connection type.
-        ConnectionWrapper connection = network.peer.connections[info.connectionId];
+        ConnectionWrapper connection = _network.peer.connections[info.connectionId];
         // Don't allow bootstrap connections.
         if (connection != null &&
             connection.getConnectionType() == ConnectionType.BOOTSTRAP) {
@@ -461,15 +462,15 @@ class WormWorld extends World {
 
   startAsServer([String name]) {
     initByteWorld();
-    network.setAsActingCommander();
+    _network.setAsActingCommander();
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
   }
 
   void initByteWorld([String map = 'world.png']) {
     var worldImage = map.isNotEmpty
-        ? imageIndex.getImageByName(map)
-        : imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
+        ? _imageIndex.getImageByName(map)
+        : _imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
     byteWorld.setWorldImage(worldImage);
   }
 
@@ -498,11 +499,15 @@ class WormWorld extends World {
       _canvas.fillText("ServerFps: $_serverFps", 0, 40);
       _canvas.fillText("NetworkFps: $networkFps", 0, 60);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 80);
-      _canvas.fillText("KeyFrames: ${network.keyFrameDebugData()}", 0, 100);
+      _canvas.fillText("KeyFrames: ${_network.keyFrameDebugData()}", 0, 100);
       _canvas.font = font;
     }
   }
 
   num width() => _width;
   num height() => _height;
+  Network network() => _network;
+  ImageIndex imageIndex() => _imageIndex;
+
+  toString() => "World[${_network.peer.id}]";
 }

@@ -37,8 +37,6 @@ abstract class World {
   bool restart = false;
   bool freeze = false;
 
-  Network network;
-
   double controlHelperTime = 0.0;
 
   /**
@@ -67,7 +65,7 @@ abstract class World {
    */
   void createLocalClient(int spriteId, int spriteIndex);
 
-  toString() => "World[${network.peer.id}]";
+  toString() => "World";
 }
 
 
