@@ -17,7 +17,8 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 int serverFrame = 0;
 // 15 server frames per second.
-const FRAME_SPEED = 1.0/15;
+const TARGET_SERVER_FRAMES_PER_SECOND = 15;
+const FRAME_SPEED = 1.0/TARGET_SERVER_FRAMES_PER_SECOND;
 double untilNextFrame = FRAME_SPEED;
 
 abstract class World {

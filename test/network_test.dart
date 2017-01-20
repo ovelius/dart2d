@@ -16,6 +16,8 @@ class MockImageIndex extends Mock implements ImageIndex {}
 
 class MockWormWorld extends Mock implements WormWorld {}
 
+class MockFpsCounter extends Mock implements FpsCounter { }
+
 class MockRemotePlayerClientSprite extends Mock implements RemotePlayerClientSprite {
   Vec2 size = new Vec2(1, 1);
 }
@@ -28,6 +30,7 @@ void main() {
   MockHudMessages mockHudMessages;
   MockSpriteIndex mockSpriteIndex;
   MockImageIndex mockImageIndex;
+  MockFpsCounter mockFpsCounter;
   MockKeyState mockKeyState;
   TestPeer peer;
   GameState gameState;
@@ -43,14 +46,17 @@ void main() {
     mockHudMessages = new MockHudMessages();
     mockImageIndex = new MockImageIndex();
     mockSpriteIndex = new MockSpriteIndex();
+    mockFpsCounter = new MockFpsCounter();
     mockWormWorld = new MockWormWorld();
     mockKeyState = new MockKeyState();
     packetListenerBindings = new PacketListenerBindings();
     gameState = new GameState(packetListenerBindings, mockSpriteIndex);
     peer = new TestPeer('a');
     network = new Network(mockHudMessages, gameState, packetListenerBindings,
-        peer, new FakeJsCallbacksWrapper(), mockSpriteIndex, mockKeyState);
+        mockFpsCounter, peer, new FakeJsCallbacksWrapper(), mockSpriteIndex,
+        mockKeyState);
     network.world = mockWormWorld;
+    when(mockFpsCounter.fps()).thenReturn(15.0);
     when(mockWormWorld.network()).thenReturn(network);
     when(mockWormWorld.imageIndex()).thenReturn(mockImageIndex);
     network.peer.openPeer(null, 'a');
@@ -193,6 +199,51 @@ void main() {
         containsPair(CONNECTION_TYPE, ConnectionType.SERVER_TO_CLIENT.index));
   });
 
+  test('Test set as acting commander but we suck too much to be commander :(', () {
+    TestConnection connectionD = new TestConnection('d');
+    TestConnection connectionOtherEndD = new TestConnection('e');
+    connectionOtherEndD.setOtherEnd(connectionD);
+    connectionOtherEndD.bindOnHandler('data', (unused, data) {
+      print("Got data ${data}");
+    });
+    connectionD.setOtherEnd(connectionOtherEndD);
+
+    network.peer.connectPeer(null, connectionB);
+    network.peer.connectPeer(null, connectionD);
+
+    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
+      if (connection.id == 'd') {
+        connection.setHandshakeReceived();
+      }
+    }
+
+    network.setAsActingCommander();
+    expect(network.isCommander(), isTrue);
+
+    // We have two connections.
+    expect(new Set.from(network.safeActiveConnections().keys),
+       equals(['b', 'd']));
+
+    frame();
+
+    expect(network.slowCommandingFrames(), 0);
+
+    // We're running out of CPU or running in the background or something.
+    when(mockFpsCounter.fps()).thenReturn(0.01);
+
+    frame();
+    expect(network.slowCommandingFrames(), 1);
+
+    while (!network.isTooSlowForCommanding()) {
+      frame();
+    }
+    expect(network.isTooSlowForCommanding(), isTrue);
+
+    // We signaled a transfer to another active game connection.
+    expect(connectionD.getOtherEnd().decodedRecentDataRecevied().keys,
+        contains(TRANSFER_COMMAND));
+  });
+
   test('Test no game no active commander', () {
     network.peer.connectPeer(null, connectionB);
     expect(network.isCommander(), isFalse);
@@ -228,12 +279,15 @@ void main() {
     connectionOtherEndD.bindOnHandler('data', (unused, data) {
       print("Got data ${data}");
     });
-
     connectionD.setOtherEnd(connectionOtherEndD);
 
     // Connect to two peers.
     network.peer.connectPeer(null, connectionB);
     network.peer.connectPeer(null, connectionD);
+
+    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
+      connection.setHandshakeReceived();
+    }
 
     frame();
 

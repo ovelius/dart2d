@@ -6,6 +6,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/util/hud_messages.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
@@ -28,22 +29,28 @@ class Network {
   PeerWrapper peer;
   String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
+  FpsCounter _serverFrameCounter;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
+  // How many times we trigger a frame while being very slow at doing so.
+  // We may choose to give up our commanding role if this happens too much.
+  int _slowCommandingFrames = 0;
 
   Network(
       HudMessages hudMessages,
       this.gameState,
       this._packetListenerBindings,
+      @ServerFrameCounter() FpsCounter serverFrameCounter,
       @PeerMarker() Object jsPeer,
       JsCallbacksWrapper peerWrapperCallbacks,
       SpriteIndex spriteIndex,
       @LocalKeyState() KeyState localKeyState) {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
+    this._serverFrameCounter = serverFrameCounter;
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
@@ -62,25 +69,34 @@ class Network {
    * TODO(Erik): Consider more factors when electing servers, like number of connected
    *  peers.
    */
-  String findNewCommander(Map connections) {
+  String findNewCommander(Map connections, [bool ignoreSelf = false]) {
     if (gameState.actingCommanderId == null) {
-      log.info("No active game found, no server to transfer.");
+      log.info("No active game found, no commander role to transfer.");
       return null;
     }
-    for (var key in connections.keys) {
+    List<String> validKeys = [];
+    for (String key in connections.keys) {
       ConnectionWrapper connection = connections[key];
       if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         log.info("${peer.id} has a client to server connection using ${key}");
         return null;
       }
+      if (connection.isValidGameConnection()) {
+        validKeys.add(key);
+      }
     }
     // We don't have a server connection. We need to elect a new one.
     // We always elect the peer with the highest natural order id.
     var maxPeerKey = null;
-    if (!connections.keys.isEmpty) {
-      maxPeerKey = connections.keys.reduce(
+    if (!validKeys.isEmpty) {
+      maxPeerKey = validKeys.reduce(
           (value, element) => value.compareTo(element) < 0 ? value : element);
     }
+    // Don't count our own id.
+    if (ignoreSelf) {
+      return maxPeerKey;
+    }
+    // Compare to our own id.
     if (maxPeerKey != null && maxPeerKey.compareTo(peer.id) < 0) {
       return maxPeerKey;
     } else {
@@ -96,11 +112,13 @@ class Network {
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id];
       connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
-      PlayerInfo info = gameState.playerInfoByConnectionId(id);
-      // Make it our responsibility to foward data from other players.
-      Sprite sprite = _spriteIndex[info.spriteId];
-      if (sprite.networkType == NetworkType.REMOTE) {
-        sprite.networkType = NetworkType.REMOTE_FORWARD;
+      if (connection.isValidGameConnection()) {
+        PlayerInfo info = gameState.playerInfoByConnectionId(id);
+        // Make it our responsibility to foward data from other players.
+        Sprite sprite = _spriteIndex[info.spriteId];
+        if (sprite.networkType == NetworkType.REMOTE) {
+          sprite.networkType = NetworkType.REMOTE_FORWARD;
+        }
       }
     }
     gameState.convertToServer(world, this.peer.id);
@@ -225,6 +243,15 @@ class Network {
       serverFramesBehind = 0;
       return;
     }
+    if (isCommander()) {
+      if (_serverFrameCounter.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
+        // We are running at a very low server framerate. Are we really suitable
+        // as commander?
+        _slowCommandingFrames++;
+      } else {
+        _slowCommandingFrames = 0;
+      }
+    }
     // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
     Map data = stateBundle(keyFrame);
@@ -243,6 +270,16 @@ class Network {
     }
     if (data.length > 0) {
       peer.sendDataWithKeyFramesToAll(data);
+    }
+
+    // Transfer our commanding role to someone else!
+    if (isCommander() && isTooSlowForCommanding()) {
+      Map connections = safeActiveConnections();
+      String newCommander = findNewCommander(connections, true);
+      if (newCommander != null) {
+        ConnectionWrapper connection = connections[newCommander];
+        connection.sendCommandTransfer();
+      }
     }
   }
 
@@ -263,6 +300,9 @@ class Network {
       connection.sendPing();
     }
   }
+
+  int slowCommandingFrames() => _slowCommandingFrames;
+  bool isTooSlowForCommanding() => _slowCommandingFrames > 5;
 
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {

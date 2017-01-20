@@ -22,6 +22,7 @@ String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
 String CONNECTION_TYPE = "-t";
+String TRANSFER_COMMAND = "tt";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -46,6 +47,8 @@ void remapKeyNamesForTest() {
   PING = "ping";
   PONG = "pong";
   CONNECTION_TYPE = "connection_type";
+
+  TRANSFER_COMMAND = "tranfer_command";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
@@ -75,6 +78,7 @@ Set<String> SPECIAL_KEYS = new Set.from(
      WORLD_DESTRUCTION,
      WORLD_PARTICLE,
      IMAGE_DATA_REQUEST,
+     TRANSFER_COMMAND,
      IMAGE_DATA_RESPONSE]);
 
 List mergeUniqueList(List list1, List list2) {

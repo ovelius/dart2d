@@ -8,30 +8,32 @@ class FpsCounter extends _FrameTrigger {
 }
 
 class _FrameTrigger {
-  double period = 1.0;
-  double fps = 0.0;
+  double _period = 1.0;
+  double _fps = 0.0;
 
-  double nextTriggerIn = 1.0;
+  double _nextTriggerIn = 1.0;
   int frames = 0;
 
   _FrameTrigger(double period) {
-    this.period = period;
-    this.nextTriggerIn = period;
+    this._period = period;
+    this._nextTriggerIn = period;
   }
 
   bool timeWithFrames(double time, int framesPassed) {
     this.frames += framesPassed;
-    nextTriggerIn -= time;
-    if (nextTriggerIn < 0.0) {
-      fps = frames / (1.0 - nextTriggerIn); 
+    _nextTriggerIn -= time;
+    if (_nextTriggerIn < 0.0) {
+      _fps = frames / (1.0 - _nextTriggerIn);
       frames = 0;
-      nextTriggerIn += period;
+      _nextTriggerIn += _period;
       return true;
     }
     return false;
   }
   
   String toString() {
-    return fps.toStringAsFixed(2);
+    return _fps.toStringAsFixed(2);
   }
+
+  double fps() => _fps;
 }

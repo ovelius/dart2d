@@ -163,6 +163,14 @@ class ConnectionWrapper {
   }
 
   /**
+    * Send command to enter game.
+    */
+  void sendCommandTransfer() {
+    sendData(
+        {TRANSFER_COMMAND: 'y', IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+  }
+
+  /**
    * Send ping message with metadata about the connection.
    */
   void sendPing([bool gameStatePing = false]) {
@@ -178,6 +186,7 @@ class ConnectionWrapper {
 
   bool initialPongReceived() => _initialPongReceived;
   bool initialPingSent() => _initialPingSent;
+
   void setHandshakeReceived() {
     _handshakeReceived = true;
   }
