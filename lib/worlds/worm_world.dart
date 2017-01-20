@@ -29,7 +29,6 @@ class WormWorld extends World {
   FpsCounter _serverFps;
   KeyState localKeyState;
   HudMessages hudMessages;
-  // TODO make private
   PacketListenerBindings _packetListenerBindings;
   var _canvas = null;
   var _canvasElement = null;

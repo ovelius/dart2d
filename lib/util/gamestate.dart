@@ -2,7 +2,7 @@ library gamestate;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/util/keystate.dart';
@@ -15,11 +15,15 @@ class ConnectionInfo {
 
 class PlayerInfo {
   String name;
-  var connectionId;
+  String connectionId;
   int spriteId;
   int score = 0;
   int deaths = 0;
   bool inGame = false;
+  // Keystate for the remote player, will only be set if
+  // the remote peer is a client.
+  KeyState remoteKeyState = new KeyState(null);
+
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
   PlayerInfo.fromMap(Map map) {
@@ -49,6 +53,7 @@ class PlayerInfo {
 
 @Injectable()
 class GameState {
+  PacketListenerBindings _packetListenerBindings;
   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES =
@@ -71,7 +76,15 @@ class GameState {
     return playerInfo.length >= USEABLE_SPRITES.length;
   }
 
-  GameState() {
+  GameState(this._packetListenerBindings) {
+    _packetListenerBindings.bindHandler(KEY_STATE_KEY, (ConnectionWrapper connection, Map keyState) {
+      PlayerInfo info = playerInfoByConnectionId(connection.id);
+      if (info == null) {
+        log.warning("Received KeyState for Player that doesn't exist? ${connection.id}");
+        return;
+      }
+      info.remoteKeyState.setEnabledKeys(keyState);
+    });
     startedAt = new DateTime.now();
   }
 
@@ -144,7 +157,7 @@ class GameState {
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
           new RemotePlayerServerSprite.copyFromMovingSprite(
-              world, connection.remoteKeyState, info, oldSprite);
+              world, info.remoteKeyState, info, oldSprite);
           remotePlayerSprite.setImage(
               oldSprite.imageId, oldSprite.size.x.toInt());
           world.replaceSprite(info.spriteId, remotePlayerSprite);

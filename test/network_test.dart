@@ -33,7 +33,7 @@ void main() {
     mockKeyState = new MockKeyState();
     packetListenerBindings = new PacketListenerBindings();
     peer = new TestPeer('a');
-    network = new Network(mockHudMessages, new GameState(), packetListenerBindings, peer,
+    network = new Network(mockHudMessages, new GameState(packetListenerBindings), packetListenerBindings, peer,
         new FakeJsCallbacksWrapper(), mockSpriteIndex, mockKeyState);
     network.peer.openPeer(null, 'a');
     when(mockSpriteIndex.spriteIds()).thenReturn(new List());

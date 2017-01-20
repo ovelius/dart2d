@@ -68,10 +68,7 @@ class ConnectionWrapper {
   // The last keyframe the peer said it received from us.
   int lastLocalPeerKeyFrameVerified = 0;
   // How many keyframes our remote part has not verified on time.
-  int droppedKeyFrames = 0; 
-  // Keystate for the remote connection, will only be set if
-  // the remote peer is a client.
-  KeyState remoteKeyState = new KeyState(null);
+  int droppedKeyFrames = 0;
   // Storage of our reliable key data.
   Map keyFrameData = {};
   // Keep track of how long connection has been open.
@@ -235,11 +232,6 @@ class ConnectionWrapper {
     if (!_handshakeReceived) {
       log.fine("not handling data ${dataMap}, handshake not received.");
       return;
-    }
-    // We got a remote key state.
-    // TODO move to PlayerInfo.
-    if (dataMap.containsKey(KEY_STATE_KEY)) {
-      remoteKeyState.setEnabledKeys(dataMap[KEY_STATE_KEY]);
     }
     _network.parseBundle(this, dataMap);
   }
