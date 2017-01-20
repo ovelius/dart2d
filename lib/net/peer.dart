@@ -1,10 +1,10 @@
-import 'package:dart2d/worlds/worm_world.dart';
 import 'network.dart';
 import 'connection.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
-import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/net/net.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/util/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -199,11 +199,25 @@ class PeerWrapper {
       log.info("Removing GameState for ${id}");
       _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.
-    } else if (_network.verifyOrTransferServerRole(connectionsCopy)) {
-      // We got elected the new server, first task is to remove the old.
-      log.info("Server: Removing GameState for ${id}");
-      _network.gameState.removeByConnectionId(_network.world, id);
-      _network.gameState.convertToServer(_network.world, this.id);
+    } else {
+      String commanderId = _network.findNewCommander(connectionsCopy);
+      if (commanderId != null) {
+        // We got elected the new server, first task is to remove the old.
+        if (commanderId == this.id) {
+          log.info("Server: Removing GameState for ${id}");
+          _network.gameState.removeByConnectionId(_network.world, id);
+          _network.convertToCommander(connectionsCopy);
+        } else {
+          PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
+          // Start treating the other peer as server.
+          ConnectionWrapper connection = connections[commanderId];
+          connection.updateConnectionType(ConnectionType.CLIENT_TO_SERVER);
+          _network.gameState.actingCommanderId = commanderId;
+          _hudMessages.display("Elected new server ${info.name}");
+        }
+      } else {
+        log.fine("Not switching commander after dropping ${id}");
+      }
     }
     // Reconnect peer to server to allow receiving connections yet again.
     if (!connectedToServer()) {

@@ -55,23 +55,23 @@ class Network {
   }
 
   /**
-   * Our goal is to always have a connection to a server.
+   * Our goal is to always have a connection to a commander.
    * This is checked when a connection is dropped. 
-   * Potentially this method will elect a new server.
-   * returns true if we became the new server.
+   * Potentially this method will elect a new commander.
+   * returns the id of the new commander, or null if no new commander was needed.
    * TODO(Erik): Consider more factors when electing servers, like number of connected
    *  peers.
    */
-  bool verifyOrTransferServerRole(Map connections) {
+  String findNewCommander(Map connections) {
     if (gameState.actingCommanderId == null) {
       log.info("No active game found, no server to transfer.");
-      return false;
+      return null;
     }
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
       if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         log.info("${peer.id} has a client to server connection using ${key}");
-        return false;
+        return null;
       }
     }
     // We don't have a server connection. We need to elect a new one.
@@ -82,29 +82,28 @@ class Network {
           (value, element) => value.compareTo(element) < 0 ? value : element);
     }
     if (maxPeerKey != null && maxPeerKey.compareTo(peer.id) < 0) {
-      PlayerInfo info = gameState.playerInfoByConnectionId(maxPeerKey);
-      // Start treating the other peer as server.
-      ConnectionWrapper connection = connections[maxPeerKey];
-      connection.updateConnectionType(ConnectionType.CLIENT_TO_SERVER);
-      gameState.actingCommanderId = maxPeerKey;
-      _hudMessages.display("Elected new server ${info.name}");
+      return maxPeerKey;
     } else {
-      // We are becoming server. Gosh.
-      for (var id in connections.keys) {
-        ConnectionWrapper connection = connections[id];
-        connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
-        PlayerInfo info = gameState.playerInfoByConnectionId(id);
-        // Make it our responsibility to foward data from other players.
-        Sprite sprite = _spriteIndex[info.spriteId];
-        if (sprite.networkType == NetworkType.REMOTE) {
-          sprite.networkType = NetworkType.REMOTE_FORWARD;
-        }
-      }
-      _hudMessages.display("Server role tranferred to you :)");
-      // TODO: Add self sprite.
-      return true;
+      return peer.id;
     }
-    return false;
+  }
+
+  /**
+   * Set this peer as the commander.
+   */
+  void convertToCommander(Map connections) {
+    _hudMessages.display("Server role tranferred to you :)");
+    for (String id in connections.keys) {
+      ConnectionWrapper connection = connections[id];
+      connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
+      PlayerInfo info = gameState.playerInfoByConnectionId(id);
+      // Make it our responsibility to foward data from other players.
+      Sprite sprite = _spriteIndex[info.spriteId];
+      if (sprite.networkType == NetworkType.REMOTE) {
+        sprite.networkType = NetworkType.REMOTE_FORWARD;
+      }
+    }
+    gameState.convertToServer(world, this.peer.id);
   }
 
   PeerWrapper getPeer() => peer;
