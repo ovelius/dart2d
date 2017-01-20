@@ -133,7 +133,7 @@ class PeerWrapper {
     assert(peerId != null);
     _hudMessages.display("Got connection from ${peerId}");
     ConnectionType type;
-    if (_network.isServer()) {
+    if (_network.isCommander()) {
       type = ConnectionType.SERVER_TO_CLIENT;
     } else {
       if (_network.gameState.playerInfoByConnectionId(peerId) != null) {

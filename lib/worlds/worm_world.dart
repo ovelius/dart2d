@@ -89,10 +89,10 @@ class WormWorld extends World {
     
     if(sprite is MovingSprite) {
       if (sprite.collision) {
-        if (network.isServer() || sprite.networkType == NetworkType.LOCAL) {
+        if (network.isCommander() || sprite.networkType == NetworkType.LOCAL) {
           for (int id in spriteIndex.spriteIds()) {
             // Avoid duplicate checks, but only if server.
-            if (network.isServer() && networkId >= id) {
+            if (network.isCommander() && networkId >= id) {
               continue;
             }
             var otherSprite = spriteIndex[id];
@@ -145,7 +145,7 @@ class WormWorld extends World {
     hudMessages.display("Connecting to ${id}");
     network.localPlayerName = this.playerName;
     network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
-    network.gameState.actingServerId = null;
+    network.gameState.actingCommanderId = null;
     if (startGame) {
       if (network.getServerConnection() == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${network.safeActiveConnections()}");
@@ -461,7 +461,7 @@ class WormWorld extends World {
 
   startAsServer([String name]) {
     initByteWorld();
-    network.setActingServer();
+    network.setAsActingCommander();
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
   }

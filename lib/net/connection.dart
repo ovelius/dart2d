@@ -108,7 +108,7 @@ class ConnectionWrapper {
       lastKeyFrameFromPeer = dataMap[IS_KEY_FRAME_KEY];
     }
     // The server does not need to wait for keyframes.
-    return lastKeyFrameFromPeer > 0 || _network.isServer();
+    return lastKeyFrameFromPeer > 0 || _network.isCommander();
   }
   
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
@@ -244,7 +244,7 @@ class ConnectionWrapper {
         break;
       // Other end thinks we are client.
       case ConnectionType.SERVER_TO_CLIENT:
-        if (!_network.isServer()) {
+        if (!_network.isCommander()) {
           // We are client.
           _connectionType = ConnectionType.CLIENT_TO_SERVER;
         } else {
@@ -254,13 +254,13 @@ class ConnectionWrapper {
         break;
       // Other end thinks we are client. If we are, confirm it.
       case ConnectionType.CLIENT_TO_CLIENT:
-        if (!_network.isServer()) {
+        if (!_network.isCommander()) {
           _connectionType = ConnectionType.CLIENT_TO_CLIENT;
         }
         break;
       // Other end thinks we are server.
       case ConnectionType.CLIENT_TO_SERVER:
-        if (!_network.isServer()) {
+        if (!_network.isCommander()) {
           // We are not server though. Strange.
           log.warning("CLIENT_TO_SERVER connection without being server, dropping ${id}");
           close(null);

@@ -56,8 +56,9 @@ class HudMessages {
       context.setFillColorRgb(200, 0, 0);
       context.setStrokeColorRgb(200, 0, 0);
       context.globalAlpha = 0.5;
-      for (int i = gameState.playerInfo.length - 1; i >= 0; i--) {
-        PlayerInfo info = gameState.playerInfo[i];
+      List<PlayerInfo> infoList = gameState.playerInfoList();
+      for (int i = infoList.length - 1; i >= 0; i--) {
+        PlayerInfo info = infoList[i];
         MovingSprite sprite = world.spriteIndex[info.spriteId];
         if (sprite == null) {
           continue;

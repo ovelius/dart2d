@@ -63,14 +63,19 @@ class GameState {
   List<PlayerInfo> _playerInfo = [];
   Map<String, PlayerInfo> _playerInfoById = {};
   int mapId = 0;
-  String actingServerId = null;
+  // Who has the bridge.
+  String actingCommanderId = null;
   // True if we have urgent data for the network.
-  bool urgentData = false;
+  bool _urgentData = false;
   
   bool retrieveAndResetUrgentData() {
-    bool tUrgentData = urgentData;
-    urgentData = false;
+    bool tUrgentData = _urgentData;
+    _urgentData = false;
     return tUrgentData;
+  }
+
+  void markAsUrgent() {
+    this._urgentData = true;
   }
   
   bool isAtMaxPlayers() {
@@ -113,14 +118,14 @@ class GameState {
     _playerInfo = newInfo;
     _playerInfoById = byId;
     mapId = map["m"];
-    actingServerId = map["e"];
+    actingCommanderId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
   
   Map toMap() {
     Map map = new Map();
     map["m"] = mapId;
-    map["e"] = actingServerId;
+    map["e"] = actingCommanderId;
     map["s"] = startedAt.millisecondsSinceEpoch;
     List<Map> players = [];
     for (PlayerInfo info in _playerInfo) {
@@ -155,7 +160,7 @@ class GameState {
    * Converts the world sprite state for us to become server.
    */
   convertToServer(WormWorld world, var selfConnectionId) {
-    this.actingServerId = selfConnectionId;
+    this.actingCommanderId = selfConnectionId;
     for (int i = _playerInfo.length -1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       // Convert self info to server.
@@ -208,6 +213,6 @@ class GameState {
   }
   
   String toString() {
-    return "GameState with map ${mapId} server ${actingServerId} ${_playerInfo}";
+    return "GameState with map ${mapId} server ${actingCommanderId} ${_playerInfo}";
   }
 }

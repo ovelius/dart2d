@@ -63,7 +63,7 @@ class Network {
    *  peers.
    */
   bool verifyOrTransferServerRole(Map connections) {
-    if (gameState.actingServerId == null) {
+    if (gameState.actingCommanderId == null) {
       log.info("No active game found, no server to transfer.");
       return false;
     }
@@ -86,7 +86,7 @@ class Network {
       // Start treating the other peer as server.
       ConnectionWrapper connection = connections[maxPeerKey];
       connection.updateConnectionType(ConnectionType.CLIENT_TO_SERVER);
-      gameState.actingServerId = maxPeerKey;
+      gameState.actingCommanderId = maxPeerKey;
       _hudMessages.display("Elected new server ${info.name}");
     } else {
       // We are becoming server. Gosh.
@@ -203,7 +203,7 @@ class Network {
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
   bool hasNetworkProblem() {
-    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isServer();
+    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isCommander();
   }
 
   void sendMessage(String message) {
@@ -214,7 +214,7 @@ class Network {
   }
 
   void maybeSendLocalKeyStateUpdate() {
-    if (!isServer()) {
+    if (!isCommander()) {
       Map data = {};
       data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
       peer.sendDataWithKeyFramesToAll(data);
@@ -237,7 +237,7 @@ class Network {
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;
     }
-    if (!isServer()) {
+    if (!isCommander()) {
       data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
     } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
       data[GAME_STATE] = gameState.toMap();
@@ -247,12 +247,13 @@ class Network {
     }
   }
 
-  bool isServer() {
-    return gameState.actingServerId == this.peer.id;
+  bool isCommander() {
+    return gameState.actingCommanderId == this.peer.id;
   }
 
-  void setActingServer() {
-    gameState.actingServerId = peer.id;
+  void setAsActingCommander() {
+    gameState.actingCommanderId = peer.id;
+    gameState.markAsUrgent();
     // TODO select me!
     this.gameState.mapId = 1;
     // If we have any connections, consider them to be SERVER_TO_CLIENT now.
@@ -302,7 +303,7 @@ class Network {
         }
         // TODO(erik) Prio data for the owner of the sprite instead.
         if (!sprite.remoteControlled()) {
-          if (isServer()) {
+          if (isCommander()) {
             log.warning("Warning: Attempt to update local sprite ${sprite
                 .networkId} from network ${connection.id}.");
             continue;
@@ -329,7 +330,7 @@ class Network {
       if (sprite.networkType == NetworkType.LOCAL) {
         List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
         allData[sprite.networkId.toString()] = dataAsList;
-      } else if (isServer() && sprite.hasServerToOwnerData()) {
+      } else if (isCommander() && sprite.hasServerToOwnerData()) {
         List dataAsList = [SpriteConstructor.DO_NOT_CREATE.index];
         sprite.addServerToOwnerData(dataAsList);
         allData[sprite.networkId.toString()] = dataAsList;

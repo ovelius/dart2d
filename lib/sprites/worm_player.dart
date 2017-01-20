@@ -297,7 +297,7 @@ class LocalPlayerSprite extends MovingSprite {
       if (spawnIn < 0) {
         velocity = new Vec2();
         world.displayHudMessageAndSendToNetwork("${info.name} is back!");
-        world.network.gameState.urgentData = true;
+        world.network.gameState.markAsUrgent();
         info.inGame = true;
         collision = true;
         health = MAX_HEALTH;
@@ -479,7 +479,7 @@ class LocalPlayerSprite extends MovingSprite {
     health -= damage;
     if (health <= 0) {
       world.displayHudMessageAndSendToNetwork("${info.name} died!");
-      world.network.gameState.urgentData = true;
+      world.network.gameState.markAsUrgent();
       info.deaths++;
       info.inGame = false;
       collision = false;

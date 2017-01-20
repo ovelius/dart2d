@@ -45,11 +45,11 @@ class WorldListener {
       }
     });
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
-      assert(_network.isServer());
+      assert(_network.isCommander());
       GameState game = _gameState;
       PlayerInfo info = game.playerInfoByConnectionId(c.id);
       info.inGame = true;
-      game.urgentData = true;
+      game.markAsUrgent();
     });
 
   }
@@ -59,7 +59,7 @@ class WorldListener {
   }
 
   _handleGameState(ConnectionWrapper connection, Map data) {
-    assert(!_network.isServer());
+    assert(!_network.isCommander());
     if (!connection.isValidGameConnection()) {
       return;
     }
@@ -73,7 +73,7 @@ class WorldListener {
   _handleServerReply(ConnectionWrapper connection, Map data) {
     if (!connection.isValidGameConnection()) {
       assert(connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER);
-      assert(!_network.isServer());
+      assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
       _world.createLocalClient(data["spriteId"], data["spriteIndex"]);
       connection.setHandshakeReceived();
