@@ -411,7 +411,7 @@ class WormWorld extends World {
         ConnectionWrapper connection = network.peer.connections[info.connectionId];
         // Don't allow bootstrap connections.
         if (connection != null &&
-            connection.connectionType == ConnectionType.BOOTSTRAP) {
+            connection.getConnectionType() == ConnectionType.BOOTSTRAP) {
           connection.updateConnectionType(ConnectionType.CLIENT_TO_CLIENT);
         }
       }

@@ -51,7 +51,7 @@ class ConnectionWrapper {
   // How long until connection attempt times out.
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds:6);
 
-  ConnectionType connectionType;
+  ConnectionType _connectionType;
   Network _network;
   HudMessages _hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -79,14 +79,14 @@ class ConnectionWrapper {
   Duration _latency = DEFAULT_TIMEOUT;
 
   ConnectionWrapper(this._network, this._hudMessages,
-      this.id, this.connection, this.connectionType,
+      this.id, this.connection, this._connectionType,
       this._packetListenerBindings,
       JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
-    if (connectionType == ConnectionType.CLIENT_TO_CLIENT) {
+    if (_connectionType == ConnectionType.CLIENT_TO_CLIENT) {
       this._handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections do not do a handshake.
@@ -100,7 +100,7 @@ class ConnectionWrapper {
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
-    log.fine("Opened connection to $id of type ${connectionType}");
+    log.fine("Opened connection to $id of type ${_connectionType}");
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -124,7 +124,7 @@ class ConnectionWrapper {
     if (type == ConnectionType.CLIENT_TO_CLIENT) {
       _handshakeReceived = true;
     }
-    this.connectionType = type;
+    this._connectionType = type;
   }
 
   void close(unusedThis) {
@@ -142,7 +142,7 @@ class ConnectionWrapper {
   }
   
   void connectToGame() {
-    assert (connectionType == ConnectionType.CLIENT_TO_SERVER);
+    assert (_connectionType == ConnectionType.CLIENT_TO_SERVER);
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
     Map playerData = {
@@ -172,7 +172,7 @@ class ConnectionWrapper {
     }
     sendData(
         {PING: new DateTime.now().millisecondsSinceEpoch,
-          CONNECTION_TYPE: this.connectionType.index,
+          CONNECTION_TYPE: _connectionType.index,
           IS_KEY_FRAME_KEY: _network.currentKeyFrame});
   }
 
@@ -197,7 +197,7 @@ class ConnectionWrapper {
     if (dataMap.containsKey(PING)) {
       sendData({
           PONG: dataMap[PING],
-          CONNECTION_TYPE: this.connectionType.index});
+          CONNECTION_TYPE: _connectionType.index});
       maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
       return;
     }
@@ -246,7 +246,7 @@ class ConnectionWrapper {
       case ConnectionType.SERVER_TO_CLIENT:
         if (!_network.isServer()) {
           // We are client.
-          connectionType = ConnectionType.CLIENT_TO_SERVER;
+          _connectionType = ConnectionType.CLIENT_TO_SERVER;
         } else {
           log.warning("Server to server connection detected, closing ${id}");
           close(null);
@@ -255,7 +255,7 @@ class ConnectionWrapper {
       // Other end thinks we are client. If we are, confirm it.
       case ConnectionType.CLIENT_TO_CLIENT:
         if (!_network.isServer()) {
-          connectionType = ConnectionType.CLIENT_TO_CLIENT;
+          _connectionType = ConnectionType.CLIENT_TO_CLIENT;
         }
         break;
       // Other end thinks we are server.
@@ -265,7 +265,7 @@ class ConnectionWrapper {
           log.warning("CLIENT_TO_SERVER connection without being server, dropping ${id}");
           close(null);
         } else {
-          connectionType = ConnectionType.SERVER_TO_CLIENT;
+          _connectionType = ConnectionType.SERVER_TO_CLIENT;
         }
 
     }
@@ -362,7 +362,8 @@ class ConnectionWrapper {
   }
 
   Duration expectedLatency() => _latency;
+  ConnectionType getConnectionType() => _connectionType;
 
-  toString() => "${connectionType} to ${id} latency ${_latency}";
+  toString() => "${_connectionType} to ${id} latency ${_latency}";
 }
 

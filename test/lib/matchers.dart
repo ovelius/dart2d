@@ -294,8 +294,8 @@ class WorldConnectionMatcher extends Matcher {
           matchState[id] = "Expected but missing! No such key ${id} in ${connections}";
         }
         ConnectionWrapper connection = connections[id];
-        if (connection.connectionType != _expectedConnections[id]) {
-          matchState[id] = "${connection.connectionType} != ${_expectedConnections[id]}";
+        if (connection.getConnectionType() != _expectedConnections[id]) {
+          matchState[id] = "${connection.getConnectionType()} != ${_expectedConnections[id]}";
         }
       }
       for (String id in connections.keys) {

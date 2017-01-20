@@ -69,7 +69,7 @@ class Network {
     }
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
-      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         log.info("${peer.id} has a client to server connection using ${key}");
         return false;
       }
@@ -85,14 +85,14 @@ class Network {
       PlayerInfo info = gameState.playerInfoByConnectionId(maxPeerKey);
       // Start treating the other peer as server.
       ConnectionWrapper connection = connections[maxPeerKey];
-      connection.connectionType = ConnectionType.CLIENT_TO_SERVER;
+      connection.updateConnectionType(ConnectionType.CLIENT_TO_SERVER);
       gameState.actingServerId = maxPeerKey;
       _hudMessages.display("Elected new server ${info.name}");
     } else {
       // We are becoming server. Gosh.
       for (var id in connections.keys) {
         ConnectionWrapper connection = connections[id];
-        connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
+        connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
         // Make it our responsibility to foward data from other players.
         Sprite sprite = _spriteIndex[info.spriteId];
@@ -123,7 +123,7 @@ class Network {
   void registerDroppedFrames(var data) {
     for (ConnectionWrapper connection in peer.connections.values) {
       connection.registerDroppedKeyFrames(currentKeyFrame - 1);
-      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
       }
     }
@@ -150,7 +150,7 @@ class Network {
   ConnectionWrapper getServerConnection() {
     for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
       if (wrapper.isActiveConnection()
-          && wrapper.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+          && wrapper.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         return wrapper;
       }
     }
@@ -165,7 +165,7 @@ class Network {
     Map connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
     for (ConnectionWrapper connection in connections.values) {
-      if (connection.connectionType == ConnectionType.CLIENT_TO_SERVER) {
+      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
         // TODO probe if full?
         return true;
       }
@@ -255,9 +255,9 @@ class Network {
     gameState.actingServerId = peer.id;
     // TODO select me!
     this.gameState.mapId = 1;
-    // If we have any connetions, consider them to be SERVER_TO_CLIENT now.
+    // If we have any connections, consider them to be SERVER_TO_CLIENT now.
     for (ConnectionWrapper connection in safeActiveConnections().values) {
-      connection.connectionType = ConnectionType.SERVER_TO_CLIENT;
+      connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
       // Announce change in type.
       connection.sendPing();
     }

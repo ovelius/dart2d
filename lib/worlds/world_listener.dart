@@ -72,7 +72,7 @@ class WorldListener {
 
   _handleServerReply(ConnectionWrapper connection, Map data) {
     if (!connection.isValidGameConnection()) {
-      assert(connection.connectionType == ConnectionType.CLIENT_TO_SERVER);
+      assert(connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER);
       assert(!_network.isServer());
       hudMessages.display("Got server challenge from ${connection.id}");
       _world.createLocalClient(data["spriteId"], data["spriteIndex"]);
@@ -100,7 +100,7 @@ class WorldListener {
     // the latest keyframe.
     // It will anyway get the keyframe from our response.
     connection.lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
-    assert(connection.connectionType == ConnectionType.SERVER_TO_CLIENT);
+    assert(connection.getConnectionType() == ConnectionType.SERVER_TO_CLIENT);
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
     int spriteIndex = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);

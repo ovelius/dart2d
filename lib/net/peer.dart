@@ -194,7 +194,7 @@ class PeerWrapper {
     ConnectionWrapper wrapper = connectionsCopy[id];
     log.info("Removing connection for ${id}");
     connectionsCopy.remove(id);
-    if (wrapper.connectionType == ConnectionType.SERVER_TO_CLIENT) {
+    if (wrapper.getConnectionType() == ConnectionType.SERVER_TO_CLIENT) {
       log.info("Removing GameState for ${id}");
       _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.
