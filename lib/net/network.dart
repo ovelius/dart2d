@@ -29,7 +29,7 @@ class Network {
   PeerWrapper peer;
   String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
-  FpsCounter _serverFrameCounter;
+  FpsCounter _drawFps;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
   int currentKeyFrame = 0;
   // If we are client, this indicates that the server
@@ -50,7 +50,7 @@ class Network {
       @LocalKeyState() KeyState localKeyState) {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
-    this._serverFrameCounter = serverFrameCounter;
+    this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
@@ -244,7 +244,7 @@ class Network {
       return;
     }
     if (isCommander()) {
-      if (_serverFrameCounter.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
+      if (_drawFps.fps() > 0.0 && _drawFps.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
         // We are running at a very low server framerate. Are we really suitable
         // as commander?
         _slowCommandingFrames++;
@@ -278,7 +278,9 @@ class Network {
       String newCommander = findNewCommander(connections, true);
       if (newCommander != null) {
         ConnectionWrapper connection = connections[newCommander];
-        connection.sendCommandTransfer();
+        // TODO fixme!
+        log.info("Want to transfer command rol!");
+        // connection.sendCommandTransfer();
       }
     }
   }

@@ -121,16 +121,11 @@ void step() {
   int millis = now.millisecondsSinceEpoch - lastStep.millisecondsSinceEpoch;
   assert(millis >= 0);
   double secs = millis / 1000.0;
-  if (secs >= 0.041) {
-    // Slow down the game instead of skipping frames.
-    secs = 0.041;
-  }
   world.frameDraw(secs);
   lastStep = now;
 
   int frameTimeMillis = new DateTime.now().millisecondsSinceEpoch -
       startStep.millisecondsSinceEpoch;
-  if (frameTimeMillis > TIMEOUT.inMilliseconds) {}
   new Timer(TIMEOUT - new Duration(milliseconds: frameTimeMillis), step);
 }
 

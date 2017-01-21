@@ -32,9 +32,6 @@ abstract class World {
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
 
-  // For debuggging.
-  FpsCounter drawFps = new FpsCounter();
-  
   bool restart = false;
   bool freeze = false;
 

@@ -192,7 +192,6 @@ class ConnectionWrapper {
   }
 
   void error(unusedThis, error) {
-    print("Connection ${id}error ${error} ${opened}");
     _hudMessages.display("Connection ${id}: ${error}");
     closed = true;
   }

@@ -26,7 +26,7 @@ class WormWorld extends World {
   SpriteIndex spriteIndex;
   ImageIndex _imageIndex;
   MobileControls _mobileControls;
-  FpsCounter _serverFps;
+  FpsCounter _drawFps;
   Network _network;
   KeyState localKeyState;
   HudMessages hudMessages;
@@ -56,7 +56,7 @@ class WormWorld extends World {
       MobileControls mobileControls,
       PacketListenerBindings packetListenerBindings) {
     this._imageIndex = imageIndex;
-    this._serverFps = serverFrameCounter;
+    this._drawFps = serverFrameCounter;
     this._mobileControls = mobileControls;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
@@ -141,7 +141,7 @@ class WormWorld extends World {
 
   void connectTo(var id, [String name = null, bool startGame = true]) {
     if (name != null) {
-    this.playerName = name;
+      this.playerName = name;
     }
     hudMessages.display("Connecting to ${id}");
     _network.localPlayerName = this.playerName;
@@ -163,7 +163,7 @@ class WormWorld extends World {
     _network.sendMessage(message);
   }
 
-  void frameDraw([double duration = 0.01]) {
+  void frameDraw([double duration = 0.01, bool slowDown = false]) {
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {
         // We are server.
@@ -186,6 +186,13 @@ class WormWorld extends World {
       restart = false;
     }
     assert(byteWorld.initialized());
+
+    // Count the draw FPS before adjusting the duration.
+    _drawFps.timeWithFrames(duration, 1);
+    if (duration >= 0.041 && slowDown) {
+      // Slow down the game instead of skipping frames.
+      duration = 0.041;
+    }
     int frames = advanceFrames(duration);
 
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
@@ -258,7 +265,6 @@ class WormWorld extends World {
       _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
     }
     // 1 since we count how many times this method is called.
-    drawFps.timeWithFrames(duration, 1);
     drawFpsCounters();
     hudMessages.render(this, _canvas, duration);
 
@@ -368,7 +374,6 @@ class WormWorld extends World {
       frames++;
     }
     serverFrame += frames;
-    _serverFps.timeWithFrames(duration, frames);
     return frames;
   }
 
@@ -520,11 +525,10 @@ class WormWorld extends World {
       var font = _canvas.font;
       _canvas.fillStyle = "#ffffff";
       _canvas.font = '16pt Calibri';
-      _canvas.fillText("DrawFps: $drawFps", 0, 20);
-      _canvas.fillText("ServerFps: $_serverFps", 0, 40);
-      _canvas.fillText("NetworkFps: $networkFps", 0, 60);
-      _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 80);
-      _canvas.fillText("KeyFrames: ${_network.keyFrameDebugData()}", 0, 100);
+      _canvas.fillText("DrawFps: $_drawFps", 0, 20);
+      _canvas.fillText("NetworkFps: $networkFps", 0, 40);
+      _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);
+      _canvas.fillText("KeyFrames: ${_network.keyFrameDebugData()}", 0, 80);
       _canvas.font = font;
     }
   }

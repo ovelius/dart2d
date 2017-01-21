@@ -67,7 +67,7 @@ class HudMessages {
         int x = world.width() ~/ 3;
         int y = 40 + i*40;
         ConnectionWrapper connection = world.network().peer.connections[info.connectionId];
-        context.fillText("${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
+        context.fillText("${gameState.actingCommanderId == info.connectionId ? "*" : ""}${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
         // TODO: Check that sprite is alive.
         if (sprite != null && info.inGame) {
           context.lineWidth = 2;
