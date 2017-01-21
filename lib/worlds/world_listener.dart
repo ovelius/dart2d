@@ -39,6 +39,15 @@ class WorldListener {
         }
       }
     });
+    _packetListenerBindings.bindHandler(WORLD_DRAW, (ConnectionWrapper c, List data) {
+      if (c.isValidGameConnection()) {
+        if (_world.byteWorld.initialized()) {
+          _world.drawFromNetworkUpdate(data);
+        } else {
+          log.warning("TODO buffer byteworld data sent when world is loading!");
+        }
+      }
+    });
     _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List data) {
       if (c.isValidGameConnection()) {
         _world.addParticlesFromNetworkData(data);

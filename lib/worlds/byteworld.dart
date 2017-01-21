@@ -33,6 +33,10 @@ class ByteWorld {
     return canvas != null;
   }
 
+  List<int> getImageData(Vec2 pos, Vec2 size) {
+    return canvas.context2D.getImageData(pos.x.toInt(), pos.y.toInt(), size.x.toInt(), size.y.toInt()).data;
+  }
+
   void drawAt(var canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,
@@ -66,7 +70,16 @@ class ByteWorld {
   String asDataUrl() {
     return canvas.toDataUrl("image/png");
   }
-  
+
+  fillRectAt(Vec2 pos, Vec2 size, String colorString) {
+    canvas.context2D
+      ..save();
+    canvas.context2D.fillStyle = colorString;
+    canvas.context2D
+      ..fillRect(pos.x, pos.y, size.x, size.y)
+      ..restore();
+  }
+
   clearAt(Vec2 pos, double radius) {
     canvas.context2D
         ..save()

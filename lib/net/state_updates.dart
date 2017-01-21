@@ -16,6 +16,7 @@ String SERVER_PLAYER_REPLY = "-c";
 String SERVER_PLAYER_REJECT = "-r";
 String GAME_STATE = "-g";
 String WORLD_DESTRUCTION = "_w";
+String WORLD_DRAW = "+w";
 String WORLD_PARTICLE = "_p";
 String IMAGE_DATA_REQUEST = "_i";
 String IMAGE_DATA_RESPONSE = "-i";
@@ -40,6 +41,7 @@ void remapKeyNamesForTest() {
   GAME_STATE = "game_state";
   // World.
   WORLD_DESTRUCTION = "world_destruction";
+  WORLD_DRAW = "world_draw";
   WORLD_PARTICLE = "world_particles";
   IMAGE_DATA_REQUEST = "image_request";
   IMAGE_DATA_RESPONSE = "image_response";
@@ -60,6 +62,7 @@ Map RELIABLE_KEYS = {
     REMOVE_KEY: mergeUniqueList,
     MESSAGE_KEY: mergeUniqueList,
     WORLD_DESTRUCTION: mergeUniqueList,
+    WORLD_DRAW: mergeUniqueList,
     CLIENT_PLAYER_SPEC: singleTonStoredValue,
     SERVER_PLAYER_REPLY: singleTonStoredValue,
     };
@@ -67,6 +70,7 @@ Map RELIABLE_KEYS = {
 Set<String> SPECIAL_KEYS = new Set.from(
     [CLIENT_PLAYER_SPEC,
      CLIENT_PLAYER_ENTER,
+     WORLD_DRAW,
      SERVER_PLAYER_REPLY,
      REMOVE_KEY,
      GAME_STATE,

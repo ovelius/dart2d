@@ -180,8 +180,8 @@ class Sprite {
     setColor(context);
     context.beginPath();
     context.arc(
-        position.x - size.x / 2,
-        position.y - size.y / 2,
+        size.x / 2,
+        size.y / 2,
         size.sum(),
         0, PI*2);
     context.closePath();

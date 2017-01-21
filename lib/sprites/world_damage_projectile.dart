@@ -47,6 +47,61 @@ class BananaCake extends WorldDamageProjectile {
   }
 }
 
+class BrickBuilder extends WorldDamageProjectile {
+  static const String COLOR = "#aa3311";
+  static const int COLOR_R = 170;
+  static const int COLOR_G = 51;
+  static const int COLOR_B = 17;
+  BrickBuilder.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+      : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
+    this.world = world;
+    this.owner = owner;
+    this.damage = damage;
+    Vec2 ownerCenter = owner.centerPoint();
+    this.size = new Vec2(5.0, 5.0);
+    this.position.x = ownerCenter.x - size.x / 2;
+    this.position.y = ownerCenter.y - size.y / 2;
+    this.spriteType = SpriteType.CIRCLE;
+    this.color = COLOR;
+    this.velocity.x = cos(owner.angle);
+    this.velocity.y = sin(owner.angle);
+    this.outOfBoundsMovesRemaining = 2;
+    this.velocity = this.velocity.multiply(200.0);
+    this.velocity = owner.velocity + this.velocity;
+  }
+
+  explode() {
+    Vec2 brickSize = new Vec2(40, 14);
+    Vec2 center = centerPoint();
+    center.x -= brickSize.x / 2;
+    Vec2 outerPosition = new Vec2.copy(center);
+    Vec2 brickPosition = new Vec2.copy(center);
+    outerPosition.x -= 1;
+    outerPosition.y -= 1;
+    // TODO Make this work better.
+    // Try and align brick with other bricks.
+    int alignBelow = 0;
+    List<int> existingBrick = world.byteWorld.getImageData(center, new Vec2(1, brickSize.y));
+    for (int i = existingBrick.length ~/ 4 - 1; i >= 0; i--) {
+      if (existingBrick[i * 4] == COLOR_R && existingBrick[i * 4 + 1] == COLOR_G && existingBrick[i * 4 + 2] == COLOR_B) {
+        alignBelow++;
+      } else {
+        break;
+      }
+    }
+    if (alignBelow > 0) {
+      brickPosition.y -= brickSize.y.toInt();
+      outerPosition.y -= brickSize.y.toInt();
+      brickPosition.y += alignBelow;
+      outerPosition.y += alignBelow;
+    }
+    // TODO merge into one call.
+    world.fillRectAt(outerPosition, new Vec2(brickSize.x + 2, brickSize.y + 2), "#ffffff");
+    world.fillRectAt(brickPosition, brickSize, COLOR);
+    this.remove = true;
+  }
+}
+
 class WorldDamageProjectile extends MovingSprite {
 
   WormWorld world;

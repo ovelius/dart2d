@@ -346,7 +346,15 @@ class WormWorld extends World {
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork);
     if (!fromNetwork) {
-      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(location, velocity, radius, damage)};
+      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity, radius, damage)};
+      _network.peer.sendDataWithKeyFramesToAll(data);
+    }
+  }
+
+  void fillRectAt(Vec2 pos, Vec2 size, String colorString,  [bool fromNetwork = false]) {
+    byteWorld.fillRectAt(pos, size, colorString);
+    if (!fromNetwork) {
+      Map data = {WORLD_DRAW: drawAsNetworkUpdate(pos, size, colorString)};
       _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
@@ -373,10 +381,12 @@ class WormWorld extends World {
           sprite.centerPoint(), damage, radius, !fromNetwork);
     }
     if (!fromNetwork) {
-      Map data = {WORLD_DESTRUCTION: asNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
+      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
       _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
+
+
   
   void clearWorldArea(Vec2 location, double radius) {
     byteWorld.clearAt(location, radius);
@@ -430,7 +440,7 @@ class WormWorld extends World {
     explosionAt(pos, velocity, damage, radius, true);
   }
   
-  List<int> asNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
+  List<int> destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
     List<int> base = [
       (pos.x * DOUBLE_INT_CONVERSION).toInt(), 
       (pos.y * DOUBLE_INT_CONVERSION).toInt(),      
@@ -442,6 +452,21 @@ class WormWorld extends World {
          (velocity.y * DOUBLE_INT_CONVERSION).toInt()]);
     }
     return base;
+  }
+
+  drawFromNetworkUpdate(List data) {
+    Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
+    Vec2 size = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
+    String colorString = data[4];
+    fillRectAt(pos, size, colorString, true);
+  }
+
+  List drawAsNetworkUpdate(Vec2 pos, Vec2 size, String colorString) {
+    return [(pos.x.toInt() * DOUBLE_INT_CONVERSION).toInt(),
+    (pos.y.toInt() * DOUBLE_INT_CONVERSION).toInt(),
+    (size.x.toInt() * DOUBLE_INT_CONVERSION).toInt(),
+    (size.y.toInt() * DOUBLE_INT_CONVERSION).toInt(),
+    colorString];
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage) {

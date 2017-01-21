@@ -28,6 +28,13 @@ class WeaponState {
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
+    new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
+      WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.gun, 50);
+      sprite.explodeAfter = 4.0;
+      sprite.owner = weaponState.owner;
+      sprite.radius = 50.0;
+      weaponState.world.addSprite(sprite);
+    }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       Random r = new Random();
       for (int i = 0; i < 8; i++) {
