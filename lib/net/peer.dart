@@ -207,6 +207,7 @@ class PeerWrapper {
           log.info("Server: Removing GameState for ${id}");
           _network.gameState.removeByConnectionId(_network.world, id);
           _network.convertToCommander(connectionsCopy);
+          _network.gameState.markAsUrgent();
         } else {
           PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
           // Start treating the other peer as server.

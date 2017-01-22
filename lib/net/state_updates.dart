@@ -50,7 +50,7 @@ void remapKeyNamesForTest() {
   PONG = "pong";
   CONNECTION_TYPE = "connection_type";
 
-  TRANSFER_COMMAND = "tranfer_command";
+  TRANSFER_COMMAND = "transfer_command";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.

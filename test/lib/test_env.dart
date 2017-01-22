@@ -25,6 +25,8 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
   TestPeer peer = new TestPeer(id);
   FakeCanvas fakeCanvas = new FakeCanvas();
   FakeImageFactory fakeImageFactory = new FakeImageFactory();
+  FpsCounter frameCounter = new FpsCounter();
+  frameCounter.setFpsForTest(45.0);
   ModuleInjector injector = new ModuleInjector([
     new Module()
       // Test only.
@@ -45,7 +47,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
       ..install(new UtilModule())
       ..install(new NetModule())
-      ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
+      ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
       ..bind(WormWorld)
       ..bind(WorldListener)
       ..bind(ImageIndex)

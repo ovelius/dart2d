@@ -12,6 +12,8 @@ import 'dart:convert';
 import 'package:di/di.dart';
 import 'dart:core';
 
+
+@Deprecated("Connections types are irellevant, only in game and command role is relevant")
 enum ConnectionType {
   BOOTSTRAP, // No game yet initialized for connection.
   // This is a connection to a server.
@@ -255,9 +257,10 @@ class ConnectionWrapper {
         if (!_network.isCommander()) {
           // We are client.
           _connectionType = ConnectionType.CLIENT_TO_SERVER;
-        } else {
-          log.warning("Server to server connection detected, closing ${id}");
-          close(null);
+          log.info("Updated connection type to ${_connectionType} for ${id}");
+        } else if (!_network.isTooSlowForCommanding()) {
+          //log.warning("Server to server connection detected, closing ${id}");
+          //close(null);
         }
         break;
       // Other end thinks we are client. If we are, confirm it.
@@ -366,7 +369,7 @@ class ConnectionWrapper {
   }
 
   void sampleLatency(Duration latency) {
-    assert(latency.inMicroseconds > 0);
+    assert(latency.inMilliseconds >= 0);
     this._latency = latency;
   }
 

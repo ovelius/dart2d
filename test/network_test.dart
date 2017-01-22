@@ -234,14 +234,13 @@ void main() {
     frame();
     expect(network.slowCommandingFrames(), 1);
 
-    while (!network.isTooSlowForCommanding()) {
+    while (network.slowCommandingFrames() > 0) {
       frame();
     }
-    expect(network.isTooSlowForCommanding(), isTrue);
 
     // We signaled a transfer to another active game connection.
-    //expect(connectionD.getOtherEnd().decodedRecentDataRecevied().keys,
-      //  contains(TRANSFER_COMMAND));
+    expect(connectionD.getOtherEnd().decodedRecentDataRecevied().keys,
+        contains(TRANSFER_COMMAND));
   });
 
   test('Test no game no active commander', () {

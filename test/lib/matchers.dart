@@ -36,8 +36,14 @@ TypeMatcher hasType(String type) {
 
 class GameStateMatcher extends Matcher {
   Map<int, String> _playersWithName;
+  String _commanderId;
   
   GameStateMatcher(this._playersWithName);
+
+  GameStateMatcher withCommanderId(String id) {
+    this._commanderId = id;
+    return this;
+  }
 
   bool matches(item, Map matchState) {
     GameState gameState = null;
@@ -46,6 +52,12 @@ class GameStateMatcher extends Matcher {
     }
     if (item is GameState) {
       gameState = item;
+    }
+    if (_commanderId != null) {
+      if (gameState.actingCommanderId != _commanderId) {
+        matchState["ActualGameState"] = "Expected commander id of ${_commanderId} was ${gameState.actingCommanderId }";
+        return false;
+      }
     }
     matchState["ActualGameState"] = gameState;
     if (gameState.playerInfoList().length == _playersWithName.length) {

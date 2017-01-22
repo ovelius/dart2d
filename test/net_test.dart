@@ -350,8 +350,12 @@ void main() {
       worldA.connectTo("b", "nameA");
   
       expect(worldB.network().gameState,
-          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"}));
-      
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('b'));
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
       for (int i = 0; i < 4; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
@@ -359,13 +363,45 @@ void main() {
       // B hasn't responded in a long time.
       expect(worldA.network().hasNetworkProblem(), equals(true));
 
-      for (int i = 0; i < 20; i++) {
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+      // B now responded and we're back.
+      expect(worldA.network().hasNetworkProblem(), equals(false));
+
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('b'));
+      expect(worldB.spriteIndex.count(), equals(2));
+
+      // Now B is having framerate issues.
+      worldB.drawFps().setFpsForTest(0.1);
+
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      expect(worldB.network().slowCommandingFrames(), equals(1));
+
+      while(worldB.network().slowCommandingFrames() > 0){
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+      // Commander is now a.
       expect(worldB.network().gameState,
-          isGameStateOf({playerId(0): "nameB"}));
-      expect(worldB.spriteIndex.count(), equals(1));
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('a'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('a'));
+
+      // TODO test we can switch back to b.
+
+      expect(worldA, hasSpecifiedConnections({
+        'b':ConnectionType.SERVER_TO_CLIENT,
+      }));
+      expect(worldB, hasSpecifiedConnections({
+        'a':ConnectionType.SERVER_TO_CLIENT,
+      }));
     });
 
     test('TestThreePlayerOneJoinsLater', () {

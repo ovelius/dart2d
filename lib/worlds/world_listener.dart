@@ -68,7 +68,6 @@ class WorldListener {
   }
 
   _handleGameState(ConnectionWrapper connection, Map data) {
-    assert(!_network.isCommander());
     if (!connection.isValidGameConnection()) {
       return;
     }

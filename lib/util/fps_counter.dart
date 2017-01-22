@@ -10,6 +10,7 @@ class FpsCounter extends _FrameTrigger {
 class _FrameTrigger {
   double _period = 1.0;
   double _fps = 0.0;
+  double _fpsForTest = null;
 
   double _nextTriggerIn = 1.0;
   int frames = 0;
@@ -35,5 +36,9 @@ class _FrameTrigger {
     return _fps.toStringAsFixed(2);
   }
 
-  double fps() => _fps;
+  double fps() => _fpsForTest == null ? _fps : _fpsForTest;
+
+  setFpsForTest(double fps) {
+    _fpsForTest = fps;
+  }
 }

@@ -537,6 +537,7 @@ class WormWorld extends World {
   num height() => _height;
   Network network() => _network;
   ImageIndex imageIndex() => _imageIndex;
+  FpsCounter drawFps() => _drawFps;
 
   toString() => "World[${_network.peer.id}]";
 }

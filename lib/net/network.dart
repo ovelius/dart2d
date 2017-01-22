@@ -59,6 +59,14 @@ class Network {
       hudMessages.display("Game is full :/");
       connection.close(null);
     });
+
+    _packetListenerBindings.bindHandler(TRANSFER_COMMAND,
+        (ConnectionWrapper connection, String data) {
+          // Server wants us to take command.
+      assert(connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER);
+      log.info("Coverting self to commander");
+      this.convertToCommander(this.safeActiveConnections());
+    });
   }
 
   /**
@@ -109,9 +117,11 @@ class Network {
    */
   void convertToCommander(Map connections) {
     _hudMessages.display("Server role tranferred to you :)");
+    gameState.convertToServer(world, this.peer.id);
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id];
       connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
+      connection.sendPing();
       if (connection.isValidGameConnection()) {
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
         // Make it our responsibility to foward data from other players.
@@ -121,7 +131,7 @@ class Network {
         }
       }
     }
-    gameState.convertToServer(world, this.peer.id);
+    gameState.markAsUrgent();
   }
 
   PeerWrapper getPeer() => peer;
@@ -247,6 +257,7 @@ class Network {
       if (_drawFps.fps() > 0.0 && _drawFps.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
         // We are running at a very low server framerate. Are we really suitable
         // as commander?
+        log.fine("Commander ${peer.id} below FPS threshold! Is ${_drawFps.fps()}");
         _slowCommandingFrames++;
       } else {
         _slowCommandingFrames = 0;
@@ -278,9 +289,9 @@ class Network {
       String newCommander = findNewCommander(connections, true);
       if (newCommander != null) {
         ConnectionWrapper connection = connections[newCommander];
-        // TODO fixme!
-        log.info("Want to transfer command rol!");
-        // connection.sendCommandTransfer();
+        connection.sendCommandTransfer();
+        _slowCommandingFrames = 0;
+        log.info("Attempting to transfer command rule due to slow framerate from us");
       }
     }
   }
