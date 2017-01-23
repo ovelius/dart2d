@@ -48,21 +48,25 @@ class PlayerInfo {
     return map;
   }
 
-  String toString() => "${spriteId} ${name} ${inGame}";  
+  String toString() => "${spriteId} ${name} ${inGame}";
 }
 
 @Injectable()
 class GameState {
-   final Logger log = new Logger('GameState');
+  final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
-  static final List<String> USEABLE_SPRITES =
-      ["duck.png", "cock.png", "donkey.png",  "dragon.png"];
+  static final List<String> USEABLE_SPRITES = [
+    "duck.png",
+    "cock.png",
+    "donkey.png",
+    "dragon.png"
+  ];
 
-   // Injected members.
-   PacketListenerBindings _packetListenerBindings;
-   SpriteIndex _spriteIndex;
+  // Injected members.
+  PacketListenerBindings _packetListenerBindings;
+  SpriteIndex _spriteIndex;
 
-   DateTime startedAt;
+  DateTime startedAt;
   List<PlayerInfo> _playerInfo = [];
   Map<String, PlayerInfo> _playerInfoById = {};
   int mapId = 0;
@@ -70,7 +74,7 @@ class GameState {
   String actingCommanderId = null;
   // True if we have urgent data for the network.
   bool _urgentData = false;
-  
+
   bool retrieveAndResetUrgentData() {
     bool tUrgentData = _urgentData;
     _urgentData = false;
@@ -80,7 +84,11 @@ class GameState {
   void markAsUrgent() {
     this._urgentData = true;
   }
-  
+
+  bool isInGame() {
+    return this.actingCommanderId != null;
+  }
+
   bool isAtMaxPlayers() {
     return _playerInfo.length >= USEABLE_SPRITES.length;
   }
@@ -94,10 +102,12 @@ class GameState {
   }
 
   GameState(this._packetListenerBindings, this._spriteIndex) {
-    _packetListenerBindings.bindHandler(KEY_STATE_KEY, (ConnectionWrapper connection, Map keyState) {
+    _packetListenerBindings.bindHandler(KEY_STATE_KEY,
+        (ConnectionWrapper connection, Map keyState) {
       PlayerInfo info = playerInfoByConnectionId(connection.id);
       if (info == null) {
-        log.warning("Received KeyState for Player that doesn't exist? ${connection.id}");
+        log.warning(
+            "Received KeyState for Player that doesn't exist? ${connection.id}");
         return;
       }
       info.remoteKeyState.setEnabledKeys(keyState);
@@ -124,7 +134,7 @@ class GameState {
     actingCommanderId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
-  
+
   Map toMap() {
     Map map = new Map();
     map["m"] = mapId;
@@ -137,9 +147,9 @@ class GameState {
     map["p"] = players;
     return map;
   }
-  
+
   removeByConnectionId(WormWorld world, var id) {
-    for (int i = _playerInfo.length -1; i >= 0; i--) {
+    for (int i = _playerInfo.length - 1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       if (info.connectionId == id) {
         _playerInfo.removeAt(i);
@@ -158,13 +168,13 @@ class GameState {
       }
     }
   }
-  
+
   /**
    * Converts the world sprite state for us to become server.
    */
   convertToServer(WormWorld world, var selfConnectionId) {
     this.actingCommanderId = selfConnectionId;
-    for (int i = _playerInfo.length -1; i >= 0; i--) {
+    for (int i = _playerInfo.length - 1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       // Convert self info to server.
       if (info.connectionId == selfConnectionId) {
@@ -176,14 +186,14 @@ class GameState {
         oldSprite.info = info;
         world.playerSprite = playerSprite;
       } else {
-      // Convert other players.
+        // Convert other players.
         RemotePlayerClientSprite oldSprite = _spriteIndex[info.spriteId];
         ConnectionWrapper connection =
             world.network().peer.connections[info.connectionId];
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
-          new RemotePlayerServerSprite.copyFromMovingSprite(
-              world, info.remoteKeyState, info, oldSprite);
+              new RemotePlayerServerSprite.copyFromMovingSprite(
+                  world, info.remoteKeyState, info, oldSprite);
           remotePlayerSprite.setImage(
               oldSprite.imageId, oldSprite.size.x.toInt());
           world.replaceSprite(info.spriteId, remotePlayerSprite);
@@ -194,27 +204,30 @@ class GameState {
       }
     }
   }
-  
+
   PlayerInfo playerInfoByConnectionId(var id) {
     return _playerInfoById[id];
   }
-  
+
   bool gameIsFull() {
     return _playerInfo.length >= USEABLE_SPRITES.length;
   }
+
   int getNextUsablePlayerSpriteId(WormWorld world) {
     int id = ID_OFFSET_FOR_NEW_CLIENT +
-        world.spriteNetworkId + _playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+        world.spriteNetworkId +
+        _playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
     // Make sure we don't pick and ID we already use.
     while (world.spriteIndex.hasSprite(id)) {
       id = id + ID_OFFSET_FOR_NEW_CLIENT;
     }
     return id;
   }
+
   int getNextUsableSpriteImage(ImageIndex imageIndex) {
     return imageIndex.getImageIdByName(USEABLE_SPRITES[_playerInfo.length]);
   }
-  
+
   String toString() {
     return "GameState with map ${mapId} server ${actingCommanderId} ${_playerInfo}";
   }

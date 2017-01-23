@@ -12,8 +12,8 @@ import 'dart:convert';
 import 'package:di/di.dart';
 import 'dart:core';
 
-
-@Deprecated("Connections types are irellevant, only in game and command role is relevant")
+@Deprecated(
+    "Connections types are irellevant, only in game and command role is relevant")
 enum ConnectionType {
   BOOTSTRAP, // No game yet initialized for connection.
   // This is a connection to a server.
@@ -36,7 +36,7 @@ class PacketListenerBindings {
   }
 
   List<dynamic> handlerFor(String key) {
-    assert (_handlers.containsKey(key));
+    assert(_handlers.containsKey(key));
     return _handlers[key];
   }
 
@@ -49,9 +49,9 @@ class PacketListenerBindings {
 class ConnectionWrapper {
   final Logger log = new Logger('Connection');
   // How many keyframes the connection can be behind before it is dropped.
-  static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/  KEY_FRAME_DEFAULT;
+  static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
   // How long until connection attempt times out.
-  static const Duration DEFAULT_TIMEOUT = const Duration(seconds:6);
+  static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
   ConnectionType _connectionType;
   Network _network;
@@ -80,10 +80,15 @@ class ConnectionWrapper {
   // The monitored latency of the connection.
   Duration _latency = DEFAULT_TIMEOUT;
 
-  ConnectionWrapper(this._network, this._hudMessages,
-      this.id, this.connection, this._connectionType,
+  ConnectionWrapper(
+      this._network,
+      this._hudMessages,
+      this.id,
+      this.connection,
+      this._connectionType,
       this._packetListenerBindings,
-      JsCallbacksWrapper peerWrapperCallbacks,[timeout = DEFAULT_TIMEOUT]) {
+      JsCallbacksWrapper peerWrapperCallbacks,
+      [timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Client to client connections to not need to shake hands :)
     // Server knows about both clients anyway.
@@ -95,10 +100,10 @@ class ConnectionWrapper {
       lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
     }
     peerWrapperCallbacks
-       ..bindOnFunction(connection, 'data', receiveData)
-       ..bindOnFunction(connection, 'close', close)
-       ..bindOnFunction(connection, 'open', open)
-       ..bindOnFunction(connection, 'error', error);
+      ..bindOnFunction(connection, 'data', receiveData)
+      ..bindOnFunction(connection, 'close', close)
+      ..bindOnFunction(connection, 'open', open)
+      ..bindOnFunction(connection, 'error', error);
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
@@ -112,7 +117,7 @@ class ConnectionWrapper {
     // The server does not need to wait for keyframes.
     return lastKeyFrameFromPeer > 0 || _network.isCommander();
   }
-  
+
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
     int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
     if (receivedKeyFrameAck > lastLocalPeerKeyFrameVerified) {
@@ -133,7 +138,7 @@ class ConnectionWrapper {
     _hudMessages.display("Connection to ${id} closed :(");
     closed = true;
   }
-  
+
   void open(unusedThis) {
     _hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
@@ -142,15 +147,15 @@ class ConnectionWrapper {
     opened = true;
     _connectionTimer.stop();
   }
-  
+
   void connectToGame() {
-    assert (_connectionType == ConnectionType.CLIENT_TO_SERVER);
+    assert(_connectionType == ConnectionType.CLIENT_TO_SERVER);
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
     Map playerData = {
-        CLIENT_PLAYER_SPEC: _network.localPlayerName,
-        KEY_FRAME_KEY:lastKeyFrameFromPeer,
-        IS_KEY_FRAME_KEY: _network.currentKeyFrame,
+      CLIENT_PLAYER_SPEC: _network.localPlayerName,
+      KEY_FRAME_KEY: lastKeyFrameFromPeer,
+      IS_KEY_FRAME_KEY: _network.currentKeyFrame,
     };
     sendData(playerData);
   }
@@ -159,9 +164,10 @@ class ConnectionWrapper {
    * Send command to enter game.
    */
   void sendClientEnter() {
-    sendData(
-        {CLIENT_PLAYER_ENTER: new DateTime.now().millisecondsSinceEpoch,
-          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+    sendData({
+      CLIENT_PLAYER_ENTER: new DateTime.now().millisecondsSinceEpoch,
+      IS_KEY_FRAME_KEY: _network.currentKeyFrame
+    });
   }
 
   /**
@@ -180,10 +186,11 @@ class ConnectionWrapper {
       _initialPingSent = true;
       _initialPongReceived = false;
     }
-    sendData(
-        {PING: new DateTime.now().millisecondsSinceEpoch,
-          CONNECTION_TYPE: _connectionType.index,
-          IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+    sendData({
+      PING: new DateTime.now().millisecondsSinceEpoch,
+      CONNECTION_TYPE: _connectionType.index,
+      IS_KEY_FRAME_KEY: _network.currentKeyFrame
+    });
   }
 
   bool initialPongReceived() => _initialPongReceived;
@@ -198,6 +205,14 @@ class ConnectionWrapper {
     closed = true;
   }
 
+  Set<String> _ignoreListeners = new Set.from([
+    IS_KEY_FRAME_KEY,
+    KEY_FRAME_KEY,
+    PING,
+    PONG,
+    CONNECTION_TYPE,
+  ]);
+
   void receiveData(unusedThis, data) {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
@@ -206,10 +221,11 @@ class ConnectionWrapper {
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
       maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
-      sendData({
-          PONG: dataMap[PING],
-          CONNECTION_TYPE: _connectionType.index});
-      return;
+      Map data = {PONG: dataMap[PING], CONNECTION_TYPE: _connectionType.index};
+      if (_network.isCommander()) {
+        data[GAME_STATE] = _network.gameState.toMap();
+      }
+      sendData(data);
     }
     if (dataMap.containsKey(PONG)) {
       DateTime now = new DateTime.now();
@@ -217,7 +233,6 @@ class ConnectionWrapper {
       sampleLatency(new Duration(milliseconds: latencyMillis));
       maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
       _initialPongReceived = true;
-      return;
     }
 
     // New path.
@@ -228,7 +243,7 @@ class ConnectionWrapper {
             handler(this, dataMap[key]);
           }
           // TODO remove special cases!
-        } else if (key != IS_KEY_FRAME_KEY && key != KEY_FRAME_KEY && key != KEY_STATE_KEY) {
+        } else if (!_ignoreListeners.contains(key)) {
           throw new ArgumentError("No bound network listener for ${key}");
         }
       }
@@ -274,15 +289,15 @@ class ConnectionWrapper {
       case ConnectionType.CLIENT_TO_SERVER:
         if (!_network.isCommander()) {
           // We are not server though. Strange.
-          log.warning("CLIENT_TO_SERVER connection without being server, dropping ${id}");
+          log.warning(
+              "CLIENT_TO_SERVER connection without being server, dropping ${id}");
           close(null);
         } else {
           _connectionType = ConnectionType.SERVER_TO_CLIENT;
         }
-
     }
   }
- 
+
   void alsoSendWithStoredData(var data) {
     for (String key in RELIABLE_KEYS.keys) {
       // Use the merge function specified to merge any previosly stored data
@@ -294,21 +309,23 @@ class ConnectionWrapper {
       }
     }
   }
-  
+
   void storeAwayReliableData(var data) {
     RELIABLE_KEYS.keys.forEach((String reliableKey) {
       if (data.containsKey(reliableKey)) {
-        var mergedData = RELIABLE_KEYS[reliableKey](data[reliableKey], keyFrameData[reliableKey]);
+        var mergedData = RELIABLE_KEYS[reliableKey](
+            data[reliableKey], keyFrameData[reliableKey]);
         if (mergedData != null) {
           keyFrameData[reliableKey] = mergedData;
         }
       }
-    }); 
+    });
   }
 
   void checkIfShouldClose(int keyFrame) {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
-      log.warning("Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+      log.warning(
+          "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
       close(null);
       return;
     }
@@ -331,7 +348,7 @@ class ConnectionWrapper {
     var jsonData = JSON.encode(data);
     connection.callMethod('send', [jsonData]);
   }
-  
+
   void registerDroppedKeyFrames(int expectedKeyFrame) {
     droppedKeyFrames += keyFramesBehind(expectedKeyFrame);
   }
@@ -339,9 +356,9 @@ class ConnectionWrapper {
   int keyFramesBehind(int expectedKeyFrame) {
     return expectedKeyFrame - lastLocalPeerKeyFrameVerified;
   }
-  
+
   Duration sinceCreated() {
-    return new Duration(milliseconds:_connectionTimer.elapsedMilliseconds);
+    return new Duration(milliseconds: _connectionTimer.elapsedMilliseconds);
   }
 
   bool _timedOut() {
@@ -378,4 +395,3 @@ class ConnectionWrapper {
 
   toString() => "${_connectionType} to ${id} latency ${_latency}";
 }
-

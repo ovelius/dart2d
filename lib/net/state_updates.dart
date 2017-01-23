@@ -74,6 +74,8 @@ Set<String> SPECIAL_KEYS = new Set.from(
      SERVER_PLAYER_REPLY,
      REMOVE_KEY,
      GAME_STATE,
+     PING,
+     PONG,
      KEY_STATE_KEY,
      KEY_FRAME_KEY,
      IS_KEY_FRAME_KEY,

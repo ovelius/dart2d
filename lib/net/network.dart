@@ -38,6 +38,7 @@ class Network {
   // How many times we trigger a frame while being very slow at doing so.
   // We may choose to give up our commanding role if this happens too much.
   int _slowCommandingFrames = 0;
+  String _pendingCommandTransfer = null;
 
   Network(
       HudMessages hudMessages,
@@ -78,7 +79,7 @@ class Network {
    *  peers.
    */
   String findNewCommander(Map connections, [bool ignoreSelf = false]) {
-    if (gameState.actingCommanderId == null) {
+    if (!gameState.isInGame()) {
       log.info("No active game found, no commander role to transfer.");
       return null;
     }
@@ -262,6 +263,12 @@ class Network {
       } else {
         _slowCommandingFrames = 0;
       }
+    } else {
+      // Command transfer successful.
+      if (gameState.actingCommanderId == _pendingCommandTransfer) {
+        log.info("Succcesfully transfered command to ${gameState.actingCommanderId}");
+        _pendingCommandTransfer = null;
+      }
     }
     // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
@@ -292,9 +299,12 @@ class Network {
         connection.sendCommandTransfer();
         _slowCommandingFrames = 0;
         log.info("Attempting to transfer command rule due to slow framerate from us");
+        _pendingCommandTransfer = newCommander;
       }
     }
   }
+
+  String pendingCommandTransfer() => _pendingCommandTransfer;
 
   bool isCommander() {
     return gameState.actingCommanderId == this.peer.id;

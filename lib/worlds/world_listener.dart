@@ -71,6 +71,12 @@ class WorldListener {
     if (!connection.isValidGameConnection()) {
       return;
     }
+    if (_network.isCommander() && _network.pendingCommandTransfer() == null
+        && _gameState.isInGame()  && _gameState.actingCommanderId != data['e']) {
+      // TODO remove this hack.
+      log.warning("Not overwriting acting commander ${_gameState.actingCommanderId} with ${data['e']}");
+      return;
+    }
     _gameState.updateFromMap(data);
     _world.connectToAllPeersInGameState();
     if (_network.peer.connectedToServer() &&  _gameState.isAtMaxPlayers()) {
