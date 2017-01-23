@@ -225,11 +225,44 @@ void main() {
        
       // Final GameState should be consitent.
       expect(worldA,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
+              .withCommanderId('a'));
       expect(worldB,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
+              .withCommanderId('a'));
       expect(worldC,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
+              .withCommanderId('a'));
+
+      // Assert sprite control.
+      expect(worldA, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(worldA, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(worldA, controlsMatching(playerId(2))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
+      expect(worldB, controlsMatching(playerId(0)));
+      expect(worldB, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(worldB, controlsMatching(playerId(2)));
+
+      expect(worldC, controlsMatching(playerId(0)));
+      expect(worldC, controlsMatching(playerId(1)));
+      expect(worldC, controlsMatching(playerId(2))
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
     test('TestFourWorldsServerDies', () {
@@ -266,6 +299,13 @@ void main() {
       worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       logConnectionData = false;
 
+      expect(worldA, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
       expect(worldA, hasSpecifiedConnections({
         'b':ConnectionType.SERVER_TO_CLIENT,
         'c':ConnectionType.SERVER_TO_CLIENT,
@@ -293,10 +333,10 @@ void main() {
       expect(worldD.spriteIndex.count(), equals(4));
 
       var gameState = {playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC", playerId(3): "nameD"};
-      expect(worldA, isGameStateOf(gameState));
-      expect(worldB, isGameStateOf(gameState));
-      expect(worldC, isGameStateOf(gameState));
-      expect(worldD, isGameStateOf(gameState));
+      expect(worldA, isGameStateOf(gameState).withCommanderId('a'));
+      expect(worldB, isGameStateOf(gameState).withCommanderId('a'));
+      expect(worldC, isGameStateOf(gameState).withCommanderId('a'));
+      expect(worldD, isGameStateOf(gameState).withCommanderId('a'));
       expect(worldD.spriteIndex.count(), equals(4));
 
       // All worlds should be disconnected from the server.
@@ -318,6 +358,13 @@ void main() {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
 
+      expect(worldB, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
       expect(worldB, hasSpecifiedConnections({
          'c':ConnectionType.SERVER_TO_CLIENT,
          'd':ConnectionType.SERVER_TO_CLIENT,
@@ -332,9 +379,9 @@ void main() {
       }));
       
       gameState.remove(playerId(0));
-      expect(worldB, isGameStateOf(gameState));
-      expect(worldC, isGameStateOf(gameState));
-      expect(worldD, isGameStateOf(gameState));
+      expect(worldB, isGameStateOf(gameState).withCommanderId('b'));
+      expect(worldC, isGameStateOf(gameState).withCommanderId('b'));
+      expect(worldD, isGameStateOf(gameState).withCommanderId('b'));
       expect(worldB.spriteIndex.count(), equals(3));
       expect(worldC.spriteIndex.count(), equals(3));
       expect(worldD.spriteIndex.count(), equals(3));
@@ -362,6 +409,17 @@ void main() {
       }));
       expect(worldC.spriteIndex.count(), equals(2));
       expect(worldD.spriteIndex.count(), equals(2));
+
+      gameState.remove(playerId(1));
+      expect(worldC, isGameStateOf(gameState).withCommanderId('c'));
+      expect(worldD, isGameStateOf(gameState).withCommanderId('c'));
+
+      expect(worldC, controlsMatching(playerId(2))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       
       // Finally C is having issues.
       testConnections['c'].forEach((e) { e.dropPackets = 100;});
@@ -372,6 +430,16 @@ void main() {
       expect(worldD, hasSpecifiedConnections({}));
       // Make this pass by converting the REMOTE -> REMOTE_FOWARD. 
       expect(worldD.spriteIndex.count(), equals(1));
+
+      gameState.remove(playerId(2));
+      expect(worldD, isGameStateOf(gameState).withCommanderId('d'));
+
+      expect(worldD, controlsMatching(playerId(3))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
     test('TestDroppedConnection', () {
