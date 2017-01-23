@@ -4,20 +4,20 @@ import 'dart:async';
 class FakeCanvas {
   static const DATA_URL = "data:image/png;base64,THIS_IS_FAKE";
 
-  _FakeContext2D context2D;
+  FakeContext2D context2D;
   num height = 800;
   num width = 800;
 
   FakeCanvas() {
-    context2D = new _FakeContext2D(this);
+    context2D = new FakeContext2D(this);
   }
 
   toDataUrl(String type) => DATA_URL;
 }
 
-class _FakeContext2D {
+class FakeContext2D {
 
-  _FakeContext2D(this.canvas);
+  FakeContext2D(this.canvas);
 
   FakeCanvas canvas;
   var font;

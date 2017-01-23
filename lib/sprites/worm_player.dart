@@ -24,27 +24,29 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   /**
    * This sprite should not execute controls.
    */
-  void checkControlKeys(double duration) {
+  bool checkControlKeys(double duration) {
+    return false;
   }
   
   
   /**
    * This sprite should not execute controls.
    */
-  void listenFor(String key, dynamic f) {
-    
+  bool listenFor(String key, dynamic f) {
+    return false;
   }
   
-  void checkShouldFire() {
-    // Leave this empty.
+  bool checkShouldFire() {
+    return false;
   }
   
-  maybeRespawn(double duration) {
+  bool maybeRespawn(double duration) {
    // Client should not control this. 
   }
 
-  _drawHealthBar(var context) {
+  bool drawHealthBar(var context) {
     // Don't draw client health bars on OTHER CLIENTS!
+    return false;
   }
 
   bool drawWeaponHelpers() => false;
@@ -71,12 +73,14 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
     this.networkId = sprite.networkId;
   }
 
-  void checkControlKeys(double duration) {
+  bool checkControlKeys(double duration) {
     // Don't execute remote movements on the server.
+    return false;
   }
 
-  _drawHealthBar(var context) {
+  bool drawHealthBar(var context) {
     // Don't draw client health bars on server!
+    return false;
   }
 
   hasServerToOwnerData() => true;
@@ -97,13 +101,14 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(WormWorld world, MobileControls mobileControls, KeyState keyState, double x, double y, int imageIndex)
       : super(world, world.imageIndex(), mobileControls, keyState, null, x, y, imageIndex);
   
-  void checkShouldFire() {
+  bool checkShouldFire() {
     // Don't do anything in the local client.
     // The server triggers this.
+    return false;
   }
   
-  maybeRespawn(double duration) {
-   // Client should not control this. 
+  bool maybeRespawn(double duration) {
+    return false;
   }
 
   void parseServerToOwnerData(List data) {
@@ -276,10 +281,10 @@ class LocalPlayerSprite extends MovingSprite {
     gun.draw(context, debug);
     context.restore();
     super.draw(context, debug);
-    _drawHealthBar(context);
+    drawHealthBar(context);
   }
 
-  _drawHealthBar(var context) {
+  bool drawHealthBar(var context) {
     double healthFactor = health/MAX_HEALTH;
     context.resetTransform();
     var grad = context.createLinearGradient(0, 0, 3*world.width()*healthFactor, 10);
@@ -289,9 +294,10 @@ class LocalPlayerSprite extends MovingSprite {
     context.fillStyle = grad;
     context.fillRect(0, world.height() - 10, world.width() * healthFactor, 10);
     context.globalAlpha = 1.0;
+    return true;
   }
   
-  maybeRespawn(double duration) {
+  bool maybeRespawn(double duration) {
     if (info != null && !inGame()) {
       spawnIn-= duration;
       if (spawnIn < 0) {
@@ -302,8 +308,8 @@ class LocalPlayerSprite extends MovingSprite {
         collision = true;
         health = MAX_HEALTH;
       }
-      return;
-    }  
+    }
+    return true;
   }
   
   frame(double duration, int frames, [Vec2 gravity]) {
@@ -321,7 +327,10 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
-  void checkControlKeys(double duration) {
+  /**
+   * return true
+   */
+  bool checkControlKeys(double duration) {
     double left = keyIsDownStrength("Left");
     double right = keyIsDownStrength("Right");
     double aimUp = keyIsDownStrength("Aim up");
@@ -339,13 +348,13 @@ class LocalPlayerSprite extends MovingSprite {
       this.onGround = false;
      
     } else if (aimUp != null) {
-      gunUp(duration * aimUp);
+      _gunUp(duration * aimUp);
     } else if (aimDown != null) {
-      gunDown(duration * aimDown);
+      _gunDown(duration * aimDown);
     }
    
     if (keyIsDown("Rope")) {
-      fireRope();
+      _fireRope();
     }
 
     assert(_mobileControls != null);
@@ -360,6 +369,7 @@ class LocalPlayerSprite extends MovingSprite {
     } else {
       _gunAngleTouchLock = null;
     }
+    return true;
   }
 
   void _applyVel(double right, double left) {
@@ -402,7 +412,7 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
-  void checkMobileControls(int xD, yD) {
+  bool checkMobileControls(int xD, yD) {
     if (angle != 0.0) {
       gun.angle = _gunAngleTouchLock + (yD * 0.02);
       if (gun.angle > -PI/2) {
@@ -426,15 +436,17 @@ class LocalPlayerSprite extends MovingSprite {
     } else {
       _applyVel(xD.abs() / 40, null);
     }
+    return true;
   }
   
-  void checkShouldFire() {
+  bool checkShouldFire() {
     if (keyIsDown("Fire") && inGame() && weaponState != null) {
       weaponState.fire();
-    } 
+    }
+    return true;
   }
   
-  void gunDown(double duration) {
+  void _gunDown(double duration) {
     if (angle != 0.0) {
       gun.angle -= duration * 4.0;
       if (gun.angle < -(PI + PI/3)) {
@@ -448,7 +460,7 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
   
-  void gunUp(double duration) {
+  void _gunUp(double duration) {
     // Diffent if facing left or right.
     if (angle != 0.0) {
       gun.angle += duration * 4.0;
@@ -463,7 +475,7 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
   
-  void fireRope() {
+  void _fireRope() {
     if (rope != null) {
       world.removeSprite(rope.networkId);
     }
@@ -487,9 +499,10 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
   
-  void listenFor(String key, dynamic f) {
+  bool listenFor(String key, dynamic f) {
     assert(getControls().containsKey(key));
     keyState.registerListener(getControls()[key], f);
+    return true;
   }
   
   bool keyIsDown(String key) {

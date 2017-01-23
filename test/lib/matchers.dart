@@ -7,8 +7,9 @@ import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/connection.dart';
 import 'test_peer.dart';
+import 'fake_canvas.dart';
 import 'package:dart2d/util/gamestate.dart';
-import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/sprites.dart';
 
 playerId(int count) {
   return GameState.ID_OFFSET_FOR_NEW_CLIENT + count * GameState.ID_OFFSET_FOR_NEW_CLIENT;
@@ -200,6 +201,90 @@ class WorldSpriteStateMatcher extends Matcher {
   }
   Description describe(Description description) {
     return description.add("World with exactly ${_spriteMatchers}");    
+  }
+}
+
+WorldPlayerControlMatcher controlsMatching(int spriteId) {
+  return new WorldPlayerControlMatcher(spriteId);
+}
+
+enum PlayerControlMethods {
+  DRAW_HEALTH_BAR,
+  DRAW_WEAPON_HELPER,
+  CONTROL_KEYS,
+  FIRE_KEY,
+  LISTEN_FOR_WEAPON_SWITCH,
+}
+
+class WorldPlayerControlMatcher extends Matcher {
+
+  Map<PlayerControlMethods, dynamic> _methodCheck = {
+    PlayerControlMethods.DRAW_HEALTH_BAR: (LocalPlayerSprite s) => s.drawHealthBar(new FakeCanvas().context2D),
+    PlayerControlMethods.DRAW_WEAPON_HELPER: (LocalPlayerSprite s) => s.drawWeaponHelpers(),
+    PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) => s.checkControlKeys(0.01),
+    PlayerControlMethods.FIRE_KEY: (LocalPlayerSprite s) => s.checkShouldFire(),
+    PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH: (LocalPlayerSprite s) => s.listenFor("Jump", () {}),
+  };
+
+  int _spriteId;
+  Set<PlayerControlMethods> _activeControlMethods = new Set();
+
+  WorldPlayerControlMatcher(this._spriteId);
+
+  WorldPlayerControlMatcher withActiveMethod(PlayerControlMethods method) {
+    _activeControlMethods.add(method);
+    return this;
+  }
+
+  bool matches(item, Map matchState) {
+    LocalPlayerSprite sprite;
+    if (item is LocalPlayerSprite) {
+      sprite = item;
+    }
+    if (item is WormWorld) {
+      sprite = item.spriteIndex[_spriteId];
+    }
+    if (item is SpriteIndex) {
+      sprite = item[_spriteId];
+    }
+    bool matches = true;
+    for (PlayerControlMethods method in PlayerControlMethods.values) {
+      dynamic func = _methodCheck[method];
+      if (_activeControlMethods.contains(method)) {
+        if (!func(sprite)) {
+          if (!matchState.containsKey('missing')) {
+            matchState['missing'] = [];
+          }
+          matchState['missing'].add(method);
+          matches = false;
+        }
+      } else {
+        if (func(sprite)) {
+          if (!matchState.containsKey('extra')) {
+            matchState['extra'] = [];
+          }
+          matchState['extra'].add(method);
+          matches = false;
+        }
+      }
+    }
+    return matches;
+  }
+
+  Description describeMismatch(item, Description mismatchDescription,
+      Map matchState, bool verbose) {
+    if (matchState.containsKey('missing')) {
+      mismatchDescription.add(
+          "Expected active methods ${matchState['missing']}");
+    }
+    if (matchState.containsKey('extra')) {
+      mismatchDescription.add(
+          "Expected inactive methods ${matchState['extra']}");
+    }
+    return mismatchDescription;
+  }
+  Description describe(Description description) {
+    return description.add("WorldPlayerControlMatcher with active control methods of ${_activeControlMethods}");
   }
 }
 

@@ -23,6 +23,13 @@ void main() {
       worldB.startAsServer("nameB");
       worldB.frameDraw();
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
+      // Locally controlled player.
+      expect(worldB, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
   
       worldA.connectTo("b", "nameA");
       // A framedraw twill start worldA as client.
@@ -61,6 +68,30 @@ void main() {
       expect(worldA, hasSpriteWithNetworkId(playerId(1)));
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
       expect(worldB, hasSpriteWithNetworkId(playerId(1)));
+
+      // Assert server control.
+      expect(worldB, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      // Comander takes control of weapon change and fire of weapon.
+      expect(worldB, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
+
+      // Assert client control.
+      expect(worldA, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          // Client also switches weapon.
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH)
+          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR));
+      // Client has no active methods for server.
+      expect(worldA, controlsMatching(playerId(0)));
+
 
       // Both worlds are in the same gamestate.
       expect(worldB.network().gameState,
