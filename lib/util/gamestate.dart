@@ -85,6 +85,13 @@ class GameState {
     this._urgentData = true;
   }
 
+  void reset() {
+    actingCommanderId = null;
+    _playerInfo = [];
+    _playerInfoById = {};
+    startedAt = new DateTime.now();
+  }
+
   bool isInGame() {
     return this.actingCommanderId != null;
   }

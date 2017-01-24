@@ -68,9 +68,6 @@ class WorldListener {
   }
 
   _handleGameState(ConnectionWrapper connection, Map data) {
-    if (!connection.isValidGameConnection()) {
-      return;
-    }
     if (_network.isCommander() && _network.pendingCommandTransfer() == null
         && _gameState.isInGame()  && _gameState.actingCommanderId != data['e']) {
       // TODO remove this hack.

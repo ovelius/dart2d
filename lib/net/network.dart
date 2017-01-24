@@ -56,8 +56,9 @@ class Network {
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
-            (ConnectionWrapper connection, Map data) {
+            (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
+      gameState.reset();
       connection.close(null);
     });
 
