@@ -145,7 +145,7 @@ class WormWorld extends World {
     }
     hudMessages.display("Connecting to ${id}");
     _network.localPlayerName = this.playerName;
-    _network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
+    _network.peer.connectTo(id);
     _network.gameState.actingCommanderId = null;
     if (startGame) {
       _network.findServer();

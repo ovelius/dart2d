@@ -235,8 +235,6 @@ void main() {
     network.peer.connectPeer(null, connectionB);
     expect(network.isCommander(), isFalse);
     expect(network.safeActiveConnections(), hasLength(1));
-    expect(network.safeActiveConnections().values.first.getConnectionType(),
-        equals(ConnectionType.BOOTSTRAP));
 
     connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),

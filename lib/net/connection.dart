@@ -12,18 +12,6 @@ import 'dart:convert';
 import 'package:di/di.dart';
 import 'dart:core';
 
-@Deprecated(
-    "Connections types are irellevant, only in game and command role is relevant")
-enum ConnectionType {
-  BOOTSTRAP, // No game yet initialized for connection.
-  // This is a connection to a server.
-  CLIENT_TO_SERVER,
-  // This is a connection to a client.
-  SERVER_TO_CLIENT,
-  // This is a connection between clients.
-  // CLIENT_TO_CLIENT,
-}
-
 @Injectable()
 class PacketListenerBindings {
   Map<String, List<dynamic>> _handlers = {};
@@ -53,7 +41,6 @@ class ConnectionWrapper {
   // How long until connection attempt times out.
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
-  ConnectionType _connectionType;
   Network _network;
   HudMessages _hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -85,7 +72,6 @@ class ConnectionWrapper {
       this._hudMessages,
       this.id,
       this.connection,
-      this._connectionType,
       this._packetListenerBindings,
       JsCallbacksWrapper peerWrapperCallbacks,
       [timeout = DEFAULT_TIMEOUT]) {
@@ -98,7 +84,7 @@ class ConnectionWrapper {
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
-    log.fine("Opened connection to $id of type ${_connectionType}");
+    log.fine("Opened connection to $id");
   }
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
@@ -344,7 +330,6 @@ class ConnectionWrapper {
   }
 
   Duration expectedLatency() => _latency;
-  ConnectionType getConnectionType() => _connectionType;
 
-  toString() => "${_connectionType} to ${id} latency ${_latency}";
+  toString() => "Connection to ${id} latency ${_latency}";
 }

@@ -66,7 +66,6 @@ class Network {
     _packetListenerBindings.bindHandler(TRANSFER_COMMAND,
         (ConnectionWrapper connection, String data) {
           // Server wants us to take command.
-      assert(connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER);
       log.info("Coverting self to commander");
       this.convertToCommander(this.safeActiveConnections());
     });
@@ -90,7 +89,7 @@ class Network {
     List<String> validKeys = [];
     for (String key in connections.keys) {
       ConnectionWrapper connection = connections[key];
-      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
+      if (connection.id == gameState.actingCommanderId) {
         log.info("${peer.id} has a client to server connection using ${key}");
         return null;
       }
@@ -154,7 +153,7 @@ class Network {
   void registerDroppedFrames(var data) {
     for (ConnectionWrapper connection in peer.connections.values) {
       connection.registerDroppedKeyFrames(currentKeyFrame - 1);
-      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
+      if (connection.id == gameState.actingCommanderId) {
         serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
       }
     }

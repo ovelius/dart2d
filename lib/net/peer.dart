@@ -43,7 +43,7 @@ class PeerWrapper {
   /**
    * Called to establish a connection to another peer.
    */
-  ConnectionWrapper connectTo(id, [ConnectionType connectionType = ConnectionType.BOOTSTRAP]) {
+  ConnectionWrapper connectTo(id) {
     assert(id != null);
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
@@ -52,7 +52,7 @@ class PeerWrapper {
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
-        peerId, connection, connectionType, _packetListenerBindings,
+        peerId, connection, _packetListenerBindings,
         this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
     return connectionWrapper;
@@ -138,7 +138,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${peerId}!");
     }
     connections[peerId] = new ConnectionWrapper(_network, _hudMessages,
-        peerId, connection,  ConnectionType.BOOTSTRAP, _packetListenerBindings,
+        peerId, connection, _packetListenerBindings,
         this._peerWrapperCallbacks);
     if (!_network.isCommander()
         && _network.gameState.playerInfoByConnectionId(peerId) != null) {
@@ -186,7 +186,7 @@ class PeerWrapper {
     // Start with a copy.
     Map connectionsCopy = new Map.from(this.connections);
     ConnectionWrapper wrapper = connectionsCopy[id];
-    log.info("Removing connection for ${id} of type ${wrapper.getConnectionType()}");
+    log.info("Removing connection for ${id}");
     connectionsCopy.remove(id);
     if (_network.isCommander()) {
       log.info("Removing GameState for ${id}");
