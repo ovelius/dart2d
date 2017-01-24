@@ -188,7 +188,7 @@ class Network {
 
   _handleGameState(ConnectionWrapper connection, Map data) {
     if (isCommander() && pendingCommandTransfer() == null) {
-      log.warning("Not parsing gamestate from ${connection.id} was we are commander!");
+      log.warning("Not parsing gamestate from ${connection.id} because we are commander!");
       return;
     }
     gameState.updateFromMap(data);

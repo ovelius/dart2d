@@ -164,15 +164,13 @@ void main() {
     for (TestConnection connection in connections.values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-        // Signal all types of connection
-        CONNECTION_TYPE: connectionNr % ConnectionType.values.length,
         KEY_FRAME_KEY: 0
       });
       connectionNr++;
     }
-    // This causes a connection to drop - the one that thinks we are server.
+
     expect(network.safeActiveConnections().length,
-        equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
+        equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     // We got a gamestate with commanderId set.
     // TODO set more!
@@ -185,23 +183,6 @@ void main() {
       connection.getOtherEnd().signalClose();
     }
     expect(network.safeActiveConnections().length, equals(0));
-  });
-
-  test('Test set as acting commander', () {
-    network.peer.connectPeer(null, connectionB);
-    expect(network.isCommander(), isFalse);
-    expect(network.safeActiveConnections(), hasLength(1));
-    expect(network.safeActiveConnections().values.first.getConnectionType(),
-        equals(ConnectionType.BOOTSTRAP));
-    network.setAsActingCommander();
-
-    // Now a server to client connection.
-    expect(network.safeActiveConnections().values.first.getConnectionType(),
-        equals(ConnectionType.SERVER_TO_CLIENT));
-
-    // Change of type was announced.
-    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
-        containsPair(CONNECTION_TYPE, ConnectionType.SERVER_TO_CLIENT.index));
   });
 
   test('Test set as acting commander but we suck too much to be commander :(', () {
@@ -259,18 +240,9 @@ void main() {
 
     connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      // Signal all types of connection
-      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
       KEY_FRAME_KEY: 0
     });
 
-    // Now a client to server connection.
-    expect(network.safeActiveConnections().values.first.getConnectionType(),
-        equals(ConnectionType.CLIENT_TO_SERVER));
-
-    // Change of type was reciprocated.
-    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
-        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_SERVER.index));
     // Now close it.
     connectionB.signalClose();
     frame();
@@ -299,23 +271,12 @@ void main() {
 
     connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      // Signal all types of connection
-      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
       KEY_FRAME_KEY: 0
     });
     connectionOtherEndD.sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      // Signal all types of connection
-      CONNECTION_TYPE: ConnectionType.CLIENT_TO_CLIENT.index,
       KEY_FRAME_KEY: 0
     });
-
-    // Out setup now has two connections, one client to server and
-    // one client to client.
-    expect(connectionB.getOtherEnd().decodedRecentDataRecevied(),
-        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_SERVER.index));
-    expect(connectionOtherEndD.decodedRecentDataRecevied(),
-        containsPair(CONNECTION_TYPE, ConnectionType.CLIENT_TO_CLIENT.index));
 
     MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
     when(mockSpriteIndex[1]).thenReturn(sprite);
@@ -374,7 +335,6 @@ void main() {
           data,
           equals({
             PING: 123,
-            CONNECTION_TYPE: 0,
             KEY_FRAME_KEY: 0,
             IS_KEY_FRAME_KEY: 0
           }));
@@ -386,8 +346,6 @@ void main() {
     g.actingCommanderId = '0';
     connections['0'].sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      // Signal all types of connection
-      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
       GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
     });
@@ -418,8 +376,6 @@ void main() {
     for (TestConnection connection in connections.values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-        // Signal all types of connection
-        CONNECTION_TYPE: ConnectionType.BOOTSTRAP.index,
         KEY_FRAME_KEY: 0
       });
     }
@@ -437,8 +393,6 @@ void main() {
     g.actingCommanderId = '6';
     connections['6'].sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      // Signal all types of connection
-      CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
       GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
     });
@@ -457,8 +411,6 @@ void main() {
     for (TestConnection connection in connections.values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-        // Signal all types of connection
-        CONNECTION_TYPE: ConnectionType.BOOTSTRAP.index,
         KEY_FRAME_KEY: 0
       });
     }

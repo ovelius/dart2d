@@ -94,6 +94,7 @@ class ConnectionWrapper {
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
     if (_connectionType == ConnectionType.CLIENT_TO_CLIENT) {
+      print("Client connection marking as handshake received");
       this._handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections do not do a handshake.
@@ -129,6 +130,7 @@ class ConnectionWrapper {
 
   void updateConnectionType(ConnectionType type) {
     if (type == ConnectionType.CLIENT_TO_CLIENT) {
+      print("update connection type set handshake boom       ${StackTrace.current.toString()}");
       _handshakeReceived = true;
     }
     this._connectionType = type;
@@ -149,7 +151,6 @@ class ConnectionWrapper {
   }
 
   void connectToGame() {
-    assert(_connectionType == ConnectionType.CLIENT_TO_SERVER);
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
     Map playerData = {
@@ -188,7 +189,6 @@ class ConnectionWrapper {
     }
     sendData({
       PING: new DateTime.now().millisecondsSinceEpoch,
-      CONNECTION_TYPE: _connectionType.index,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame
     });
   }
@@ -197,6 +197,7 @@ class ConnectionWrapper {
   bool initialPingSent() => _initialPingSent;
 
   void setHandshakeReceived() {
+    print("set recieved hs");
     _handshakeReceived = true;
   }
 
@@ -210,7 +211,6 @@ class ConnectionWrapper {
     KEY_FRAME_KEY,
     PING,
     PONG,
-    CONNECTION_TYPE,
   ]);
 
   void receiveData(unusedThis, data) {
@@ -220,8 +220,7 @@ class ConnectionWrapper {
 
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
-      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
-      Map data = {PONG: dataMap[PING], CONNECTION_TYPE: _connectionType.index};
+      Map data = {PONG: dataMap[PING]};
       if (_network.isCommander()) {
         data[GAME_STATE] = _network.gameState.toMap();
       }
@@ -231,7 +230,6 @@ class ConnectionWrapper {
       DateTime now = new DateTime.now();
       int latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
       sampleLatency(new Duration(milliseconds: latencyMillis));
-      maybeUpdateConnectionType(dataMap[CONNECTION_TYPE]);
       _initialPongReceived = true;
     }
 
@@ -259,43 +257,6 @@ class ConnectionWrapper {
       return;
     }
     _network.parseBundle(this, dataMap);
-  }
-
-  void maybeUpdateConnectionType(int otherEndType) {
-    ConnectionType otherEndConnectionType = ConnectionType.values[otherEndType];
-    switch (otherEndConnectionType) {
-      case ConnectionType.BOOTSTRAP:
-        // Other end is bootstrap, not much we can do.
-        break;
-      // Other end thinks we are client.
-      case ConnectionType.SERVER_TO_CLIENT:
-        if (!_network.isCommander()) {
-          // We are client.
-          _connectionType = ConnectionType.CLIENT_TO_SERVER;
-          log.info("Updated connection type to ${_connectionType} for ${id}");
-        } else if (!_network.isTooSlowForCommanding()) {
-          //log.warning("Server to server connection detected, closing ${id}");
-          //close(null);
-        }
-        break;
-      // Other end thinks we are client. If we are, confirm it.
-      case ConnectionType.CLIENT_TO_CLIENT:
-        if (!_network.isCommander()) {
-          _connectionType = ConnectionType.CLIENT_TO_CLIENT;
-          log.info("Updated connection type to ${_connectionType} for ${id}");
-        }
-        break;
-      // Other end thinks we are server.
-      case ConnectionType.CLIENT_TO_SERVER:
-        if (!_network.isCommander()) {
-          // We are not server though. Strange.
-          log.warning(
-              "CLIENT_TO_SERVER connection without being server, dropping ${id}");
-          close(null);
-        } else {
-          _connectionType = ConnectionType.SERVER_TO_CLIENT;
-        }
-    }
   }
 
   void alsoSendWithStoredData(var data) {

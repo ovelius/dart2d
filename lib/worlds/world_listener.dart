@@ -56,6 +56,9 @@ class WorldListener {
       assert(_network.isCommander());
       GameState game = _gameState;
       PlayerInfo info = game.playerInfoByConnectionId(c.id);
+      if (info == null) {
+        throw new StateError("Client for ${c.id} can't enter game, missing from GameState?");
+      }
       info.inGame = true;
       game.markAsUrgent();
     });
@@ -68,7 +71,6 @@ class WorldListener {
 
   _handleServerReply(ConnectionWrapper connection, Map data) {
     if (!connection.isValidGameConnection()) {
-      assert(connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER);
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
       _world.createLocalClient(data["spriteId"], data["spriteIndex"]);

@@ -423,14 +423,6 @@ class WormWorld extends World {
               "Creating neighbour connection to ${info.name}");
           _network.peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
         }
-      } else {
-        // Set connection type.
-        ConnectionWrapper connection = _network.peer.connections[info.connectionId];
-        // Don't allow bootstrap connections.
-        if (connection != null &&
-            connection.getConnectionType() == ConnectionType.BOOTSTRAP) {
-          connection.updateConnectionType(ConnectionType.CLIENT_TO_CLIENT);
-        }
       }
     }
   }

@@ -22,7 +22,6 @@ String IMAGE_DATA_REQUEST = "_i";
 String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
-String CONNECTION_TYPE = "-t";
 String TRANSFER_COMMAND = "tt";
 
 /**
@@ -48,7 +47,6 @@ void remapKeyNamesForTest() {
   //
   PING = "ping";
   PONG = "pong";
-  CONNECTION_TYPE = "connection_type";
 
   TRANSFER_COMMAND = "transfer_command";
 }
@@ -66,7 +64,6 @@ Map RELIABLE_KEYS = {
     CLIENT_PLAYER_SPEC: singleTonStoredValue,
     CLIENT_PLAYER_ENTER: singleTonStoredValue,
     SERVER_PLAYER_REPLY: singleTonStoredValue,
-    CONNECTION_TYPE: singleTonStoredValue,
     PING: singleTonStoredValue,
     PONG: singleTonStoredValue,
     };
@@ -85,7 +82,6 @@ Set<String> SPECIAL_KEYS = new Set.from(
      KEY_FRAME_KEY,
      IS_KEY_FRAME_KEY,
      MESSAGE_KEY,
-     CONNECTION_TYPE,
      WORLD_DESTRUCTION,
      WORLD_PARTICLE,
      IMAGE_DATA_REQUEST,
