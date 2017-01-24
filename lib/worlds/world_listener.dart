@@ -98,7 +98,6 @@ class WorldListener {
     // the latest keyframe.
     // It will anyway get the keyframe from our response.
     connection.lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
-    assert(connection.getConnectionType() == ConnectionType.SERVER_TO_CLIENT);
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
     int spriteIndex = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);

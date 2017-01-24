@@ -43,7 +43,7 @@ class PeerWrapper {
   /**
    * Called to establish a connection to another peer.
    */
-  void connectTo(id, [ConnectionType connectionType = ConnectionType.BOOTSTRAP]) {
+  ConnectionWrapper connectTo(id, [ConnectionType connectionType = ConnectionType.BOOTSTRAP]) {
     assert(id != null);
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
@@ -55,6 +55,7 @@ class PeerWrapper {
         peerId, connection, connectionType, _packetListenerBindings,
         this._peerWrapperCallbacks);
     connections[peerId] = connectionWrapper;
+    return connectionWrapper;
   }
 
   /**
@@ -133,24 +134,16 @@ class PeerWrapper {
     assert(peerId != null);
     log.info("Got connection from ${peerId}");
     _hudMessages.display("Got connection from ${peerId}");
-    ConnectionType type;
-    if (_network.isCommander()) {
-      type = ConnectionType.SERVER_TO_CLIENT;
-    } else {
-      if (_network.gameState.playerInfoByConnectionId(peerId) != null) {
-        // We know this connection as a player.
-        type = ConnectionType.CLIENT_TO_CLIENT;
-      } else {
-        // We are not server. Assume generic bootstrap connection.
-        type = ConnectionType.BOOTSTRAP;
-      }
-    }
     if (connections.containsKey(peerId)) {
       log.warning("Already a connection to ${peerId}!");
     }
     connections[peerId] = new ConnectionWrapper(_network, _hudMessages,
-        peerId, connection,  type, _packetListenerBindings,
+        peerId, connection,  ConnectionType.BOOTSTRAP, _packetListenerBindings,
         this._peerWrapperCallbacks);
+    if (!_network.isCommander()
+        && _network.gameState.playerInfoByConnectionId(peerId) != null) {
+      connections[peerId].markAsClientToClientConnection();
+    }
   }
 
   void sendDataWithKeyFramesToAll(data, [var dontSendTo]) {
@@ -193,9 +186,9 @@ class PeerWrapper {
     // Start with a copy.
     Map connectionsCopy = new Map.from(this.connections);
     ConnectionWrapper wrapper = connectionsCopy[id];
-    log.info("Removing connection for ${id}");
+    log.info("Removing connection for ${id} of type ${wrapper.getConnectionType()}");
     connectionsCopy.remove(id);
-    if (wrapper.getConnectionType() == ConnectionType.SERVER_TO_CLIENT) {
+    if (_network.isCommander()) {
       log.info("Removing GameState for ${id}");
       _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.

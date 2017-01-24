@@ -27,8 +27,8 @@ GameStateMatcher isGameStateOf(data) {
   return new GameStateMatcher(data);
 }
 
-WorldConnectionMatcher hasSpecifiedConnections(Map connections) {
-  return new WorldConnectionMatcher(connections);
+WorldConnectionMatcher hasSpecifiedConnections(List connections) {
+  return new WorldConnectionMatcher(new Set.from(connections));
 }
 
 TypeMatcher hasType(String type) {
@@ -379,7 +379,7 @@ class MapKeyMatcher extends Matcher {
 }
 
 class WorldConnectionMatcher extends Matcher {
-  Map<String, ConnectionType> _expectedConnections;
+  Set<String> _expectedConnections;
   
   WorldConnectionMatcher(this._expectedConnections);
 
@@ -387,17 +387,13 @@ class WorldConnectionMatcher extends Matcher {
     if (item is World) {
       WormWorld world = item;
       Map connections = world.network().peer.connections;
-      for (String id in _expectedConnections.keys) {
+      for (String id in _expectedConnections) {
         if (!connections.containsKey(id)) {
           matchState[id] = "Expected but missing! No such key ${id} in ${connections}";
         }
-        ConnectionWrapper connection = connections[id];
-        if (connection.getConnectionType() != _expectedConnections[id]) {
-          matchState[id] = "${connection.getConnectionType()} != ${_expectedConnections[id]}";
-        }
       }
       for (String id in connections.keys) {
-        if (!_expectedConnections.containsKey(id)) {
+        if (!_expectedConnections.contains(id)) {
           matchState[id] = "wasn't expected";
         }
       }

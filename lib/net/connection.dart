@@ -21,7 +21,7 @@ enum ConnectionType {
   // This is a connection to a client.
   SERVER_TO_CLIENT,
   // This is a connection between clients.
-  CLIENT_TO_CLIENT,
+  // CLIENT_TO_CLIENT,
 }
 
 @Injectable()
@@ -90,15 +90,6 @@ class ConnectionWrapper {
       JsCallbacksWrapper peerWrapperCallbacks,
       [timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
-    // Client to client connections to not need to shake hands :)
-    // Server knows about both clients anyway.
-    // Changing handshakeReceived should be the first assignment in the constructor.
-    if (_connectionType == ConnectionType.CLIENT_TO_CLIENT) {
-      this._handshakeReceived = true;
-      // Mark connection as having recieved our keyframes up to this point.
-      // This is required since CLIENT_TO_CLIENT connections do not do a handshake.
-      lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
-    }
     peerWrapperCallbacks
       ..bindOnFunction(connection, 'data', receiveData)
       ..bindOnFunction(connection, 'close', close)
@@ -189,6 +180,17 @@ class ConnectionWrapper {
 
   void setHandshakeReceived() {
     _handshakeReceived = true;
+  }
+
+  /**
+   * Client to client connections to not need to shake hands :)
+   * Server knows about both clients anyway.
+   * Mark connection as having recieved our keyframes up to this point.
+   * This is required since CLIENT_TO_CLIENT connections do not do a handshake.
+   */
+  void markAsClientToClientConnection() {
+    setHandshakeReceived();
+    lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
   }
 
   void error(unusedThis, error) {

@@ -208,19 +208,10 @@ void main() {
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       // This also sets up CLIENT_TO_CLIENT connections.
-      expect(worldB, hasSpecifiedConnections({
-          'c':ConnectionType.CLIENT_TO_CLIENT,
-          'a':ConnectionType.CLIENT_TO_SERVER,
-      }));
-      expect(worldC, hasSpecifiedConnections({
-          'b':ConnectionType.CLIENT_TO_CLIENT,
-          'a':ConnectionType.CLIENT_TO_SERVER,
-      }));
+      expect(worldB, hasSpecifiedConnections(['c','a']));
+      expect(worldC, hasSpecifiedConnections(['b','a']));
       // And of course the server to client connections from A.
-      expect(worldA, hasSpecifiedConnections({
-          'c':ConnectionType.SERVER_TO_CLIENT,
-          'b':ConnectionType.SERVER_TO_CLIENT,
-      }));
+      expect(worldA, hasSpecifiedConnections(['b','c']));
       // Make sure a doesn't deliver things in sync to c from b.
       // Run a keyframe in B.
       // TODO(Erik): Make c be smart enough to determine the real source of the sprite.
@@ -325,26 +316,10 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldA, hasSpecifiedConnections({
-        'b':ConnectionType.SERVER_TO_CLIENT,
-        'c':ConnectionType.SERVER_TO_CLIENT,
-        'd':ConnectionType.SERVER_TO_CLIENT,
-      }));
-      expect(worldB, hasSpecifiedConnections({
-        'a':ConnectionType.CLIENT_TO_SERVER,
-        'c':ConnectionType.CLIENT_TO_CLIENT,
-        'd':ConnectionType.CLIENT_TO_CLIENT,
-      }));
-      expect(worldC, hasSpecifiedConnections({
-        'a':ConnectionType.CLIENT_TO_SERVER,
-        'b':ConnectionType.CLIENT_TO_CLIENT,
-        'd':ConnectionType.CLIENT_TO_CLIENT,
-      }));
-      expect(worldD, hasSpecifiedConnections({
-        'a':ConnectionType.CLIENT_TO_SERVER,
-        'b':ConnectionType.CLIENT_TO_CLIENT,
-        'c':ConnectionType.CLIENT_TO_CLIENT,
-      }));
+      expect(worldA, hasSpecifiedConnections(['b', 'c','d']));
+      expect(worldB, hasSpecifiedConnections(['a', 'c','d']));
+      expect(worldC, hasSpecifiedConnections(['a', 'b','d']));
+      expect(worldD, hasSpecifiedConnections(['a', 'b','c']));
 
       expect(worldA.spriteIndex.count(), equals(4));
       expect(worldB.spriteIndex.count(), equals(4));
@@ -427,7 +402,7 @@ void main() {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // WorldD is all alone.
-      expect(worldD, hasSpecifiedConnections({}));
+      expect(worldD, hasSpecifiedConnections([]));
       // Make this pass by converting the REMOTE -> REMOTE_FOWARD. 
       expect(worldD.spriteIndex.count(), equals(1));
 
@@ -514,14 +489,9 @@ void main() {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         expect(worldA.spriteIndex.count(), equals(3));
-        expect(worldB, hasSpecifiedConnections({
-            'a':ConnectionType.CLIENT_TO_SERVER,
-            'c':ConnectionType.CLIENT_TO_CLIENT,
-        }));
-        expect(worldC, hasSpecifiedConnections({
-            'a':ConnectionType.CLIENT_TO_SERVER,
-            'b':ConnectionType.CLIENT_TO_CLIENT,
-        }));
+        expect(worldA, hasSpecifiedConnections(['b', 'c']));
+        expect(worldB, hasSpecifiedConnections(['a', 'c']));
+        expect(worldC, hasSpecifiedConnections(['a', 'b']));
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
@@ -589,11 +559,7 @@ void main() {
         expect(worldE.network().gameState.playerInfoList(), hasLength(0));
         expect(worldE.network().gameState.actingCommanderId, isNull);
 
-        expect(worldA, hasSpecifiedConnections({
-            'b':ConnectionType.SERVER_TO_CLIENT ,
-            'c':ConnectionType.SERVER_TO_CLIENT ,
-            'd':ConnectionType.SERVER_TO_CLIENT ,
-        }));
+        expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']));
     });
   }); 
 }

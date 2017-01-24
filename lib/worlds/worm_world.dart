@@ -421,7 +421,7 @@ class WormWorld extends World {
         if (_network.peer.id.compareTo(info.connectionId) < 0) {
           hudMessages.display(
               "Creating neighbour connection to ${info.name}");
-          _network.peer.connectTo(info.connectionId, ConnectionType.CLIENT_TO_CLIENT);
+          _network.peer.connectTo(info.connectionId).markAsClientToClientConnection();
         }
       }
     }
