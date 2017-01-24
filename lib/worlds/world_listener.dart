@@ -68,10 +68,8 @@ class WorldListener {
   }
 
   _handleGameState(ConnectionWrapper connection, Map data) {
-    if (_network.isCommander() && _network.pendingCommandTransfer() == null
-        && _gameState.isInGame()  && _gameState.actingCommanderId != data['e']) {
-      // TODO remove this hack.
-      log.warning("Not overwriting acting commander ${_gameState.actingCommanderId} with ${data['e']}");
+    if (_network.isCommander() && _network.pendingCommandTransfer() == null) {
+      log.warning("Not parsing gamestate was we are commander!");
       return;
     }
     _gameState.updateFromMap(data);
