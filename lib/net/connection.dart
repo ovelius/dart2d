@@ -94,7 +94,6 @@ class ConnectionWrapper {
     // Server knows about both clients anyway.
     // Changing handshakeReceived should be the first assignment in the constructor.
     if (_connectionType == ConnectionType.CLIENT_TO_CLIENT) {
-      print("Client connection marking as handshake received");
       this._handshakeReceived = true;
       // Mark connection as having recieved our keyframes up to this point.
       // This is required since CLIENT_TO_CLIENT connections do not do a handshake.
@@ -126,14 +125,6 @@ class ConnectionWrapper {
       lastLocalPeerKeyFrameVerified = receivedKeyFrameAck;
       keyFrameData = {};
     }
-  }
-
-  void updateConnectionType(ConnectionType type) {
-    if (type == ConnectionType.CLIENT_TO_CLIENT) {
-      print("update connection type set handshake boom       ${StackTrace.current.toString()}");
-      _handshakeReceived = true;
-    }
-    this._connectionType = type;
   }
 
   void close(unusedThis) {
@@ -197,7 +188,6 @@ class ConnectionWrapper {
   bool initialPingSent() => _initialPingSent;
 
   void setHandshakeReceived() {
-    print("set recieved hs");
     _handshakeReceived = true;
   }
 

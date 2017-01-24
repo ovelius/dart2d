@@ -212,7 +212,6 @@ class PeerWrapper {
           PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
           // Start treating the other peer as server.
           ConnectionWrapper connection = connections[commanderId];
-          connection.updateConnectionType(ConnectionType.CLIENT_TO_SERVER);
           _network.gameState.actingCommanderId = commanderId;
           _hudMessages.display("Elected new server ${info.name}");
         }

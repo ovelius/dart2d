@@ -384,19 +384,6 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldB, hasSpecifiedConnections({
-         'c':ConnectionType.SERVER_TO_CLIENT,
-         'd':ConnectionType.SERVER_TO_CLIENT,
-      }));
-      expect(worldC, hasSpecifiedConnections({
-         'b':ConnectionType.CLIENT_TO_SERVER,
-         'd':ConnectionType.CLIENT_TO_CLIENT,
-      }));
-      expect(worldD, hasSpecifiedConnections({
-         'b':ConnectionType.CLIENT_TO_SERVER,
-         'c':ConnectionType.CLIENT_TO_CLIENT,
-      }));
-      
       gameState.remove(playerId(0));
       expect(worldB, isGameStateOf(gameState).withCommanderId('b'));
       expect(worldC, isGameStateOf(gameState).withCommanderId('b'));
@@ -420,12 +407,6 @@ void main() {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      expect(worldC, hasSpecifiedConnections({ 
-          'd':ConnectionType.SERVER_TO_CLIENT,
-      }));
-      expect(worldD, hasSpecifiedConnections({
-          'c':ConnectionType.CLIENT_TO_SERVER,
-      }));
       expect(worldC.spriteIndex.count(), equals(2));
       expect(worldD.spriteIndex.count(), equals(2));
 
@@ -513,13 +494,6 @@ void main() {
               .withCommanderId('a'));
 
       // TODO test we can switch back to b.
-
-      expect(worldA, hasSpecifiedConnections({
-        'b':ConnectionType.SERVER_TO_CLIENT,
-      }));
-      expect(worldB, hasSpecifiedConnections({
-        'a':ConnectionType.SERVER_TO_CLIENT,
-      }));
     });
 
     test('TestThreePlayerOneJoinsLater', () {

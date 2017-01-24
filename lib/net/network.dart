@@ -125,7 +125,6 @@ class Network {
     gameState.convertToServer(world, this.peer.id);
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id];
-      connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
       connection.sendPing();
       if (connection.isValidGameConnection()) {
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
@@ -331,8 +330,7 @@ class Network {
     this.gameState.mapId = 1;
     // If we have any connections, consider them to be SERVER_TO_CLIENT now.
     for (ConnectionWrapper connection in safeActiveConnections().values) {
-      connection.updateConnectionType(ConnectionType.SERVER_TO_CLIENT);
-      // Announce change in type.
+      // Announce change in GameState.
       connection.sendPing();
     }
   }

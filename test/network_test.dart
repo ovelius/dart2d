@@ -305,8 +305,7 @@ void main() {
 
     // Assert state of connections.
     expect(network.safeActiveConnections(), hasLength(1));
-    expect(network.safeActiveConnections().values.first.getConnectionType(),
-        equals(ConnectionType.SERVER_TO_CLIENT));
+    expect(network.getServerConnection(), isNull);
   });
 
   test('Test find server', () {
