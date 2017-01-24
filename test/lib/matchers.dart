@@ -214,6 +214,7 @@ enum PlayerControlMethods {
   CONTROL_KEYS,
   FIRE_KEY,
   LISTEN_FOR_WEAPON_SWITCH,
+  RESPAWN,
 }
 
 class WorldPlayerControlMatcher extends Matcher {
@@ -222,6 +223,7 @@ class WorldPlayerControlMatcher extends Matcher {
     PlayerControlMethods.DRAW_HEALTH_BAR: (LocalPlayerSprite s) => s.drawHealthBar(new FakeCanvas().context2D),
     PlayerControlMethods.DRAW_WEAPON_HELPER: (LocalPlayerSprite s) => s.drawWeaponHelpers(),
     PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) => s.checkControlKeys(0.01),
+    PlayerControlMethods.RESPAWN: (LocalPlayerSprite s) => s.maybeRespawn(0.01),
     PlayerControlMethods.FIRE_KEY: (LocalPlayerSprite s) => s.checkShouldFire(),
     PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH: (LocalPlayerSprite s) => s.listenFor("Jump", () {}),
   };

@@ -27,6 +27,7 @@ void main() {
       expect(worldB, controlsMatching(playerId(0))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
@@ -73,12 +74,14 @@ void main() {
       expect(worldB, controlsMatching(playerId(0))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      // Comander takes control of weapon change and fire of weapon.
+      // Comander takes control of weapon change and fire of weapon, and respawn
       expect(worldB, controlsMatching(playerId(1))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
 
@@ -248,13 +251,16 @@ void main() {
       expect(worldA, controlsMatching(playerId(0))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       expect(worldA, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       expect(worldA, controlsMatching(playerId(2))
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
@@ -311,6 +317,7 @@ void main() {
 
       expect(worldA, controlsMatching(playerId(0))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
@@ -354,6 +361,7 @@ void main() {
 
       expect(worldB, controlsMatching(playerId(1))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
@@ -391,6 +399,7 @@ void main() {
 
       expect(worldC, controlsMatching(playerId(2))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
@@ -411,6 +420,7 @@ void main() {
 
       expect(worldD, controlsMatching(playerId(3))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)

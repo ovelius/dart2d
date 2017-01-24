@@ -41,7 +41,8 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   }
   
   bool maybeRespawn(double duration) {
-   // Client should not control this. 
+   // Client should not control this.
+    return false;
   }
 
   bool drawHealthBar(var context) {
@@ -298,6 +299,9 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   bool maybeRespawn(double duration) {
+    if (!world.network().isCommander()) {
+      return false;
+    }
     if (info != null && !inGame()) {
       spawnIn-= duration;
       if (spawnIn < 0) {
