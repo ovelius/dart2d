@@ -167,8 +167,8 @@ class LocalPlayerSprite extends MovingSprite {
   
   MovingSprite gun;
 
-  factory LocalPlayerSprite.copyFromRemotePlayerSprite(LocalPlayerSprite convertSprite) {
-    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(convertSprite.world, convertSprite);
+  factory LocalPlayerSprite.copyFromRemotePlayerSprite(WormWorld world, LocalPlayerSprite convertSprite) {
+    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(world, convertSprite);
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
     sprite.keyState = convertSprite.keyState;

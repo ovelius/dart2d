@@ -148,6 +148,7 @@ class WormWorld extends World {
     _network.peer.connectTo(id, ConnectionType.CLIENT_TO_SERVER);
     _network.gameState.actingCommanderId = null;
     if (startGame) {
+      _network.findServer();
       if (_network.getServerConnection() == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
       }

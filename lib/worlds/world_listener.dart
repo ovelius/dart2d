@@ -20,7 +20,6 @@ class WorldListener {
   HudMessages hudMessages;
 
   WorldListener(this._packetListenerBindings, this._gameState, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
-    _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
     _packetListenerBindings.bindHandler(REMOVE_KEY, (ConnectionWrapper c, List removals) {
@@ -65,18 +64,6 @@ class WorldListener {
 
   setWorld(WormWorld world) {
     _world = world;
-  }
-
-  _handleGameState(ConnectionWrapper connection, Map data) {
-    if (_network.isCommander() && _network.pendingCommandTransfer() == null) {
-      log.warning("Not parsing gamestate was we are commander!");
-      return;
-    }
-    _gameState.updateFromMap(data);
-    _world.connectToAllPeersInGameState();
-    if (_network.peer.connectedToServer() &&  _gameState.isAtMaxPlayers()) {
-      _network.peer.disconnect();
-    }
   }
 
   _handleServerReply(ConnectionWrapper connection, Map data) {

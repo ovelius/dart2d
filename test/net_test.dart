@@ -31,7 +31,7 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
   
-      worldA.connectTo("b", "nameA");
+      worldA.connectTo("b", "nameA", true);
       // A framedraw twill start worldA as client.
       worldA.frameDraw();
       // ClientSpec was sent to b from a:
@@ -110,19 +110,20 @@ void main() {
       droppedPacketsNextConnection.add(1);
       // Second connection will drop two.
       droppedPacketsNextConnection.add(2);
-  
-      worldA.connectTo("b", "nameA");
-      // ClientSpec was sent to b from a:
+
+      worldA.connectTo("b", "nameA", false);
+      worldA.network().safeActiveConnections().values.first.sendPing(true);
+      // Ping was sent to b from a:
       expect(recentSentDataTo("b"),
-          new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
+          new MapKeyMatcher.containsKey(PING));
       // But it was dropped :(
       expect(recentReceviedDataFrom("a"), equals(null));
-      // Make A advance a keyframe: 
+      // Make A advance a keyframe:
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       // No we get the stuff:
       expect(recentReceviedDataFrom("a"),
           new MapKeysMatcher.containsKeys(
-              [IS_KEY_FRAME_KEY, CLIENT_PLAYER_SPEC]));
+              [IS_KEY_FRAME_KEY, PING]));
       // Reply was dropped.
       expect(recentReceviedDataFrom("b"), equals(null));
       // Advance two keyframes and data will be there!
@@ -131,8 +132,26 @@ void main() {
 
       expect(recentReceviedDataFrom("b"),
           new MapKeysMatcher.containsKeys(
-              [SERVER_PLAYER_REPLY, IS_KEY_FRAME_KEY, GAME_STATE]));
-  
+              [IS_KEY_FRAME_KEY, PONG]));
+
+      worldA.network().getServerConnection().connectToGame();
+
+      expect(recentSentDataTo("b"),
+          new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
+      expect(recentReceviedDataFrom("a"),
+          new MapKeysMatcher.containsKeys(
+              [IS_KEY_FRAME_KEY, CLIENT_PLAYER_SPEC]));
+
+      expect(recentReceviedDataFrom("b"),
+          new MapKeysMatcher.containsKeys(
+              [SERVER_PLAYER_REPLY, IS_KEY_FRAME_KEY]));
+
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+      expect(recentReceviedDataFrom("b"),
+          new MapKeysMatcher.containsKeys(
+              [GAME_STATE, IS_KEY_FRAME_KEY]));
+
       // Game should get underway about one keyframe later.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -576,13 +595,25 @@ void main() {
         worldB.connectTo("a", "nameB");         
         worldC.connectTo("a", "nameC");
         worldD.connectTo("a", "nameD");
-        
-        worldE.connectTo("a", "nameE");
+
+        worldE.connectTo("a", "nameE", false);
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+        expect(worldE.network().gameState.playerInfoList(), hasLength(4));
+        expect(worldE.network().gameState.actingCommanderId, equals('a'));
+        expect(worldE.network().getServerConnection(), isNotNull);
+
+        worldE.network().getServerConnection().connectToGame();
+
         expect(recentSentDataTo("e"),
             new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
-        
+
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldE.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+        // Gamestate got reset.
+        expect(worldE.network().gameState.playerInfoList(), hasLength(0));
+        expect(worldE.network().gameState.actingCommanderId, isNull);
 
         expect(worldA, hasSpecifiedConnections({
             'b':ConnectionType.SERVER_TO_CLIENT ,

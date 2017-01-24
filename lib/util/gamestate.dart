@@ -92,7 +92,11 @@ class GameState {
     startedAt = new DateTime.now();
   }
 
-  bool isInGame() {
+  bool isInGame(String id) {
+    return _playerInfoById.containsKey(id);
+  }
+
+  bool hasCommander() {
     return this.actingCommanderId != null;
   }
 
@@ -187,7 +191,7 @@ class GameState {
       if (info.connectionId == selfConnectionId) {
         LocalPlayerSprite oldSprite = _spriteIndex[info.spriteId];
         LocalPlayerSprite playerSprite =
-            new LocalPlayerSprite.copyFromRemotePlayerSprite(oldSprite);
+            new LocalPlayerSprite.copyFromRemotePlayerSprite(world, oldSprite);
         playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());
         world.replaceSprite(info.spriteId, playerSprite);
         oldSprite.info = info;

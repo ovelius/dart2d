@@ -64,7 +64,11 @@ Map RELIABLE_KEYS = {
     WORLD_DESTRUCTION: mergeUniqueList,
     WORLD_DRAW: mergeUniqueList,
     CLIENT_PLAYER_SPEC: singleTonStoredValue,
+    CLIENT_PLAYER_ENTER: singleTonStoredValue,
     SERVER_PLAYER_REPLY: singleTonStoredValue,
+    CONNECTION_TYPE: singleTonStoredValue,
+    PING: singleTonStoredValue,
+    PONG: singleTonStoredValue,
     };
 // Keys that should not be handled as sprite state updates.
 Set<String> SPECIAL_KEYS = new Set.from(

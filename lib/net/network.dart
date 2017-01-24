@@ -55,6 +55,7 @@ class Network {
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
+    _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
             (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
@@ -80,9 +81,11 @@ class Network {
    *  peers.
    */
   String findNewCommander(Map connections, [bool ignoreSelf = false]) {
-    if (!gameState.isInGame()) {
-      log.info("No active game found, no commander role to transfer.");
-      return null;
+    if (!isCommander()) {
+     if (!gameState.isInGame(peer.id)) {
+       log.info("No active game found for us, no commander role to transfer.");
+       return null;
+     }
     }
     List<String> validKeys = [];
     for (String key in connections.keys) {
@@ -118,7 +121,7 @@ class Network {
    * Set this peer as the commander.
    */
   void convertToCommander(Map connections) {
-    _hudMessages.display("Server role tranferred to you :)");
+    _hudMessages.display("Commander role tranferred to you :)");
     gameState.convertToServer(world, this.peer.id);
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id];
@@ -177,13 +180,22 @@ class Network {
    * Return the connection to the server.
    */
   ConnectionWrapper getServerConnection() {
-    for (ConnectionWrapper wrapper in new List.from(peer.connections.values)) {
-      if (wrapper.isActiveConnection()
-          && wrapper.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
-        return wrapper;
-      }
+    if (gameState.actingCommanderId != null && peer.connections.containsKey(gameState.actingCommanderId)) {
+      return peer.connections[gameState.actingCommanderId];
     }
     return null;
+  }
+
+  _handleGameState(ConnectionWrapper connection, Map data) {
+    if (isCommander() && pendingCommandTransfer() == null) {
+      log.warning("Not parsing gamestate from ${connection.id} was we are commander!");
+      return;
+    }
+    gameState.updateFromMap(data);
+    world.connectToAllPeersInGameState();
+    if (peer.connectedToServer() &&  gameState.isAtMaxPlayers()) {
+      peer.disconnect();
+    }
   }
 
   /**
@@ -193,11 +205,11 @@ class Network {
   bool findServer() {
     Map connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
+    if (gameState.actingCommanderId != null && connections.containsKey(gameState.actingCommanderId)) {
+      /// TODO probe if game is full and close connection if it is.
+      return true;
+    }
     for (ConnectionWrapper connection in connections.values) {
-      if (connection.getConnectionType() == ConnectionType.CLIENT_TO_SERVER) {
-        // TODO probe if full?
-        return true;
-      }
       if (connection.initialPongReceived()) {
         closeAbleNotServer.add(connection.id);
       }

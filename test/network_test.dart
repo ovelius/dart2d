@@ -20,6 +20,7 @@ class MockFpsCounter extends Mock implements FpsCounter { }
 
 class MockRemotePlayerClientSprite extends Mock implements RemotePlayerClientSprite {
   Vec2 size = new Vec2(1, 1);
+  KeyState keyState = new MockKeyState();
 }
 
 class MockKeyState extends Mock implements KeyState {}
@@ -172,6 +173,10 @@ void main() {
     // This causes a connection to drop - the one that thinks we are server.
     expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
+
+    // We got a gamestate with commanderId set.
+    // TODO set more!
+    network.gameState.actingCommanderId = '0';
     // And we now have a server connection.
     expect(network.getServerConnection(), isNotNull);
 
@@ -234,7 +239,9 @@ void main() {
     frame();
     expect(network.slowCommandingFrames(), 1);
 
-    while (network.slowCommandingFrames() > 0) {
+    int max = 10;
+    while (network.slowCommandingFrames() > 0 && max-- > 0) {
+      print("waiting for command transfer");
       frame();
     }
 
@@ -313,11 +320,18 @@ void main() {
     MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
     when(mockSpriteIndex[1]).thenReturn(sprite);
     when(mockSpriteIndex[2]).thenReturn(sprite);
+    when(mockSpriteIndex[3]).thenReturn(sprite);
     when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
 
-    network.gameState.actingCommanderId = 'c';
+    network.gameState.actingCommanderId = 'b';
     network.gameState.addPlayerInfo(new PlayerInfo("testC", "c", 1));
     network.gameState.addPlayerInfo(new PlayerInfo("testB", "d", 2));
+    network.gameState.addPlayerInfo(new PlayerInfo("testB", "a", 3));
+
+    expect(network.getServerConnection(), isNotNull);
+    network.getServerConnection().setHandshakeReceived();
+    expect(network.getServerConnection().isValidGameConnection(), isTrue);
+    expect(network.gameState.isInGame('a'), isTrue);
 
     frame();
 
@@ -368,10 +382,13 @@ void main() {
     }
 
     // Respond with a Pong - this is the server.
+    GameState g = new GameState(packetListenerBindings, null);
+    g.actingCommanderId = '0';
     connections['0'].sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
       // Signal all types of connection
       CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
     });
 
@@ -417,10 +434,12 @@ void main() {
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     // Respond with a Pong - this is the server.
+    g.actingCommanderId = '6';
     connections['6'].sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
       // Signal all types of connection
       CONNECTION_TYPE: ConnectionType.SERVER_TO_CLIENT.index,
+      GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
     });
 
