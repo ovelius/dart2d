@@ -39,11 +39,6 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   bool checkShouldFire() {
     return false;
   }
-  
-  bool maybeRespawn(double duration) {
-   // Client should not control this.
-    return false;
-  }
 
   bool drawHealthBar(var context) {
     // Don't draw client health bars on OTHER CLIENTS!
@@ -105,10 +100,6 @@ class RemotePlayerSprite extends LocalPlayerSprite {
   bool checkShouldFire() {
     // Don't do anything in the local client.
     // The server triggers this.
-    return false;
-  }
-  
-  bool maybeRespawn(double duration) {
     return false;
   }
 
