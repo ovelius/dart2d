@@ -111,6 +111,33 @@ class PeerStateMatcher extends Matcher {
   toString() => "PeerStateMatcher connected ${this._connected}";
 }
 
+class WorldPlayerMatcher extends WorldSpriteMatcher {
+  int _networkId;
+  WorldPlayerMatcher(this._networkId);
+
+  bool matches(item, Map matchState) {
+    Sprite sprite = _spriteFromItem(item);
+    if (!sprite is LocalPlayerSprite) {
+      throw new ArgumentError("Type of sprite is ${sprite.runtimeType} expected LocalPlayerSprite");
+    }
+    if (sprite != null) {
+      return (sprite.networkId == _networkId);
+    }
+    return false;
+  }
+
+  Description describeMismatch(item, Description mismatchDescription,
+      var matchState, bool verbose) {
+    Sprite sprite = _spriteFromItem(item);
+    mismatchDescription.add("${sprite.networkId} != ${_networkId}");
+    return mismatchDescription;
+  }
+
+  Description describe(Description description) {
+    return description.add("PlayerSpriteMatcher not matching");
+  }
+}
+
 class WorldSpriteMatcher extends Matcher {
   int _networkId;
   int _imageIndex = null;
@@ -140,13 +167,21 @@ class WorldSpriteMatcher extends Matcher {
     return _imageIndex != null ? sprite.imageId == _imageIndex : true;
   }
 
-  bool matches(item, Map matchState) {
+  Sprite _spriteFromItem(item) {
     if (item is World) {
-      Sprite sprite = item.spriteIndex[_networkId];
-      if (sprite != null) {
-        if (sprite.networkId == _networkId) {
-          return matchesNetworkType(sprite) && matchesImageIndex(sprite);
-        }
+      return item.spriteIndex[_networkId];
+    }
+    if (item is Sprite) {
+      return item;
+    }
+    throw new ArgumentError("Unkown item type ${item.runtimeType}!");
+  }
+
+  bool matches(item, Map matchState) {
+    Sprite sprite = _spriteFromItem(item);
+    if (sprite != null) {
+      if (sprite.networkId == _networkId) {
+        return matchesNetworkType(sprite) && matchesImageIndex(sprite);
       }
     }
     return false;

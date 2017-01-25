@@ -56,7 +56,7 @@ void main() {
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..install(new UtilModule())
      ..install(new NetModule())
-     ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
+     ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
      ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
      ..bind(WormWorld)
      ..bind(WorldListener)

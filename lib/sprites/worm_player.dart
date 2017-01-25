@@ -1,7 +1,6 @@
 
 import 'package:dart2d/util/gamestate.dart';
 import 'dart:math';
-import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
@@ -11,7 +10,7 @@ import 'package:dart2d/util/mobile_controls.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
-
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 // TODO cleanup the constructor hell in this file!
 /**
@@ -44,14 +43,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
     this.networkId = sprite.networkId;
   }
 
-  hasServerToOwnerData() => true;
 
-  addServerToOwnerData(List data) {
-    data.add(health);
-    if (weaponState != null && weaponState.reloading()) {
-      data.add(weaponState.reloadPercent());
-    }
-  }
 }
 
 /**
@@ -60,21 +52,13 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
       : super(world, world.imageIndex(), mobileControls, info.remoteKeyState, info, x, y, imageIndex);
-
-  void parseServerToOwnerData(List data) {
-    health = data[1];
-    if (data.length > 2) {
-      this.weaponState.manualReloadPercent = data[2];
-    } else {
-      this.weaponState.manualReloadPercent = null;
-    }
-  }
 }
 
 /**
  * How a server represents itself.
  */
 class LocalPlayerSprite extends MovingSprite {
+  final Logger log = new Logger('LocalPlayerSprite');
   static const BOUCHYNESS = 0.3;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(40.0, 40.0);
   static int MAX_HEALTH = 100;
@@ -176,6 +160,15 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool drawWeaponHelpers() => _ownedByThisWorld();
+
+  hasServerToOwnerData() => world.network().isCommander() && !_ownedByThisWorld();
+
+  addServerToOwnerData(List data) {
+    data.add(health);
+    if (weaponState != null && weaponState.reloading()) {
+      data.add(weaponState.reloadPercent());
+    }
+  }
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {
@@ -465,6 +458,20 @@ class LocalPlayerSprite extends MovingSprite {
       info.inGame = false;
       collision = false;
       spawnIn = RESPAWN_TIME;  
+    }
+  }
+
+  bool parseServerToOwnerData(List data) {
+    if (_ownedByThisWorld()) {
+      health = data[1];
+      if (data.length > 2) {
+        this.weaponState.manualReloadPercent = data[2];
+      } else {
+        this.weaponState.manualReloadPercent = null;
+      }
+    } else {
+      log.warning("Not owner of ${networkId}, not parsing commander data ${data}");
+      return false;
     }
   }
   

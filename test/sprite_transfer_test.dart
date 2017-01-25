@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:di/di.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 
@@ -16,9 +17,12 @@ void main() {
 
   group('Sprite transfer tests', () {
     test('TestBasicSpriteTransfer', () {
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
-      WormWorld worldC = testWorld("c");
+      Injector injectorA = createWorldInjector('a');
+      Injector injectorB = createWorldInjector('b');
+      Injector injectorC = createWorldInjector('c');
+      WormWorld worldA = initTestWorld(injectorA);
+      WormWorld worldB = initTestWorld(injectorB);;
+      WormWorld worldC = initTestWorld(injectorC);;
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasSpriteWithNetworkId(playerId(0))

@@ -6,12 +6,18 @@ class KeyState {
   static const double MAX_KEY_TRIGGER = 0.999;
   WormWorld world;
   bool debug = false;
+  bool remoteState = false;
   
   Map<int, double> keysDown = new Map<int, double>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
   List<dynamic> _genericListeners = new List();
-  
-  KeyState(this.world);
+
+  KeyState.remote() {
+    remoteState = true;
+  }
+
+  KeyState() {
+  }
   
   void onKeyDown(var /*KeyboardEvent*/ e,
       [double strength = MAX_KEY_TRIGGER]) {

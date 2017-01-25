@@ -44,7 +44,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..bind(bool, withAnnotation: const TouchControls(), toValue: false)
-      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState(null))
+      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
       ..install(new UtilModule())
       ..install(new NetModule())
       ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toValue: frameCounter)

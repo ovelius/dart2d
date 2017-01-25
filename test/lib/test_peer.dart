@@ -14,10 +14,13 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
 
-WormWorld testWorld(String id, {var canvasElement}) {
-  Injector injector = createWorldInjector(id);
+WormWorld testWorld(String id) {
+  return initTestWorld(createWorldInjector(id));
+}
+
+WormWorld initTestWorld(Injector injector) {
   WormWorld world = injector.get(WormWorld);
-  world.playerName = "name${id.toUpperCase()}";
+  world.playerName = "name${world.network().peer.getId().toString().toUpperCase()}";
   world.loader.markCompleted();
   world.initByteWorld();
   return world;

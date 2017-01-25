@@ -22,7 +22,7 @@ class PlayerInfo {
   bool inGame = false;
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
-  KeyState remoteKeyState = new KeyState(null);
+  KeyState remoteKeyState = new KeyState.remote();
 
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 

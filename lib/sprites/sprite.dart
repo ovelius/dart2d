@@ -230,8 +230,8 @@ class Sprite {
   /**
    * Parse the above data.
    */
-  void parseServerToOwnerData(List data) {
-
+  bool parseServerToOwnerData(List data) {
+    throw new StateError("${runtimeType} needs implementation of parseServerToOwnerData!");
   }
 
   toString() => "Sprite[${this.networkType}] p:$position";
