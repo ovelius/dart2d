@@ -2,10 +2,9 @@
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/sprites/worm_player.dart';
-import 'package:dart2d/sprites/world_damage_projectile.dart';
-import 'package:dart2d/sprites/rope.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:di/di.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -25,15 +24,18 @@ class SpriteIndex {
   final Logger log = new Logger('SpriteIndex');
 
   static final Map<SpriteConstructor, dynamic> _spriteConstructors = {
-    SpriteConstructor.MOVING_SPRITE: (WormWorld world) => new MovingSprite.imageBasedSprite(
+    SpriteConstructor.MOVING_SPRITE: (WormWorld world, int spriteId, String connectionId) => new MovingSprite.imageBasedSprite(
         new Vec2(), 0, world.imageIndex()),
-    SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world) => new RemotePlayerClientSprite(world),
-    SpriteConstructor.ROPE_SPRITE: (WormWorld world) => new Rope.createEmpty(world),
-    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world, int spriteId, String connectionId) {
+      PlayerInfo info = world.network().getGameState().playerInfoByConnectionId(connectionId);
+      return new RemotePlayerClientSprite(world, info);
+    },
+    SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),
+    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),
   };
     
-  static MovingSprite fromWorldByIndex(WormWorld world, SpriteConstructor constructor) {
-    return _spriteConstructors[constructor](world);
+  static MovingSprite fromWorldByIndex(WormWorld world, int spriteId, String connectionId, SpriteConstructor constructor) {
+    return _spriteConstructors[constructor](world, spriteId, connectionId);
   }
 
   // Current sprites in our world.

@@ -73,7 +73,7 @@ class WorldListener {
     if (!connection.isValidGameConnection()) {
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
-      _world.createLocalClient(data["spriteId"], data["spriteIndex"]);
+      _world.createLocalClient(connection.id, data["spriteId"], data["spriteIndex"]);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
@@ -115,6 +115,7 @@ class WorldListener {
     Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
     connection.sendData({
       SERVER_PLAYER_REPLY: serverData,
+      GAME_STATE: _network.getGameState().toMap(),
       KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame});
 

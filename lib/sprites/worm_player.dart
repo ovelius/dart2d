@@ -18,16 +18,10 @@ import 'package:dart2d/phys/vec2.dart';
  * Created on clients to represent other players.
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
-  RemotePlayerClientSprite(WormWorld world)
-      : super(world, world.imageIndex(), null, null, null, 0.0, 0.0, 0);
+  RemotePlayerClientSprite(WormWorld world,  PlayerInfo info)
+      : super(world, world.imageIndex(), null, info.remoteKeyState, info, 0.0, 0.0, 0);
 
-  /**
-   * This sprite should not execute controls.
-   */
-  bool checkControlKeys(double duration) {
-    return false;
-  }
-  
+
   
   /**
    * This sprite should not execute controls.
@@ -37,11 +31,6 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   }
   
   bool checkShouldFire() {
-    return false;
-  }
-
-  bool drawHealthBar(var context) {
-    // Don't draw client health bars on OTHER CLIENTS!
     return false;
   }
 
@@ -69,16 +58,6 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
     this.networkId = sprite.networkId;
   }
 
-  bool checkControlKeys(double duration) {
-    // Don't execute remote movements on the server.
-    return false;
-  }
-
-  bool drawHealthBar(var context) {
-    // Don't draw client health bars on server!
-    return false;
-  }
-
   hasServerToOwnerData() => true;
   drawWeaponHelpers() => false;
 
@@ -94,8 +73,8 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  * Created on the client and streamed to the Server.
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
-  RemotePlayerSprite(WormWorld world, MobileControls mobileControls, KeyState keyState, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, keyState, null, x, y, imageIndex);
+  RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
+      : super(world, world.imageIndex(), mobileControls, info.remoteKeyState, info, x, y, imageIndex);
   
   bool checkShouldFire() {
     // Don't do anything in the local client.
@@ -277,6 +256,9 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool drawHealthBar(var context) {
+    if (!_ownedByThisWorld()) {
+      return false;
+    }
     double healthFactor = health/MAX_HEALTH;
     context.resetTransform();
     var grad = context.createLinearGradient(0, 0, 3*world.width()*healthFactor, 10);
@@ -288,7 +270,14 @@ class LocalPlayerSprite extends MovingSprite {
     context.globalAlpha = 1.0;
     return true;
   }
-  
+
+  bool _ownedByThisWorld() {
+    if (info == null) {
+      throw new StateError("Info should never be null! ${world.network().peer.getId()} type ${this.runtimeType} id ${networkId} gs ${world.network().getGameState()}");
+    }
+    return info.connectionId  == world.network().peer.getId();
+  }
+
   bool maybeRespawn(double duration) {
     if (!world.network().isCommander()) {
       return false;
@@ -326,6 +315,9 @@ class LocalPlayerSprite extends MovingSprite {
    * return true
    */
   bool checkControlKeys(double duration) {
+    if (!_ownedByThisWorld()) {
+      return false;
+    }
     double left = keyIsDownStrength("Left");
     double right = keyIsDownStrength("Right");
     double aimUp = keyIsDownStrength("Aim up");

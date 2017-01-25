@@ -277,7 +277,7 @@ class WormWorld extends World {
   MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
     Sprite sprite = spriteIndex[networkId];
     if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
-      sprite = SpriteIndex.fromWorldByIndex(this, constructor);
+      sprite = SpriteIndex.fromWorldByIndex(this, networkId, wrapper.id, constructor);
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;
       // This might not be 100% accurate, since onwer might be:
@@ -315,11 +315,16 @@ class WormWorld extends World {
     return true;
   }
 
-  void createLocalClient(int spriteId, int localSpriteIndex) {
+  void createLocalClient(String connectionId, int spriteId, int localSpriteIndex) {
     spriteIndex.spriteNetworkId = spriteId;
     int playerSpriteIndex = localSpriteIndex;
+    PlayerInfo info = _network.getGameState().playerInfoByConnectionId(connectionId);
+    if (info == null) {
+      throw new StateError("Cannot create local client as it is missing from GameState! Was ${_network.getGameState()}");
+    }
+    info.remoteKeyState = localKeyState;
     playerSprite = new RemotePlayerSprite(
-        this, _mobileControls, localKeyState, 400.0, 200.0, playerSpriteIndex);
+        this, _mobileControls, info, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.setImage(playerSpriteIndex, 24);
     addSprite(playerSprite);

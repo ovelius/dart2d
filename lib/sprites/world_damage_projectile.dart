@@ -82,11 +82,11 @@ class BrickBuilder extends WorldDamageProjectile {
     // Try and align brick with other bricks.
     int alignBelow = 0;
     List<int> existingBrick = world.byteWorld.getImageData(center, new Vec2(1, brickSize.y));
-    for (int i = existingBrick.length ~/ 4 - 1; i >= 0; i--) {
+    for (int i = 0; i < existingBrick.length ~/ 4; i++) {
       if (existingBrick[i * 4] == COLOR_R && existingBrick[i * 4 + 1] == COLOR_G && existingBrick[i * 4 + 2] == COLOR_B) {
-        alignBelow++;
-      } else {
         break;
+      } else {
+        alignBelow++;
       }
     }
     if (alignBelow > 0) {
