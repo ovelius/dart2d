@@ -21,20 +21,6 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
   RemotePlayerClientSprite(WormWorld world,  PlayerInfo info)
       : super(world, world.imageIndex(), null, info.remoteKeyState, info, 0.0, 0.0, 0);
 
-
-  
-  /**
-   * This sprite should not execute controls.
-   */
-  bool listenFor(String key, dynamic f) {
-    return false;
-  }
-  
-  bool checkShouldFire() {
-    return false;
-  }
-
-  bool drawWeaponHelpers() => false;
 }
 
 /**
@@ -59,7 +45,6 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
   }
 
   hasServerToOwnerData() => true;
-  drawWeaponHelpers() => false;
 
   addServerToOwnerData(List data) {
     data.add(health);
@@ -75,12 +60,6 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
       : super(world, world.imageIndex(), mobileControls, info.remoteKeyState, info, x, y, imageIndex);
-  
-  bool checkShouldFire() {
-    // Don't do anything in the local client.
-    // The server triggers this.
-    return false;
-  }
 
   void parseServerToOwnerData(List data) {
     health = data[1];
@@ -196,7 +175,7 @@ class LocalPlayerSprite extends MovingSprite {
     return sprite;
   }
 
-  bool drawWeaponHelpers() => true;
+  bool drawWeaponHelpers() => _ownedByThisWorld();
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {
@@ -427,6 +406,9 @@ class LocalPlayerSprite extends MovingSprite {
   }
   
   bool checkShouldFire() {
+    if (!world.network().isCommander()) {
+      return false;
+    }
     if (keyIsDown("Fire") && inGame() && weaponState != null) {
       weaponState.fire();
     }

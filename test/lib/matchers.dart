@@ -215,6 +215,7 @@ enum PlayerControlMethods {
   FIRE_KEY,
   LISTEN_FOR_WEAPON_SWITCH,
   RESPAWN,
+  SERVER_TO_OWNER_DATA,
 }
 
 class WorldPlayerControlMatcher extends Matcher {
@@ -225,6 +226,7 @@ class WorldPlayerControlMatcher extends Matcher {
     PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) => s.checkControlKeys(0.01),
     PlayerControlMethods.RESPAWN: (LocalPlayerSprite s) => s.maybeRespawn(0.01),
     PlayerControlMethods.FIRE_KEY: (LocalPlayerSprite s) => s.checkShouldFire(),
+    PlayerControlMethods.SERVER_TO_OWNER_DATA: (LocalPlayerSprite s) => s.hasServerToOwnerData(),
     PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH: (LocalPlayerSprite s) => s.listenFor("Jump", () {}),
   };
 

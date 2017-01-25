@@ -224,7 +224,7 @@ class Sprite {
    * Data flowing the other way, from Server to the sprite owner.
    */
   void addServerToOwnerData(List data) {
-
+    throw new StateError("Needs implementation!");
   }
 
   /**

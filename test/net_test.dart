@@ -82,6 +82,7 @@ void main() {
       expect(worldB, controlsMatching(playerId(1))
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
           .withActiveMethod(PlayerControlMethods.RESPAWN)
+          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
 
@@ -93,8 +94,9 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR));
       // Client has no active methods for server.
-      expect(worldA, controlsMatching(playerId(0)));
-
+      // But listens for weapon switch in case of command transfer.
+      expect(worldA, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
       // Both worlds are in the same gamestate.
       expect(worldB.network().gameState,
@@ -258,22 +260,28 @@ void main() {
       expect(worldA, controlsMatching(playerId(1))
           .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       expect(worldA, controlsMatching(playerId(2))
           .withActiveMethod(PlayerControlMethods.RESPAWN)
           .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldB, controlsMatching(playerId(0)));
+      expect(worldB, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       expect(worldB, controlsMatching(playerId(1))
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldB, controlsMatching(playerId(2)));
+      expect(worldB, controlsMatching(playerId(2))
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldC, controlsMatching(playerId(0)));
-      expect(worldC, controlsMatching(playerId(1)));
+      expect(worldC, controlsMatching(playerId(0))
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(worldC, controlsMatching(playerId(1))
+          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       expect(worldC, controlsMatching(playerId(2))
           .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
           .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
