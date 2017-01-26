@@ -20,7 +20,7 @@ class MockFpsCounter extends Mock implements FpsCounter { }
 
 class MockRemotePlayerClientSprite extends Mock implements RemotePlayerClientSprite {
   Vec2 size = new Vec2(1, 1);
-  KeyState keyState = new MockKeyState();
+  PlayerInfo info = new PlayerInfo('a', 'a',  123);
 }
 
 class MockKeyState extends Mock implements KeyState {}

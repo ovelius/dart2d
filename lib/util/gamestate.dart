@@ -213,7 +213,7 @@ class GameState {
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
               new RemotePlayerServerSprite.copyFromMovingSprite(
-                  world, info.remoteKeyState(), info, oldSprite);
+                  world, info, oldSprite);
           remotePlayerSprite.setImage(
               oldSprite.imageId, oldSprite.size.x.toInt());
           world.replaceSprite(info.spriteId, remotePlayerSprite);

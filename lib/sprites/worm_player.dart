@@ -18,7 +18,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
   RemotePlayerClientSprite(WormWorld world,  PlayerInfo info)
-      : super(world, world.imageIndex(), null, info.remoteKeyState(), info, 0.0, 0.0, 0);
+      : super(world, world.imageIndex(), null, info, 0.0, 0.0, 0);
 
 }
 
@@ -28,16 +28,15 @@ class RemotePlayerClientSprite extends LocalPlayerSprite {
 class RemotePlayerServerSprite extends LocalPlayerSprite {
 
   RemotePlayerServerSprite(
-      WormWorld world, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, keyState, info, x, y, imageIndex);
+      WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
+      : super(world, world.imageIndex(), mobileControls, info, x, y, imageIndex);
 
   RemotePlayerServerSprite.copyFromMovingSprite(
-      WormWorld world, KeyState keystate, PlayerInfo info, MovingSprite sprite)
+      WormWorld world, PlayerInfo info, MovingSprite sprite)
       : super.copyFromMovingSprite(world, sprite) {
     // TODO what about key bindings??
     this.world = world;
     this.info = info;
-    this.keyState = keystate;
     this.collision = this.inGame();
     this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
     this.networkId = sprite.networkId;
@@ -51,7 +50,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, info.remoteKeyState(), info, x, y, imageIndex);
+      : super(world, world.imageIndex(), mobileControls, info, x, y, imageIndex);
 }
 
 /**
@@ -89,7 +88,6 @@ class LocalPlayerSprite extends MovingSprite {
   int health = MAX_HEALTH;
   PlayerInfo info;
   Rope rope;
-  KeyState keyState;
   MobileControls _mobileControls;
   double _gunAngleTouchLock = null;
   WeaponState weaponState;
@@ -105,7 +103,6 @@ class LocalPlayerSprite extends MovingSprite {
     LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(world, convertSprite);
     sprite.world = convertSprite.world;
     sprite.info = convertSprite.info;
-    sprite.keyState = convertSprite.keyState;
     sprite._mobileControls = convertSprite._mobileControls;
     sprite.health = convertSprite.health;
     sprite.networkId = convertSprite.networkId;
@@ -115,7 +112,7 @@ class LocalPlayerSprite extends MovingSprite {
       sprite.rope.owner = sprite;
     }
     sprite.weaponState = new WeaponState(
-        sprite.world, sprite.keyState, sprite, sprite.gun);
+        sprite.world, sprite.info.remoteKeyState(), sprite, sprite.gun);
     sprite.listenFor("Next weapon", () {
       sprite.weaponState.nextWeapon();
     });
@@ -136,15 +133,14 @@ class LocalPlayerSprite extends MovingSprite {
   /**
    * Server constructor.
    */
-  LocalPlayerSprite(WormWorld world, ImageIndex imageIndex, MobileControls mobileControls, KeyState keyState, PlayerInfo info, double x, double y, int imageId)
+  LocalPlayerSprite(WormWorld world, ImageIndex imageIndex, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageId)
       : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
     this.world = world;
     this.info = info;
     this._mobileControls = mobileControls;
-    this.keyState = keyState;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
-    this.weaponState = new WeaponState(world, keyState, this, this.gun);
+    this.weaponState = new WeaponState(world, info.remoteKeyState(), this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
     });
@@ -477,18 +473,18 @@ class LocalPlayerSprite extends MovingSprite {
   
   bool listenFor(String key, dynamic f) {
     assert(getControls().containsKey(key));
-    keyState.registerListener(getControls()[key], f);
+    info.remoteKeyState().registerListener(getControls()[key], f);
     return true;
   }
   
   bool keyIsDown(String key) {
     assert(getControls().containsKey(key));
-    return keyState.keyIsDown(getControls()[key]);
+    return info.remoteKeyState().keyIsDown(getControls()[key]);
   }
 
   double keyIsDownStrength(String key) {
     assert(getControls().containsKey(key));
-    return keyState.keyIsDownStrength(getControls()[key]);
+    return info.remoteKeyState().keyIsDownStrength(getControls()[key]);
   }
   
   void addExtraNetworkData(List<int> data) {

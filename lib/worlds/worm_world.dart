@@ -336,7 +336,7 @@ class WormWorld extends World {
     int imageId = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, _network.peer.id, id);
     playerSprite = new LocalPlayerSprite(
-        this, _imageIndex, _mobileControls, localKeyState, info,
+        this, _imageIndex, _mobileControls, info,
         new Random().nextInt(_width).toDouble(),
         new Random().nextInt(_height).toDouble(),
         imageId);
