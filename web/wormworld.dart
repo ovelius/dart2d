@@ -12,6 +12,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'dart:js';
 import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:html';
 import 'dart:async';
 
@@ -70,6 +71,13 @@ void main() {
   world = injector.get(WormWorld);
 
   setKeyListeners(world, canvasElement);
+
+  Logger.root.onRecord.listen((LogRecord rec) {
+    String msg = '${rec.loggerName}: ${rec.level.name}: ${rec
+        .time}: ${rec
+        .message}';
+    print(msg);
+  });
 
   querySelector("#sendMsg").onClick.listen((e) {
     var message = (querySelector("#chatMsg") as InputElement).value;

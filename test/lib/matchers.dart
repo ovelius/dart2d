@@ -456,8 +456,14 @@ class MapKeyMatcher extends Matcher {
 
 class WorldConnectionMatcher extends Matcher {
   Set<String> _expectedConnections;
+  bool _gameConnections = false;
   
   WorldConnectionMatcher(this._expectedConnections);
+
+  WorldConnectionMatcher isValidGameConnections() {
+    _gameConnections = true;
+    return this;
+  }
 
   bool matches(item, Map matchState) {
     if (item is World) {
@@ -466,6 +472,10 @@ class WorldConnectionMatcher extends Matcher {
       for (String id in _expectedConnections) {
         if (!connections.containsKey(id)) {
           matchState[id] = "Expected but missing! No such key ${id} in ${connections}";
+        }
+        ConnectionWrapper c = connections[id];
+        if (_gameConnections != c.isValidGameConnection()) {
+          matchState[id] = "Expected game connection of ${_gameConnections} was ${c.isValidGameConnection()}";
         }
       }
       for (String id in connections.keys) {

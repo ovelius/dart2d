@@ -60,21 +60,21 @@ void main() {
       expect(worldA.spriteIndex[playerId(0)],
           hasType('LocalPlayerSprite'));
       expect(worldB.spriteIndex[playerId(0)],
-          hasType('RemotePlayerClientSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(0)],
-          hasType('RemotePlayerClientSprite'));
+          hasType('LocalPlayerSprite'));
       // Assert client B representation. 
       expect(worldA.spriteIndex[playerId(1)],
           hasType('RemotePlayerServerSprite'));
       expect(worldB.spriteIndex[playerId(1)],
           hasType('RemotePlayerSprite'));
       expect(worldC.spriteIndex[playerId(1)],
-          hasType('RemotePlayerClientSprite'));
+          hasType('LocalPlayerSprite'));
       // Assert client C representation.
       expect(worldA.spriteIndex[playerId(2)],
           hasType('RemotePlayerServerSprite'));
       expect(worldB.spriteIndex[playerId(2)],
-          hasType('RemotePlayerClientSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(2)],
           hasType('RemotePlayerSprite'));
 
@@ -104,7 +104,7 @@ void main() {
                   .andNetworkType(NetworkType.LOCAL),
           ]));
       expect(worldC.spriteIndex[playerId(1)],
-          hasType('RemotePlayerClientSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(2)],
           hasType('RemotePlayerSprite'));
       

@@ -207,7 +207,7 @@ class GameState {
         world.playerSprite = playerSprite;
       } else {
         // Convert other players.
-        RemotePlayerClientSprite oldSprite = _spriteIndex[info.spriteId];
+        LocalPlayerSprite oldSprite = _spriteIndex[info.spriteId];
         ConnectionWrapper connection =
             world.network().peer.connections[info.connectionId];
         if (connection != null) {

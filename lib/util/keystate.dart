@@ -1,13 +1,15 @@
 library keystate;
 
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 class KeyState {
+  final Logger log = new Logger('KeyState');
   static const double MAX_KEY_TRIGGER = 0.999;
   WormWorld world;
   bool debug = false;
   bool remoteState = false;
-  
+
   Map<int, double> keysDown = new Map<int, double>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
   List<dynamic> _genericListeners = new List();
@@ -16,16 +18,28 @@ class KeyState {
     remoteState = true;
   }
 
-  KeyState() {
-  }
-  
-  void onKeyDown(var /*KeyboardEvent*/ e,
-      [double strength = MAX_KEY_TRIGGER]) {
-    if (e.keyCode == KeyCodeDart.F2) {
-      debug = !debug;
-    }
-    if (e.keyCode == KeyCodeDart.F4) {
-      world.freeze = !world.freeze;
+  KeyState() {}
+
+  void onKeyDown(var /*KeyboardEvent*/ e, [double strength = MAX_KEY_TRIGGER]) {
+    if (!remoteState) {
+      if (e.keyCode == KeyCodeDart.F2) {
+        debug = !debug;
+      }
+      if (e.keyCode == KeyCodeDart.F4) {
+        world.freeze = !world.freeze;
+      }
+      if (e.keyCode == KeyCodeDart.F7) {
+        if (Logger.root.isLoggable(Level.ALL)) {
+          log.info("Going to info logging");
+          Logger.root.level = Level.INFO;
+        } else if (Logger.root.isLoggable(Level.INFO)) {
+          log.info("Turning off print logging");
+          Logger.root.level = Level.OFF;
+        } else {
+          Logger.root.level = Level.ALL;
+          log.info("Enabling print logging for ALL");
+        }
+      }
     }
     if (!keysDown.containsKey(e.keyCode)) {
       // If this a newly pushed key, send it to the network right away.
@@ -33,17 +47,21 @@ class KeyState {
         world.network().maybeSendLocalKeyStateUpdate();
       }
       if (_listeners.containsKey(e.keyCode)) {
-        _listeners[e.keyCode].forEach((f) { f(); });
+        _listeners[e.keyCode].forEach((f) {
+          f();
+        });
       }
-      _genericListeners.forEach((f) { f(e.keyCode); });
+      _genericListeners.forEach((f) {
+        f(e.keyCode);
+      });
     }
     keysDown[e.keyCode] = strength;
   }
-  
+
   void onKeyUp(var /*KeyboardEvent*/ e) {
     keysDown.remove(e.keyCode);
   }
-  
+
   bool keyIsDown(num key, [double strength = MAX_KEY_TRIGGER]) {
     return keysDown.containsKey(key) && keysDown[key] >= MAX_KEY_TRIGGER;
   }
@@ -68,7 +86,7 @@ class KeyState {
     }
     return keys;
   }
-  
+
   registerListener(int key, dynamic f) {
     if (!_listeners.containsKey(key)) {
       _listeners[key] = new List<dynamic>();
@@ -76,7 +94,7 @@ class KeyState {
     List<dynamic> listeners = _listeners[key];
     listeners.add(f);
   }
-  
+
   registerGenericListener(dynamic f) {
     _genericListeners.add(f);
   }

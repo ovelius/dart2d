@@ -13,14 +13,6 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 // TODO cleanup the constructor hell in this file!
-/**
- * Created on clients to represent other players.
- */
-class RemotePlayerClientSprite extends LocalPlayerSprite {
-  RemotePlayerClientSprite(WormWorld world,  PlayerInfo info)
-      : super(world, world.imageIndex(), null, info, 0.0, 0.0, 0);
-
-}
 
 /**
  * Created on the server to represent clients.

@@ -18,7 +18,7 @@ class MockWormWorld extends Mock implements WormWorld {}
 
 class MockFpsCounter extends Mock implements FpsCounter { }
 
-class MockRemotePlayerClientSprite extends Mock implements RemotePlayerClientSprite {
+class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   Vec2 size = new Vec2(1, 1);
   PlayerInfo info = new PlayerInfo('a', 'a',  123);
 }

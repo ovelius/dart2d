@@ -213,10 +213,10 @@ void main() {
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
       // This also sets up CLIENT_TO_CLIENT connections.
-      expect(worldB, hasSpecifiedConnections(['c','a']));
-      expect(worldC, hasSpecifiedConnections(['b','a']));
+      expect(worldB, hasSpecifiedConnections(['c','a']).isValidGameConnections());
+      expect(worldC, hasSpecifiedConnections(['b','a']).isValidGameConnections());
       // And of course the server to client connections from A.
-      expect(worldA, hasSpecifiedConnections(['b','c']));
+      expect(worldA, hasSpecifiedConnections(['b','c']).isValidGameConnections());
       // Make sure a doesn't deliver things in sync to c from b.
       // Run a keyframe in B.
       // TODO(Erik): Make c be smart enough to determine the real source of the sprite.
@@ -332,10 +332,10 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldA, hasSpecifiedConnections(['b', 'c','d']));
-      expect(worldB, hasSpecifiedConnections(['a', 'c','d']));
-      expect(worldC, hasSpecifiedConnections(['a', 'b','d']));
-      expect(worldD, hasSpecifiedConnections(['a', 'b','c']));
+      expect(worldA, hasSpecifiedConnections(['b', 'c','d']).isValidGameConnections());
+      expect(worldB, hasSpecifiedConnections(['a', 'c','d']).isValidGameConnections());
+      expect(worldC, hasSpecifiedConnections(['a', 'b','d']).isValidGameConnections());
+      expect(worldD, hasSpecifiedConnections(['a', 'b','c']).isValidGameConnections());
 
       expect(worldA.spriteIndex.count(), equals(4));
       expect(worldB.spriteIndex.count(), equals(4));
@@ -508,9 +508,9 @@ void main() {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         expect(worldA.spriteIndex.count(), equals(3));
-        expect(worldA, hasSpecifiedConnections(['b', 'c']));
-        expect(worldB, hasSpecifiedConnections(['a', 'c']));
-        expect(worldC, hasSpecifiedConnections(['a', 'b']));
+        expect(worldA, hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
+        expect(worldB, hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
+        expect(worldC, hasSpecifiedConnections(['a', 'b']).isValidGameConnections());
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
@@ -578,7 +578,7 @@ void main() {
         expect(worldE.network().gameState.playerInfoList(), hasLength(0));
         expect(worldE.network().gameState.actingCommanderId, isNull);
 
-        expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']));
+        expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
     });
   }); 
 }

@@ -31,7 +31,7 @@ class SpriteIndex {
       if (!info.remoteKeyState().remoteState) {
         throw new ArgumentError("Cannot create a remote sprite with local keystate! ${world}");
       }
-      return new RemotePlayerClientSprite(world, info);
+      return new LocalPlayerSprite(world, world.imageIndex(), null, info, 0.0, 0.0, 0);
     },
     SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),
     SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),

@@ -232,7 +232,13 @@ class ConnectionWrapper {
     // Don't continue handling data if handshake is not finished.
     if (!_handshakeReceived) {
       log.fine("not handling data ${dataMap}, handshake not received.");
-      return;
+      if (_network.getGameState().isInGame(_network.peer.id) && _network.getGameState().playerInfoByConnectionId(this.id) != null && !_network.isCommander()) {
+        // TODO figure out why this hack is needed...
+        log.warning("This is odd since connections is in the gamestate. Overriding!");
+        _handshakeReceived = true;
+      } else {
+        return;
+      }
     }
     _network.parseBundle(this, dataMap);
   }
