@@ -436,10 +436,16 @@ void main() {
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
-    test('TestDroppedConnection', () {
+    test('TestBadCommanderConnection', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       worldB.startAsServer("nameB");
+
+      // Tick a few frames for B.
+      for (int i = 0; i < 20; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+
       worldA.connectTo("b", "nameA");
   
       expect(worldB.network().gameState,
@@ -487,7 +493,38 @@ void main() {
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
 
-      // TODO test we can switch back to b.
+      worldB.drawFps().setFpsForTest(null);
+
+      // And all is well for a while.
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+
+      // Commander is still a.
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('a'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('a'));
+
+      worldA.drawFps().setFpsForTest(0.1);
+
+      // And all is well for a while.
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
+      }
+
+      // Commander is now b.
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('b'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
+              .withCommanderId('b'));
+
     });
 
     test('TestThreePlayerOneJoinsLater', () {

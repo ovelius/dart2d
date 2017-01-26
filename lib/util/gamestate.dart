@@ -115,7 +115,6 @@ class GameState {
 
   void addPlayerInfo(PlayerInfo info) {
     assert(info.connectionId != null);
-    assert(info.remoteKeyState().remoteState);
     _playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
   }

@@ -21,13 +21,17 @@ enum SpriteConstructor {
  */
 @Injectable()
 class SpriteIndex {
-  final Logger log = new Logger('SpriteIndex');
+  static final Logger log = new Logger('SpriteIndex');
 
   static final Map<SpriteConstructor, dynamic> _spriteConstructors = {
     SpriteConstructor.MOVING_SPRITE: (WormWorld world, int spriteId, String connectionId) => new MovingSprite.imageBasedSprite(
         new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world, int spriteId, String connectionId) {
       PlayerInfo info = world.network().getGameState().playerInfoByConnectionId(connectionId);
+      if (info == null) {
+        log.warning("Recieved player sprite not in Gamestate ${world.network().getGameState()}");
+        return null;
+      }
       if (!info.remoteKeyState().remoteState) {
         throw new ArgumentError("Cannot create a remote sprite with local keystate! ${world}");
       }

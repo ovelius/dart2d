@@ -279,13 +279,17 @@ class WormWorld extends World {
     Sprite sprite = spriteIndex[networkId];
     if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
       sprite = SpriteIndex.fromWorldByIndex(this, networkId, wrapper.id, constructor);
-      sprite.networkType = NetworkType.REMOTE;
-      sprite.networkId = networkId;
-      // This might not be 100% accurate, since onwer might be:
-      // Client -> Server -> Client.
-      // But if that is the case it will be updated when we parse the GameState.
-      sprite.ownerId = wrapper.id;
-      addSprite(sprite);
+      if (sprite != null) {
+        sprite.networkType = NetworkType.REMOTE;
+        sprite.networkId = networkId;
+        // This might not be 100% accurate, since onwer might be:
+        // Client -> Server -> Client.
+        // But if that is the case it will be updated when we parse the GameState.
+        sprite.ownerId = wrapper.id;
+        addSprite(sprite);
+      } else {
+        log.warning("Unable to create sprite ${networkId} with constructor ${constructor}");
+      }
     }
     return sprite;
   }
@@ -335,6 +339,7 @@ class WormWorld extends World {
     int id = _network.gameState.getNextUsablePlayerSpriteId(this);
     int imageId = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, _network.peer.id, id);
+    info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         new Random().nextInt(_width).toDouble(),
@@ -345,7 +350,6 @@ class WormWorld extends World {
     playerSprite.spawnIn = 1.0;
     playerSprite.setImage(imageId, 24);
     _network.gameState.addPlayerInfo(info);
-    info.updateWithLocalKeyState(localKeyState);
     addSprite(playerSprite);
   }
   

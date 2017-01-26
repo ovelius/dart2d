@@ -145,6 +145,10 @@ class Network {
     if (untilNextKeyFrame < 0) {
       currentKeyFrame++;
       untilNextKeyFrame += KEY_FRAME_DEFAULT;
+      // In case last frame was incredibly slow.
+      if (untilNextKeyFrame < 0) {
+        untilNextKeyFrame = KEY_FRAME_DEFAULT;
+      }
       return true;
     }
     return false;
@@ -335,7 +339,7 @@ class Network {
   }
 
   int slowCommandingFrames() => _slowCommandingFrames;
-  bool isTooSlowForCommanding() => _slowCommandingFrames > 5;
+  bool isTooSlowForCommanding() => _slowCommandingFrames > 4;
 
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {

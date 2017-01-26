@@ -158,11 +158,6 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
   }
 }
 
-class _fakeKeyCode {
-  int keyCode;
-  _fakeKeyCode(this.keyCode);
-}
-
 createPeerJs() {
   return new JsObject(context['Peer'], [new JsObject.jsify({
     'key': 'peerconfig', // TODO: Change this.
