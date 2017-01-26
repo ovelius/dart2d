@@ -19,6 +19,10 @@ WorldSpriteMatcher hasSpriteWithNetworkId(int id) {
   return new WorldSpriteMatcher(id);
 }
 
+WorldPlayerMatcher hasPlayerSpriteWithNetworkId(int id) {
+  return new WorldPlayerMatcher(id);
+}
+
 WorldSpriteStateMatcher hasExactSprites(List<WorldSpriteMatcher> matchers) {
   return new WorldSpriteStateMatcher(matchers);
 }
@@ -112,24 +116,48 @@ class PeerStateMatcher extends Matcher {
 }
 
 class WorldPlayerMatcher extends WorldSpriteMatcher {
-  int _networkId;
-  WorldPlayerMatcher(this._networkId);
+  bool _remoteKeyState = false;
+  WorldPlayerMatcher(int networkId) : super(networkId);
+
+  WorldPlayerMatcher andRemoteKeyState() {
+    _remoteKeyState = true;
+    return this;
+  }
+
+  WorldPlayerMatcher andSpriteId(int id) {
+    super.andSpriteId(id);
+    return this;
+  }
+
+  WorldPlayerMatcher andImageIndex(int index) {
+    super.andImageIndex(index);
+    return this;
+  }
+
+  WorldPlayerMatcher andNetworkType(NetworkType networkType) {
+    super.andNetworkType(networkType);
+    return this;
+  }
+
+  bool _keyStateMatches(LocalPlayerSprite sprite) {
+    return sprite.info.remoteKeyState().remoteState == _remoteKeyState;
+  }
 
   bool matches(item, Map matchState) {
     Sprite sprite = _spriteFromItem(item);
-    if (!sprite is LocalPlayerSprite) {
-      throw new ArgumentError("Type of sprite is ${sprite.runtimeType} expected LocalPlayerSprite");
+    if (!(sprite is LocalPlayerSprite)) {
+      throw new ArgumentError("Type of sprite ${_networkId} is ${sprite.runtimeType} expected LocalPlayerSprite");
     }
-    if (sprite != null) {
-      return (sprite.networkId == _networkId);
-    }
-    return false;
+    return super.matches(item, matchState) && _keyStateMatches(sprite);
   }
 
   Description describeMismatch(item, Description mismatchDescription,
       var matchState, bool verbose) {
-    Sprite sprite = _spriteFromItem(item);
-    mismatchDescription.add("${sprite.networkId} != ${_networkId}");
+    super.describeMismatch(item, mismatchDescription, matchState, verbose);
+    LocalPlayerSprite sprite = _spriteFromItem(item);
+    if (!_keyStateMatches(sprite)) {
+      mismatchDescription.add("Wanted keystate remote of ${_remoteKeyState} was ${sprite.info.remoteKeyState().remoteState} for ${_networkId} info ${sprite.info} of type ${sprite.runtimeType}\n");
+    }
     return mismatchDescription;
   }
 
@@ -148,7 +176,7 @@ class WorldSpriteMatcher extends Matcher {
     _networkId = id;
     return this;
   }
-  
+
   WorldSpriteMatcher andImageIndex(int index) {
     _imageIndex = index;
     return this;
@@ -192,9 +220,9 @@ class WorldSpriteMatcher extends Matcher {
     if (item is World) {
       Sprite sprite = item.spriteIndex[_networkId];
       if (sprite == null) {
-        mismatchDescription.add("World sprites ${item.spriteIndex} does not contain key ${_networkId}");
+        mismatchDescription.add("World sprites ${item.spriteIndex} does not contain key ${_networkId}\n");
       } else if (sprite.networkType != _networkType) {
-        mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}");
+        mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}\n");
       }
     } else {
       mismatchDescription.add("Matched item must be World");
@@ -212,14 +240,19 @@ class WorldSpriteStateMatcher extends Matcher {
   List<WorldSpriteMatcher> _spriteMatchers;
   WorldSpriteStateMatcher(this._spriteMatchers);
 
-  bool matches(item, Map matchState) {
+  List<WorldSpriteMatcher> _reduceToMisMatches(item, Map matchState) {
     List<WorldSpriteMatcher> spriteMatchers = new List.from(_spriteMatchers);
-    if (item is World) {
-      for (int i = spriteMatchers.length - 1; i >=0; i--) {
-        if (spriteMatchers[i].matches(item, matchState)) {
-          spriteMatchers.removeAt(i);
-        }
+    for (int i = spriteMatchers.length - 1; i >=0; i--) {
+      if (spriteMatchers[i].matches(item, matchState)) {
+        spriteMatchers.removeAt(i);
       }
+    }
+    return spriteMatchers;
+  }
+
+  bool matches(item, Map matchState) {
+    if (item is World) {
+      List<WorldSpriteMatcher> spriteMatchers = _reduceToMisMatches(item, matchState);
       return spriteMatchers.isEmpty && _spriteMatchers.length == item.spriteIndex.count();
     }
     return false;
@@ -228,7 +261,11 @@ class WorldSpriteStateMatcher extends Matcher {
   Description describeMismatch(item, Description mismatchDescription,
                                var matchState, bool verbose) {
     if (item is World) {
-      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.spriteIndex}");
+      mismatchDescription.add("${_spriteMatchers} didn't match all in ${item.spriteIndex}\n");
+      List<WorldSpriteMatcher> spriteMatchers = _reduceToMisMatches(item, matchState);
+      for(WorldSpriteMatcher m in spriteMatchers) {
+        m.describeMismatch(item, mismatchDescription, matchState, verbose);
+      }
     } else {
       mismatchDescription.add("Matched item must be World");
     }

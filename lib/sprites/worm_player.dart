@@ -18,7 +18,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
  */
 class RemotePlayerClientSprite extends LocalPlayerSprite {
   RemotePlayerClientSprite(WormWorld world,  PlayerInfo info)
-      : super(world, world.imageIndex(), null, info.remoteKeyState, info, 0.0, 0.0, 0);
+      : super(world, world.imageIndex(), null, info.remoteKeyState(), info, 0.0, 0.0, 0);
 
 }
 
@@ -51,7 +51,7 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
  */
 class RemotePlayerSprite extends LocalPlayerSprite {
   RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, info.remoteKeyState, info, x, y, imageIndex);
+      : super(world, world.imageIndex(), mobileControls, info.remoteKeyState(), info, x, y, imageIndex);
 }
 
 /**

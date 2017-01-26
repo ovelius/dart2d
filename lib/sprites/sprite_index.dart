@@ -28,6 +28,9 @@ class SpriteIndex {
         new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world, int spriteId, String connectionId) {
       PlayerInfo info = world.network().getGameState().playerInfoByConnectionId(connectionId);
+      if (!info.remoteKeyState().remoteState) {
+        throw new ArgumentError("Cannot create a remote sprite with local keystate! ${world}");
+      }
       return new RemotePlayerClientSprite(world, info);
     },
     SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),

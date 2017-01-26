@@ -25,7 +25,7 @@ void main() {
       WormWorld worldC = initTestWorld(injectorC);;
       worldA.startAsServer("nameA");
       worldA.frameDraw();
-      expect(worldA, hasSpriteWithNetworkId(playerId(0))
+      expect(worldA, hasPlayerSpriteWithNetworkId(playerId(0))
           .andNetworkType(NetworkType.LOCAL));
       logConnectionData = true;
       worldB.connectTo("a", "nameB");
@@ -37,20 +37,24 @@ void main() {
       }
       logConnectionData = false;
       expect(worldA, hasExactSprites([
-          hasSpriteWithNetworkId(playerId(0))
+          hasPlayerSpriteWithNetworkId(playerId(0))
               .andNetworkType(NetworkType.LOCAL),
-          hasSpriteWithNetworkId(playerId(1))
-              .andNetworkType(NetworkType.REMOTE_FORWARD),
-          hasSpriteWithNetworkId(playerId(2))
-              .andNetworkType(NetworkType.REMOTE_FORWARD),
+          hasPlayerSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE_FORWARD)
+              .andRemoteKeyState(),
+          hasPlayerSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.REMOTE_FORWARD)
+              .andRemoteKeyState(),
       ]));
       expect(worldB, hasExactSprites([
-            hasSpriteWithNetworkId(playerId(0))
-                .andNetworkType(NetworkType.REMOTE),
-            hasSpriteWithNetworkId(playerId(1))
+        hasPlayerSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.REMOTE)
+                .andRemoteKeyState(),
+        hasPlayerSpriteWithNetworkId(playerId(1))
                 .andNetworkType(NetworkType.LOCAL),
-            hasSpriteWithNetworkId(playerId(2))
-                .andNetworkType(NetworkType.REMOTE),
+        hasPlayerSpriteWithNetworkId(playerId(2))
+                .andNetworkType(NetworkType.REMOTE)
+                .andRemoteKeyState(),
       ]));
       // Assert server A representation.
       expect(worldA.spriteIndex[playerId(0)],
@@ -112,10 +116,11 @@ void main() {
       worldB.addSprite(imageSprite);
       worldB.frameDraw();
       expect(worldB, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(1))
+        hasPlayerSpriteWithNetworkId(playerId(1))
             .andNetworkType(NetworkType.LOCAL),
-        hasSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.REMOTE_FORWARD),
+        hasPlayerSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.REMOTE_FORWARD)
+            .andRemoteKeyState(),
         hasSpriteWithNetworkId(sprite.networkId)
             .andNetworkType(NetworkType.LOCAL),
         hasSpriteWithNetworkId(imageSprite.networkId)
@@ -125,13 +130,14 @@ void main() {
       worldC.frameDraw();
       // Sprite gets added to worldC the next frame.
       expect(worldC, hasExactSprites([
-         hasSpriteWithNetworkId(playerId(1))
-             .andNetworkType(NetworkType.REMOTE),
-         hasSpriteWithNetworkId(playerId(2))
+        hasPlayerSpriteWithNetworkId(playerId(1))
+             .andNetworkType(NetworkType.REMOTE)
+             .andRemoteKeyState(),
+        hasPlayerSpriteWithNetworkId(playerId(2))
              .andNetworkType(NetworkType.LOCAL),
-         hasSpriteWithNetworkId(sprite.networkId)
+        hasSpriteWithNetworkId(sprite.networkId)
              .andNetworkType(NetworkType.REMOTE),
-         hasSpriteWithNetworkId(imageSprite.networkId)
+        hasSpriteWithNetworkId(imageSprite.networkId)
              .andNetworkType(NetworkType.REMOTE),
       ]));
       // Now remove the sprite.

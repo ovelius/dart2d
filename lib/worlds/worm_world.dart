@@ -186,6 +186,7 @@ class WormWorld extends World {
       clearScreen();
       restart = false;
     }
+
     assert(byteWorld.initialized());
 
     // Count the draw FPS before adjusting the duration.
@@ -315,14 +316,14 @@ class WormWorld extends World {
     return true;
   }
 
-  void createLocalClient(String connectionId, int spriteId, int localSpriteIndex) {
+  void createLocalClient(int spriteId, int localSpriteIndex) {
     spriteIndex.spriteNetworkId = spriteId;
     int playerSpriteIndex = localSpriteIndex;
-    PlayerInfo info = _network.getGameState().playerInfoByConnectionId(connectionId);
+    PlayerInfo info = _network.getGameState().playerInfoByConnectionId(network().peer.id);
     if (info == null) {
       throw new StateError("Cannot create local client as it is missing from GameState! Was ${_network.getGameState()}");
     }
-    info.remoteKeyState = localKeyState;
+    info.updateWithLocalKeyState(localKeyState);
     playerSprite = new RemotePlayerSprite(
         this, _mobileControls, info, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
@@ -344,6 +345,7 @@ class WormWorld extends World {
     playerSprite.spawnIn = 1.0;
     playerSprite.setImage(imageId, 24);
     _network.gameState.addPlayerInfo(info);
+    info.updateWithLocalKeyState(localKeyState);
     addSprite(playerSprite);
   }
   
@@ -537,5 +539,5 @@ class WormWorld extends World {
   ImageIndex imageIndex() => _imageIndex;
   FpsCounter drawFps() => _drawFps;
 
-  toString() => "World[${_network.peer.id}]";
+  toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
 }

@@ -22,7 +22,7 @@ class PlayerInfo {
   bool inGame = false;
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
-  KeyState remoteKeyState = new KeyState.remote();
+  KeyState _remoteKeyState = new KeyState.remote();
 
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
@@ -33,6 +33,13 @@ class PlayerInfo {
     score = map["s"];
     deaths = map["d"];
     inGame = map.containsKey("g");
+  }
+
+  KeyState remoteKeyState() => _remoteKeyState;
+
+  void updateWithLocalKeyState(KeyState localState) {
+    assert(!localState.remoteState);
+    _remoteKeyState = localState;
   }
 
   Map toMap() {
@@ -48,7 +55,7 @@ class PlayerInfo {
     return map;
   }
 
-  String toString() => "${spriteId} ${name} ${inGame}";
+  String toString() => "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
 }
 
 @Injectable()
@@ -108,6 +115,7 @@ class GameState {
 
   void addPlayerInfo(PlayerInfo info) {
     assert(info.connectionId != null);
+    assert(info.remoteKeyState().remoteState);
     _playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
   }
@@ -121,7 +129,7 @@ class GameState {
             "Received KeyState for Player that doesn't exist? ${connection.id}");
         return;
       }
-      info.remoteKeyState.setEnabledKeys(keyState);
+      info._remoteKeyState.setEnabledKeys(keyState);
     });
     startedAt = new DateTime.now();
   }
@@ -132,9 +140,10 @@ class GameState {
     Map<String, PlayerInfo> byId = {};
     for (Map playerMap in players) {
       PlayerInfo info = new PlayerInfo.fromMap(playerMap);
+      assert(info.remoteKeyState().remoteState);
       PlayerInfo oldInfo = playerInfoByConnectionId(info.connectionId);
       if (oldInfo != null) {
-        info.remoteKeyState = oldInfo.remoteKeyState;
+        info._remoteKeyState = oldInfo._remoteKeyState;
       }
       newInfo.add(info);
       byId[info.connectionId] = info;
@@ -204,7 +213,7 @@ class GameState {
         if (connection != null) {
           RemotePlayerServerSprite remotePlayerSprite =
               new RemotePlayerServerSprite.copyFromMovingSprite(
-                  world, info.remoteKeyState, info, oldSprite);
+                  world, info.remoteKeyState(), info, oldSprite);
           remotePlayerSprite.setImage(
               oldSprite.imageId, oldSprite.size.x.toInt());
           world.replaceSprite(info.spriteId, remotePlayerSprite);
@@ -240,6 +249,6 @@ class GameState {
   }
 
   String toString() {
-    return "GameState with map ${mapId} server ${actingCommanderId} ${_playerInfo}";
+    return "GameState with map ${mapId} commander ${actingCommanderId} ${_playerInfo} started ${startedAt}";
   }
 }

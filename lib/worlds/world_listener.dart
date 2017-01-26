@@ -73,7 +73,8 @@ class WorldListener {
     if (!connection.isValidGameConnection()) {
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
-      _world.createLocalClient(connection.id, data["spriteId"], data["spriteIndex"]);
+      _gameState.updateFromMap(data[GAME_STATE]);
+      _world.createLocalClient(data["spriteId"], data["spriteIndex"]);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
@@ -105,17 +106,18 @@ class WorldListener {
     assert(info.connectionId != null);
 
     LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-        _world, _mobileControls, info.remoteKeyState, info, 0.0, 0.0, spriteIndex);
+        _world, _mobileControls, info.remoteKeyState(), info, 0.0, 0.0, spriteIndex);
     sprite.networkType =  NetworkType.REMOTE_FORWARD;
     sprite.networkId = spriteId;
     sprite.ownerId = connection.id;
     _world.addSprite(sprite);
 
     _world.displayHudMessageAndSendToNetwork("${name} connected.");
-    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex};
+    // Send updates gamestate here.
+    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex,
+      GAME_STATE: _network.getGameState().toMap()};
     connection.sendData({
       SERVER_PLAYER_REPLY: serverData,
-      GAME_STATE: _network.getGameState().toMap(),
       KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame});
 
