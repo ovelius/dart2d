@@ -67,7 +67,7 @@ void main() {
       expect(worldA.spriteIndex[playerId(1)],
           hasType('RemotePlayerServerSprite'));
       expect(worldB.spriteIndex[playerId(1)],
-          hasType('RemotePlayerSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       // Assert client C representation.
@@ -76,7 +76,7 @@ void main() {
       expect(worldB.spriteIndex[playerId(2)],
           hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(2)],
-          hasType('RemotePlayerSprite'));
+          hasType('LocalPlayerSprite'));
 
       testConnections['a'].forEach((e) { e.dropPackets = 100;});
       
@@ -106,7 +106,7 @@ void main() {
       expect(worldC.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(2)],
-          hasType('RemotePlayerSprite'));
+          hasType('LocalPlayerSprite'));
       
       // Now test transferring a sprite over the network.
       MovingSprite sprite = new MovingSprite(new Vec2(), new Vec2(1.0, 2.0), SpriteType.RECT);

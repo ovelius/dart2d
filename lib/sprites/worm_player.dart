@@ -38,14 +38,6 @@ class RemotePlayerServerSprite extends LocalPlayerSprite {
 }
 
 /**
- * Created on the client and streamed to the Server.
- */
-class RemotePlayerSprite extends LocalPlayerSprite {
-  RemotePlayerSprite(WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, info, x, y, imageIndex);
-}
-
-/**
  * How a server represents itself.
  */
 class LocalPlayerSprite extends MovingSprite {

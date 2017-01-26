@@ -328,8 +328,8 @@ class WormWorld extends World {
       throw new StateError("Cannot create local client as it is missing from GameState! Was ${_network.getGameState()}");
     }
     info.updateWithLocalKeyState(localKeyState);
-    playerSprite = new RemotePlayerSprite(
-        this, _mobileControls, info, 400.0, 200.0, playerSpriteIndex);
+    playerSprite = new LocalPlayerSprite(
+        this, _imageIndex, _mobileControls, info, 400.0, 200.0, playerSpriteIndex);
     playerSprite.size = new Vec2(24.0, 24.0);
     playerSprite.setImage(playerSpriteIndex, 24);
     addSprite(playerSprite);
