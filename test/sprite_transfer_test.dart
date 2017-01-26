@@ -65,14 +65,14 @@ void main() {
           hasType('LocalPlayerSprite'));
       // Assert client B representation. 
       expect(worldA.spriteIndex[playerId(1)],
-          hasType('RemotePlayerServerSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldB.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       // Assert client C representation.
       expect(worldA.spriteIndex[playerId(2)],
-          hasType('RemotePlayerServerSprite'));
+          hasType('LocalPlayerSprite'));
       expect(worldB.spriteIndex[playerId(2)],
           hasType('LocalPlayerSprite'));
       expect(worldC.spriteIndex[playerId(2)],

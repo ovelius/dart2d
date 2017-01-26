@@ -105,8 +105,8 @@ class WorldListener {
     _network.gameState.addPlayerInfo(info);
     assert(info.connectionId != null);
 
-    LocalPlayerSprite sprite = new RemotePlayerServerSprite(
-        _world, _mobileControls, info, 0.0, 0.0, spriteIndex);
+    LocalPlayerSprite sprite = new LocalPlayerSprite(_world, _world.imageIndex(), _mobileControls, info, 0.0, 0.0, spriteIndex);
+
     sprite.networkType =  NetworkType.REMOTE_FORWARD;
     sprite.networkId = spriteId;
     sprite.ownerId = connection.id;

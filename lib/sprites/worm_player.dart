@@ -19,10 +19,6 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
  */
 class RemotePlayerServerSprite extends LocalPlayerSprite {
 
-  RemotePlayerServerSprite(
-      WormWorld world, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageIndex)
-      : super(world, world.imageIndex(), mobileControls, info, x, y, imageIndex);
-
   RemotePlayerServerSprite.copyFromMovingSprite(
       WormWorld world, PlayerInfo info, MovingSprite sprite)
       : super.copyFromMovingSprite(world, sprite) {
