@@ -88,6 +88,7 @@ class LocalPlayerSprite extends MovingSprite {
      this.size = convertSprite.size;
      this.world = world;
      this.info = convertSprite.info;
+     this.spawnIn = convertSprite.spawnIn;
      this.collision = this.inGame();
      this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
      this.networkId = convertSprite.networkId;
@@ -126,10 +127,27 @@ class LocalPlayerSprite extends MovingSprite {
 
   addServerToOwnerData(List data) {
     data.add(health);
+    data.add(spawnIn * DOUBLE_INT_CONVERSION);
     if (weaponState != null && weaponState.reloading()) {
       data.add(weaponState.reloadPercent());
     }
   }
+
+  bool parseServerToOwnerData(List data) {
+    if (_ownedByThisWorld()) {
+      health = data[1];
+      spawnIn = data[2] / DOUBLE_INT_CONVERSION;
+      if (data.length > 3) {
+        this.weaponState.manualReloadPercent = data[3];
+      } else {
+        this.weaponState.manualReloadPercent = null;
+      }
+    } else {
+      log.warning("Not owner of ${networkId}, not parsing commander data ${data}");
+      return false;
+    }
+  }
+
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {
@@ -422,20 +440,6 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
-  bool parseServerToOwnerData(List data) {
-    if (_ownedByThisWorld()) {
-      health = data[1];
-      if (data.length > 2) {
-        this.weaponState.manualReloadPercent = data[2];
-      } else {
-        this.weaponState.manualReloadPercent = null;
-      }
-    } else {
-      log.warning("Not owner of ${networkId}, not parsing commander data ${data}");
-      return false;
-    }
-  }
-  
   bool listenFor(String key, dynamic f) {
     assert(getControls().containsKey(key));
     info.remoteKeyState().registerListener(getControls()[key], f);

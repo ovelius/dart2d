@@ -167,12 +167,13 @@ void main() {
           new MapKeyMatcher.doesNotContain(REMOVE_KEY));
     });
     
-    test('TestGameStateTransfer', () {
+    test('TestGameStateTransferKillPlayer', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       worldA.startAsServer("nameA");
      
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection().sendClientEnter();
 
       logConnectionData = true;
       for (int i = 0; i < 3; i++) {
@@ -182,9 +183,9 @@ void main() {
 
       // Both worlds are in the same gamestate.
       expect(worldB.network().gameState,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
       expect(worldA.network().gameState,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
 
       // The player B sprite is hooked up to the gameState.
       LocalPlayerSprite playerBSprite = worldB.spriteIndex[playerId(1)];
@@ -199,9 +200,12 @@ void main() {
       
       // Now kill one player.
       playerBSprite = worldA.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(true));
+      expect(playerBSprite.inGame(), equals(true));
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
+      expect(playerBSprite.maybeRespawn(0.01), equals(true));
       
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
@@ -211,6 +215,60 @@ void main() {
       playerBSprite.takeDamage(playerBSprite.health);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
+
+      // Pass some time.
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // World A
+      playerBSprite = worldA.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(true));
+      expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.maybeRespawn(0.01), equals(true));
+
+      // World B
+      playerBSprite = worldB.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(false));
+      expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.maybeRespawn(0.01), equals(false));
+
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
+
+      // Now force a switch of commander, but kill player first!
+      playerBSprite = worldA.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(true));
+      playerBSprite.takeDamage(playerBSprite.health);
+
+      worldA.drawFps().setFpsForTest(3.1);
+      // Should be enough frames to switch commander and respawn the player.
+      for (int i = 0; i < 25; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      worldA.drawFps().setFpsForTest(45.0);
+
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('b'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('b'));
+
+      // Player should be back in game now in both worlds.
+      // World A
+      playerBSprite = worldA.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(false));
+      expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.maybeRespawn(0.01), equals(false));
+
+      // World B
+      playerBSprite = worldB.spriteIndex[playerId(1)];
+      expect(playerBSprite.collision, equals(true));
+      expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.maybeRespawn(0.01), equals(true));
     });
     
     test('TestPlayerDeath', () {

@@ -58,10 +58,19 @@ class Network {
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,
         (ConnectionWrapper connection, int fps) {
+          /// Update the FPS counter. We don't care if commander or not.
           PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
           if (info != null) {
             info.fps = fps;
           }
+    });
+    _packetListenerBindings.bindHandler(CONNECTIONS_LIST,
+        (ConnectionWrapper connection, List<String> connections) {
+      /// Update the FPS counter. We don't care if commander or not.
+      PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
+      if (info != null) {
+        info.connections = connections;
+      }
     });
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
             (ConnectionWrapper connection, var data) {
@@ -299,6 +308,7 @@ class Network {
     if (keyFrame) {
       registerDroppedFrames(data);
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
+      data[CONNECTIONS_LIST] = peer.connections.keys.toList();
     }
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;

@@ -22,6 +22,8 @@ class PlayerInfo {
   bool inGame = false;
   // How many frames per second this client has.
   int fps = 45;
+  // What conenctions this player has.
+  List<String> connections = [];
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
   KeyState _remoteKeyState = new KeyState.remote();
@@ -35,6 +37,7 @@ class PlayerInfo {
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
+    connections = map['c'];
     inGame = map.containsKey("g");
   }
 
@@ -50,6 +53,7 @@ class PlayerInfo {
     map["n"] = name;
     map["sid"] = spriteId;
     map["cid"] = connectionId;
+    map['c'] = connections;
     map['f'] = fps;
     map["s"] = score;
     map["d"] = deaths;
