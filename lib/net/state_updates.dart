@@ -14,6 +14,8 @@ String CLIENT_PLAYER_SPEC = "_c";
 String CLIENT_PLAYER_ENTER = "_e";
 String SERVER_PLAYER_REPLY = "-c";
 String SERVER_PLAYER_REJECT = "-r";
+String FPS = "-f";
+String CONNECTIONS_LIST = "_f";
 String GAME_STATE = "-g";
 String WORLD_DESTRUCTION = "_w";
 String WORLD_DRAW = "+w";
@@ -29,6 +31,8 @@ String TRANSFER_COMMAND = "tt";
  */
 void remapKeyNamesForTest() {
   REMOVE_KEY = "remove_sprite";
+  FPS = "fps";
+  CONNECTIONS_LIST = "connection_list";
   KEY_FRAME_KEY = "last_key_frame";
   IS_KEY_FRAME_KEY = "is_key_frame";
   MESSAGE_KEY = "player_message";
@@ -72,6 +76,8 @@ Set<String> SPECIAL_KEYS = new Set.from(
     [CLIENT_PLAYER_SPEC,
      CLIENT_PLAYER_ENTER,
      WORLD_DRAW,
+     FPS,
+     CONNECTIONS_LIST,
      SERVER_PLAYER_REPLY,
      SERVER_PLAYER_REJECT,
      REMOVE_KEY,

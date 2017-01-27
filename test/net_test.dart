@@ -474,7 +474,7 @@ void main() {
       expect(worldB.spriteIndex.count(), equals(2));
 
       // Now B is having framerate issues.
-      worldB.drawFps().setFpsForTest(0.1);
+      worldB.drawFps().setFpsForTest(2.1);
 
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB.network().slowCommandingFrames(), equals(1));
@@ -493,7 +493,11 @@ void main() {
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
 
-      worldB.drawFps().setFpsForTest(null);
+      // Because worldB is only doing 2 Fps!
+      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps, equals(2));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps, equals(2));
+
+      worldB.drawFps().setFpsForTest(25.0);
 
       // And all is well for a while.
       for (int i = 0; i < 10; i++) {
@@ -509,7 +513,11 @@ void main() {
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
 
-      worldA.drawFps().setFpsForTest(0.1);
+      // And the FPS increased.
+      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
+
+      worldA.drawFps().setFpsForTest(3.1);
 
       // And all is well for a while.
       for (int i = 0; i < 10; i++) {
@@ -524,6 +532,9 @@ void main() {
       expect(worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
+
+      expect(worldB.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
 
     });
 

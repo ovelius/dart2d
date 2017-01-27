@@ -56,6 +56,13 @@ class Network {
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
+    _packetListenerBindings.bindHandler(FPS,
+        (ConnectionWrapper connection, int fps) {
+          PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
+          if (info != null) {
+            info.fps = fps;
+          }
+    });
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
             (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
@@ -298,7 +305,11 @@ class Network {
     }
     if (!isCommander()) {
       data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
+      if (keyFrame) {
+        data[FPS] = _drawFps.fps().toInt();
+      }
     } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
+      gameState.playerInfoByConnectionId(peer.id).fps = _drawFps.fps().toInt();
       data[GAME_STATE] = gameState.toMap();
     }
     if (data.length > 0) {
@@ -327,6 +338,9 @@ class Network {
 
   void setAsActingCommander() {
     log.info("Setting ${peer.id} as acting commander.");
+    if (gameState.playerInfoByConnectionId(peer.id) == null) {
+      throw new StateError("${peer.id} can not be commander is it's not part of the gamestate! ${gameState.playerInfoList()}");
+    }
     gameState.actingCommanderId = peer.id;
     gameState.markAsUrgent();
     // TODO select me!

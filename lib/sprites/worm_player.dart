@@ -15,25 +15,6 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 // TODO cleanup the constructor hell in this file!
 
 /**
- * Created on the server to represent clients.
- */
-class RemotePlayerServerSprite extends LocalPlayerSprite {
-
-  RemotePlayerServerSprite.copyFromMovingSprite(
-      WormWorld world, PlayerInfo info, MovingSprite sprite)
-      : super.copyFromMovingSprite(world, sprite) {
-    // TODO what about key bindings??
-    this.world = world;
-    this.info = info;
-    this.collision = this.inGame();
-    this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
-    this.networkId = sprite.networkId;
-  }
-
-
-}
-
-/**
  * How a server represents itself.
  */
 class LocalPlayerSprite extends MovingSprite {
@@ -102,9 +83,13 @@ class LocalPlayerSprite extends MovingSprite {
     return sprite;
   }
   
-  LocalPlayerSprite.copyFromMovingSprite(WormWorld world, MovingSprite convertSprite)
+  LocalPlayerSprite.copyFromMovingSprite(WormWorld world, LocalPlayerSprite convertSprite)
        : super.imageBasedSprite(convertSprite.position, convertSprite.imageId, world.imageIndex()) {
      this.size = convertSprite.size;
+     this.world = world;
+     this.info = convertSprite.info;
+     this.collision = this.inGame();
+     this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
      this.networkId = convertSprite.networkId;
      this.networkType = convertSprite.networkType;
      this.gun = _createGun(world.imageIndex());

@@ -496,9 +496,9 @@ class WormWorld extends World {
 
   startAsServer([String name]) {
     initByteWorld();
-    _network.setAsActingCommander();
     assert(imageIndex != null);
     addLocalPlayerSprite(this.playerName);
+    _network.setAsActingCommander();
   }
 
   void initByteWorld([String map = 'world.png']) {

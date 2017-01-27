@@ -94,7 +94,7 @@ void main() {
       expect(worldB.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       expect(worldB.spriteIndex[playerId(2)],
-          hasType('RemotePlayerServerSprite'));
+          hasType('LocalPlayerSprite'));
       
       expect(worldC.spriteIndex.count(), equals(2));
           expect(worldC, hasExactSprites([

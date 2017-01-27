@@ -203,6 +203,7 @@ void main() {
       }
     }
 
+    network.gameState.addPlayerInfo(new PlayerInfo('Name a', 'a', -1));
     network.setAsActingCommander();
     expect(network.isCommander(), isTrue);
 

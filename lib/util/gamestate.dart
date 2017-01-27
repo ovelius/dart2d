@@ -20,6 +20,8 @@ class PlayerInfo {
   int score = 0;
   int deaths = 0;
   bool inGame = false;
+  // How many frames per second this client has.
+  int fps = 45;
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
   KeyState _remoteKeyState = new KeyState.remote();
@@ -29,6 +31,7 @@ class PlayerInfo {
   PlayerInfo.fromMap(Map map) {
     name = map["n"];
     spriteId = map["sid"];
+    fps = map['f'];
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
@@ -47,6 +50,7 @@ class PlayerInfo {
     map["n"] = name;
     map["sid"] = spriteId;
     map["cid"] = connectionId;
+    map['f'] = fps;
     map["s"] = score;
     map["d"] = deaths;
     if (inGame) {
@@ -210,9 +214,9 @@ class GameState {
         ConnectionWrapper connection =
             world.network().peer.connections[info.connectionId];
         if (connection != null) {
-          RemotePlayerServerSprite remotePlayerSprite =
-              new RemotePlayerServerSprite.copyFromMovingSprite(
-                  world, info, oldSprite);
+          LocalPlayerSprite remotePlayerSprite =
+              new LocalPlayerSprite.copyFromMovingSprite(
+                  world, oldSprite);
           remotePlayerSprite.setImage(
               oldSprite.imageId, oldSprite.size.x.toInt());
           world.replaceSprite(info.spriteId, remotePlayerSprite);
