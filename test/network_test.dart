@@ -16,11 +16,11 @@ class MockImageIndex extends Mock implements ImageIndex {}
 
 class MockWormWorld extends Mock implements WormWorld {}
 
-class MockFpsCounter extends Mock implements FpsCounter { }
+class MockFpsCounter extends Mock implements FpsCounter {}
 
 class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   Vec2 size = new Vec2(1, 1);
-  PlayerInfo info = new PlayerInfo('a', 'a',  123);
+  PlayerInfo info = new PlayerInfo('a', 'a', 123);
 }
 
 class MockKeyState extends Mock implements KeyState {}
@@ -53,8 +53,14 @@ void main() {
     packetListenerBindings = new PacketListenerBindings();
     gameState = new GameState(packetListenerBindings, mockSpriteIndex);
     peer = new TestPeer('a');
-    network = new Network(mockHudMessages, gameState, packetListenerBindings,
-        mockFpsCounter, peer, new FakeJsCallbacksWrapper(), mockSpriteIndex,
+    network = new Network(
+        mockHudMessages,
+        gameState,
+        packetListenerBindings,
+        mockFpsCounter,
+        peer,
+        new FakeJsCallbacksWrapper(),
+        mockSpriteIndex,
         mockKeyState);
     network.world = mockWormWorld;
     when(mockFpsCounter.fps()).thenReturn(15.0);
@@ -185,20 +191,30 @@ void main() {
     expect(network.safeActiveConnections().length, equals(0));
   });
 
-  test('Test set as acting commander but we suck too much to be commander :(', () {
-    TestConnection connectionD = new TestConnection('d');
-    TestConnection connectionOtherEndD = new TestConnection('e');
+  TestConnection fakeConnection(String from, String to) {
+    TestConnection connectionD = new TestConnection(from);
+    TestConnection connectionOtherEndD = new TestConnection(to);
     connectionOtherEndD.setOtherEnd(connectionD);
     connectionOtherEndD.bindOnHandler('data', (unused, data) {
       print("Got data ${data}");
     });
     connectionD.setOtherEnd(connectionOtherEndD);
+    return connectionD;
+  }
+
+  test('Test set as acting commander but we suck too much to be commander :(',
+      () {
+    TestConnection connectionD = fakeConnection('d', 'e');
+    TestConnection connectionF = fakeConnection('f', 'g');
 
     network.peer.connectPeer(null, connectionB);
     network.peer.connectPeer(null, connectionD);
+    network.peer.connectPeer(null, connectionF);
 
-    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
-      if (connection.id == 'd') {
+    // Only mark two connections as having active game.
+    for (ConnectionWrapper connection
+        in network.safeActiveConnections().values) {
+      if (connection.id == 'd' || connection.id == 'f') {
         connection.setHandshakeReceived();
       }
     }
@@ -209,7 +225,7 @@ void main() {
 
     // We have two connections.
     expect(new Set.from(network.safeActiveConnections().keys),
-       equals(['b', 'd']));
+        equals(['b', 'd', 'f']));
 
     frame();
 
@@ -221,6 +237,13 @@ void main() {
     frame();
     expect(network.slowCommandingFrames(), 1);
 
+    // PlayerD is no a suitable candidate.
+    PlayerInfo playerDInfo = new PlayerInfo('Name d', 'd', -1);
+    PlayerInfo playerFInfo = new PlayerInfo('Name f', 'f', -1);
+    playerDInfo.fps = 2;
+    playerFInfo.fps = 10;
+    network.gameState..addPlayerInfo(playerDInfo)..addPlayerInfo(playerFInfo);
+
     int max = 10;
     while (network.slowCommandingFrames() > 0 && max-- > 0) {
       print("waiting for command transfer");
@@ -228,7 +251,8 @@ void main() {
     }
 
     // We signaled a transfer to another active game connection.
-    expect(connectionD.getOtherEnd().decodedRecentDataRecevied().keys,
+    // We picked F since that has the highest current FPS.
+    expect(connectionF.getOtherEnd().decodedRecentDataRecevied().keys,
         contains(TRANSFER_COMMAND));
   });
 
@@ -262,7 +286,8 @@ void main() {
     network.peer.connectPeer(null, connectionB);
     network.peer.connectPeer(null, connectionD);
 
-    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
+    for (ConnectionWrapper connection
+        in network.safeActiveConnections().values) {
       connection.setHandshakeReceived();
     }
 
@@ -329,13 +354,7 @@ void main() {
     for (TestConnection connection in connections.values) {
       Map data = connection.decodedRecentDataRecevied();
       data[PING] = 123;
-      expect(
-          data,
-          equals({
-            PING: 123,
-            KEY_FRAME_KEY: 0,
-            IS_KEY_FRAME_KEY: 0
-          }));
+      expect(data, equals({PING: 123, KEY_FRAME_KEY: 0, IS_KEY_FRAME_KEY: 0}));
       expect(connection.dataReceivedCount, equals(1));
     }
 
@@ -422,7 +441,8 @@ void main() {
 }
 
 class _TestPlayerSprite extends LocalPlayerSprite {
-  _TestPlayerSprite(MockImageIndex index) : super(null, index, null, new KeyState(null), null, 0.0, 0.0, 0);
+  _TestPlayerSprite(MockImageIndex index)
+      : super(null, index, null, new KeyState(null), null, 0.0, 0.0, 0);
 }
 
 class _TestSprite extends MovingSprite {

@@ -66,7 +66,7 @@ class Network {
     });
     _packetListenerBindings.bindHandler(CONNECTIONS_LIST,
         (ConnectionWrapper connection, List<String> connections) {
-      /// Update the FPS counter. We don't care if commander or not.
+      /// Update the list of connections for this player.
       PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
       if (info != null) {
         info.connections = connections;
@@ -113,23 +113,57 @@ class Network {
         validKeys.add(key);
       }
     }
-    // We don't have a server connection. We need to elect a new one.
+    // Don't count our own id.
+    if (!ignoreSelf) {
+      return _naturalOrderPeerId(validKeys);
+    } else {
+      return _bestCommanderPeerId(validKeys);
+    }
+  }
+
+  /**
+   * When the commander dies unexpectedly we need to make a collective decision on
+   * who will be the next commander. The peer ID should be the most consistent item
+   * so we pick the remaining host with the highest naturual order peerId.
+   * Should this turn out to be unsuitable, it will automatically select a better
+   * commander in time.
+   */
+  String _naturalOrderPeerId(List<String> validKeys) {
     // We always elect the peer with the highest natural order id.
     var maxPeerKey = null;
     if (!validKeys.isEmpty) {
       maxPeerKey = validKeys.reduce(
           (value, element) => value.compareTo(element) < 0 ? value : element);
     }
-    // Don't count our own id.
-    if (ignoreSelf) {
-      return maxPeerKey;
-    }
-    // Compare to our own id.
     if (maxPeerKey != null && maxPeerKey.compareTo(peer.id) < 0) {
       return maxPeerKey;
     } else {
       return peer.id;
     }
+  }
+
+
+  /**
+   * Select the best next commander.
+   * TODO also count the number of connections?
+   */
+  String _bestCommanderPeerId(List<String> validKeys) {
+    int bestFps = -1;
+    String bestFpsKey = null;
+    for (String peerId in validKeys) {
+      // Pick commander with highest FPS.
+      PlayerInfo info = gameState.playerInfoByConnectionId(peerId);
+      if (info != null) {
+        if (info.fps > bestFps) {
+          bestFps = info.fps;
+          bestFpsKey = peerId;
+        }
+      } else {
+        log.warning("PlayerInfo for ${peerId} is missing! Odd since connection is marked as in game.");
+      }
+    }
+    log.info("Identified ${bestFpsKey} as best suitable commander with fps ${bestFps}");
+    return bestFpsKey;
   }
 
   /**
