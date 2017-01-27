@@ -37,6 +37,11 @@ class MovingSprite extends Sprite {
   frame(double duration, int frames, [Vec2 gravity]) {
     assert(duration != null);
     assert(duration >= .0);
+
+    // Protect against low framerates.
+    if (duration > 0.2) {
+      duration = 0.2;
+    }
         
     if (flags & FLAG_NO_MOVEMENTS == 0) {
       velocity = velocity.add(
