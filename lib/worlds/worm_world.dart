@@ -164,6 +164,8 @@ class WormWorld extends World {
     _network.sendMessage(message);
   }
 
+  bool loaderCompleted() => loader.completed();
+
   void frameDraw([double duration = 0.01, bool slowDown = false]) {
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {

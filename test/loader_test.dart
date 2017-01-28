@@ -97,6 +97,7 @@ void main() {
       tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
 
       when(connection1.isValidGameConnection()).thenReturn(true);
+      when(mockChunkHelper.getCompleteRatio(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(0.5);
       tickAndAssertState(LoaderState.LOADING_GAMESTATE);
 
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(true);

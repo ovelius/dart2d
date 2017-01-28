@@ -15,7 +15,7 @@ import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 // Network has 2 keyframes per second.
-const KEY_FRAME_DEFAULT = 1.0/2;
+const KEY_FRAME_DEFAULT = 1.0 / 2;
 const PROBLEMATIC_FRAMES_BEHIND = 2;
 
 @Injectable()
@@ -53,16 +53,17 @@ class Network {
     this._spriteIndex = spriteIndex;
     this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
-    peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer, peerWrapperCallbacks);
+    peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer,
+        peerWrapperCallbacks);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,
         (ConnectionWrapper connection, int fps) {
-          /// Update the FPS counter. We don't care if commander or not.
-          PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
-          if (info != null) {
-            info.fps = fps;
-          }
+      /// Update the FPS counter. We don't care if commander or not.
+      PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
+      if (info != null) {
+        info.fps = fps;
+      }
     });
     _packetListenerBindings.bindHandler(CONNECTIONS_LIST,
         (ConnectionWrapper connection, List<String> connections) {
@@ -73,7 +74,7 @@ class Network {
       }
     });
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
-            (ConnectionWrapper connection, var data) {
+        (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
       gameState.reset();
       connection.close(null);
@@ -81,7 +82,11 @@ class Network {
 
     _packetListenerBindings.bindHandler(TRANSFER_COMMAND,
         (ConnectionWrapper connection, String data) {
-          // Server wants us to take command.
+      if (!world.loaderCompleted()) {
+        log.warning(
+            "Can not transfer command to us before loading has completed. Dropping request.");
+      }
+      // Server wants us to take command.
       log.info("Coverting self to commander");
       this.convertToCommander(this.safeActiveConnections());
     });
@@ -89,7 +94,7 @@ class Network {
 
   /**
    * Our goal is to always have a connection to a commander.
-   * This is checked when a connection is dropped. 
+   * This is checked when a connection is dropped.
    * Potentially this method will elect a new commander.
    * returns the id of the new commander, or null if no new commander was needed.
    * TODO(Erik): Consider more factors when electing servers, like number of connected
@@ -97,10 +102,10 @@ class Network {
    */
   String findNewCommander(Map connections, [bool ignoreSelf = false]) {
     if (!isCommander()) {
-     if (!gameState.isInGame(peer.id)) {
-       log.info("No active game found for us, no commander role to transfer.");
-       return null;
-     }
+      if (!gameState.isInGame(peer.id)) {
+        log.info("No active game found for us, no commander role to transfer.");
+        return null;
+      }
     }
     List<String> validKeys = [];
     for (String key in connections.keys) {
@@ -142,7 +147,6 @@ class Network {
     }
   }
 
-
   /**
    * Select the best next commander.
    * TODO also count the number of connections?
@@ -159,10 +163,12 @@ class Network {
           bestFpsKey = peerId;
         }
       } else {
-        log.warning("PlayerInfo for ${peerId} is missing! Odd since connection is marked as in game.");
+        log.warning(
+            "PlayerInfo for ${peerId} is missing! Odd since connection is marked as in game.");
       }
     }
-    log.info("Identified ${bestFpsKey} as best suitable commander with fps ${bestFps}");
+    log.info(
+        "Identified ${bestFpsKey} as best suitable commander with fps ${bestFps}");
     return bestFpsKey;
   }
 
@@ -212,7 +218,7 @@ class Network {
       }
     }
   }
-  
+
   /**
    * Return a map of connections garantueed to be active.
    */
@@ -227,12 +233,13 @@ class Network {
     }
     return activeConnections;
   }
-  
+
   /**
    * Return the connection to the server.
    */
   ConnectionWrapper getServerConnection() {
-    if (gameState.actingCommanderId != null && peer.connections.containsKey(gameState.actingCommanderId)) {
+    if (gameState.actingCommanderId != null &&
+        peer.connections.containsKey(gameState.actingCommanderId)) {
       return peer.connections[gameState.actingCommanderId];
     }
     return null;
@@ -240,12 +247,13 @@ class Network {
 
   _handleGameState(ConnectionWrapper connection, Map data) {
     if (isCommander() && pendingCommandTransfer() == null) {
-      log.warning("Not parsing gamestate from ${connection.id} because we are commander!");
+      log.warning(
+          "Not parsing gamestate from ${connection.id} because we are commander!");
       return;
     }
     gameState.updateFromMap(data);
     world.connectToAllPeersInGameState();
-    if (peer.connectedToServer() &&  gameState.isAtMaxPlayers()) {
+    if (peer.connectedToServer() && gameState.isAtMaxPlayers()) {
       peer.disconnect();
     }
   }
@@ -257,7 +265,8 @@ class Network {
   bool findServer() {
     Map connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
-    if (gameState.actingCommanderId != null && connections.containsKey(gameState.actingCommanderId)) {
+    if (gameState.actingCommanderId != null &&
+        connections.containsKey(gameState.actingCommanderId)) {
       /// TODO probe if game is full and close connection if it is.
       return true;
     }
@@ -284,7 +293,8 @@ class Network {
 
         if (!peer.autoConnectToPeers()) {
           // We didn't add any new peers. Bail.
-          log.warning("didn't find any servers, and not able to connect to any more peers. Giving up.");
+          log.warning(
+              "didn't find any servers, and not able to connect to any more peers. Giving up.");
           return true;
         }
       }
@@ -302,8 +312,9 @@ class Network {
   void sendMessage(String message) {
     Map data = {
       MESSAGE_KEY: [message],
-      IS_KEY_FRAME_KEY: currentKeyFrame};
-    peer.sendDataWithKeyFramesToAll(data);    
+      IS_KEY_FRAME_KEY: currentKeyFrame
+    };
+    peer.sendDataWithKeyFramesToAll(data);
   }
 
   void maybeSendLocalKeyStateUpdate() {
@@ -320,10 +331,12 @@ class Network {
       return;
     }
     if (isCommander()) {
-      if (_drawFps.fps() > 0.0 && _drawFps.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
+      if (_drawFps.fps() > 0.0 &&
+          _drawFps.fps() < (TARGET_SERVER_FRAMES_PER_SECOND / 2)) {
         // We are running at a very low server framerate. Are we really suitable
         // as commander?
-        log.fine("Commander ${peer.id} below FPS threshold! Is ${_drawFps.fps()}");
+        log.fine(
+            "Commander ${peer.id} below FPS threshold! Is ${_drawFps.fps()}");
         _slowCommandingFrames++;
       } else {
         _slowCommandingFrames = 0;
@@ -331,7 +344,8 @@ class Network {
     } else {
       // Command transfer successful.
       if (gameState.actingCommanderId == _pendingCommandTransfer) {
-        log.info("Succcesfully transfered command to ${gameState.actingCommanderId}");
+        log.info(
+            "Succcesfully transfered command to ${gameState.actingCommanderId}");
         _pendingCommandTransfer = null;
       }
     }
@@ -368,7 +382,8 @@ class Network {
         ConnectionWrapper connection = connections[newCommander];
         connection.sendCommandTransfer();
         _slowCommandingFrames = 0;
-        log.info("Attempting to transfer command rule due to slow framerate from us");
+        log.info(
+            "Attempting to transfer command rule due to slow framerate from us");
         _pendingCommandTransfer = newCommander;
       }
     }
@@ -383,7 +398,8 @@ class Network {
   void setAsActingCommander() {
     log.info("Setting ${peer.id} as acting commander.");
     if (gameState.playerInfoByConnectionId(peer.id) == null) {
-      throw new StateError("${peer.id} can not be commander is it's not part of the gamestate! ${gameState.playerInfoList()}");
+      throw new StateError(
+          "${peer.id} can not be commander is it's not part of the gamestate! ${gameState.playerInfoList()}");
     }
     gameState.actingCommanderId = peer.id;
     gameState.markAsUrgent();
@@ -412,18 +428,18 @@ class Network {
     }
     return false;
   }
-  
+
   String keyFrameDebugData() {
     if (!hasReadyConnection()) {
       return "No connections";
     }
     String debugString = "";
     for (ConnectionWrapper connection in peer.connections.values) {
-      debugString += "${connection.id} ${connection.expectedLatency().inMilliseconds}ms R/X/D: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}/${connection.droppedKeyFrames}";
+      debugString +=
+          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms R/X/D: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}/${connection.droppedKeyFrames}";
     }
     return debugString;
   }
-
 
   void parseBundle(ConnectionWrapper connection, Map<String, dynamic> bundle) {
     dataReceived();
@@ -431,11 +447,13 @@ class Network {
       if (!SPECIAL_KEYS.contains(networkId)) {
         int parsedNetworkId = int.parse(networkId);
         List data = bundle[networkId];
-        if (data[0] & Sprite.FLAG_COMMANDER_DATA == Sprite.FLAG_COMMANDER_DATA) {
+        if (data[0] & Sprite.FLAG_COMMANDER_DATA ==
+            Sprite.FLAG_COMMANDER_DATA) {
           // parse as commander data update.
           MovingSprite sprite = world.spriteIndex[parsedNetworkId];
           if (sprite == null) {
-            log.warning("Not creating sprite from update ${networkId}, unable to add commander data.");
+            log.warning(
+                "Not creating sprite from update ${networkId}, unable to add commander data.");
             continue;
           }
           if (isCommander()) {
@@ -453,9 +471,11 @@ class Network {
           if (data[0] & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
             constructor = SpriteConstructor.values[data[6]];
           }
-          MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
+          MovingSprite sprite =
+              world.getOrCreateSprite(parsedNetworkId, constructor, connection);
           if (sprite == null) {
-            log.info("Not creating sprite from update ${networkId}, constructor is ${constructor}");
+            log.info(
+                "Not creating sprite from update ${networkId}, constructor is ${constructor}");
             continue;
           }
           intListToSpriteProperties(bundle[networkId], sprite);
@@ -491,7 +511,8 @@ FpsCounter networkFps = new FpsCounter();
 
 void dataReceived() {
   DateTime now = new DateTime.now();
-  int millis = now.millisecondsSinceEpoch - lastNetworkFrameReceived.millisecondsSinceEpoch;
+  int millis = now.millisecondsSinceEpoch -
+      lastNetworkFrameReceived.millisecondsSinceEpoch;
   networkFps.timeWithFrames(millis / 1000.0, 1);
   lastNetworkFrameReceived = now;
 }

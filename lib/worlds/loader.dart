@@ -178,7 +178,9 @@ class Loader {
       _chunkHelper.requestSpecificNetworkData(
           {serverConnection.id : serverConnection}, duration,
           GAME_STATE_RESOURCES);
-      setState(LoaderState.LOADING_GAMESTATE);
+      // TODO figure out percentage of multiple items?
+      int percentComplete = (_chunkHelper.getCompleteRatio(GAME_STATE_RESOURCES[0]) * 100).toInt();
+      setState(LoaderState.LOADING_GAMESTATE, "Loading gamestate... ${percentComplete}%");
     }
   }
   
@@ -221,7 +223,6 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.CONNECTING_TO_GAME: "Connecting to game...",
 
   LoaderState.FINDING_SERVER: "Finding game to join..",
-  LoaderState.LOADING_GAMESTATE: "Loading gamestate...",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",
   LoaderState.LOADED_AS_SERVER: "Start as server!",
   LoaderState.LOADING_ENTERING_GAME: "Entering game...",

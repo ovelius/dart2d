@@ -385,7 +385,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool takesDamage() {
-    return true;
+    return collision;
   }
   
   void takeDamage(int damage) {

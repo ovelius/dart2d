@@ -30,6 +30,7 @@ class ChunkHelper {
 
   // Buffer partially completed images in this map.
   Map<int, String> _imageBuffer = new Map();
+  Map<int, int> _imageSizes = new Map();
   DateTime _created;
   double _timePassed = 0.0;
 
@@ -124,6 +125,9 @@ class ChunkHelper {
     int start = imageDataResponse['start'];
     // Final expected siimageBufferze.
     int size = imageDataResponse['size'];
+    if (!_imageSizes.containsKey(index)) {
+      _imageSizes[index] = size;
+    }
     if (!_imageBuffer.containsKey(index)) {
       log.warning(
           "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
@@ -144,6 +148,7 @@ class ChunkHelper {
     if (_imageBuffer[index].length == size) {
       _imageIndex.addFromImageData(index, _imageBuffer[index]);
       _imageBuffer.remove(index);
+      _imageSizes.remove(index);
       log.info("Image complete ${index} :)");
     }
   }
@@ -247,6 +252,17 @@ class ChunkHelper {
       return true;
     }
     return false;
+  }
+
+  double getCompleteRatio(int index) {
+    if (!_imageSizes.containsKey(index)) {
+      if (_imageIndex.imageIsLoaded(index)) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    }
+    return _imageBuffer[index].length / _imageSizes[index];
   }
 
   String getTransferSpeed() {

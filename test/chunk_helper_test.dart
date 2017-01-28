@@ -85,6 +85,13 @@ void main() {
     test('Test single load', () {
       int requestedIndex = 6;
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      // Set image to be loaded.
+      when(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA))
+          .thenAnswer((i) {
+        when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+      });
+
       Map request = helper.buildImageChunkRequest(requestedIndex);
       helper.replyWithImageData(request, connection1);
       helper.parseImageChunkResponse(
@@ -94,7 +101,8 @@ void main() {
       String expectedData = fullData.substring(0, 4);
       expect(helper.getImageBuffer(), equals({requestedIndex: expectedData}));
 
-      while (helper.getImageBuffer().containsKey(requestedIndex)) {
+      while (helper.getCompleteRatio(requestedIndex) < 1.0) {
+        print("Completed ratio is ${helper.getCompleteRatio(requestedIndex)}");
         Map request = helper.buildImageChunkRequest(requestedIndex);
         helper.replyWithImageData(request, connection1);
         helper.parseImageChunkResponse(

@@ -6,15 +6,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 List<String> imageSources = [
-    "shipg01.png",
-    "shield.png",
-    "shipr01.png",
-    "shipb01.png",
-    "shipy01.png",
     "fire.png",
-    "astroid.png",
-    "astroid2.png",
-    "astroid3.png",
     "duck.png",
     "dragon.png",
     "cock.png",
