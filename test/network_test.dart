@@ -97,6 +97,7 @@ void main() {
         equals({KEY_STATE_KEY: FAKE_ENABLED_KEYS, KEY_FRAME_KEY: 0}));
 
     _TestSprite sprite = new _TestSprite.withVecPosition(1000, new Vec2(9, 9));
+    sprite.color = "rgba(1, 2, 3, 1.0)";
     when(mockSpriteIndex.spriteIds()).thenReturn(new List.filled(1, 1000));
     when(mockSpriteIndex[1000]).thenReturn(sprite);
 
@@ -114,7 +115,7 @@ void main() {
           180000,
           SpriteConstructor.DAMAGE_PROJECTILE.index,
           1,
-          null,
+          "rgba(1, 2, 3, 1.0)",
           2,
           2,
           1,

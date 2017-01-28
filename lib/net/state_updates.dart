@@ -111,10 +111,12 @@ singleTonStoredValue(var a, var b) {
   return a == null ? b : a;
 }
 
+Set<SpriteType> _colorSpriteTypes = new Set.from([SpriteType.RECT, SpriteType.CIRCLE]);
+
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   keyFrame = keyFrame || sprite.fullFramesOverNetwork-- > 0;
-  List<int> data = [
+  List data = [
     sprite.extraSendFlags() | (keyFrame ? Sprite.FLAG_FULL_FRAME : 0),
     sprite.position.x.toInt(),
     sprite.position.y.toInt(),
@@ -125,7 +127,11 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   if (keyFrame) {
     data.add(sprite.remoteRepresentation().index);
     data.add(sprite.spriteType.index);
-    data.add(sprite.imageId);
+    if (sprite.spriteType == SpriteType.IMAGE) {
+      data.add(sprite.imageId);
+    } else if (_colorSpriteTypes.contains(sprite.spriteType)) {
+      data.add(sprite.color);
+    }
     data.add(sprite.size.x.toInt());
     data.add(sprite.size.y.toInt());
     data.add(sprite.frames);
@@ -151,11 +157,13 @@ void intListToSpriteProperties(List<int> data, MovingSprite sprite) {
   }
 }
 
-int _addFullFrameData(MovingSprite sprite, List<int> data, int startAt) {
+int _addFullFrameData(MovingSprite sprite, List data, int startAt) {
   SpriteType type = SpriteType.values[data[7]];
   sprite.spriteType = type;
   if (type == SpriteType.IMAGE) {
     sprite.setImage(data[8]);
+  } else if (_colorSpriteTypes.contains(type)) {
+    sprite.color = data[8];
   }
   sprite.size.x = data[9].toDouble();
   sprite.size.y = data[10].toDouble();
