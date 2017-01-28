@@ -61,38 +61,39 @@ const double DOUBLE_INT_CONVERSION = 10000.0;
 // Keys that should be delivered reliable.
 // Mapped to the function how old and new data should be merged.
 Map RELIABLE_KEYS = {
-    REMOVE_KEY: mergeUniqueList,
-    MESSAGE_KEY: mergeUniqueList,
-    WORLD_DESTRUCTION: mergeUniqueList,
-    WORLD_DRAW: mergeUniqueList,
-    CLIENT_PLAYER_SPEC: singleTonStoredValue,
-    CLIENT_PLAYER_ENTER: singleTonStoredValue,
-    SERVER_PLAYER_REPLY: singleTonStoredValue,
-    PING: singleTonStoredValue,
-    PONG: singleTonStoredValue,
-    };
+  REMOVE_KEY: mergeUniqueList,
+  MESSAGE_KEY: mergeUniqueList,
+  WORLD_DESTRUCTION: mergeUniqueList,
+  WORLD_DRAW: mergeUniqueList,
+  CLIENT_PLAYER_SPEC: singleTonStoredValue,
+  CLIENT_PLAYER_ENTER: singleTonStoredValue,
+  SERVER_PLAYER_REPLY: singleTonStoredValue,
+  PING: singleTonStoredValue,
+  PONG: singleTonStoredValue,
+};
 // Keys that should not be handled as sprite state updates.
-Set<String> SPECIAL_KEYS = new Set.from(
-    [CLIENT_PLAYER_SPEC,
-     CLIENT_PLAYER_ENTER,
-     WORLD_DRAW,
-     FPS,
-     CONNECTIONS_LIST,
-     SERVER_PLAYER_REPLY,
-     SERVER_PLAYER_REJECT,
-     REMOVE_KEY,
-     GAME_STATE,
-     PING,
-     PONG,
-     KEY_STATE_KEY,
-     KEY_FRAME_KEY,
-     IS_KEY_FRAME_KEY,
-     MESSAGE_KEY,
-     WORLD_DESTRUCTION,
-     WORLD_PARTICLE,
-     IMAGE_DATA_REQUEST,
-     TRANSFER_COMMAND,
-     IMAGE_DATA_RESPONSE]);
+Set<String> SPECIAL_KEYS = new Set.from([
+  CLIENT_PLAYER_SPEC,
+  CLIENT_PLAYER_ENTER,
+  WORLD_DRAW,
+  FPS,
+  CONNECTIONS_LIST,
+  SERVER_PLAYER_REPLY,
+  SERVER_PLAYER_REJECT,
+  REMOVE_KEY,
+  GAME_STATE,
+  PING,
+  PONG,
+  KEY_STATE_KEY,
+  KEY_FRAME_KEY,
+  IS_KEY_FRAME_KEY,
+  MESSAGE_KEY,
+  WORLD_DESTRUCTION,
+  WORLD_PARTICLE,
+  IMAGE_DATA_REQUEST,
+  TRANSFER_COMMAND,
+  IMAGE_DATA_RESPONSE
+]);
 
 List mergeUniqueList(List list1, List list2) {
   Set merged = new Set();
@@ -137,33 +138,32 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 }
 
 // Set all the properties to the sprite availble in the list.
-void intListToSpriteProperties(
-    List<int> data, MovingSprite sprite) {
+void intListToSpriteProperties(List<int> data, MovingSprite sprite) {
   sprite.flags = data[0];
-  if (data.length > 4) {
-    sprite.position.x = data[2].toDouble();
-    sprite.position.y = data[3].toDouble();
-    sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
+  sprite.position.x = data[2].toDouble();
+  sprite.position.y = data[3].toDouble();
+  sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
 
-    sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
-    sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
-
-    // At least two more items.
-    // TODO: Figure out exact increase.
-    if (sprite.flags & Sprite.FLAG_FULL_FRAME  == Sprite.FLAG_FULL_FRAME) {
-      SpriteType type = SpriteType.values[data[7]];
-      sprite.spriteType = type;
-      if (type == SpriteType.IMAGE) {
-        sprite.setImage(data[8]);
-      }
-
-      sprite.size.x = data[9].toDouble();
-      sprite.size.y = data[10].toDouble();
-      sprite.frames = data[11];
-      sprite.rotationVelocity = data[12] / DOUBLE_INT_CONVERSION;
-      sprite.parseExtraNetworkData(data, 13);
-    } else {
-      sprite.parseExtraNetworkData(data, 7);
-    }
+  // At least two more items.
+  // TODO: Figure out exact increase.
+  if (sprite.flags & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
+    sprite.parseExtraNetworkData(data, _addFullFrameData(sprite, data, 7));
+  } else {
+    sprite.parseExtraNetworkData(data, 7);
   }
+}
+
+int _addFullFrameData(MovingSprite sprite, List<int> data, int startAt) {
+  SpriteType type = SpriteType.values[data[7]];
+  sprite.spriteType = type;
+  if (type == SpriteType.IMAGE) {
+    sprite.setImage(data[8]);
+  }
+  sprite.size.x = data[9].toDouble();
+  sprite.size.y = data[10].toDouble();
+  sprite.frames = data[11];
+  sprite.rotationVelocity = data[12] / DOUBLE_INT_CONVERSION;
+  return startAt + 6;
 }
