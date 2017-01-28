@@ -128,8 +128,8 @@ class LocalPlayerSprite extends MovingSprite {
   addServerToOwnerData(List data) {
     data.add(health);
     data.add(spawnIn * DOUBLE_INT_CONVERSION);
-    if (weaponState != null && weaponState.reloading()) {
-      data.add(weaponState.reloadPercent());
+    if (weaponState != null) {
+      data.add(weaponState.addServerToOwnerData(data));
     }
   }
 
@@ -138,9 +138,7 @@ class LocalPlayerSprite extends MovingSprite {
       health = data[startAt];
       spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
       if (data.length > 3) {
-        this.weaponState.manualReloadPercent = data[startAt + 2];
-      } else {
-        this.weaponState.manualReloadPercent = null;
+        this.weaponState.parseServerToOwnerData(data, startAt + 2);
       }
     } else {
       log.warning("Not owner of ${networkId}, not parsing commander data ${data}");

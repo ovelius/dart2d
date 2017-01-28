@@ -2,6 +2,7 @@ library weapon_state;
 
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -18,7 +19,19 @@ class WeaponState {
   double changeTime = 0.0;
   int selectedWeaponIndex = 2;
 
-  int manualReloadPercent = null;
+  addServerToOwnerData(List data) {
+    Weapon w = weapons[selectedWeaponIndex];
+    data.add((w.untilReload * DOUBLE_INT_CONVERSION).toInt());
+    data.add((w.untilNextFire * DOUBLE_INT_CONVERSION).toInt());
+    data.add(w.shotsLeft);
+  }
+
+  bool parseServerToOwnerData(List data, int startAt) {
+    Weapon w = weapons[selectedWeaponIndex];
+    w.untilReload = (data[startAt] / DOUBLE_INT_CONVERSION);
+    w.untilNextFire = (data[startAt + 1] / DOUBLE_INT_CONVERSION);
+    w.shotsLeft = data[startAt + 2];
+  }
 
   List<Weapon> weapons = [
     new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
@@ -151,6 +164,6 @@ class WeaponState {
     }
   }
 
-  bool reloading() => manualReloadPercent != null || weapons[selectedWeaponIndex].reloading();
-  int reloadPercent() => manualReloadPercent == null ? weapons[selectedWeaponIndex].reloadPercent() : manualReloadPercent;
+  bool reloading() => weapons[selectedWeaponIndex].reloading();
+  int reloadPercent() => weapons[selectedWeaponIndex].reloadPercent();
 }
