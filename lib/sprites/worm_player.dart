@@ -12,8 +12,6 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-// TODO cleanup the constructor hell in this file!
-
 /**
  * How a server represents itself.
  */
@@ -59,42 +57,6 @@ class LocalPlayerSprite extends MovingSprite {
   double spawnIn = 10000000000.0;
   
   MovingSprite gun;
-
-  factory LocalPlayerSprite.copyFromRemotePlayerSprite(WormWorld world, LocalPlayerSprite convertSprite) {
-    LocalPlayerSprite sprite = new LocalPlayerSprite.copyFromMovingSprite(world, convertSprite);
-    sprite.world = convertSprite.world;
-    sprite.info = convertSprite.info;
-    sprite._mobileControls = convertSprite._mobileControls;
-    sprite.health = convertSprite.health;
-    sprite.networkId = convertSprite.networkId;
-    sprite.networkType = NetworkType.LOCAL;
-    sprite.rope = convertSprite.rope;
-    if (sprite.rope != null) {
-      sprite.rope.owner = sprite;
-    }
-    sprite.weaponState = new WeaponState(
-        sprite.world, sprite.info.remoteKeyState(), sprite, sprite.gun);
-    sprite.listenFor("Next weapon", () {
-      sprite.weaponState.nextWeapon();
-    });
-    sprite.listenFor("Prev weapon", () {
-      sprite.weaponState.prevWeapon();
-    });
-    return sprite;
-  }
-  
-  LocalPlayerSprite.copyFromMovingSprite(WormWorld world, LocalPlayerSprite convertSprite)
-       : super.imageBasedSprite(convertSprite.position, convertSprite.imageId, world.imageIndex()) {
-     this.size = convertSprite.size;
-     this.world = world;
-     this.info = convertSprite.info;
-     this.spawnIn = convertSprite.spawnIn;
-     this.collision = this.inGame();
-     this.health = LocalPlayerSprite.MAX_HEALTH; // TODO: Make health part of the GameState.
-     this.networkId = convertSprite.networkId;
-     this.networkType = convertSprite.networkType;
-     this.gun = _createGun(world.imageIndex());
-   }
 
   /**
    * Server constructor.

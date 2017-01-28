@@ -63,7 +63,8 @@ class PlayerInfo {
     return map;
   }
 
-  String toString() => "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
+  String toString() =>
+      "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
 }
 
 @Injectable()
@@ -204,27 +205,11 @@ class GameState {
     for (int i = _playerInfo.length - 1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       // Convert self info to server.
-      if (info.connectionId == selfConnectionId) {
-        LocalPlayerSprite oldSprite = _spriteIndex[info.spriteId];
-        LocalPlayerSprite playerSprite =
-            new LocalPlayerSprite.copyFromRemotePlayerSprite(world, oldSprite);
-        playerSprite.setImage(oldSprite.imageId, oldSprite.size.x.toInt());
-        world.replaceSprite(info.spriteId, playerSprite);
-        oldSprite.info = info;
-        world.playerSprite = playerSprite;
-      } else {
+      if (info.connectionId != selfConnectionId) {
         // Convert other players.
-        LocalPlayerSprite oldSprite = _spriteIndex[info.spriteId];
         ConnectionWrapper connection =
             world.network().peer.connections[info.connectionId];
-        if (connection != null) {
-          LocalPlayerSprite remotePlayerSprite =
-              new LocalPlayerSprite.copyFromMovingSprite(
-                  world, oldSprite);
-          remotePlayerSprite.setImage(
-              oldSprite.imageId, oldSprite.size.x.toInt());
-          world.replaceSprite(info.spriteId, remotePlayerSprite);
-        } else {
+        if (connection == null) {
           // Connection isn't there :( Not much we can do but kill the playerinfo.
           removeByConnectionId(world, info.connectionId);
         }
