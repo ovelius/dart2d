@@ -116,16 +116,14 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   keyFrame = keyFrame || sprite.fullFramesOverNetwork-- > 0;
   List<int> data = [
     sprite.extraSendFlags() | (keyFrame ? Sprite.FLAG_FULL_FRAME : 0),
-    // TODO only send this when sending a full frame.
-    sprite.remoteRepresentation().index,
     sprite.position.x.toInt(),
     sprite.position.y.toInt(),
     (sprite.angle * DOUBLE_INT_CONVERSION).toInt(),
     (sprite.velocity.x * DOUBLE_INT_CONVERSION).toInt(),
     (sprite.velocity.y * DOUBLE_INT_CONVERSION).toInt(),
   ];
-
   if (keyFrame) {
+    data.add(sprite.remoteRepresentation().index);
     data.add(sprite.spriteType.index);
     data.add(sprite.imageId);
     data.add(sprite.size.x.toInt());
@@ -140,18 +138,16 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 // Set all the properties to the sprite availble in the list.
 void intListToSpriteProperties(List<int> data, MovingSprite sprite) {
   sprite.flags = data[0];
-  sprite.position.x = data[2].toDouble();
-  sprite.position.y = data[3].toDouble();
-  sprite.angle = data[4] / DOUBLE_INT_CONVERSION;
-  sprite.velocity.x = data[5] / DOUBLE_INT_CONVERSION;
-  sprite.velocity.y = data[6] / DOUBLE_INT_CONVERSION;
+  sprite.position.x = data[1].toDouble();
+  sprite.position.y = data[2].toDouble();
+  sprite.angle = data[3] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.x = data[4] / DOUBLE_INT_CONVERSION;
+  sprite.velocity.y = data[5] / DOUBLE_INT_CONVERSION;
 
-  // At least two more items.
-  // TODO: Figure out exact increase.
   if (sprite.flags & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
     sprite.parseExtraNetworkData(data, _addFullFrameData(sprite, data, 7));
   } else {
-    sprite.parseExtraNetworkData(data, 7);
+    sprite.parseExtraNetworkData(data, 6);
   }
 }
 

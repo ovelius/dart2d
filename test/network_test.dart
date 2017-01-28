@@ -107,12 +107,12 @@ void main() {
         connectionC.decodedRecentDataRecevied()['1000'],
         equals([
           sprite.extraSendFlags(),
-          SpriteConstructor.DAMAGE_PROJECTILE.index,
           9,
           9,
           0,
           180000,
           180000,
+          SpriteConstructor.DAMAGE_PROJECTILE.index,
           1,
           null,
           2,
@@ -127,13 +127,11 @@ void main() {
     }
 
     // Now only delta updates.
-    // TODO: Reduce this to only send position/velocity?
     network.frame(0.01, new List());
     expect(
         connectionC.decodedRecentDataRecevied()['1000'],
         equals([
           sprite.extraSendFlags(),
-          SpriteConstructor.DAMAGE_PROJECTILE.index,
           9,
           9,
           0,

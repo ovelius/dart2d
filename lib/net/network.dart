@@ -447,7 +447,12 @@ class Network {
           sprite.parseServerToOwnerData(data, 1);
         } else {
           // Parse as generic update.
-          SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][1]];
+          SpriteConstructor constructor = SpriteConstructor.DO_NOT_CREATE;
+          // Only try and construct sprite if this is a full frame - we have all
+          // the data.
+          if (data[0] & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
+            constructor = SpriteConstructor.values[data[6]];
+          }
           MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
           if (sprite == null) {
             log.info("Not creating sprite from update ${networkId}, constructor is ${constructor}");
