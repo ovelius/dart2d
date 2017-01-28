@@ -464,11 +464,12 @@ class LocalPlayerSprite extends MovingSprite {
   void parseExtraNetworkData(List<int> data, int startAt) {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
     if(weaponState != null) {
+      assert(data[startAt + 1] < weaponState.weapons.length);
       weaponState.selectedWeaponIndex = data[startAt + 1];
     }
   }
   
-  int sendFlags() {
+  int extraSendFlags() {
     return 0;
   }
 

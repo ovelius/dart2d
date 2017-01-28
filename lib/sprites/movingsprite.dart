@@ -7,9 +7,6 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class MovingSprite extends Sprite {
-  static const int FLAG_NO_GRAVITY = 1;
-  static const int FLAG_NO_MOVEMENTS = 2;
-  
   static const int DIR_ABOVE = 0;
   static const int DIR_BELOW = 1;
   static const int DIR_LEFT = 2;
@@ -43,7 +40,7 @@ class MovingSprite extends Sprite {
       duration = 0.2;
     }
         
-    if (flags & FLAG_NO_MOVEMENTS == 0) {
+    if (flags & Sprite.FLAG_NO_MOVEMENTS == 0) {
       velocity = velocity.add(
           acceleration.multiply(duration));
     
@@ -51,7 +48,7 @@ class MovingSprite extends Sprite {
           velocity.multiply(duration));
     }
     
-    if (gravity != null && (flags & FLAG_NO_GRAVITY) == 0) {
+    if (gravity != null && (flags & Sprite.FLAG_NO_GRAVITY) == 0) {
       velocity = velocity.add(gravity.multiply(duration * gravityAffect));
     }
 
@@ -62,10 +59,6 @@ class MovingSprite extends Sprite {
 
   collide(MovingSprite other, ByteWorld world, int direction) {
  
-  }
-  
-  int sendFlags() {
-    return 0;
   }
 
   SpriteConstructor remoteRepresentation() {

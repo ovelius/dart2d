@@ -35,6 +35,7 @@ assertNoLoggedWarnings() {
   if (_logged.containsKey(Level.SEVERE)) {
     throw new StateError("Logged severe but no warning! ${_logged[Level.SEVERE]}!");
   }
+  _expected.clear();
 }
 
 expectWarningContaining(String msg) {

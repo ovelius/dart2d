@@ -20,6 +20,11 @@ enum NetworkType {
 }
 
 class Sprite {
+  static const int FLAG_FULL_FRAME = 1;
+  static const int FLAG_COMMANDER_DATA = 2;
+  static const int FLAG_NO_GRAVITY = 4;
+  static const int FLAG_NO_MOVEMENTS = 8;
+
   static const int UNLIMITED_LIFETIME = -1;
   // Position, size, image and rendered angle.
   Vec2 position = new Vec2();
@@ -232,6 +237,10 @@ class Sprite {
    */
   bool parseServerToOwnerData(List data) {
     throw new StateError("${runtimeType} needs implementation of parseServerToOwnerData!");
+  }
+
+  int extraSendFlags() {
+    return 0;
   }
 
   toString() => "Sprite[${this.networkType}] p:$position";

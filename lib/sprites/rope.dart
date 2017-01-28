@@ -106,7 +106,7 @@ class Rope extends MovingSprite {
     this.owner = world.spriteIndex[data[startAt]];
   }
   
-  int sendFlags() {
+  int extraSendFlags() {
     if (locked) {
       return MovingSprite.FLAG_NO_GRAVITY;
     }

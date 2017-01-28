@@ -430,14 +430,14 @@ class Network {
     for (String networkId in bundle.keys) {
       if (!SPECIAL_KEYS.contains(networkId)) {
         int parsedNetworkId = int.parse(networkId);
-        SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][0]];
-        MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
-        if (sprite == null) {
-          log.info("Not creating sprite from update ${networkId}, constructor is ${constructor}");
-          continue;
-        }
-        // TODO(erik) Prio data for the owner of the sprite instead.
-        if (!sprite.remoteControlled()) {
+        List data = bundle[networkId];
+        if (data[0] & Sprite.FLAG_COMMANDER_DATA == Sprite.FLAG_COMMANDER_DATA) {
+          // parse as commander data update.
+          MovingSprite sprite = world.spriteIndex[parsedNetworkId];
+          if (sprite == null) {
+            log.warning("Not creating sprite from update ${networkId}, unable to add commander data.");
+            continue;
+          }
           if (isCommander()) {
             log.warning("Warning: Attempt to update local sprite ${sprite
                 .networkId} from network ${connection.id}.");
@@ -447,6 +447,13 @@ class Network {
           List data = bundle[networkId];
           sprite.parseServerToOwnerData(data);
         } else {
+          // Parse as generic update.
+          SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][1]];
+          MovingSprite sprite = world.getOrCreateSprite(parsedNetworkId, constructor, connection);
+          if (sprite == null) {
+            log.info("Not creating sprite from update ${networkId}, constructor is ${constructor}");
+            continue;
+          }
           intListToSpriteProperties(bundle[networkId], sprite);
           // Forward sprite to others.
           if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
@@ -466,7 +473,7 @@ class Network {
         List<int> dataAsList = propertiesToIntList(sprite, keyFrame);
         allData[sprite.networkId.toString()] = dataAsList;
       } else if (isCommander() && sprite.hasServerToOwnerData()) {
-        List dataAsList = [SpriteConstructor.DO_NOT_CREATE.index];
+        List dataAsList = [Sprite.FLAG_COMMANDER_DATA];
         sprite.addServerToOwnerData(dataAsList);
         allData[sprite.networkId.toString()] = dataAsList;
       }

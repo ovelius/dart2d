@@ -113,11 +113,11 @@ singleTonStoredValue(var a, var b) {
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   List<int> data = [];
-  
-  data.add(sprite.remoteRepresentation().index);
+
+  data.add(sprite.extraSendFlags());
   // Any special sauce flags needed.
-  data.add(sprite.sendFlags());
-    
+  data.add(sprite.remoteRepresentation().index);
+
   data.add(sprite.position.x.toInt());
   data.add(sprite.position.y.toInt());
   data.add((sprite.angle * DOUBLE_INT_CONVERSION).toInt());
@@ -135,6 +135,7 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
     data.add(sprite.frames);
     data.add((sprite.rotationVelocity * DOUBLE_INT_CONVERSION).toInt());
     sprite.fullFramesOverNetwork --;
+    data[0] = data[0] | Sprite.FLAG_FULL_FRAME;
   }
   sprite.addExtraNetworkData(data);
   return data;
@@ -143,7 +144,7 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 // Set all the properties to the sprite availble in the list.
 void intListToSpriteProperties(
     List<int> data, MovingSprite sprite) {
-  sprite.flags = data[1];
+  sprite.flags = data[0];
   if (data.length > 4) {
     sprite.position.x = data[2].toDouble();
     sprite.position.y = data[3].toDouble();
@@ -154,7 +155,7 @@ void intListToSpriteProperties(
 
     // At least two more items.
     // TODO: Figure out exact increase.
-    if (data.length > 10) {
+    if (sprite.flags & Sprite.FLAG_FULL_FRAME  == Sprite.FLAG_FULL_FRAME) {
       SpriteType type = SpriteType.values[data[7]];
       sprite.spriteType = type;
       if (type == SpriteType.IMAGE) {

@@ -106,8 +106,8 @@ void main() {
     expect(
         connectionC.decodedRecentDataRecevied()['1000'],
         equals([
+          sprite.extraSendFlags(),
           SpriteConstructor.DAMAGE_PROJECTILE.index,
-          sprite.sendFlags(),
           9,
           9,
           0,
@@ -132,8 +132,8 @@ void main() {
     expect(
         connectionC.decodedRecentDataRecevied()['1000'],
         equals([
+          sprite.extraSendFlags(),
           SpriteConstructor.DAMAGE_PROJECTILE.index,
-          sprite.sendFlags(),
           9,
           9,
           0,
@@ -464,7 +464,7 @@ class _TestSprite extends MovingSprite {
     drawCalls++;
   }
 
-  int sendFlags() {
+  int extraSendFlags() {
     return 101;
   }
 

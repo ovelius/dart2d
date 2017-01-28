@@ -25,6 +25,7 @@ void main() {
 
   group('End2End', () {
     test('Resource loading tests p2p', () {
+      expectWarningContaining("unable to add commander data");
       logConnectionData = false;
       Injector injectorA = createWorldInjector("a", false);
       Injector injectorB = createWorldInjector("b", false);
