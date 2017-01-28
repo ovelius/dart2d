@@ -443,9 +443,8 @@ class Network {
                 .networkId} from network ${connection.id}.");
             continue;
           }
-          // Since we are not remote controlled, parse as Server to owner data.
           List data = bundle[networkId];
-          sprite.parseServerToOwnerData(data);
+          sprite.parseServerToOwnerData(data, 1);
         } else {
           // Parse as generic update.
           SpriteConstructor constructor = SpriteConstructor.values[bundle[networkId][1]];

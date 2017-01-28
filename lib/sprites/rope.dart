@@ -108,7 +108,7 @@ class Rope extends MovingSprite {
   
   int extraSendFlags() {
     if (locked) {
-      return MovingSprite.FLAG_NO_GRAVITY;
+      return Sprite.FLAG_NO_GRAVITY;
     }
     return 0;
   }

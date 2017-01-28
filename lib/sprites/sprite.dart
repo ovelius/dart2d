@@ -235,7 +235,7 @@ class Sprite {
   /**
    * Parse the above data.
    */
-  bool parseServerToOwnerData(List data) {
+  bool parseServerToOwnerData(List data, int startAt) {
     throw new StateError("${runtimeType} needs implementation of parseServerToOwnerData!");
   }
 

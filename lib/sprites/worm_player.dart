@@ -133,12 +133,12 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
-  bool parseServerToOwnerData(List data) {
+  bool parseServerToOwnerData(List data, int startAt) {
     if (_ownedByThisWorld()) {
-      health = data[1];
-      spawnIn = data[2] / DOUBLE_INT_CONVERSION;
+      health = data[startAt];
+      spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
       if (data.length > 3) {
-        this.weaponState.manualReloadPercent = data[3];
+        this.weaponState.manualReloadPercent = data[startAt + 2];
       } else {
         this.weaponState.manualReloadPercent = null;
       }

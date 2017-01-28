@@ -440,11 +440,6 @@ void main() {
   });
 }
 
-class _TestPlayerSprite extends LocalPlayerSprite {
-  _TestPlayerSprite(MockImageIndex index)
-      : super(null, index, null, new KeyState(null), null, 0.0, 0.0, 0);
-}
-
 class _TestSprite extends MovingSprite {
   int drawCalls = 0;
   int frameCalls = 0;

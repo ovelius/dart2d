@@ -112,30 +112,25 @@ singleTonStoredValue(var a, var b) {
 
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
-  List<int> data = [];
+  keyFrame = keyFrame || sprite.fullFramesOverNetwork-- > 0;
+  List<int> data = [
+    sprite.extraSendFlags() | (keyFrame ? Sprite.FLAG_FULL_FRAME : 0),
+    // TODO only send this when sending a full frame.
+    sprite.remoteRepresentation().index,
+    sprite.position.x.toInt(),
+    sprite.position.y.toInt(),
+    (sprite.angle * DOUBLE_INT_CONVERSION).toInt(),
+    (sprite.velocity.x * DOUBLE_INT_CONVERSION).toInt(),
+    (sprite.velocity.y * DOUBLE_INT_CONVERSION).toInt(),
+  ];
 
-  data.add(sprite.extraSendFlags());
-  // Any special sauce flags needed.
-  data.add(sprite.remoteRepresentation().index);
-
-  data.add(sprite.position.x.toInt());
-  data.add(sprite.position.y.toInt());
-  data.add((sprite.angle * DOUBLE_INT_CONVERSION).toInt());
-  
-  Vec2 velocityScaled = sprite.velocity.multiply(DOUBLE_INT_CONVERSION);
-  data.add(velocityScaled.x.toInt());
-  data.add(velocityScaled.y.toInt());
-
-  if (keyFrame || sprite.fullFramesOverNetwork > 0) {
+  if (keyFrame) {
     data.add(sprite.spriteType.index);
     data.add(sprite.imageId);
-    
     data.add(sprite.size.x.toInt());
     data.add(sprite.size.y.toInt());
     data.add(sprite.frames);
     data.add((sprite.rotationVelocity * DOUBLE_INT_CONVERSION).toInt());
-    sprite.fullFramesOverNetwork --;
-    data[0] = data[0] | Sprite.FLAG_FULL_FRAME;
   }
   sprite.addExtraNetworkData(data);
   return data;
