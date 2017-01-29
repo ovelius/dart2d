@@ -5,6 +5,7 @@ import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'dart:math';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/net/net.dart';
@@ -32,8 +33,8 @@ void main() {
 
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
-  canvasElement.width = window.screen.width;
-  canvasElement.height = window.screen.height;
+  canvasElement.width = max(window.screen.width, window.screen.height);
+  canvasElement.height = min(window.screen.width, window.screen.height);
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 

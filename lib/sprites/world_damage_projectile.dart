@@ -66,7 +66,7 @@ class BrickBuilder extends WorldDamageProjectile {
     this.velocity.x = cos(owner.angle);
     this.velocity.y = sin(owner.angle);
     this.outOfBoundsMovesRemaining = 2;
-    this.velocity = this.velocity.multiply(200.0);
+    this.velocity = this.velocity.multiply(500.0);
     this.velocity = owner.velocity + this.velocity;
   }
 
