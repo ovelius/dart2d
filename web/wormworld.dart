@@ -55,6 +55,7 @@ void main() {
          }))
      ..bind(bool, withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
      ..bind(Object, withAnnotation: const WorldCanvas(), toValue: canvasElement)
+      ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
      ..install(new UtilModule())
      ..install(new NetModule())

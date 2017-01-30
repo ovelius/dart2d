@@ -56,6 +56,10 @@ class FakeContext2D {
   }
 }
 
+class FakeScreen {
+
+}
+
 class _FakeTextMetrics {
   int width;
   _FakeTextMetrics(this.width);

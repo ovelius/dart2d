@@ -11,6 +11,7 @@ class MobileControls {
   KeyState _localKeyState;
   int _width, _height;
   var _canvas = null;
+  var _screen = null;
   List<Point<int>> _buttons = [];
   Map<int, _fakeKeyCode> _buttonToKey = {};
   Map<int, int> _touchIdToButtonDown = {};
@@ -19,6 +20,7 @@ class MobileControls {
   Map<int, Point<int>> _touchDeltas = {};
 
   MobileControls(
+      @HtmlScreen() Object screen,
       @LocalKeyState() KeyState localKeyState,
       @TouchControls() bool isMobileBrowser,
       @WorldCanvas() Object canvasElement) {
@@ -26,6 +28,7 @@ class MobileControls {
     this._localKeyState = localKeyState;
     var canvasHack = canvasElement;
     this._canvas = canvasHack.context2D;
+    this._screen = screen;
     this._width = canvasHack.width;
     this._height = canvasHack.height;
 
@@ -53,6 +56,14 @@ class MobileControls {
 
   draw() {
     if (_isMobileBrowser) {
+      if (isPortrait()) {
+        _canvas.setFillColorRgb(200, 0, 0);
+        String text = "Please rotate your device!";
+        var metrics = _canvas.measureText(text);
+        _canvas.fillText(
+            text, _width / 2 - metrics.width / 2, _height / 2);
+        return;
+      }
       _canvas.save();
       for (int i = 0; i < _buttons.length; i++) {
         Point<int> btn = _buttons[i];
@@ -68,6 +79,10 @@ class MobileControls {
       }
       _canvas.restore();
     }
+  }
+
+  bool isPortrait() {
+    return _screen.orientation.type.contains("portrait");
   }
 
   void touchDown(int id, int x, int y) {

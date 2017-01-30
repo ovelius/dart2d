@@ -10,6 +10,10 @@ class WorldCanvas {
   const WorldCanvas();
 }
 
+class HtmlScreen {
+  const HtmlScreen();
+}
+
 class TouchControls {
   const TouchControls();
 }

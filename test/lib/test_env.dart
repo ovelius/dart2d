@@ -47,6 +47,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
       ..install(new UtilModule())
       ..install(new NetModule())
+      ..bind(Object, withAnnotation: const HtmlScreen(), toValue: new FakeScreen())
       ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
       ..bind(WormWorld)
       ..bind(WorldListener)
