@@ -57,16 +57,6 @@ function Peer(id, options) {
     this._delayedAbort('browser-incompatible', 'The current browser does not support WebRTC');
     return;
   }
-  // Ensure alphanumeric id
-  if (!util.validateId(id)) {
-    this._delayedAbort('invalid-id', 'ID "' + id + '" is invalid');
-    return;
-  }
-  // Ensure valid key
-  if (!util.validateKey(options.key)) {
-    this._delayedAbort('invalid-key', 'API KEY "' + options.key + '" is invalid');
-    return;
-  }
   // Ensure not using unsecure cloud server on SSL page
   if (options.secure && options.host === '0.peerjs.com') {
     this._delayedAbort('ssl-unavailable',
@@ -88,12 +78,6 @@ function Peer(id, options) {
 
   // Start the server connection
   this._initializeServerConnection();
-  if (id) {
-    this._initialize(id);
-  } else {
-    this._retrieveId();
-  }
-  //
 };
 
 util.inherits(Peer, EventEmitter);
@@ -122,42 +106,8 @@ Peer.prototype._initializeServerConnection = function() {
       self._abort('socket-closed', 'Underlying socket is already closed.');
     }
   });
+  this.socket.start(this.id);
 };
-
-/** Get a unique ID from the server via XHR. */
-Peer.prototype._retrieveId = function(cb) {
-  var self = this;
-  var http = new XMLHttpRequest();
-  var protocol = this.options.secure ? 'https://' : 'http://';
-  var url = protocol + this.options.host + ':' + this.options.port
-    + this.options.path + this.options.key + '/id';
-  var queryString = '?ts=' + new Date().getTime() + '' + Math.random();
-  url += queryString;
-
-  // If there's no ID we need to wait for one before trying to init socket.
-  http.open('get', url, true);
-  http.onerror = function(e) {
-    util.error('Error retrieving ID', e);
-    self._abort('server-error', 'Could not get an ID from the server :(');
-  }
-  http.onreadystatechange = function() {
-    if (http.readyState !== 4) {
-      return;
-    }
-    if (http.status !== 200) {
-      http.onerror();
-      return;
-    }
-    self._initialize(http.responseText);
-  };
-  http.send(null);
-};
-
-/** Initialize a connection with the server. */
-Peer.prototype._initialize = function(id) {
-  this.id = id;
-  this.socket.start(this.id, this.options.token);
-}
 
 /** Handles messages from the server. */
 Peer.prototype._handleMessage = function(message) {
@@ -167,10 +117,15 @@ Peer.prototype._handleMessage = function(message) {
 
   switch (type) {
     case 'OPEN': // The connection to the server is open.
+      if (!this.id) {
+         return;
+      }
       this.emit('open', this.id);
       this.open = true;
       break;
     case 'ACTIVE_IDS':
+      this.id = message.id;
+      this.socket.id = this.id;
       if (!this.open) {
         util.log('Peer is not open, receiving active peers anyway. Forcing open!', this.id);
         this.emit('open', this.id);
@@ -438,8 +393,8 @@ Peer.prototype.reconnect = function() {
   if (this.disconnected && !this.destroyed) {
     util.log('Attempting reconnection to server with ID ' + this._lastServerId);
     this.disconnected = false;
+    this.id = this._lastServerId;
     this._initializeServerConnection();
-    this._initialize(this._lastServerId);
   } else if (this.destroyed) {
     throw new Error('This peer cannot reconnect to the server. It has already been destroyed.');
   } else if (!this.disconnected && !this.open) {
@@ -661,12 +616,6 @@ Negotiator.startConnection = function(connection, options) {
     if (connection.type === 'data') {
       // Create the datachannel.
       var config = {};
-      // Dropping reliable:false support, since it seems to be crashing
-      // Chrome.
-      /*if (util.supports.sctp && !options.reliable) {
-        // If we have canonical reliable support...
-        config = {maxRetransmits: 0};
-      }*/
       // Fallback to ensure older browsers don't crash.
       if (!util.supports.sctp) {
         config = {reliable: options.reliable};
@@ -694,16 +643,6 @@ Negotiator._getPeerConnection = function(connection, options) {
   var peerConnections = Negotiator.pcs[connection.type][connection.peer];
 
   var pc;
-  // Not multiplexing while FF and Chrome have not-great support for it.
-  /*if (options.multiplex) {
-    ids = Object.keys(peerConnections);
-    for (var i = 0, ii = ids.length; i < ii; i += 1) {
-      pc = peerConnections[ids[i]];
-      if (pc.signalingState === 'stable') {
-        break; // We can go ahead and use this PC.
-      }
-    }
-  } else */
   if (options.pc) { // Simplest case: PC id already provided for us.
     pc = Negotiator.pcs[connection.type][connection.peer][options.pc];
   }
@@ -925,9 +864,7 @@ function Socket(secure, host, port, path, key) {
   this.disconnected = false;
   this._queue = [];
 
-  var httpProtocol = secure ? 'https://' : 'http://';
   var wsProtocol = secure ? 'wss://' : 'ws://';
-  this._httpUrl = httpProtocol + host + ':' + port + path + key;
   this._wsUrl = wsProtocol + host + ':' + port + path + 'peerjs?key=' + key;
 }
 
@@ -935,13 +872,12 @@ util.inherits(Socket, EventEmitter);
 
 
 /** Check in with ID or get one from server. */
-Socket.prototype.start = function(id, token) {
-  this.id = id;
+Socket.prototype.start = function(id) {
+  if (id) {
+    this.id = id;
+    this._wsUrl += '&id=' + this.id;
+  }
 
-  this._httpUrl += '/' + id + '/' + token;
-  this._wsUrl += '&id=' + id + '&token=' + token;
-
-  this._startXhrStream();
   this._startWebSocket();
 }
 
@@ -987,91 +923,6 @@ Socket.prototype._startWebSocket = function(id) {
   };
 }
 
-/** Start XHR streaming. */
-Socket.prototype._startXhrStream = function(n) {
-  try {
-    var self = this;
-    this._http = new XMLHttpRequest();
-    this._http._index = 1;
-    this._http._streamIndex = n || 0;
-    this._http.open('post', this._httpUrl + '/id?i=' + this._http._streamIndex, true);
-    this._http.onreadystatechange = function() {
-      if (this.readyState == 2 && this.old) {
-        this.old.abort();
-        delete this.old;
-      } else if (this.readyState > 2 && this.status === 200 && this.responseText) {
-        self._handleStream(this);
-      } else if (this.status !== 200) {
-        // If we get a different status code, likely something went wrong.
-        // Stop streaming.
-        clearTimeout(self._timeout);
-        self.emit('disconnected');
-      }
-    };
-    this._http.send(null);
-    this._setHTTPTimeout();
-  } catch(e) {
-    util.log('XMLHttpRequest not available; defaulting to WebSockets');
-  }
-}
-
-
-/** Handles onreadystatechange response as a stream. */
-Socket.prototype._handleStream = function(http) {
-  // 3 and 4 are loading/done state. All others are not relevant.
-  var messages = http.responseText.split('\n');
-
-  // Check to see if anything needs to be processed on buffer.
-  if (http._buffer) {
-    while (http._buffer.length > 0) {
-      var index = http._buffer.shift();
-      var bufferedMessage = messages[index];
-      try {
-        bufferedMessage = JSON.parse(bufferedMessage);
-      } catch(e) {
-        http._buffer.shift(index);
-        break;
-      }
-      this.emit('message', bufferedMessage);
-    }
-  }
-
-  var message = messages[http._index];
-  if (message) {
-    http._index += 1;
-    // Buffering--this message is incomplete and we'll get to it next time.
-    // This checks if the httpResponse ended in a `\n`, in which case the last
-    // element of messages should be the empty string.
-    if (http._index === messages.length) {
-      if (!http._buffer) {
-        http._buffer = [];
-      }
-      http._buffer.push(http._index - 1);
-    } else {
-      try {
-        message = JSON.parse(message);
-      } catch(e) {
-        util.log('Invalid server message', message);
-        return;
-      }
-      this.emit('message', message);
-    }
-  }
-}
-
-Socket.prototype._setHTTPTimeout = function() {
-  var self = this;
-  this._timeout = setTimeout(function() {
-    var old = self._http;
-    if (!self._wsOpen()) {
-      self._startXhrStream(old._streamIndex + 1);
-      self._http.old = old;
-    } else {
-      old.abort();
-    }
-  }, 25000);
-}
-
 /** Is the websocket currently open? */
 Socket.prototype._wsOpen = function() {
   return this._socket && this._socket.readyState == 1;
@@ -1106,11 +957,7 @@ Socket.prototype.send = function(data) {
   if (this._wsOpen()) {
     this._socket.send(message);
   } else {
-    var http = new XMLHttpRequest();
-    var url = this._httpUrl + '/' + data.type.toLowerCase();
-    http.open('post', url, true);
-    http.setRequestHeader('Content-Type', 'application/json');
-    http.send(message);
+    this.emit('error', 'WS not open!');
   }
 }
 
