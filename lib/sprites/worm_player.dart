@@ -1,4 +1,3 @@
-
 import 'package:dart2d/util/gamestate.dart';
 import 'dart:math';
 import 'package:dart2d/net/state_updates.dart';
@@ -22,23 +21,23 @@ class LocalPlayerSprite extends MovingSprite {
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;
   static const MAX_SPEED = 500.0;
-  
+
   static Map<String, int> _default_controls = {
-      "Left": KeyCodeDart.A,
-      "Right": KeyCodeDart.D,
-      "Aim up": KeyCodeDart.UP,
-      "Aim down": KeyCodeDart.DOWN,
-      "Jump": KeyCodeDart.W,
-      "Fire": KeyCodeDart.F,
-      "Rope": KeyCodeDart.S,
-      "Next weapon": KeyCodeDart.E,
-      "Prev weapon": KeyCodeDart.Q,
+    "Left": KeyCodeDart.A,
+    "Right": KeyCodeDart.D,
+    "Aim up": KeyCodeDart.UP,
+    "Aim down": KeyCodeDart.DOWN,
+    "Jump": KeyCodeDart.W,
+    "Fire": KeyCodeDart.F,
+    "Rope": KeyCodeDart.S,
+    "Next weapon": KeyCodeDart.E,
+    "Prev weapon": KeyCodeDart.Q,
   };
-  
+
   static Set<int> _mappedControls = new Set.from(_default_controls.values);
 
   Map<String, int> getControls() => _default_controls;
-  
+
   bool isMappedKey(int code) {
     return _mappedControls.contains(code);
   }
@@ -50,25 +49,33 @@ class LocalPlayerSprite extends MovingSprite {
   MobileControls _mobileControls;
   double _gunAngleTouchLock = null;
   WeaponState weaponState;
-  
+
   bool onGround = false;
 
   // Don't spawn player when created.
   double spawnIn = 10000000000.0;
-  
+
   MovingSprite gun;
 
   /**
    * Server constructor.
    */
-  LocalPlayerSprite(WormWorld world, ImageIndex imageIndex, MobileControls mobileControls, PlayerInfo info, double x, double y, int imageId)
+  LocalPlayerSprite(
+      WormWorld world,
+      ImageIndex imageIndex,
+      MobileControls mobileControls,
+      PlayerInfo info,
+      double x,
+      double y,
+      int imageId)
       : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
     this.world = world;
     this.info = info;
     this._mobileControls = mobileControls;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
-    this.weaponState = new WeaponState(world, info.remoteKeyState(), this, this.gun);
+    this.weaponState =
+        new WeaponState(world, info.remoteKeyState(), this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState.nextWeapon();
     });
@@ -76,16 +83,18 @@ class LocalPlayerSprite extends MovingSprite {
       weaponState.prevWeapon();
     });
   }
-  
+
   StickySprite _createGun(ImageIndex index) {
-    Sprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"), index, Sprite.UNLIMITED_LIFETIME);
+    Sprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"),
+        index, Sprite.UNLIMITED_LIFETIME);
     sprite.size = new Vec2(30, 7);
     return sprite;
   }
 
   bool drawWeaponHelpers() => _ownedByThisWorld();
 
-  hasServerToOwnerData() => world.network().isCommander() && !_ownedByThisWorld();
+  hasServerToOwnerData() =>
+      world.network().isCommander() && !_ownedByThisWorld();
 
   addServerToOwnerData(List data) {
     data.add(health);
@@ -96,18 +105,13 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool parseServerToOwnerData(List data, int startAt) {
-    if (_ownedByThisWorld()) {
-      health = data[startAt];
-      spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
-      if (data.length > 3) {
-        this.weaponState.parseServerToOwnerData(data, startAt + 2);
-      }
-    } else {
-      log.warning("Not owner of ${networkId}, not parsing commander data ${data}");
-      return false;
+    health = data[startAt];
+    spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
+    if (data.length > 3) {
+      this.weaponState.parseServerToOwnerData(data, startAt + 2);
     }
+    return true;
   }
-
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {
@@ -117,7 +121,8 @@ class LocalPlayerSprite extends MovingSprite {
           velocity.y = -velocity.y * BOUCHYNESS;
         }
         // Check one more time, but y -1.
-        while (world.isCanvasCollide(position.x + 1, position.y + size.y - 1.0, size.x -1, 1)) {
+        while (world.isCanvasCollide(
+            position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
           position.y--;
         }
       }
@@ -126,7 +131,7 @@ class LocalPlayerSprite extends MovingSprite {
           velocity.y = -velocity.y * BOUCHYNESS;
         }
       }
-      
+
       if (direction == MovingSprite.DIR_LEFT) {
         if (velocity.x < 0) {
           velocity.x = -velocity.x * BOUCHYNESS;
@@ -141,11 +146,11 @@ class LocalPlayerSprite extends MovingSprite {
       }
     }
   }
-  
+
   bool inGame() {
     return info != null && info.inGame;
   }
-  
+
   draw(var context, bool debug) {
     if (!inGame()) {
       this.velocity.x = 0.0;
@@ -170,9 +175,10 @@ class LocalPlayerSprite extends MovingSprite {
     if (!_ownedByThisWorld()) {
       return false;
     }
-    double healthFactor = health/MAX_HEALTH;
+    double healthFactor = health / MAX_HEALTH;
     context.resetTransform();
-    var grad = context.createLinearGradient(0, 0, 3*world.width()*healthFactor, 10);
+    var grad = context.createLinearGradient(
+        0, 0, 3 * world.width() * healthFactor, 10);
     grad.addColorStop(0, "#00ff00");
     grad.addColorStop(1, "#FF0000");
     context.globalAlpha = 0.5;
@@ -184,9 +190,10 @@ class LocalPlayerSprite extends MovingSprite {
 
   bool _ownedByThisWorld() {
     if (info == null) {
-      throw new StateError("Info should never be null! ${world.network().peer.getId()} type ${this.runtimeType} id ${networkId} gs ${world.network().getGameState()}");
+      throw new StateError(
+          "Info should never be null! ${world.network().peer.getId()} type ${this.runtimeType} id ${networkId} gs ${world.network().getGameState()}");
     }
-    return info.connectionId  == world.network().peer.getId();
+    return info.connectionId == world.network().peer.getId();
   }
 
   bool maybeRespawn(double duration) {
@@ -194,7 +201,7 @@ class LocalPlayerSprite extends MovingSprite {
       return false;
     }
     if (info != null && !inGame()) {
-      spawnIn-= duration;
+      spawnIn -= duration;
       if (spawnIn < 0) {
         velocity = new Vec2();
         world.displayHudMessageAndSendToNetwork("${info.name} is back!");
@@ -206,14 +213,14 @@ class LocalPlayerSprite extends MovingSprite {
     }
     return true;
   }
-  
+
   frame(double duration, int frames, [Vec2 gravity]) {
     maybeRespawn(duration);
     checkControlKeys(duration);
     checkShouldFire();
     super.frame(duration, frames, gravity);
     gun.frame(duration, frames, gravity);
-    
+
     if (weaponState != null) {
       weaponState.think(duration);
     }
@@ -235,22 +242,21 @@ class LocalPlayerSprite extends MovingSprite {
     double aimDown = keyIsDownStrength("Aim down");
 
     _applyVel(right, left);
-    
+
     if (keyIsDown("Jump") && rope != null) {
       world.removeSprite(rope.networkId);
       rope = null;
     }
-    
+
     if (keyIsDown("Jump") && onGround) {
-      this.velocity.y -= 200.0; 
+      this.velocity.y -= 200.0;
       this.onGround = false;
-     
     } else if (aimUp != null) {
       _gunUp(duration * aimUp);
     } else if (aimDown != null) {
       _gunDown(duration * aimDown);
     }
-   
+
     if (keyIsDown("Rope")) {
       _fireRope();
     }
@@ -281,10 +287,11 @@ class LocalPlayerSprite extends MovingSprite {
       if (velocity.x < -100) {
         velocity.x = -100.0;
       }
-      if (angle <  PI * 2) {
+      if (angle < PI * 2) {
         gun.angle -= (gun.angle + PI / 2) * 2;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;;
+          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;
+          ;
         }
         angle = PI * 2 + 0.01;
       }
@@ -300,9 +307,11 @@ class LocalPlayerSprite extends MovingSprite {
       }
       if (angle != 0.0) {
         angle = 0.0;
-        gun.angle -= (gun.angle + PI / 2) * 2;;
+        gun.angle -= (gun.angle + PI / 2) * 2;
+        ;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;;
+          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;
+          ;
         }
       }
     } else {
@@ -313,19 +322,19 @@ class LocalPlayerSprite extends MovingSprite {
   bool checkMobileControls(int xD, yD) {
     if (angle != 0.0) {
       gun.angle = _gunAngleTouchLock + (yD * 0.02);
-      if (gun.angle > -PI/2) {
-        gun.angle = -PI/2;
+      if (gun.angle > -PI / 2) {
+        gun.angle = -PI / 2;
       }
-      if (gun.angle < -(PI + PI/3)) {
-        gun.angle = -(PI + PI/3);
+      if (gun.angle < -(PI + PI / 3)) {
+        gun.angle = -(PI + PI / 3);
       }
     } else {
       gun.angle = _gunAngleTouchLock - (yD * 0.02);
-      if (gun.angle > PI/3) {
+      if (gun.angle > PI / 3) {
         gun.angle = PI / 3;
       }
-      if (gun.angle < -PI/2) {
-        gun.angle = -PI/2;
+      if (gun.angle < -PI / 2) {
+        gun.angle = -PI / 2;
       }
     }
 
@@ -336,7 +345,7 @@ class LocalPlayerSprite extends MovingSprite {
     }
     return true;
   }
-  
+
   bool checkShouldFire() {
     if (!world.network().isCommander()) {
       return false;
@@ -346,36 +355,36 @@ class LocalPlayerSprite extends MovingSprite {
     }
     return true;
   }
-  
+
   void _gunDown(double duration) {
     if (angle != 0.0) {
       gun.angle -= duration * 4.0;
-      if (gun.angle < -(PI + PI/3)) {
-        gun.angle = -(PI + PI/3);
+      if (gun.angle < -(PI + PI / 3)) {
+        gun.angle = -(PI + PI / 3);
       }
     } else {
       gun.angle += duration * 4.0;
-      if (gun.angle > PI/3) {
+      if (gun.angle > PI / 3) {
         gun.angle = PI / 3;
       }
     }
   }
-  
+
   void _gunUp(double duration) {
     // Diffent if facing left or right.
     if (angle != 0.0) {
       gun.angle += duration * 4.0;
-      if (gun.angle > -PI/2) {
-        gun.angle = -PI/2;
+      if (gun.angle > -PI / 2) {
+        gun.angle = -PI / 2;
       }
     } else {
       gun.angle -= duration * 4.0;
-      if (gun.angle < -PI/2) {
-        gun.angle = -PI/2;
+      if (gun.angle < -PI / 2) {
+        gun.angle = -PI / 2;
       }
     }
   }
-  
+
   void _fireRope() {
     if (rope != null) {
       world.removeSprite(rope.networkId);
@@ -387,7 +396,7 @@ class LocalPlayerSprite extends MovingSprite {
   bool takesDamage() {
     return collision;
   }
-  
+
   void takeDamage(int damage) {
     health -= damage;
     if (health <= 0) {
@@ -396,7 +405,7 @@ class LocalPlayerSprite extends MovingSprite {
       info.deaths++;
       info.inGame = false;
       collision = false;
-      spawnIn = RESPAWN_TIME;  
+      spawnIn = RESPAWN_TIME;
     }
   }
 
@@ -405,7 +414,7 @@ class LocalPlayerSprite extends MovingSprite {
     info.remoteKeyState().registerListener(getControls()[key], f);
     return true;
   }
-  
+
   bool keyIsDown(String key) {
     assert(getControls().containsKey(key));
     return info.remoteKeyState().keyIsDown(getControls()[key]);
@@ -415,20 +424,20 @@ class LocalPlayerSprite extends MovingSprite {
     assert(getControls().containsKey(key));
     return info.remoteKeyState().keyIsDownStrength(getControls()[key]);
   }
-  
+
   void addExtraNetworkData(List<int> data) {
     data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
     data.add(weaponState.selectedWeaponIndex);
   }
-   
+
   void parseExtraNetworkData(List<int> data, int startAt) {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
-    if(weaponState != null) {
+    if (weaponState != null) {
       assert(data[startAt + 1] < weaponState.weapons.length);
       weaponState.selectedWeaponIndex = data[startAt + 1];
     }
   }
-  
+
   int extraSendFlags() {
     return 0;
   }
