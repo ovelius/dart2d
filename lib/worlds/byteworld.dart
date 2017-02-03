@@ -90,4 +90,11 @@ class ByteWorld {
                         radius * 2 + 2, radius * 2 + 2)
         ..restore();
   }
+
+  Vec2 randomPoint() {
+    assert(initialized());
+    return new Vec2(
+        new Random().nextInt(width).toDouble(),
+        new Random().nextInt(height).toDouble());
+  }
 }

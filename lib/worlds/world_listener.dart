@@ -3,15 +3,18 @@ import 'package:dart2d/net/net.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/util/hud_messages.dart';
 import 'package:dart2d/util/mobile_controls.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/byteworld.dart';
 
 @Injectable()
 class WorldListener {
   final Logger log = new Logger('WorldListener');
   WormWorld _world;
+  ByteWorld _byteWorld;
   GameState _gameState;
   ImageIndex _imageIndex;
   PacketListenerBindings _packetListenerBindings;
@@ -19,7 +22,7 @@ class WorldListener {
   MobileControls _mobileControls;
   HudMessages hudMessages;
 
-  WorldListener(this._packetListenerBindings, this._gameState, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
+  WorldListener(this._packetListenerBindings, this._byteWorld, this._gameState, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
     _packetListenerBindings.bindHandler(REMOVE_KEY, (ConnectionWrapper c, List removals) {
@@ -74,7 +77,8 @@ class WorldListener {
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
       _gameState.updateFromMap(data[GAME_STATE]);
-      _world.createLocalClient(data["spriteId"], data["spriteIndex"]);
+      Vec2 position = new Vec2(data['x'], data['y']);
+      _world.createLocalClient(data["spriteId"], data["spriteIndex"], position);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
@@ -105,7 +109,9 @@ class WorldListener {
     _network.gameState.addPlayerInfo(info);
     assert(info.connectionId != null);
 
-    LocalPlayerSprite sprite = new LocalPlayerSprite(_world, _world.imageIndex(), _mobileControls, info, 0.0, 0.0, spriteIndex);
+    Vec2 position = _byteWorld.randomPoint();
+
+    LocalPlayerSprite sprite = new LocalPlayerSprite(_world, _world.imageIndex(), _mobileControls, info, position, spriteIndex);
 
     sprite.networkType =  NetworkType.REMOTE_FORWARD;
     sprite.networkId = spriteId;
@@ -115,6 +121,7 @@ class WorldListener {
     _world.displayHudMessageAndSendToNetwork("${name} connected.");
     // Send updates gamestate here.
     Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex,
+      'x': position.x.toInt(), 'y': position.y.toInt(),
       GAME_STATE: _network.getGameState().toMap()};
     connection.sendData({
       SERVER_PLAYER_REPLY: serverData,

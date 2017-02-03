@@ -65,10 +65,9 @@ class LocalPlayerSprite extends MovingSprite {
       ImageIndex imageIndex,
       MobileControls mobileControls,
       PlayerInfo info,
-      double x,
-      double y,
+      Vec2 position,
       int imageId)
-      : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
+      : super.imageBasedSprite(position, imageId, imageIndex) {
     this.world = world;
     this.info = info;
     this._mobileControls = mobileControls;

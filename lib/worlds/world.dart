@@ -57,12 +57,6 @@ abstract class World {
    */
   void collisionCheck(int networkId, duration);
 
-
-  /**
-   * Create a local representation of this player in a remote world.
-   */
-  void createLocalClient(int spriteId, int spriteIndex);
-
   toString() => "World";
 }
 
