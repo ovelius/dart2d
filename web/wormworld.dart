@@ -22,13 +22,18 @@ const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
 WormWorld world;
+String playerName = null;
 
 void main() {
   context['onSignInDart'] = (param) {
     JsObject user = param;
     JsObject profile = user.callMethod('getBasicProfile');
     String name = profile.callMethod('getName');
-    world.playerName = name;
+    // TODO what if world is null?
+    if (world != null) {
+      world.playerName = name;
+    }
+    playerName = name;
   };
 
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
@@ -71,6 +76,9 @@ void main() {
      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
+  if (playerName != null) {
+    world.playerName = playerName;
+  }
 
   setKeyListeners(world, canvasElement);
 
