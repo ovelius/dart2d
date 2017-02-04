@@ -57,14 +57,6 @@ function Peer(id, options) {
     this._delayedAbort('browser-incompatible', 'The current browser does not support WebRTC');
     return;
   }
-  // Ensure not using unsecure cloud server on SSL page
-  if (options.secure && options.host === '0.peerjs.com') {
-    this._delayedAbort('ssl-unavailable',
-      'The cloud server currently does not support HTTPS. Please run your own PeerServer to use HTTPS.');
-    return;
-  }
-  //
-
   // States.
   this.destroyed = false; // Connections have been killed
   this.disconnected = false; // Connection to PeerServer killed but P2P connections still active
@@ -862,7 +854,6 @@ function Socket(secure, host, port, path, key) {
 
   // Disconnected manually.
   this.disconnected = false;
-  this._queue = [];
 
   var wsProtocol = secure ? 'wss://' : 'ws://';
   this._wsUrl = wsProtocol + host + ':' + port + path + 'peerjs?key=' + key;
@@ -918,7 +909,6 @@ Socket.prototype._startWebSocket = function(id) {
         self._http = null;
       }, 5000);
     }
-    self._sendQueuedMessages();
     util.log('Socket open');
   };
 }
@@ -928,23 +918,9 @@ Socket.prototype._wsOpen = function() {
   return this._socket && this._socket.readyState == 1;
 }
 
-/** Send queued messages. */
-Socket.prototype._sendQueuedMessages = function() {
-  for (var i = 0, ii = this._queue.length; i < ii; i += 1) {
-    this.send(this._queue[i]);
-  }
-}
-
 /** Exposed send for DC & Peer. */
 Socket.prototype.send = function(data) {
   if (this.disconnected) {
-    return;
-  }
-
-  // If we didn't get an ID yet, we can't yet send anything so we should queue
-  // up these messages.
-  if (!this.id) {
-    this._queue.push(data);
     return;
   }
 
