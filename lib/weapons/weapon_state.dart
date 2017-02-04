@@ -43,7 +43,6 @@ class WeaponState {
     }),
     new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.gun, 2);
-      sprite.explodeAfter = 4.0;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
