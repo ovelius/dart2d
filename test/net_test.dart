@@ -139,7 +139,7 @@ void main() {
           new MapKeysMatcher.containsKeys(
               [IS_KEY_FRAME_KEY, PONG]));
 
-      worldA.network().getServerConnection().connectToGame();
+      worldA.network().getServerConnection().connectToGame('nameA');
 
       expect(recentSentDataTo("b"),
           new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
@@ -614,7 +614,7 @@ void main() {
         expect(worldE.network().gameState.actingCommanderId, equals('a'));
         expect(worldE.network().getServerConnection(), isNotNull);
 
-        worldE.network().getServerConnection().connectToGame();
+        worldE.network().getServerConnection().connectToGame('nameE');
 
         expect(recentSentDataTo("e"),
             new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));

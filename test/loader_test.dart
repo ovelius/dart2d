@@ -36,7 +36,7 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
-    loader = new Loader(new FakeCanvas(),
+    loader = new Loader({'playerName':'playerName'},new FakeCanvas(),
       mockImageIndex, mockNetwork, mockChunkHelper);
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);

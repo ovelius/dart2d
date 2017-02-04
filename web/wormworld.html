@@ -6,18 +6,9 @@
   </head>
   <meta name="google-signin-clientid" content="624447835870-9dd1fnadroksec8q13sb6f5tivcage0b.apps.googleusercontent.com" />
   <meta name="google-signin-cookiepolicy" content="single_host_origin" />
-  <meta name="google-signin-callback" content="onSignIn" />
   <meta name="google-signin-scope" content="https://www.googleapis.com/auth/games" />
   <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
   <body>
-	<script>
-	  function signOut() {
-	    var auth2 = gapi.auth2.getAuthInstance();
-	    auth2.signOut().then(function () {
-	      console.log('User signed out.');
-	    });
-	  }
-	</script>
     <div id="container" onclick="fullscreen();" ontouchstart="fullscreen();" >
       <canvas id="canvas" width="1024" height="576" class="center">
       </canvas>
@@ -37,6 +28,7 @@
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
   	var canvas = document.querySelector("#canvas");
+  	var playerName;
 
     function fullscreen() {
       if (!document.fullscreen) {
@@ -45,8 +37,13 @@
     }
 
     function onSignIn(user) {
-      onSignInDart(user);
+      window.localStorage.playerName = user.getBasicProfile().getName();
     }
+
+	function signOut() {
+	  var auth2 = gapi.auth2.getAuthInstance();
+	  auth2.signOut();
+	}
     </script>
   </body>
 </html>

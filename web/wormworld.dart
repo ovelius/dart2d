@@ -22,20 +22,8 @@ const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
 WormWorld world;
-String playerName = null;
 
 void main() {
-  context['onSignInDart'] = (param) {
-    JsObject user = param;
-    JsObject profile = user.callMethod('getBasicProfile');
-    String name = profile.callMethod('getName');
-    // TODO what if world is null?
-    if (world != null) {
-      world.playerName = name;
-    }
-    playerName = name;
-  };
-
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
   canvasElement.width = max(window.screen.width, window.screen.height);
@@ -59,6 +47,7 @@ void main() {
            }
          }))
      ..bind(bool, withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
+     ..bind(Map, withAnnotation: const LocalStorage(), toValue: window.localStorage)
      ..bind(Object, withAnnotation: const WorldCanvas(), toValue: canvasElement)
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
      ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
@@ -76,9 +65,6 @@ void main() {
      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
-  if (playerName != null) {
-    world.playerName = playerName;
-  }
 
   setKeyListeners(world, canvasElement);
 
@@ -92,7 +78,7 @@ void main() {
   querySelector("#sendMsg").onClick.listen((e) {
     var message = (querySelector("#chatMsg") as InputElement).value;
     world.displayHudMessageAndSendToNetwork(
-        "${world.network().localPlayerName}: ${message}");
+        "${window.localStorage['playerName']}: ${message}");
   });
 
   // TODO register using named keys instead.

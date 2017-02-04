@@ -118,11 +118,11 @@ class ConnectionWrapper {
     _connectionTimer.stop();
   }
 
-  void connectToGame() {
+  void connectToGame(String playerName) {
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
     Map playerData = {
-      CLIENT_PLAYER_SPEC: _network.localPlayerName,
+      CLIENT_PLAYER_SPEC: playerName,
       KEY_FRAME_KEY: lastKeyFrameFromPeer,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame,
     };

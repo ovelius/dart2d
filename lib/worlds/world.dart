@@ -23,8 +23,7 @@ double untilNextFrame = FRAME_SPEED;
 
 abstract class World {
   final Logger log = new Logger('World');
-  
-  String playerName = "Unkown";
+
   int invalidKeysPressed = 0;
 
   // Representing the player in the world.

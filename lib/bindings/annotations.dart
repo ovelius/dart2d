@@ -10,6 +10,10 @@ class WorldCanvas {
   const WorldCanvas();
 }
 
+class LocalStorage {
+  const LocalStorage();
+}
+
 class HtmlScreen {
   const HtmlScreen();
 }

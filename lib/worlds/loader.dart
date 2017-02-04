@@ -35,6 +35,7 @@ class Loader {
   Network _network;
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
+  Map _localStorage;
   ChunkHelper _chunkHelper;
   var context_;
   int _width;
@@ -47,19 +48,21 @@ class Loader {
 
   String _currentMessage = "";
 
-  Loader(@WorldCanvas() Object canvasElement,
+  Loader(@LocalStorage() Map storage,
+         @WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
          Network network,
          ChunkHelper chunkHelper) {
-   this._network = network;
-   this._peerWrapper = network.getPeer();
-   this._chunkHelper = chunkHelper;
-   // Hack the typesystem.
-   var canvas = canvasElement;
-   context_ = canvas.context2D;
-   _width = canvas.width;
-   _height = canvas.height;
-   this._imageIndex = imageIndex;
+    this._localStorage = storage;
+    this._network = network;
+    this._peerWrapper = network.getPeer();
+    this._chunkHelper = chunkHelper;
+    // Hack the typesystem.
+    var canvas = canvasElement;
+    context_ = canvas.context2D;
+    _width = canvas.width;
+    _height = canvas.height;
+    this._imageIndex = imageIndex;
   }
 
   void loaderTick([double duration = 0.01]) {
@@ -171,7 +174,7 @@ class Loader {
 
     if (!serverConnection.isValidGameConnection()) {
       if (_currentState != LoaderState.CONNECTING_TO_GAME) {
-        serverConnection.connectToGame();
+        serverConnection.connectToGame(_localStorage['playerName']);
       }
       setState(LoaderState.CONNECTING_TO_GAME);
     } else {

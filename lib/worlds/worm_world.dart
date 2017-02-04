@@ -28,6 +28,7 @@ class WormWorld extends World {
   MobileControls _mobileControls;
   FpsCounter _drawFps;
   Network _network;
+  Map _localStorage;
   KeyState localKeyState;
   HudMessages hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -46,6 +47,7 @@ class WormWorld extends World {
       Loader loader,
       @LocalKeyState() KeyState localKeyState,
       @WorldCanvas() Object canvasElement,
+      @LocalStorage() Map storage,
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       ImageIndex imageIndex,
@@ -55,6 +57,7 @@ class WormWorld extends World {
       WorldListener worldListener,
       MobileControls mobileControls,
       PacketListenerBindings packetListenerBindings) {
+    this._localStorage = storage;
     this._imageIndex = imageIndex;
     this._drawFps = serverFrameCounter;
     this._mobileControls = mobileControls;
@@ -140,11 +143,7 @@ class WormWorld extends World {
   }
 
   void connectTo(var id, [String name = null, bool startGame = true]) {
-    if (name != null) {
-      this.playerName = name;
-    }
     hudMessages.display("Connecting to ${id}");
-    _network.localPlayerName = this.playerName;
     _network.peer.connectTo(id);
     _network.gameState.actingCommanderId = null;
     if (startGame) {
@@ -152,7 +151,8 @@ class WormWorld extends World {
       if (_network.getServerConnection() == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
       }
-      _network.getServerConnection().connectToGame();
+      _network.getServerConnection().connectToGame(
+          name == null ? _localStorage['playerName'] : name);
     }
   }
 
@@ -500,7 +500,7 @@ class WormWorld extends World {
   startAsServer([String name]) {
     initByteWorld();
     assert(imageIndex != null);
-    addLocalPlayerSprite(this.playerName);
+    addLocalPlayerSprite(_localStorage['playerName']);
     _network.setAsActingCommander();
   }
 

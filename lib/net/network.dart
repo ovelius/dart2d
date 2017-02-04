@@ -27,7 +27,6 @@ class Network {
   SpriteIndex _spriteIndex;
   KeyState _localKeyState;
   PeerWrapper peer;
-  String localPlayerName;
   PacketListenerBindings _packetListenerBindings;
   FpsCounter _drawFps;
   double untilNextKeyFrame = KEY_FRAME_DEFAULT;
