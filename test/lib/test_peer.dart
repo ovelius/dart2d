@@ -20,7 +20,8 @@ WormWorld testWorld(String id) {
 
 WormWorld initTestWorld(Injector injector) {
   WormWorld world = injector.get(WormWorld);
-  world.playerName = "name${world.network().peer.getId().toString().toUpperCase()}";
+  Map storage = injector.get(Map, LocalStorage);
+  storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
   world.loader.markCompleted();
   world.initByteWorld();
   return world;
