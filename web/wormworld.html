@@ -14,36 +14,71 @@
       </canvas>
       <br/>
     </div>
-    <div class="g-signin2" data-onsuccess="onSignIn"></div>
+
     <a href="#" onclick="signOut();">Sign out</a>
 
     <input id="chatMsg" />
     <input type="button" id="sendMsg" value="Send" />
 
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/themes/le-frog/jquery-ui.css" type="text/css" media="all" />
+    <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.5.min.js" type="text/javascript"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js" type="text/javascript"></script>
+
     <script type="application/dart" src="wormworld.dart"></script>
     <script src="packages/browser/dart.js"></script>
     <script src="util.js"></script>
     <script src="peer.js"></script>
+    <!-- TODO dynamically load name if needed only -->
+    <script src="name.js"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
-  	var canvas = document.querySelector("#canvas");
-  	var playerName;
+      $(function() {
+        if (!window.localStorage.playerName) {
+          $("#name").val(randomName());
+          $("#name-dialog").dialog({
+            open: function(event, ui) {
+              //hide close button.
+              $(this).parent().children().children('.ui-dialog-titlebar-close').hide();
+            },
+            modal: true,
+            closeOnEscape: false,
+            buttons: {
+              'OK': function() {
+                window.localStorage.playerName = $("#name").val();
+                $(this).dialog("close");
+              }
+            }
+          });
+        }
+      });
 
-    function fullscreen() {
-      if (!document.fullscreen) {
-        canvas.webkitRequestFullscreen();
+  	  var canvas = document.querySelector("#canvas");
+  	  var playerName;
+
+      function fullscreen() {
+        if (!document.fullscreen) {
+          canvas.webkitRequestFullscreen();
+        }
       }
-    }
 
-    function onSignIn(user) {
-      window.localStorage.playerName = user.getBasicProfile().getName();
-    }
+      function onSignIn(user) {
+        var profile = user.getBasicProfile();
+        window.localStorage.playerName = profile.getName();
+        window.localStorage.playerId = profile.getId();
+      }
 
-	function signOut() {
-	  var auth2 = gapi.auth2.getAuthInstance();
-	  auth2.signOut();
-	}
+      function signOut() {
+        var auth2 = gapi.auth2.getAuthInstance();
+        auth2.signOut();
+      }
     </script>
+
+    <div id="name-dialog" title="Tell us you name" style="display:none;">
+      <p>Hello! We require a name to continue.</p>
+      <div class="g-signin2" data-onsuccess="onSignIn"></div>
+      <p><b>OR</b></p>
+      <p>Manually enter a name</p> <input id="name" value="foo"/>
+    </div>
   </body>
 </html>
