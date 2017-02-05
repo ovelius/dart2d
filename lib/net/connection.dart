@@ -269,8 +269,8 @@ class ConnectionWrapper {
         // Merge data with previously saved data for this key.
         dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
         data[reliableKey] = mergeFunction(data[reliableKey], tuple[1]);
-        _reliableDataBuffer[JSON.encode(data[reliableKey]).hashCode] = [reliableKey, data[reliableKey]];
         _reliableDataBuffer.remove(hash);
+        _reliableDataBuffer[JSON.encode(data[reliableKey]).hashCode] = [reliableKey, data[reliableKey]];
       } else {
         data[reliableKey] = tuple[1];
       }
