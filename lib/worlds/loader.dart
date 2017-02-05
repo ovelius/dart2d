@@ -19,6 +19,7 @@ enum LoaderState {
 
   FINDING_SERVER,
   CONNECTING_TO_GAME,
+  WAITING_FOR_NAME,
 
   LOADING_GAMESTATE,
   LOADING_ENTERING_GAME, // Waiting to enter game.
@@ -66,6 +67,10 @@ class Loader {
   }
 
   void loaderTick([double duration = 0.01]) {
+    if (!_localStorage.containsKey('playerName')) {
+      setState(LoaderState.WAITING_FOR_NAME);
+      return;
+    }
     if (_imageIndex.finishedLoadingImages()) {
       this._loaderGameStateTick(duration);
       return;
@@ -224,6 +229,8 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.LOADING_OTHER_CLIENT: "Loading resources from client...",
 
   LoaderState.CONNECTING_TO_GAME: "Connecting to game...",
+
+  LoaderState.WAITING_FOR_NAME: "Waiting to receive a player name...",
 
   LoaderState.FINDING_SERVER: "Finding game to join..",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",

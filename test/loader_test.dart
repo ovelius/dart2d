@@ -22,12 +22,14 @@ void main() {
   MockPeerWrapper mockPeerWrapper;
   MockChunkHelper mockChunkHelper;
   MockGameState mockGameState;
+  Map localStorage;
   void tickAndAssertState(LoaderState state) {
     loader.loaderTick(TICK_TIME);
     expect(loader.currentState(), equals(state));
   }
   setUp(() {
     logOutputForTest();
+    localStorage = {};
     mockImageIndex = new MockImageIndex();
     mockNetwork = new MockNetwork();
     mockPeerWrapper = new MockPeerWrapper();
@@ -36,7 +38,7 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
-    loader = new Loader({'playerName':'playerName'},new FakeCanvas(),
+    loader = new Loader(localStorage,new FakeCanvas(),
       mockImageIndex, mockNetwork, mockChunkHelper);
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);
@@ -46,6 +48,8 @@ void main() {
   });
   group('Loader tests', () {
     test('Base state and load from server', () {
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
       // Wait for init.
       tickAndAssertState(LoaderState.WEB_RTC_INIT);
       when(mockPeerWrapper.connectedToServer()).thenReturn(true);
@@ -74,6 +78,8 @@ void main() {
       Map connections = {
         'a': connection1,
       };
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
       when(mockPeerWrapper.connectedToServer()).thenReturn(true);
       when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
       when(mockNetwork.hasOpenConnection()).thenReturn(false);
