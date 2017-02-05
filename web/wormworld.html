@@ -28,14 +28,14 @@
     <script src="packages/browser/dart.js"></script>
     <script src="util.js"></script>
     <script src="peer.js"></script>
-    <!-- TODO dynamically load name if needed only -->
-    <script src="name.js"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
     <script type="text/javascript">
       $(function() {
         if (!window.localStorage.playerName) {
-          $("#name").val(randomName());
+          $.getScript("name.js", function(){
+            $("#name").val(randomName());
+          });
           $("#name-dialog").dialog({
             open: function(event, ui) {
               //hide close button.
@@ -65,7 +65,7 @@
       function onSignIn(user) {
         var profile = user.getBasicProfile();
         window.localStorage.playerName = profile.getName();
-        window.localStorage.playerId = profile.getId();
+        $("#name-dialog").dialog("close");
       }
 
       function signOut() {
