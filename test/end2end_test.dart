@@ -28,12 +28,14 @@ void main() {
       expectWarningContaining("unable to add commander data");
       logConnectionData = false;
       Injector injectorA = createWorldInjector("a", false);
+      setPlayerName(injectorA);
       Injector injectorB = createWorldInjector("b", false);
+      setPlayerName(injectorB);
 
       WormWorld worldA = injectorA.get(WormWorld);
       TestPeer peerA = injectorA.get(TestPeer);
       Loader loaderA = worldA.loader;
-      FakeImageFactory fakeImageFactoryA = injectorA.get(FakeImageFactory);
+      FakeImageFactory fakeImageFactoryA = injectorA .get(FakeImageFactory);
 
       WormWorld worldB = injectorB.get(WormWorld);
       Loader loaderB = worldB.loader;
@@ -98,6 +100,7 @@ void main() {
 
     test('Resource loading failing p2p', () {
       Injector injectorC = createWorldInjector("c", false);
+      setPlayerName(injectorC);
       // Now comes a goofy client, unable to connect to anyone!
       WormWorld worldC = injectorC.get(WormWorld);
       Loader loaderC = worldC.loader;
@@ -127,7 +130,9 @@ void main() {
     });
     test('Resource loading partial p2p', () {
       Injector injectorA = createWorldInjector("a", false);
+      setPlayerName(injectorA);
       Injector injectorB = createWorldInjector("b", false);
+      setPlayerName(injectorB);
 
       WormWorld worldA = injectorA.get(WormWorld);
       TestPeer peerA = injectorA.get(TestPeer);

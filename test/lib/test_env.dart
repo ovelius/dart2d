@@ -21,6 +21,12 @@ clearEnvironment() {
   testPeers.clear();
 }
 
+setPlayerName(Injector i) {
+  Map storage = i.get(Map, LocalStorage);
+  WormWorld world = i.get(WormWorld);
+  storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
+}
+
 Injector createWorldInjector(String id, [bool loadImages = true]) {
   TestPeer peer = new TestPeer(id);
   FakeCanvas fakeCanvas = new FakeCanvas();
