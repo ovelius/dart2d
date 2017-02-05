@@ -59,7 +59,9 @@ class ConnectionWrapper {
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
   // Storage of our reliable key data.
-  Map keyFrameData = {};
+  Map _reliableDataBuffer = {};
+  // Reliable verifications.
+  List<int> _reliableDataToVerify = [];
   // Keep track of how long connection has been open.
   Stopwatch _connectionTimer = new Stopwatch();
   // When we time out.
@@ -87,6 +89,9 @@ class ConnectionWrapper {
     log.fine("Opened connection to $id");
   }
 
+  Map get reliableDataBuffer => _reliableDataBuffer;
+  List get reliableDataToVerify => _reliableDataToVerify;
+
   bool hasReceivedFirstKeyFrame(Map dataMap) {
     if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
       lastKeyFrameFromPeer = dataMap[IS_KEY_FRAME_KEY];
@@ -98,9 +103,7 @@ class ConnectionWrapper {
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
     int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
     if (receivedKeyFrameAck > lastLocalPeerKeyFrameVerified) {
-      // Cool we just got some reliable data verified :)
       lastLocalPeerKeyFrameVerified = receivedKeyFrameAck;
-      keyFrameData = {};
     }
   }
 
@@ -187,6 +190,7 @@ class ConnectionWrapper {
   Set<String> _ignoreListeners = new Set.from([
     IS_KEY_FRAME_KEY,
     KEY_FRAME_KEY,
+    DATA_RECEIPTS,
     PING,
     PONG,
   ]);
@@ -214,9 +218,19 @@ class ConnectionWrapper {
       _initialPongReceived = true;
     }
 
+    if (dataMap.containsKey(DATA_RECEIPTS)) {
+      for (int receipt in dataMap[DATA_RECEIPTS]) {
+        _reliableDataBuffer.remove(receipt);
+      }
+    }
+
     // New path.
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
+        if (RELIABLE_KEYS.containsKey(key)) {
+          Object data = dataMap[key];
+         _reliableDataToVerify.add(JSON.encode(data).hashCode);
+        }
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
             handler(this, dataMap[key]);
@@ -246,28 +260,28 @@ class ConnectionWrapper {
     _network.parseBundle(this, dataMap);
   }
 
-  void alsoSendWithStoredData(var data) {
-    for (String key in RELIABLE_KEYS.keys) {
-      // Use the merge function specified to merge any previosly stored data
-      // with the data being sent in this frame.
-      var mergedData = RELIABLE_KEYS[key](data[key], keyFrameData[key]);
-      if (mergedData != null) {
-        data[key] = mergedData;
-        keyFrameData[key] = mergedData;
+  void alsoSendWithStoredData(Map data) {
+    storeAwayReliableData(data);
+    for (List tuple in _reliableDataBuffer.values) {
+      String reliableKey = tuple[0];
+      if (data.containsKey(reliableKey)) {
+        // Merge data with previously saved data for this key.
+        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
+        data[reliableKey] = mergeFunction(data[reliableKey], tuple[1]);
+      } else {
+        data[reliableKey] = tuple[1];
       }
     }
   }
 
-  void storeAwayReliableData(var data) {
-    RELIABLE_KEYS.keys.forEach((String reliableKey) {
-      if (data.containsKey(reliableKey)) {
-        var mergedData = RELIABLE_KEYS[reliableKey](
-            data[reliableKey], keyFrameData[reliableKey]);
-        if (mergedData != null) {
-          keyFrameData[reliableKey] = mergedData;
-        }
+  void storeAwayReliableData(Map dataMap) {
+    for (String reliableKey in RELIABLE_KEYS.keys) {
+      if (dataMap.containsKey(reliableKey)) {
+        Object data = dataMap[reliableKey];
+        String dataJSON = JSON.encode(data);
+        _reliableDataBuffer[dataJSON.hashCode] = [reliableKey, data];
       }
-    });
+    };
   }
 
   void checkIfShouldClose(int keyFrame) {
@@ -281,6 +295,10 @@ class ConnectionWrapper {
 
   void sendData(Map data) {
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
+    if (!_reliableDataToVerify.isEmpty) {
+      data[DATA_RECEIPTS] = _reliableDataToVerify;
+      _reliableDataToVerify = [];
+    }
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.

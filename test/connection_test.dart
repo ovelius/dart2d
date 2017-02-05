@@ -42,33 +42,86 @@ void main() {
           reliableKey: ['test'],
           KEY_FRAME_KEY: 0
         }));
-    expect(connection.keyFrameData, equals({reliableKey: ['test']}));
+    expect(
+        connection.reliableDataBuffer,
+        equals({
+          743729159: [
+            'remove_sprite',
+            ['test']
+          ]
+        }));
 
-    connection.receiveData(null, JSON.encode({KEY_FRAME_KEY: 1}));
+    connection.receiveData(
+        null,
+        JSON.encode({
+          KEY_FRAME_KEY: 1,
+          DATA_RECEIPTS: [1, 2, 743729159]
+        }));
 
-    expect(connection.keyFrameData, equals({}));
+    expect(connection.reliableDataBuffer, equals({}));
   });
 
   test('TestReliableDataReSend', () {
-    String reliableKey = RELIABLE_KEYS.keys.first;
     connection.sendData({
-      reliableKey: ["test"]
+      REMOVE_KEY: [1, 2]
     });
     expect(
         testConnection.nativeBufferedDataAt(0),
         equals({
-          reliableKey: ['test'],
+          REMOVE_KEY: [1, 2],
           KEY_FRAME_KEY: 0
         }));
     connection.sendData({
       IS_KEY_FRAME_KEY: 2,
+      REMOVE_KEY: [3],
+      CLIENT_PLAYER_SPEC: "test client",
     });
 
     // Data got added again.
     expect(
+        testConnection.nativeBufferedDataAt(1),
+        equals({
+          REMOVE_KEY: [3, 1, 2],
+          IS_KEY_FRAME_KEY: 2,
+          CLIENT_PLAYER_SPEC: "test client",
+          KEY_FRAME_KEY: 0
+        }));
+
+    expect(connection.reliableDataBuffer, equals({
+      613796826: [REMOVE_KEY, [1, 2]],
+      325444850: [REMOVE_KEY, [3]],
+      560726420: [CLIENT_PLAYER_SPEC, 'test client']
+    }));
+
+    connection.sendData({
+      IS_KEY_FRAME_KEY: 2,
+    });
+
+    // Data got added yet again.
+    expect(
+        testConnection.nativeBufferedDataAt(2),
+        equals({
+          REMOVE_KEY: [1, 2, 3],
+          IS_KEY_FRAME_KEY: 2,
+          CLIENT_PLAYER_SPEC: "test client",
+          KEY_FRAME_KEY: 0
+        }));
+  });
+
+  test('TestReceiveReliableDataAndSendVerification', () {
+    String reliableKey = RELIABLE_KEYS.keys.first;
+    packetListenerBindings.bindHandler(reliableKey, (ConnectionWrapper c, Object o) {});
+    connection.receiveData(null, JSON.encode({KEY_FRAME_KEY:0, reliableKey: "test"}));
+
+    int expected = JSON.encode("test").hashCode;
+    expect(connection.reliableDataToVerify, equals([expected]));
+
+    connection.sendData({KEY_FRAME_KEY: 0});
+
+    expect(
         testConnection.nativeBufferedDataAt(0),
         equals({
-          reliableKey: ['test'],
+          DATA_RECEIPTS: [expected],
           KEY_FRAME_KEY: 0
         }));
   });

@@ -25,6 +25,7 @@ String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
 String TRANSFER_COMMAND = "tt";
+String DATA_RECEIPTS = ".";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -53,6 +54,8 @@ void remapKeyNamesForTest() {
   PONG = "pong";
 
   TRANSFER_COMMAND = "transfer_command";
+
+  DATA_RECEIPTS = "data_receipts";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
@@ -90,6 +93,7 @@ Set<String> SPECIAL_KEYS = new Set.from([
   MESSAGE_KEY,
   WORLD_DESTRUCTION,
   WORLD_PARTICLE,
+  DATA_RECEIPTS,
   IMAGE_DATA_REQUEST,
   TRANSFER_COMMAND,
   IMAGE_DATA_RESPONSE
