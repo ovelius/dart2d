@@ -17,7 +17,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:html';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = false;
+const bool USE_LOCAL_HOST_PEER = true;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
@@ -31,38 +31,34 @@ void main() {
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
-  var injector = new ModuleInjector([new Module()
-     ..bind(int, withAnnotation: const WorldWidth(), toValue: canvasElement.width)
-     ..bind(int, withAnnotation: const WorldHeight(), toValue: canvasElement.height)
-     ..bind(DynamicFactory, withAnnotation: const CanvasFactory(),  toValue:
-         new DynamicFactory((args) => new CanvasElement(width:args[0], height:args[1])))
-     ..bind(DynamicFactory, withAnnotation: const ImageFactory(),  toValue:
-         new DynamicFactory((args) {
-           if (args.length == 0) {
-             return new ImageElement();
-           } else if (args.length == 1) {
-             return new ImageElement(src: args[0]);
-           } else {
-             return new ImageElement(width: args[0], height: args[1]);
-           }
-         }))
-     ..bind(bool, withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
-     ..bind(Map, withAnnotation: const LocalStorage(), toValue: window.localStorage)
-     ..bind(Object, withAnnotation: const WorldCanvas(), toValue: canvasElement)
+  var injector = new ModuleInjector([
+    new Module()
+      ..bind(int,
+          withAnnotation: const WorldWidth(), toValue: canvasElement.width)
+      ..bind(int,
+          withAnnotation: const WorldHeight(), toValue: canvasElement.height)
+      ..bind(bool,
+          withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
+      ..bind(Map,
+          withAnnotation: const LocalStorage(), toValue: window.localStorage)
+      ..bind(Object,
+          withAnnotation: const WorldCanvas(), toValue: canvasElement)
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
-     ..bind(Object,  withAnnotation: const PeerMarker(), toValue: peer)
-     ..install(new UtilModule())
-     ..install(new NetModule())
-     ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
-     ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
-     ..bind(WormWorld)
-     ..bind(WorldListener)
-     ..bind(ImageIndex)
-     ..bind(ByteWorld)
-     ..bind(Loader)
-     ..bind(PacketListenerBindings)
-     ..bind(JsCallbacksWrapper, toImplementation:  JsCallbacksWrapperImpl)
-     ..bind(SpriteIndex)
+      ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
+      ..install(new HtmlDomBindingsModule())
+      ..install(new UtilModule())
+      ..install(new NetModule())
+      ..bind(KeyState,
+          withAnnotation: const LocalKeyState(), toValue: new KeyState())
+      ..bind(FpsCounter,
+          withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
+      ..bind(WormWorld)
+      ..bind(WorldListener)
+      ..bind(ImageIndex)
+      ..bind(ByteWorld)
+      ..bind(Loader)
+      ..bind(PacketListenerBindings)
+      ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
 
@@ -83,19 +79,19 @@ void main() {
 
   // TODO register using named keys instead.
   MobileControls controls = injector.get(MobileControls);
-  canvasElement.onTouchStart.listen((TouchEvent e ) {
+  canvasElement.onTouchStart.listen((TouchEvent e) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
       controls.touchDown(t.identifier, t.page.x, t.page.y);
     });
   });
-  canvasElement.onTouchEnd.listen((TouchEvent e ) {
+  canvasElement.onTouchEnd.listen((TouchEvent e) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
       controls.touchUp(t.identifier);
     });
   });
-  canvasElement.onTouchMove.listen((TouchEvent e ) {
+  canvasElement.onTouchMove.listen((TouchEvent e) {
     e.preventDefault();
     e.changedTouches.forEach((Touch t) {
       controls.touchMove(t.identifier, t.page.x, t.page.y);
@@ -103,14 +99,6 @@ void main() {
   });
 
   startTimer();
-}
-
-void setKeyListeners(WormWorld world, var canvasElement) {
-  document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
-  document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
-
-  canvasElement.addEventListener("keydown", world.localKeyState.onKeyDown);
-  canvasElement.addEventListener("keyup", world.localKeyState.onKeyUp);
 }
 
 void startTimer() {
@@ -133,16 +121,45 @@ void step() {
   new Timer(TIMEOUT - new Duration(milliseconds: frameTimeMillis), step);
 }
 
+void setKeyListeners(WormWorld world, var canvasElement) {
+  document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
+  document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
+
+  canvasElement.addEventListener("keydown", world.localKeyState.onKeyDown);
+  canvasElement.addEventListener("keyup", world.localKeyState.onKeyUp);
+}
+
+class HtmlDomBindingsModule extends Module {
+  HtmlDomBindingsModule() {
+    bind(JsCallbacksWrapper, toImplementation: JsCallbacksWrapperImpl);
+    bind(DynamicFactory,
+        withAnnotation: const CanvasFactory(),
+        toValue: new DynamicFactory(
+            (args) => new CanvasElement(width: args[0], height: args[1])));
+    bind(DynamicFactory, withAnnotation: const ImageFactory(),
+        toValue: new DynamicFactory((args) {
+      if (args.length == 0) {
+        return new ImageElement();
+      } else if (args.length == 1) {
+        return new ImageElement(src: args[0]);
+      } else {
+        return new ImageElement(width: args[0], height: args[1]);
+      }
+    }));
+  }
+}
+
 @Injectable()
 class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
   void bindOnFunction(var jsObject, String methodName, dynamic callback) {
-    jsObject.callMethod(
-        'on',
+    jsObject.callMethod('on',
         new JsObject.jsify([methodName, new JsFunction.withThis(callback)]));
   }
+
   void callJsMethod(var jsObject, String methodName) {
     jsObject.callMethod(methodName);
   }
+
   dynamic connectToPeer(var jsPeer, String id) {
     var metaData = new JsObject.jsify({
       'label': 'dart2d',
@@ -155,27 +172,35 @@ class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
 }
 
 createPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'peerconfig', // TODO: Change this.
-    'host': 'anka.locutus.se',
-    'port': 8089,
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-  })]);
+  return new JsObject(context['Peer'], [
+    new JsObject.jsify({
+      'key': 'peerconfig', // TODO: Change this.
+      'host': 'anka.locutus.se',
+      'port': 8089,
+      'debug': 7,
+      'config': {
+        // TODO: Use list of public ICE servers instead.
+        'iceServers': [
+          {'url': 'stun:stun.l.google.com:19302'}
+        ]
+      }
+    })
+  ]);
 }
 
 createLocalHostPeerJs() {
-  return new JsObject(context['Peer'], [new JsObject.jsify({
-    'key': 'peerconfig', // TODO: Change this.
-    'host': 'localhost',
-    'port': 8089,
-    'debug': 7,
-    'config': {
-      // TODO: Use list of public ICE servers instead.
-      'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]
-    }
-  })]);
+  return new JsObject(context['Peer'], [
+    new JsObject.jsify({
+      'key': 'peerconfig', // TODO: Change this.
+      'host': 'localhost',
+      'port': 8089,
+      'debug': 7,
+      'config': {
+        // TODO: Use list of public ICE servers instead.
+        'iceServers': [
+          {'url': 'stun:stun.l.google.com:19302'}
+        ]
+      }
+    })
+  ]);
 }
