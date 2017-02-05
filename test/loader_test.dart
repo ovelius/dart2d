@@ -6,12 +6,8 @@ import 'package:mockito/mockito.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 
-class MockImageIndex extends Mock implements ImageIndex {}
-class MockNetwork extends Mock implements Network {}
 class MockPeerWrapper extends Mock implements PeerWrapper {}
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
-class MockChunkHelper extends Mock implements ChunkHelper {}
-class MockGameState extends Mock implements GameState {}
 
 const double TICK_TIME = 0.01;
 

@@ -5,10 +5,6 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'lib/test_lib.dart';
 
-class MockImageIndex extends Mock implements ImageIndex {}
-
-class MockByteWorld extends Mock implements ByteWorld {}
-
 void main() {
   const String IMAGE_DATA =
       "12345678901234567890123456789012345678901234567890";

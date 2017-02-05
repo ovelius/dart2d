@@ -3,20 +3,8 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
-
-class MockHudMessages extends Mock implements HudMessages {}
-
-class MockSpriteIndex extends Mock implements SpriteIndex {}
-
-class MockImageIndex extends Mock implements ImageIndex {}
-
-class MockWormWorld extends Mock implements WormWorld {}
-
-class MockFpsCounter extends Mock implements FpsCounter {}
 
 class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   Vec2 size = new Vec2(1, 1);

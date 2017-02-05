@@ -5,4 +5,5 @@ export 'matchers.dart';
 export 'test_connection.dart';
 export 'test_peer.dart';
 export 'test_env.dart';
+export 'test_mocks.dart';
 export 'logging_helper.dart';
