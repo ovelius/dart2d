@@ -16,7 +16,7 @@ void main() {
 
   group('World smoke tests', () {
     test('TestBasicSmokeConnection', () {
-      WormWorld worldA = testWorld("a");
+      WormWorld worldA = testWorld("c");
       WormWorld worldB = testWorld("b");
 
       // A framedraw will start worldB as server.
@@ -32,16 +32,16 @@ void main() {
           .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
   
-      worldA.connectTo("b", "nameA", true);
+      worldA.connectTo("b", "nameC", true);
       // A framedraw twill start worldA as client.
       worldA.frameDraw();
       // ClientSpec was sent to b from a:
       expect(recentSentDataTo("b"),
           new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
-      expect(recentReceviedDataFrom("a"),
-          new MapKeyMatcher.containsKeyWithValue(CLIENT_PLAYER_SPEC, "nameA"));
+      expect(recentReceviedDataFrom("c"),
+          new MapKeyMatcher.containsKeyWithValue(CLIENT_PLAYER_SPEC, "nameC"));
       // B responed with a server reply:
-      expect(recentSentDataTo("a"),
+      expect(recentSentDataTo("c"),
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
@@ -52,7 +52,7 @@ void main() {
       expect(worldA.network().currentKeyFrame, equals(0));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldA.network().currentKeyFrame, equals(1));
-      expect(recentReceviedDataFrom("a"),
+      expect(recentReceviedDataFrom("c"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
       
       expect(worldB.network().currentKeyFrame, equals(0));
@@ -100,9 +100,9 @@ void main() {
 
       // Both worlds are in the same gamestate.
       expect(worldB.network().gameState,
-          isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
+          isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
       expect(worldA.network().gameState,
-          isGameStateOf({playerId(0): "nameB", playerId(1): "nameA"}));
+          isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
     });
 
     test('TestDroppedKeyFrame', () {
