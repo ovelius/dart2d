@@ -262,12 +262,15 @@ class ConnectionWrapper {
 
   void alsoSendWithStoredData(Map data) {
     storeAwayReliableData(data);
-    for (List tuple in _reliableDataBuffer.values) {
+    for (int hash in new List.from(_reliableDataBuffer.keys)) {
+      List tuple = _reliableDataBuffer[hash];
       String reliableKey = tuple[0];
       if (data.containsKey(reliableKey)) {
         // Merge data with previously saved data for this key.
         dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
         data[reliableKey] = mergeFunction(data[reliableKey], tuple[1]);
+        _reliableDataBuffer[JSON.encode(data[reliableKey]).hashCode] = [reliableKey, data[reliableKey]];
+        _reliableDataBuffer.remove(hash);
       } else {
         data[reliableKey] = tuple[1];
       }

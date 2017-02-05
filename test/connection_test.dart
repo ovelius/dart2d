@@ -88,8 +88,7 @@ void main() {
         }));
 
     expect(connection.reliableDataBuffer, equals({
-      613796826: [REMOVE_KEY, [1, 2]],
-      325444850: [REMOVE_KEY, [3]],
+      726483626: [REMOVE_KEY, [3, 1, 2]],
       560726420: [CLIENT_PLAYER_SPEC, 'test client']
     }));
 
@@ -101,7 +100,7 @@ void main() {
     expect(
         testConnection.nativeBufferedDataAt(2),
         equals({
-          REMOVE_KEY: [1, 2, 3],
+          REMOVE_KEY: [3, 1, 2],
           IS_KEY_FRAME_KEY: 2,
           CLIENT_PLAYER_SPEC: "test client",
           KEY_FRAME_KEY: 0
