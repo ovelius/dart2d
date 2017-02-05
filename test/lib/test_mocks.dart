@@ -26,3 +26,5 @@ class MockGameState extends Mock implements GameState {}
 class MockByteWorld extends Mock implements ByteWorld {}
 
 class MockJsCallbacksWrapper extends Mock implements JsCallbacksWrapper{}
+
+class MockPeerWrapper extends Mock implements PeerWrapper {}

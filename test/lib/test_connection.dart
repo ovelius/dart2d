@@ -73,6 +73,10 @@ class TestConnection {
     sendAndReceivByOtherPeer([JSON.encode(object)]);
   }
 
+  nativeBufferedDataAt(int pos) {
+    return JSON.decode(dataBuffer[pos][0]);
+  }
+
   void signalClose() {
     eventHandlers['close'](this);
   }

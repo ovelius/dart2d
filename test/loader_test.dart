@@ -6,7 +6,6 @@ import 'package:mockito/mockito.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 
-class MockPeerWrapper extends Mock implements PeerWrapper {}
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
 
 const double TICK_TIME = 0.01;

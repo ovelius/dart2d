@@ -195,7 +195,7 @@ class ConnectionWrapper {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     if (Logger.root.isLoggable(Level.FINE)) {
-      log.fine("${_network.peer.id} -> ${id} data ${data}");
+      log.fine("${_network.getPeer().getId()} -> ${id} data ${data}");
     }
     verifyLastKeyFrameHasBeenReceived(dataMap);
 
