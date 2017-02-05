@@ -15,7 +15,7 @@
       <br/>
     </div>
 
-    <a href="#" onclick="signOut();">Sign out</a>
+    <a href="#" id="name-change" onclick="nameDialog();"></a>
 
     <input id="chatMsg" />
     <input type="button" id="sendMsg" value="Send" />
@@ -33,25 +33,35 @@
     <script type="text/javascript">
       $(function() {
         if (!window.localStorage.playerName) {
+          nameDialog();
+        } else {
+          $('#name-change').text(window.localStorage.playerName);
+        }
+      });
+
+      function nameDialog() {
+        if (!window.localStorage.playerName) {
           $.getScript("name.js", function(){
             $("#name").val(randomName());
           });
-          $("#name-dialog").dialog({
-            open: function(event, ui) {
-              //hide close button.
-              $(this).parent().children().children('.ui-dialog-titlebar-close').hide();
-            },
-            modal: true,
-            closeOnEscape: false,
-            buttons: {
-              'OK': function() {
-                window.localStorage.playerName = $("#name").val();
-                $(this).dialog("close");
-              }
-            }
-          });
+        } else {
+          $("#name").val(window.localStorage.playerName);
         }
-      });
+        $("#name-dialog").dialog({
+          open: function(event, ui) {
+            //hide close button.
+            $(this).parent().children().children('.ui-dialog-titlebar-close').hide();
+          },
+          modal: true,
+          closeOnEscape: false,
+          buttons: {
+            'OK': function() {
+              updateName($("#name").val());
+              $(this).dialog("close");
+            }
+          }
+        });
+      }
 
   	  var canvas = document.querySelector("#canvas");
   	  var playerName;
@@ -62,9 +72,14 @@
         }
       }
 
+      function updateName(name) {
+        $('#name-change').text(name);
+        window.localStorage.playerName = name;
+      }
+
       function onSignIn(user) {
         var profile = user.getBasicProfile();
-        window.localStorage.playerName = profile.getName();
+        updateName(profile.getName());
         $("#name-dialog").dialog("close");
       }
 
