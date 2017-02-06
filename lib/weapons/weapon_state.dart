@@ -157,8 +157,22 @@ class WeaponState {
             center.y - owner.size.y);
       }
       if (reloading()) {
-        context.fillText(reloadPercent().toString(),
+        double percentInverse = (100 - reloadPercent()) / 100.0;
+        double circle = PI * 2 * percentInverse;
+        double radius = owner.getRadius();
+        context.save();
+        context.fillText("Reloading",
             center.x, center.y - owner.size.y);
+        context.beginPath();
+
+        context.fillStyle = "#009900";
+        context.globalAlpha = 0.5;
+        context.arc(center.x, center.y, radius + 5,
+            0, circle, false);
+        context.arc(center.x, center.y, radius,
+            circle, PI*2, true);
+        context.fill();
+        context.restore();
       }
     }
   }
