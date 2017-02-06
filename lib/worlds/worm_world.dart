@@ -110,37 +110,9 @@ class WormWorld extends World {
           }
         }
 
-        // TODO Move world collision logic to ByteWorld.
-        int xStart = sprite.position.x.toInt();
-        int xWidth = sprite.size.x.toInt();
-        int yStart = sprite.position.y.toInt();
-        int yHeight = sprite.size.y.toInt();
-
-        List<int> data = byteWorld.getImageDataFor(xStart, yStart, xWidth, yHeight);
-
-        int xBelowBase = (yHeight - 1) * (xWidth * 4);
-        int collisionAngles = 0;
-        for (int x = 0; x < xWidth; x++) {
-          if (data[ x * 4] > 0) {
-            collisionAngles |= MovingSprite.DIR_ABOVE;
-          }
-          int pos = xBelowBase + (x + 1) * 4 - 1;
-          if (data[pos] > 0) {
-            collisionAngles |= MovingSprite.DIR_BELOW;
-          }
-        }
-        for (int y = 0; y < yHeight; y++) {
-          int pos = y * (xWidth * 4) + 3;
-          if (data[pos] > 0) {
-            collisionAngles |= MovingSprite.DIR_LEFT;
-          }
-          int pos2 = y * (xWidth * 4) + (xWidth * 4) - 1;
-          if (data[pos2] > 0) {
-            collisionAngles |= MovingSprite.DIR_RIGHT;
-          }
-        }
-        if (collisionAngles != 0) {
-          sprite.collide(null, byteWorld, collisionAngles);
+        int worldCollisionAngles = _worldCollisionAngles(sprite);
+        if (worldCollisionAngles != 0) {
+          sprite.collide(null, byteWorld, worldCollisionAngles);
         }
         
         // Out of bounds check.
@@ -158,6 +130,38 @@ class WormWorld extends World {
         }
       }
     }
+  }
+
+  int _worldCollisionAngles(Sprite sprite) {
+    int xStart = sprite.position.x.toInt();
+    int xWidth = sprite.size.x.toInt();
+    int yStart = sprite.position.y.toInt();
+    int yHeight = sprite.size.y.toInt();
+
+    List<int> data = byteWorld.getImageDataFor(xStart, yStart, xWidth, yHeight);
+
+    int xBelowBase = (yHeight - 1) * (xWidth * 4);
+    int collisionAngles = 0;
+    for (int x = 0; x < xWidth; x++) {
+      if (data[ x * 4] > 0) {
+        collisionAngles |= MovingSprite.DIR_ABOVE;
+      }
+      int pos = xBelowBase + (x + 1) * 4 - 1;
+      if (data[pos] > 0) {
+        collisionAngles |= MovingSprite.DIR_BELOW;
+      }
+    }
+    for (int y = 0; y < yHeight; y++) {
+      int pos = y * (xWidth * 4) + 3;
+      if (data[pos] > 0) {
+        collisionAngles |= MovingSprite.DIR_LEFT;
+      }
+      int pos2 = y * (xWidth * 4) + (xWidth * 4) - 1;
+      if (data[pos2] > 0) {
+        collisionAngles |= MovingSprite.DIR_RIGHT;
+      }
+    }
+    return collisionAngles;
   }
 
   void connectTo(var id, [String name = null, bool startGame = true]) {

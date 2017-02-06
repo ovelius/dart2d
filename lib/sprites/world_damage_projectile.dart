@@ -142,6 +142,8 @@ class WorldDamageProjectile extends MovingSprite {
         if (velocity.y > 0) {
           velocity.y = -velocity.y * bounche;
         }
+        // Make the "above" check exclusive, as a hacky way of preferring objects to
+        // go upwards.
       } else if(direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * bounche;
