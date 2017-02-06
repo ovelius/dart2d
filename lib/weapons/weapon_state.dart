@@ -147,19 +147,34 @@ class WeaponState {
   
   draw(var /*CanvasRenderingContext2D*/ context) {
     if (owner.drawWeaponHelpers()) {
+      double radius = owner.getRadius();
       context.fillStyle = "#ffffff";
       Vec2 center = owner.centerPoint();
       if (changeTime > 0) {
-        var metrics =
-        context.measureText(weapons[selectedWeaponIndex].name);
+        var metrics = context.measureText(weapons[selectedWeaponIndex].name);
+        double baseX = center.x - metrics.width / 2;
+        double baseY = center.y - owner.size.y;
+        context.fillText(weapons[selectedWeaponIndex].name, baseX, baseY);
+        /*
+        TODO draw weapon spinner here.
+        int next = ((selectedWeaponIndex + 1) % weapons.length);
+        int prev = ((selectedWeaponIndex - 1 + weapons.length)  % weapons.length);
+
+        double xoffset = radius * 8;
+        double yoffset = radius;
+
+        metrics = context.measureText(weapons[next].name);
         context.fillText(
-            weapons[selectedWeaponIndex].name, center.x - metrics.width / 2,
-            center.y - owner.size.y);
+            weapons[next].name, baseX + cos(PI / 8 - PI / 2)  * xoffset, baseY + sin (PI / 8 + PI / 2) * yoffset);
+        metrics = context.measureText(weapons[prev].name);
+        context.fillText(
+            weapons[prev].name, baseX + cos(-PI / 8 - PI / 2)  * xoffset, baseY + sin (-PI / 8 + PI / 2) * yoffset);
+        */
       }
       if (reloading()) {
         double percentInverse = (100 - reloadPercent()) / 100.0;
-        double circle = PI * 2 * percentInverse;
-        double radius = owner.getRadius();
+        double circle = PI * 2 * percentInverse - PI/2;
+
         context.save();
         context.fillText("Reloading",
             center.x, center.y - owner.size.y);
@@ -168,9 +183,9 @@ class WeaponState {
         context.fillStyle = "#009900";
         context.globalAlpha = 0.5;
         context.arc(center.x, center.y, radius + 5,
-            0, circle, false);
+            - PI/2, circle, false);
         context.arc(center.x, center.y, radius,
-            circle, PI*2, true);
+            circle, PI*2 - PI/2, true);
         context.fill();
         context.restore();
       }
