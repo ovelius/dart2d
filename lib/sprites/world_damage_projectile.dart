@@ -138,19 +138,21 @@ class WorldDamageProjectile extends MovingSprite {
     if (explodeAfter == null) {
       explode();
     } else {
-      if (direction == MovingSprite.DIR_BELOW) {
+      if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         if (velocity.y > 0) {
           velocity.y = -velocity.y * bounche;
         }
-      } else if(direction == MovingSprite.DIR_ABOVE) {
+      } else if(direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * bounche;
         }
-      } else  if(direction == MovingSprite.DIR_LEFT) {
+      }
+      if(direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
         if (velocity.x < 0) {
           velocity.x = -velocity.x * bounche;
         }
-      } else  if(direction == MovingSprite.DIR_RIGHT) {
+      }
+      if(direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
         if (velocity.x > 0) {
           velocity.x = -velocity.x * bounche;
         }

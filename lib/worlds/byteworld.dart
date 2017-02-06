@@ -37,6 +37,10 @@ class ByteWorld {
     return canvas.context2D.getImageData(pos.x.toInt(), pos.y.toInt(), size.x.toInt(), size.y.toInt()).data;
   }
 
+  List<int> getImageDataFor(int x,y, w,h) {
+    return canvas.context2D.getImageData(x, y, w, h).data;
+  }
+
   void drawAt(var canvas, x, y) {
     canvas.drawImageScaledFromSource(
        this.canvas,

@@ -16,7 +16,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
  */
 class LocalPlayerSprite extends MovingSprite {
   final Logger log = new Logger('LocalPlayerSprite');
-  static const BOUCHYNESS = 0.3;
+  static const BOUCHYNESS = 0.2;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(40.0, 40.0);
   static int MAX_HEALTH = 100;
   static const double RESPAWN_TIME = 3.0;
@@ -114,30 +114,32 @@ class LocalPlayerSprite extends MovingSprite {
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (world != null) {
-      if (direction == MovingSprite.DIR_BELOW) {
+      if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         onGround = true;
-        if (velocity.y > 0) {
+        if (velocity.y > 0.5) {
           velocity.y = -velocity.y * BOUCHYNESS;
+        } else {
+          velocity.y = 0.0;
         }
         // Check one more time, but y -1.
         while (world.isCanvasCollide(
-            position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
+          position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
           position.y--;
         }
       }
-      if (direction == MovingSprite.DIR_ABOVE) {
+      if (direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * BOUCHYNESS;
         }
       }
 
-      if (direction == MovingSprite.DIR_LEFT) {
+      if (direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
         if (velocity.x < 0) {
           velocity.x = -velocity.x * BOUCHYNESS;
           position.x++;
         }
       }
-      if (direction == MovingSprite.DIR_RIGHT) {
+      if (direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
         if (velocity.x > 0) {
           velocity.x = -velocity.x * BOUCHYNESS;
           position.x--;
@@ -182,7 +184,9 @@ class LocalPlayerSprite extends MovingSprite {
     grad.addColorStop(1, "#FF0000");
     context.globalAlpha = 0.5;
     context.fillStyle = grad;
-    context.fillRect(0, world.height() - 10, world.width() * healthFactor, 10);
+    int size = 20;
+    context.fillRect(0, world.height() - size, world.width() * healthFactor,
+        size);
     context.globalAlpha = 1.0;
     return true;
   }
@@ -433,7 +437,9 @@ class LocalPlayerSprite extends MovingSprite {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
     if (weaponState != null) {
       assert(data[startAt + 1] < weaponState.weapons.length);
-      weaponState.selectedWeaponIndex = data[startAt + 1];
+      if (!_ownedByThisWorld()) {
+        weaponState.selectedWeaponIndex = data[startAt + 1];
+      }
     }
   }
 

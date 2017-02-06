@@ -109,20 +109,38 @@ class WormWorld extends World {
             }
           }
         }
-        
-        // Above.
-        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y, sprite.size.x, 1)) {
-          sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
+
+        // TODO Move world collision logic to ByteWorld.
+        int xStart = sprite.position.x.toInt();
+        int xWidth = sprite.size.x.toInt();
+        int yStart = sprite.position.y.toInt();
+        int yHeight = sprite.size.y.toInt();
+
+        List<int> data = byteWorld.getImageDataFor(xStart, yStart, xWidth, yHeight);
+
+        int xBelowBase = (yHeight - 1) * (xWidth * 4);
+        int collisionAngles = 0;
+        for (int x = 0; x < xWidth; x++) {
+          if (data[ x * 4] > 0) {
+            collisionAngles |= MovingSprite.DIR_ABOVE;
+          }
+          int pos = xBelowBase + (x + 1) * 4 - 1;
+          if (data[pos] > 0) {
+            collisionAngles |= MovingSprite.DIR_BELOW;
+          }
         }
-        // Below.
-        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y + sprite.size.y, sprite.size.x, 1)) {
-          sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
+        for (int y = 0; y < yHeight; y++) {
+          int pos = y * (xWidth * 4) + 3;
+          if (data[pos] > 0) {
+            collisionAngles |= MovingSprite.DIR_LEFT;
+          }
+          int pos2 = y * (xWidth * 4) + (xWidth * 4) - 1;
+          if (data[pos2] > 0) {
+            collisionAngles |= MovingSprite.DIR_RIGHT;
+          }
         }
-        if (byteWorld.isCanvasCollide(sprite.position.x, sprite.position.y, 1, sprite.size.y)) {
-         sprite.collide(null, byteWorld, MovingSprite.DIR_LEFT);
-        }
-        if (byteWorld.isCanvasCollide(sprite.position.x + sprite.size.x, sprite.position.y, 1, sprite.size.y)) {
-          sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
+        if (collisionAngles != 0) {
+          sprite.collide(null, byteWorld, collisionAngles);
         }
         
         // Out of bounds check.

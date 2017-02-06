@@ -7,10 +7,10 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class MovingSprite extends Sprite {
-  static const int DIR_ABOVE = 0;
-  static const int DIR_BELOW = 1;
-  static const int DIR_LEFT = 2;
-  static const int DIR_RIGHT = 3;
+  static const int DIR_ABOVE = 1;
+  static const int DIR_BELOW = 2;
+  static const int DIR_LEFT = 4;
+  static const int DIR_RIGHT = 8;
 
   Vec2 velocity = new Vec2();
   double rotationVelocity = 0.0;

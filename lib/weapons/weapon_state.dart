@@ -79,7 +79,7 @@ class WeaponState {
       sprite.radius = 2.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Braviva Commercial", 40, 12.0, .11, (WeaponState weaponState) {
+    new Weapon("TV Commercial", 40, 12.0, .11, (WeaponState weaponState) {
       Random r = new Random();
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
       sprite.spriteType = SpriteType.CIRCLE;
