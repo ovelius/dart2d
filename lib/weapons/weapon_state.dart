@@ -79,6 +79,25 @@ class WeaponState {
       sprite.radius = 2.0;
       weaponState.world.addSprite(sprite);
     }),
+    new Weapon("Braviva Commercial", 40, 12.0, .11, (WeaponState weaponState) {
+      Random r = new Random();
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
+      sprite.spriteType = SpriteType.CIRCLE;
+      double a = r.nextDouble() + 0.2;
+      sprite.color = "rgba(${r.nextInt(255)}, ${r.nextInt(255)}, ${r.nextInt(255)}, $a)";
+      sprite.owner = weaponState.owner;
+      sprite.explodeAfter = 15.0;
+      sprite.velocity = sprite.velocity.multiply(0.2);
+      double sum = sprite.velocity.sum();
+      sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
+      sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
+      sprite.gravityAffect = 0.85;
+      sprite.bounche = 0.85;
+      sprite.size = new Vec2(4.0, 4.0);
+      sprite.radius = -1.0;
+      sprite.showCounter = false;
+      weaponState.world.addSprite(sprite);
+    }),
     new Weapon("Cofee Burn", 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
       Vec2 position = weaponState.gun.centerPoint();

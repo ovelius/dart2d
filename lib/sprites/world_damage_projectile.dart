@@ -113,6 +113,8 @@ class WorldDamageProjectile extends MovingSprite {
   double radius = 15.0;
 
   double explodeAfter = null;
+
+  bool showCounter = true;
   
   WorldDamageProjectile(double x, double y, int imageId, ImageIndex imageIndex)
       : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex);
@@ -157,7 +159,10 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   explode() {
-    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);    
+    if (radius > 0.0) {
+      world.explosionAtSprite(
+          this, this.velocity.multiply(0.2), damage, radius);
+    }
     this.remove = true;
   }
   
@@ -174,7 +179,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
   
   draw(var context, bool debug) {
-    if (explodeAfter != null) {
+    if (explodeAfter != null && showCounter) {
       context.fillStyle = "#ffffff";
       context.fillText(
         explodeAfter.toInt().toString(), position.x, position.y - size.y);
@@ -186,15 +191,17 @@ class WorldDamageProjectile extends MovingSprite {
     return SpriteConstructor.DAMAGE_PROJECTILE;
   }
 
-  void addExtraNetworkData(List<int> data) {
+  void addExtraNetworkData(List data) {
+    data.add(showCounter);
     if (explodeAfter != null) {
       data.add(explodeAfter.toInt());
     }
   }
 
-  void parseExtraNetworkData(List<int> data, int startAt) {
-    if (data.length > startAt) {
-      this.explodeAfter = data[startAt].toDouble();
+  void parseExtraNetworkData(List data, int startAt) {
+    showCounter = data[startAt];
+    if (data.length > startAt + 1) {
+      this.explodeAfter = data[startAt + 1].toDouble();
     }
   }
 
