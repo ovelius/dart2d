@@ -10,7 +10,7 @@ import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
 
 class WeaponState {
-  static const double SHOW_WEAPON_NAME_TIME = 0.5;
+  static const double SHOW_WEAPON_NAME_TIME = .9;
   WormWorld world;
   KeyState keyState;
   LocalPlayerSprite owner;
@@ -92,7 +92,7 @@ class WeaponState {
       sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
       sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
       sprite.gravityAffect = 1.5;
-      sprite.bounche = 0.95;
+      sprite.bounche = 0.99;
       sprite.size = new Vec2(4.0, 4.0);
       sprite.radius = -1.0;
       sprite.showCounter = false;
@@ -170,34 +170,36 @@ class WeaponState {
       context.fillStyle = "#ffffff";
       Vec2 center = owner.centerPoint();
       if (changeTime > 0) {
+        context.save();
         var metrics = context.measureText(weapons[selectedWeaponIndex].name);
         double baseX = center.x - metrics.width / 2;
         double baseY = center.y - owner.size.y;
         context.fillText(weapons[selectedWeaponIndex].name, baseX, baseY);
-        /*
-        TODO draw weapon spinner here.
+
+        int textDistance = 20;
         int next = ((selectedWeaponIndex + 1) % weapons.length);
         int prev = ((selectedWeaponIndex - 1 + weapons.length)  % weapons.length);
 
-        double xoffset = radius * 8;
-        double yoffset = radius;
+        // TODO animate selection.
+        context.globalAlpha = 0.8;
+        context.fillText(
+            weapons[next].name, baseX + metrics.width + textDistance, baseY);
+        var metrics2 = context.measureText(weapons[prev].name);
+        context.fillText(
+            weapons[prev].name, baseX - metrics2.width - textDistance, baseY);
 
-        metrics = context.measureText(weapons[next].name);
-        context.fillText(
-            weapons[next].name, baseX + cos(PI / 8 - PI / 2)  * xoffset, baseY + sin (PI / 8 + PI / 2) * yoffset);
-        metrics = context.measureText(weapons[prev].name);
-        context.fillText(
-            weapons[prev].name, baseX + cos(-PI / 8 - PI / 2)  * xoffset, baseY + sin (-PI / 8 + PI / 2) * yoffset);
-        */
+        context.restore();
       }
       if (reloading()) {
         double percentInverse = (100 - reloadPercent()) / 100.0;
         double circle = PI * 2 * percentInverse - PI/2;
 
         context.save();
-        context.fillText("Reloading",
-            center.x, center.y - owner.size.y);
-        context.beginPath();
+        if (changeTime <= 0) {
+          context.fillText("Reloading",
+              center.x, center.y - owner.size.y);
+          context.beginPath();
+        }
 
         context.fillStyle = "#009900";
         context.globalAlpha = 0.5;
