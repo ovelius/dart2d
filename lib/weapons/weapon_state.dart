@@ -79,9 +79,9 @@ class WeaponState {
       sprite.radius = 2.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("TV Commercial", 40, 12.0, .11, (WeaponState weaponState) {
+    new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
       Random r = new Random();
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
       sprite.spriteType = SpriteType.CIRCLE;
       double a = r.nextDouble() + 0.2;
       sprite.color = "rgba(${r.nextInt(255)}, ${r.nextInt(255)}, ${r.nextInt(255)}, $a)";
@@ -91,8 +91,8 @@ class WeaponState {
       double sum = sprite.velocity.sum();
       sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
       sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
-      sprite.gravityAffect = 0.85;
-      sprite.bounche = 0.85;
+      sprite.gravityAffect = 1.5;
+      sprite.bounche = 0.95;
       sprite.size = new Vec2(4.0, 4.0);
       sprite.radius = -1.0;
       sprite.showCounter = false;
