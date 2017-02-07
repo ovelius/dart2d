@@ -385,13 +385,26 @@ class WormWorld extends World {
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {
-      addSprite(new Particles(this, null, location, velocity, radius));
+      addSprite(new Particles(this, null, location, velocity, radius, _particleCountFromFps()));
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork);
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity, radius, damage)};
       _network.peer.sendDataWithKeyFramesToAll(data);
     }
+  }
+
+  /**
+   * Reduce the amount of particles if FPS is too low.
+   */
+  int _particleCountFromFps() {
+    if (_drawFps.fps() < 25) {
+      return 5;
+    }
+    if (_drawFps.fps() < 40) {
+      return 15;
+    }
+    return 30;
   }
 
   void fillRectAt(Vec2 pos, Vec2 size, String colorString,  [bool fromNetwork = false]) {
@@ -417,8 +430,9 @@ class WormWorld extends World {
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3) {
+      // TODO don't add particles if low framerate?
       addSprite(
-          new Particles(this, null, sprite.position, velocity, radius * 1.5));
+          new Particles(this, null, sprite.position, velocity, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
           sprite.centerPoint(), damage, radius, !fromNetwork);
     }
