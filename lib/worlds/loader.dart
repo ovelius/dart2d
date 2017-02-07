@@ -1,12 +1,11 @@
 library loader;
 
 import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/worlds/byteworld.dart';
+import 'dart:math';
 import 'package:dart2d/util/gamestate.dart';
 
 enum LoaderState {
@@ -20,6 +19,7 @@ enum LoaderState {
   FINDING_SERVER,
   CONNECTING_TO_GAME,
   WAITING_FOR_NAME,
+  PLAYER_SELECT,
 
   LOADING_GAMESTATE,
   LOADING_ENTERING_GAME, // Waiting to enter game.
@@ -37,8 +37,9 @@ class Loader {
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
   Map _localStorage;
+  KeyState _keyState;
   ChunkHelper _chunkHelper;
-  var context_;
+  var _context;
   int _width;
   int _height;
   
@@ -50,6 +51,7 @@ class Loader {
   String _currentMessage = "";
 
   Loader(@LocalStorage() Map storage,
+         @LocalKeyState() KeyState localKeyState,
          @WorldCanvas() Object canvasElement,
          ImageIndex imageIndex,
          Network network,
@@ -60,15 +62,45 @@ class Loader {
     this._chunkHelper = chunkHelper;
     // Hack the typesystem.
     var canvas = canvasElement;
-    context_ = canvas.context2D;
+    _context = canvas.context2D;
     _width = canvas.width;
     _height = canvas.height;
     this._imageIndex = imageIndex;
+    this._keyState = localKeyState;
+    _keyState.registerListener(KeyCodeDart.LEFT, (){
+      if (_currentState == LoaderState.PLAYER_SELECT) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite - 1 + PLAYER_SPRITES.length) %
+                PLAYER_SPRITES.length;
+      }
+    });
+    _keyState.registerListener(KeyCodeDart.RIGHT, (){
+      if (_currentState == LoaderState.PLAYER_SELECT) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
+      }
+    });
+    _keyState.registerListener(KeyCodeDart.SPACE, _selectPlayer);
+    _keyState.registerListener(KeyCodeDart.ENTER, _selectPlayer);
+    _keyState.registerListener(KeyCodeDart.CTRL, _selectPlayer);
+    // TODO Always remove, change this behavior.
+    _localStorage.remove('playerSprite');
+  }
+
+  void _selectPlayer() {
+    if (_currentState == LoaderState.PLAYER_SELECT) {
+      _localStorage['playerSprite'] = PLAYER_SPRITES[_selectedPlayerSprite];
+    }
   }
 
   void loaderTick([double duration = 0.01]) {
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
+      return;
+    }
+    if (_imageIndex.finishedLoadingImages() && !_localStorage.containsKey('playerSprite')) {
+      setState(LoaderState.PLAYER_SELECT);
+      drawPlayerSprites();
       return;
     }
     if (_imageIndex.finishedLoadingImages()) {
@@ -179,7 +211,8 @@ class Loader {
 
     if (!serverConnection.isValidGameConnection()) {
       if (_currentState != LoaderState.CONNECTING_TO_GAME) {
-        serverConnection.connectToGame(_localStorage['playerName']);
+        int playerSpriteId = _imageIndex.getImageIdByName(_localStorage['playerSprite']);
+        serverConnection.connectToGame(_localStorage['playerName'], playerSpriteId);
       }
       setState(LoaderState.CONNECTING_TO_GAME);
     } else {
@@ -192,14 +225,65 @@ class Loader {
     }
   }
   
-  void drawCenteredText(String text) {
-    context_.clearRect(0, 0, _width, _height);
-    context_.setFillColorRgb(-0, 0, 0);
-    context_.font = "20px Arial";
-    var metrics = context_.measureText(text);
-    context_.fillText(
-        text, _width / 2 - metrics.width / 2, _height / 2);
-    context_.save();
+  void drawCenteredText(String text, [int y, int size = 20]) {
+    if (y == null) {
+      y = _height ~/ 2;
+    }
+    _context.clearRect(0, 0, _width, _height);
+    _context.setFillColorRgb(-0, 0, 0);
+    _context.font = "${size}px Arial";
+    var metrics = _context.measureText(text);
+    _context.fillText(
+        text, _width / 2 - metrics.width / 2, y);
+    _context.save();
+  }
+
+  static final List<String> PLAYER_SPRITES = [
+    "sheep98.png" ,
+    "ele96.png" ,
+    "donkey98.png" ,
+    "goat93.png" ,
+    "cock77.png",
+    "lion88.png",
+    "dra98.png",
+    "turtle96.png"];
+  static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
+
+  int playerSpriteWidth(String name) {
+    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
+      if (name == PLAYER_SPRITES[i]) {
+        return PLAYER_SPRITE_SIZES[i];
+      }
+    }
+  }
+
+  int _selectedPlayerSprite = new Random().nextInt(PLAYER_SPRITES.length);
+
+  void drawPlayerSprites() {
+    _context.clearRect(0, 0, _width, _height);
+    drawCenteredText("${_localStorage['playerName']} select your player!", (_height /2 - _height / 8).toInt(), 50);
+    int betweenDistance = _width ~/ (PLAYER_SPRITES.length * 2);
+    int x = betweenDistance;
+    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
+      int imgWidth = PLAYER_SPRITE_SIZES[i];
+      var img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
+      int height = img.height;
+      double y = _height /2 + _height / 8;
+
+      _context.save();
+      if (_selectedPlayerSprite != i) {
+        _context.globalAlpha = 0.3;
+      } else {
+        _context.globalAlpha = 1.0;
+      }
+      _context.drawImageScaledFromSource(img,
+          0, 0, imgWidth, height,
+          x, y,
+          imgWidth, height);
+      _context.restore();
+
+      x+= imgWidth + betweenDistance;
+    }
   }
 
   void markCompleted() {
@@ -231,6 +315,7 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.CONNECTING_TO_GAME: "Connecting to game...",
 
   LoaderState.WAITING_FOR_NAME: "Waiting to receive a player name...",
+  LoaderState.PLAYER_SELECT: "Waiting for player select...",
 
   LoaderState.FINDING_SERVER: "Finding game to join..",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",

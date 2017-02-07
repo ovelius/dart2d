@@ -78,14 +78,15 @@ class WorldListener {
       hudMessages.display("Got server challenge from ${connection.id}");
       _gameState.updateFromMap(data[GAME_STATE]);
       Vec2 position = new Vec2(data['x'], data['y']);
-      _world.createLocalClient(data["spriteId"], data["spriteIndex"], position);
+      _world.createLocalClient(data["spriteId"], position);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
     }
   }
 
-  _handleClientConnect(ConnectionWrapper connection, String name) {
+  _handleClientConnect(ConnectionWrapper connection, List data) {
+    String name = data[0];
     if (connection.isValidGameConnection()) {
       log.warning("Duplicate handshake received from ${connection}!");
       return;
@@ -104,7 +105,7 @@ class WorldListener {
     // It will anyway get the keyframe from our response.
     connection.lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
-    int spriteIndex = _network.gameState.getNextUsableSpriteImage(_imageIndex);
+    int spriteIndex = data[1];
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
     _network.gameState.addPlayerInfo(info);
     assert(info.connectionId != null);
@@ -120,7 +121,7 @@ class WorldListener {
 
     _world.displayHudMessageAndSendToNetwork("${name} connected.");
     // Send updates gamestate here.
-    Map serverData = {"spriteId": spriteId, "spriteIndex": spriteIndex,
+    Map serverData = {"spriteId": spriteId,
       'x': position.x.toInt(), 'y': position.y.toInt(),
       GAME_STATE: _network.getGameState().toMap()};
     connection.sendData({

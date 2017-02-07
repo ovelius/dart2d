@@ -28,3 +28,5 @@ class MockByteWorld extends Mock implements ByteWorld {}
 class MockJsCallbacksWrapper extends Mock implements JsCallbacksWrapper{}
 
 class MockPeerWrapper extends Mock implements PeerWrapper {}
+
+class MockKeyState extends Mock implements KeyState {}

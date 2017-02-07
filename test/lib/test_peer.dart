@@ -22,6 +22,7 @@ WormWorld initTestWorld(Injector injector) {
   WormWorld world = injector.get(WormWorld);
   Map storage = injector.get(Map, LocalStorage);
   storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
+  storage['playerSprite'] = "lion88.png";
   world.loader.markCompleted();
   world.initByteWorld();
   return world;

@@ -33,8 +33,10 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
-    loader = new Loader(localStorage,new FakeCanvas(),
+    loader = new Loader(localStorage, new MockKeyState(), new FakeCanvas(),
       mockImageIndex, mockNetwork, mockChunkHelper);
+    // TODO actually test this.
+    localStorage['playerSprite'] = 'playerSprite';
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);
   });

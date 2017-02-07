@@ -6,10 +6,18 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 List<String> imageSources = [
+    "lion88.png", // Put here as first item for easier testing.
     "fire.png",
     "duck.png",
     "dragon.png",
     "cock.png",
+    "sheep98.png",
+    "ele96.png",
+    "donkey98.png",
+    "goat93.png",
+    "cock77.png",
+    "dra98.png",
+    "turtle96.png",
     "donkey.png",
     "world.png",
     "cake.png",
@@ -69,6 +77,7 @@ class ImageIndex {
   }
 
   int getImageIdByName(String name) {
+    assert (name != null);
     assert(imageByName[name] != null);
     return imageByName[name];
   }

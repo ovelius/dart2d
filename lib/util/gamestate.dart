@@ -117,7 +117,7 @@ class GameState {
   }
 
   bool isAtMaxPlayers() {
-    return _playerInfo.length >= USEABLE_SPRITES.length;
+    return _playerInfo.length >= 4;
   }
 
   List<PlayerInfo> playerInfoList() => new List.from(_playerInfo);
@@ -234,10 +234,6 @@ class GameState {
       id = id + ID_OFFSET_FOR_NEW_CLIENT;
     }
     return id;
-  }
-
-  int getNextUsableSpriteImage(ImageIndex imageIndex) {
-    return imageIndex.getImageIdByName(USEABLE_SPRITES[_playerInfo.length]);
   }
 
   String toString() {

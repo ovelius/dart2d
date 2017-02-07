@@ -114,9 +114,8 @@ class Sprite {
   }
 
   frame(double duration, int frameStep, [Vec2 gravity]) {
-    if (frameStep > 0) {
-      frameIndex += frameStep;
-      frameIndex = frameIndex % frames;
+    if (frameStep > 0 && frames > 1) {
+      frameIndex = (frameIndex +  frameStep) % frames;
     }
     if (lifeTime != UNLIMITED_LIFETIME) {
       lifeTime -= frameStep;

@@ -11,8 +11,6 @@ class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   PlayerInfo info = new PlayerInfo('a', 'a', 123);
 }
 
-class MockKeyState extends Mock implements KeyState {}
-
 void main() {
   final FAKE_ENABLED_KEYS = {'1': true};
   PacketListenerBindings packetListenerBindings;

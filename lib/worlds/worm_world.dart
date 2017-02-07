@@ -72,7 +72,7 @@ class WormWorld extends World {
     this.localKeyState = localKeyState;
     localKeyState.world = this;
     localKeyState.registerGenericListener((e) {
-      if (!playerSprite.isMappedKey(e)) {
+      if (playerSprite != null && !playerSprite.isMappedKey(e)) {
         invalidKeysPressed++;
         if (invalidKeysPressed > 2) {
           controlHelperTime = 4.0;
@@ -173,8 +173,10 @@ class WormWorld extends World {
       if (_network.getServerConnection() == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
       }
+
+      int playerSpriteId = _imageIndex.getImageIdByName(_localStorage['playerSprite']);
       _network.getServerConnection().connectToGame(
-          name == null ? _localStorage['playerName'] : name);
+          name == null ? _localStorage['playerName'] : name, playerSpriteId);
     }
   }
 
@@ -344,9 +346,8 @@ class WormWorld extends World {
     return true;
   }
 
-  void createLocalClient(int spriteId, int localSpriteIndex, Vec2 position) {
+  void createLocalClient(int spriteId,  Vec2 position) {
     spriteIndex.spriteNetworkId = spriteId;
-    int playerSpriteIndex = localSpriteIndex;
     PlayerInfo info = _network.getGameState().playerInfoByConnectionId(network().peer.id);
     if (info == null) {
       throw new StateError("Cannot create local client as it is missing from GameState! Was ${_network.getGameState()}");
@@ -355,27 +356,37 @@ class WormWorld extends World {
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         position,
-        playerSpriteIndex);
-    playerSprite.size = new Vec2(24.0, 24.0);
-    playerSprite.setImage(playerSpriteIndex, 24);
+        0);
+    _adjustPlayerSprite();
     addSprite(playerSprite);
   }
   
   addLocalPlayerSprite(String name) {
     int id = _network.gameState.getNextUsablePlayerSpriteId(this);
-    int imageId = _network.gameState.getNextUsableSpriteImage(_imageIndex);
     PlayerInfo info = new PlayerInfo(name, _network.peer.id, id);
     info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         byteWorld.randomPoint(),
-        imageId);
-    playerSprite.size = new Vec2(24.0, 24.0);
+        0);
     playerSprite.networkId = id;
     playerSprite.spawnIn = 1.0;
-    playerSprite.setImage(imageId, 24);
+    _adjustPlayerSprite();
     _network.gameState.addPlayerInfo(info);
     addSprite(playerSprite);
+  }
+
+  void _adjustPlayerSprite() {
+    String spriteName = _localStorage['playerSprite'];
+    int playerSpriteId = _imageIndex.getImageIdByName(spriteName);
+    var img = _imageIndex.getImageByName(spriteName);
+    print("${img.runtimeType}");
+    int height = img.height;
+    int width = loader.playerSpriteWidth(spriteName);
+    double ratio = height / width;
+    playerSprite.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE;
+    playerSprite.setImage(playerSpriteId, width);
+    playerSprite.size.y *= ratio;
   }
   
   void addParticlesFromNetworkData(List<int> data) {
@@ -430,7 +441,6 @@ class WormWorld extends World {
   void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3) {
-      // TODO don't add particles if low framerate?
       addSprite(
           new Particles(this, null, sprite.position, velocity, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
