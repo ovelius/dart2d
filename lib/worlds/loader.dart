@@ -69,6 +69,7 @@ class Loader {
     this._keyState = localKeyState;
     _keyState.registerListener(KeyCodeDart.LEFT, (){
       if (_currentState == LoaderState.PLAYER_SELECT) {
+        _animateX = 0;
         _selectedPlayerSprite =
             (_selectedPlayerSprite - 1 + PLAYER_SPRITES.length) %
                 PLAYER_SPRITES.length;
@@ -76,6 +77,7 @@ class Loader {
     });
     _keyState.registerListener(KeyCodeDart.RIGHT, (){
       if (_currentState == LoaderState.PLAYER_SELECT) {
+        _animateX = 0;
         _selectedPlayerSprite =
             (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
       }
@@ -100,7 +102,7 @@ class Loader {
     }
     if (_imageIndex.finishedLoadingImages() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
-      drawPlayerSprites();
+      drawPlayerSprites(duration);
       return;
     }
     if (_imageIndex.finishedLoadingImages()) {
@@ -258,8 +260,11 @@ class Loader {
   }
 
   int _selectedPlayerSprite = new Random().nextInt(PLAYER_SPRITES.length);
+  int _animateX = 0;
+  double _frameTime = 0.00;
 
-  void drawPlayerSprites() {
+
+  void drawPlayerSprites(double duration) {
     _context.clearRect(0, 0, _width, _height);
     drawCenteredText("${_localStorage['playerName']} select your player!", (_height /2 - _height / 8).toInt(), 50);
     int betweenDistance = _width ~/ (PLAYER_SPRITES.length * 2);
@@ -272,14 +277,27 @@ class Loader {
 
       _context.save();
       if (_selectedPlayerSprite != i) {
-        _context.globalAlpha = 0.3;
+        _context.globalAlpha = 0.5;
+        _context.drawImageScaledFromSource(img,
+            0, 0, imgWidth, height,
+            x, y,
+            imgWidth, height);
       } else {
+        _frameTime += duration;
         _context.globalAlpha = 1.0;
+        _context.drawImageScaledFromSource(img,
+            _animateX, 0, imgWidth, height,
+            x, y,
+            imgWidth, height);
+        if (_frameTime > 0.25) {
+          _frameTime = 0.0;
+          _animateX = _animateX + imgWidth;
+          if (_animateX >= img.width) {
+            _animateX = 0;
+          }
+        }
       }
-      _context.drawImageScaledFromSource(img,
-          0, 0, imgWidth, height,
-          x, y,
-          imgWidth, height);
+
       _context.restore();
 
       x+= imgWidth + betweenDistance;
