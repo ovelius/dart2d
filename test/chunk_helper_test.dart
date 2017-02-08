@@ -109,6 +109,22 @@ void main() {
 
       expect(IMAGE_DATA, equals(fullData));
     });
+
+    test('Test single load missing server fallback', () {
+      int requestedIndex = 6;
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      Map request = helper.buildImageChunkRequest(requestedIndex);
+
+      try {
+        helper.replyWithImageData(request, connection1);
+        fail("Should throw!");
+      } catch (e, stack) {
+        expect(e, isStateError);
+      }
+      // We triggered the fallback to load from server.
+      verify(imageIndex.loadImagesFromServer());
+    });
+
     test('Test end-2-end', () {
       int requestedIndex = 9;
       int requestedIndex2 = 6;

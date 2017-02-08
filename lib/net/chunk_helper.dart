@@ -113,6 +113,7 @@ class ChunkHelper {
         data = _imageIndex.getImageDataUrl(index);
       } else {
         // TODO do something smarter here, like load from server?
+        _imageIndex.loadImagesFromServer();
         throw new StateError("Can not return data for $index, it's not loaded!");
       }
     }
