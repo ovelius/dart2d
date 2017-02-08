@@ -191,6 +191,7 @@ class ConnectionWrapper {
     IS_KEY_FRAME_KEY,
     KEY_FRAME_KEY,
     DATA_RECEIPTS,
+    CONTAINED_DATA_RECEIPTS,
     PING,
     PONG,
   ]);
@@ -227,9 +228,8 @@ class ConnectionWrapper {
     // New path.
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
-        if (RELIABLE_KEYS.containsKey(key)) {
-          Object data = dataMap[key];
-         _reliableDataToVerify.add(JSON.encode(data).hashCode);
+        if (key == CONTAINED_DATA_RECEIPTS) {
+         _reliableDataToVerify.addAll(dataMap[CONTAINED_DATA_RECEIPTS]);
         }
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
@@ -260,20 +260,29 @@ class ConnectionWrapper {
     _network.parseBundle(this, dataMap);
   }
 
-  void alsoSendWithStoredData(Map data) {
-    storeAwayReliableData(data);
+  void alsoSendWithStoredData(Map dataMap) {
+    storeAwayReliableData(dataMap);
     for (int hash in new List.from(_reliableDataBuffer.keys)) {
       List tuple = _reliableDataBuffer[hash];
       String reliableKey = tuple[0];
-      if (data.containsKey(reliableKey)) {
+      if (dataMap.containsKey(reliableKey)) {
         // Merge data with previously saved data for this key.
         dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
-        data[reliableKey] = mergeFunction(data[reliableKey], tuple[1]);
-        _reliableDataBuffer.remove(hash);
-        _reliableDataBuffer[JSON.encode(data[reliableKey]).hashCode] = [reliableKey, data[reliableKey]];
+        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
+        _addContainedReceipt(dataMap, hash);
       } else {
-        data[reliableKey] = tuple[1];
+        dataMap[reliableKey] = tuple[1];
+        _addContainedReceipt(dataMap, hash);
       }
+    }
+  }
+
+  void _addContainedReceipt(Map dataMap, int receipt) {
+    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
+      dataMap[CONTAINED_DATA_RECEIPTS] = [];
+    }
+    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
+      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
     }
   }
 
@@ -281,8 +290,9 @@ class ConnectionWrapper {
     for (String reliableKey in RELIABLE_KEYS.keys) {
       if (dataMap.containsKey(reliableKey)) {
         Object data = dataMap[reliableKey];
-        String dataJSON = JSON.encode(data);
-        _reliableDataBuffer[dataJSON.hashCode] = [reliableKey, data];
+        int jsonHash = JSON.encode(data).hashCode;
+        _reliableDataBuffer[jsonHash] = [reliableKey, data];
+        _addContainedReceipt(dataMap, jsonHash);
       }
     };
   }
