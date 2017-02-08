@@ -91,7 +91,7 @@ class WorldListener {
       log.warning("Duplicate handshake received from ${connection}!");
       return;
     }
-    if (_gameState.gameIsFull()) {
+    if (_gameState.isAtMaxPlayers()) {
       connection.sendData({
         SERVER_PLAYER_REJECT: 'Game full',
         KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
@@ -131,7 +131,7 @@ class WorldListener {
 
     connection.setHandshakeReceived();
     // We don't expect any more players, disconnect the peer.
-    if (_network.peer.connectedToServer() && _gameState.gameIsFull()) {
+    if (_network.peer.connectedToServer() && _gameState.isAtMaxPlayers()) {
       _network.peer.disconnect();
     }
   }

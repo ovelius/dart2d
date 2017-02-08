@@ -125,7 +125,7 @@ class WorldDamageProjectile extends MovingSprite {
     }
     assert(owner != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(/*this.owner,*/ damage);
+      other.takeDamage(/*this.owner,*/ damage, owner);
       explode();
     }
      

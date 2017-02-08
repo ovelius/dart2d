@@ -203,7 +203,7 @@ class Sprite {
   }
 
   // TODO: Make methods below abstract?
-  void takeDamage(int damage) {
+  void takeDamage(int damage, Sprite inflictor) {
 
   }
 

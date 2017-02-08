@@ -533,7 +533,7 @@ class WormWorld extends World {
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
-          sprite.takeDamage(damageTaken.toInt());
+          sprite.takeDamage(damageTaken.toInt(), null);
           if (sprite == this.playerSprite) {
             Random r = new Random();
             this.explosionFlash += r.nextDouble() * 1.5;

@@ -45,6 +45,7 @@ class LocalPlayerSprite extends MovingSprite {
   WormWorld world;
   int health = MAX_HEALTH;
   PlayerInfo info;
+  PlayerInfo _killer = null;
   Rope rope;
   MobileControls _mobileControls;
   double _gunAngleTouchLock = null;
@@ -239,6 +240,9 @@ class LocalPlayerSprite extends MovingSprite {
     if (!_ownedByThisWorld()) {
       return false;
     }
+    if (!inGame()) {
+      return true;
+    }
     double left = keyIsDownStrength("Left");
     double right = keyIsDownStrength("Right");
     double aimUp = keyIsDownStrength("Aim up");
@@ -400,15 +404,31 @@ class LocalPlayerSprite extends MovingSprite {
     return collision;
   }
 
-  void takeDamage(int damage) {
+  void takeDamage(int damage, LocalPlayerSprite inflictor) {
     health -= damage;
     if (health <= 0) {
-      world.displayHudMessageAndSendToNetwork("${info.name} died!");
       world.network().gameState.markAsUrgent();
       info.deaths++;
       info.inGame = false;
       collision = false;
+      _killer = inflictor != null ? world.network().gameState.playerInfoBySpriteId(inflictor.networkId) : null;
+      if (_killer != null && _killer != info) {
+        _killer.score++;
+      }
       spawnIn = RESPAWN_TIME;
+      _deathMessage();
+    }
+  }
+
+  void _deathMessage() {
+    if (_killer != null) {
+      if (_killer == info) {
+        world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
+      } else {
+        world.displayHudMessageAndSendToNetwork("${_killer.name} killed ${info.name}!");
+      }
+    } else {
+      world.displayHudMessageAndSendToNetwork("${info.name} died!");
     }
   }
 

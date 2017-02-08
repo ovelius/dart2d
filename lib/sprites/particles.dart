@@ -107,7 +107,7 @@ class Particles extends Sprite {
       }
       if (damage != null) {
         if (world.byteWorld.isCanvasCollide(p.location.x, p.location.y)) {
-          world.explosionAt(p.location, null, damage, radius);
+          world.explosionAt(p.location, null, damage, radius, null);
           p.lifeTimeRemaining = 0;
         }
       }

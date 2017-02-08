@@ -202,7 +202,7 @@ void main() {
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
       expect(playerBSprite.inGame(), equals(true));
-      playerBSprite.takeDamage(playerBSprite.health);
+      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
@@ -212,7 +212,7 @@ void main() {
 
       // Now look how worldB views this sprite.
       playerBSprite = worldB.spriteIndex[playerId(1)];
-      playerBSprite.takeDamage(playerBSprite.health);
+      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
 
@@ -242,7 +242,7 @@ void main() {
       // Now force a switch of commander, but kill player first!
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
-      playerBSprite.takeDamage(playerBSprite.health);
+      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
 
       worldA.drawFps().setFpsForTest(3.1);
       // Should be enough frames to switch commander and respawn the player.
@@ -297,7 +297,7 @@ void main() {
             ]));
 
       LocalPlayerSprite playerBSprite = worldA.spriteIndex[playerId(1)];
-      playerBSprite.takeDamage(playerBSprite.health - 1);
+      playerBSprite.takeDamage(playerBSprite.health - 1, playerBSprite);
       int healthRemaining = playerBSprite.health;
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -307,7 +307,7 @@ void main() {
       LocalPlayerSprite playerBSpriteInB = worldB.spriteIndex[playerId(1)];
       expect(playerBSpriteInB.health, equals(playerBSprite.health));
 
-      playerBSprite.takeDamage(1);
+      playerBSprite.takeDamage(1, playerBSprite);
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);

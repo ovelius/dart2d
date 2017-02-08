@@ -69,6 +69,7 @@ class PlayerInfo {
 
 @Injectable()
 class GameState {
+  static const MAX_PLAYERS = 4;
   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
   static final List<String> USEABLE_SPRITES = [
@@ -117,7 +118,7 @@ class GameState {
   }
 
   bool isAtMaxPlayers() {
-    return _playerInfo.length >= 4;
+    return _playerInfo.length >= MAX_PLAYERS;
   }
 
   List<PlayerInfo> playerInfoList() => new List.from(_playerInfo);
@@ -221,8 +222,12 @@ class GameState {
     return _playerInfoById[id];
   }
 
-  bool gameIsFull() {
-    return _playerInfo.length >= USEABLE_SPRITES.length;
+  PlayerInfo playerInfoBySpriteId(int id) {
+    for (PlayerInfo info in playerInfoList()) {
+      if (info.spriteId == id) {
+        return info;
+      }
+    }
   }
 
   int getNextUsablePlayerSpriteId(WormWorld world) {
