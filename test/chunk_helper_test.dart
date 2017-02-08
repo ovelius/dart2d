@@ -28,7 +28,7 @@ void main() {
     packetListenerBindings = new PacketListenerBindings();
     helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
       ..setChunkSizeForTest(4);
-    helper2 = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
+    helper2 = new ChunkHelper(imageIndex2, byteWorld, packetListenerBindings)
       ..setChunkSizeForTest(4);
   });
   tearDown(() {
@@ -37,6 +37,7 @@ void main() {
   group('Chunk helper tests', () {
     test('Reply with data', () {
       int requestedIndex = 5;
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       helper.replyWithImageData({'index': requestedIndex}, connection1);
       // Default chunk size.
@@ -81,27 +82,28 @@ void main() {
     test('Test single load', () {
       int requestedIndex = 6;
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
-      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+      when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(false);
       // Set image to be loaded.
-      when(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA))
+      when(imageIndex2.addFromImageData(requestedIndex, IMAGE_DATA))
           .thenAnswer((i) {
-        when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+        when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
       });
 
-      Map request = helper.buildImageChunkRequest(requestedIndex);
+      Map request = helper2.buildImageChunkRequest(requestedIndex);
       helper.replyWithImageData(request, connection1);
-      helper.parseImageChunkResponse(
+      helper2.parseImageChunkResponse(
           connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
 
       String fullData = IMAGE_DATA;
       String expectedData = fullData.substring(0, 4);
-      expect(helper.getImageBuffer(), equals({requestedIndex: expectedData}));
+      expect(helper2.getImageBuffer(), equals({requestedIndex: expectedData}));
 
-      while (helper.getCompleteRatio(requestedIndex) < 1.0) {
-        print("Completed ratio is ${helper.getCompleteRatio(requestedIndex)}");
-        Map request = helper.buildImageChunkRequest(requestedIndex);
+      while (helper2.getCompleteRatio(requestedIndex) < 1.0) {
+        print("Completed ratio is ${helper2.getCompleteRatio(requestedIndex)}");
+        Map request = helper2.buildImageChunkRequest(requestedIndex);
         helper.replyWithImageData(request, connection1);
-        helper.parseImageChunkResponse(
+        helper2.parseImageChunkResponse(
             connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
       }
 
@@ -115,9 +117,11 @@ void main() {
       Map map = {"image1.png": requestedIndex, "image2.png": requestedIndex2};
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       when(imageIndex.getImageDataUrl(requestedIndex2)).thenReturn(IMAGE_DATA);
+      when(imageIndex2.imageIsLoaded(requestedIndex2)).thenReturn(true);
       when(imageIndex.imageIsLoaded(requestedIndex2)).thenReturn(true);
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
       when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex2.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
 
       // Set image to be loaded.
@@ -189,6 +193,8 @@ void main() {
       when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA);
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
       when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex2.allImagesByName()).thenReturn(map);
+      when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(false);
 
       helper.requestNetworkData(connections, 0.01);
       helper.replyWithImageData(
@@ -217,7 +223,7 @@ void main() {
       expect(
           connection2.lastDataSent,
           equals({
-            '-i': {
+            IMAGE_DATA_RESPONSE: {
               'index': requestedIndex,
               'data': 'aaaaa',
               'start': 0,

@@ -109,7 +109,12 @@ class ChunkHelper {
       _byteWorldDataUrlCache[connection.id] = data;
       return data;
     } else {
-      data = _imageIndex.getImageDataUrl(index);
+      if (_imageIndex.imageIsLoaded(index)) {
+        data = _imageIndex.getImageDataUrl(index);
+      } else {
+        // TODO do something smarter here, like load from server?
+        throw new StateError("Can not return data for $index, it's not loaded!");
+      }
     }
     _dataUrlCache[index] = data;
     return data;
