@@ -1,5 +1,7 @@
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:dart2d/net/net.dart';
+import 'worm_world.dart';
 import 'package:dart2d/res/imageindex.dart';
 
 Map<int, String> _KEY_TO_NAME = {
@@ -36,13 +38,63 @@ void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelp
   }
 }
 
+void drawPlayerStats(
+    var /*CanvasRenderingContext2D*/ context,
+    WormWorld world,
+    int width, int height,
+    SpriteIndex spriteIndex,
+    ImageIndex imageIndex) {
+  GameState gameState = world.network().gameState;
+  List<PlayerInfo> infoList = world.network().gameState.playerInfoList();
+  Map<String, ConnectionWrapper> connections = world.network().safeActiveConnections();
+  infoList.sort((PlayerInfo info1, PlayerInfo info2) {
+    // TODO compare death numbers?
+    return info2.score.compareTo(info1.score);
+  });
+
+  double spriteScale = 1.5;
+  double y = height / 2;
+
+  int fontSize = 20;
+  context.setFillColorRgb(255, 255, 255, 0.5);
+  context.font = "${fontSize}px Arial";
+
+  for (int i = 0; i < infoList.length; i++) {
+    PlayerInfo info = infoList[i];
+    LocalPlayerSprite sprite = spriteIndex[info.spriteId];
+    // Can happen when starting a game...
+    if (sprite == null) {
+      continue;
+    }
+    var img = imageIndex.getImageById(sprite.imageId);
+    int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId].expectedLatency().inMilliseconds : 0;
+    String text = "${info.score} ${info.name} ${latency} ms ${gameState.actingCommanderId == info.connectionId ? "*" : ""}";
+    var metrics = context.measureText(text);
+    double totalWidth = sprite.size.x * spriteScale + metrics.width;
+    double x = width / 2 - totalWidth / 2;
+    double frameWidth = (img.width / sprite.frames);
+    context.drawImageScaledFromSource(
+        img,
+        0, 0,
+        frameWidth, img.height,
+        x,  y - (sprite.size.y * spriteScale) / 2 - fontSize /2,
+        sprite.size.x * spriteScale, sprite.size.y * spriteScale);
+    context.fillText(text, x + sprite.size.x * spriteScale, y);
+    y += sprite.size.y * spriteScale;
+  }
+}
+
 void drawKilledView(var /*CanvasRenderingContext2D*/ context,
+    WormWorld world,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
   int textSize = 40;
   if (player == null || player.inGame()) {
     return;
   }
+  context.setFillColorRgb(0, 0, 0, 0.5);
+  context.fillRect(0, 0, width, height);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex);
   PlayerInfo killer = player.killer;
   if (killer == null || killer == player.info) {
     return;
@@ -52,8 +104,6 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
     return;
   }
   var img = imageIndex.getImageById(killerSprite.imageId);
-  context.setFillColorRgb(0, 0, 0, 0.5);
-  context.fillRect(0, 0, width, height);
   context.font = "${textSize}px Arial";
   String text = "You were killed by ${killer.name}";
   var metrics = context.measureText(text);
@@ -61,7 +111,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   context.setFillColorRgb(255, 255, 255, 0.5);
   double messageLength =  metrics.width + killerSprite.size.x;
   double x = width / 2 - messageLength / 2;
-  double y = height /2;
+  double y = height / 3;
   context.fillText(text, x, y);
 
   double frameWidth = (img.width / killerSprite.frames);
@@ -71,5 +121,6 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
       frameWidth, img.height,
       x + metrics.width,  y - killerSprite.size.y - textSize / 2,
       killerSprite.size.x * 2, killerSprite.size.y * 2);
+
 }
 

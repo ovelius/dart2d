@@ -287,7 +287,7 @@ class WormWorld extends World {
       controlHelperTime -= duration;
     }
 
-    drawKilledView(_canvas, _width, _height, playerSprite, spriteIndex, _imageIndex);
+    drawKilledView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
 
     spriteIndex.removePending();
 

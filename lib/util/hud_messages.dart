@@ -2,6 +2,7 @@ library hud;
 
 import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/keystate.dart';
@@ -52,33 +53,9 @@ class HudMessages {
   void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
     if (shouldDrawTable()) {
       context.save();
-      GameState gameState = world.network().gameState;
-      context.setFillColorRgb(200, 0, 0);
-      context.setStrokeColorRgb(200, 0, 0);
-      context.globalAlpha = 0.5;
-      List<PlayerInfo> infoList = gameState.playerInfoList();
-      for (int i = infoList.length - 1; i >= 0; i--) {
-        PlayerInfo info = infoList[i];
-        MovingSprite sprite = world.spriteIndex[info.spriteId];
-        if (sprite == null) {
-          continue;
-        }
-        Vec2 middle = sprite.centerPoint();
-        int x = world.width() ~/ 3;
-        int y = 40 + i*40;
-        ConnectionWrapper connection = world.network().peer.connections[info.connectionId];
-        context.fillText("${gameState.actingCommanderId == info.connectionId ? "*" : ""}${info.name} SCORE: ${info.score} DEATHS: ${info.deaths} LATENCY: ${connection == null ? "N/A" : connection.expectedLatency().inMilliseconds} ms", x, y);
-        // TODO: Check that sprite is alive.
-        if (sprite != null && info.inGame) {
-          context.lineWidth = 2;
-          context.beginPath();
-          context.moveTo(x, y);
-          context.lineTo(middle.x - world.viewPoint.x, middle.y - world.viewPoint.y);
-          context.stroke();
-        }
-      }
+      drawPlayerStats(context, world, world.width(), world.height(), world.spriteIndex, world.imageIndex());
+      context.restore();
     }
-    context.restore();
   }
 
   void render(WormWorld world, var /*CanvasRenderingContext2D*/ context, double timeSpent) {
