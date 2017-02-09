@@ -84,11 +84,13 @@ void drawPlayerStats(
   }
 }
 
+int _textSize = 40;
+
 void drawKilledView(var /*CanvasRenderingContext2D*/ context,
     WormWorld world,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
-  int textSize = 40;
+
   if (player == null || player.inGame()) {
     return;
   }
@@ -104,12 +106,16 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
     return;
   }
   var img = imageIndex.getImageById(killerSprite.imageId);
-  context.font = "${textSize}px Arial";
+  context.font = "${_textSize}px Arial";
   String text = "You were killed by ${killer.name}";
   var metrics = context.measureText(text);
 
   context.setFillColorRgb(255, 255, 255, 0.5);
   double messageLength =  metrics.width + killerSprite.size.x;
+  if (messageLength > width) {
+    // OOps we are larger than screen. Reduce text size for next frame.
+    _textSize -= 2;
+  }
   double x = width / 2 - messageLength / 2;
   double y = height / 3;
   context.fillText(text, x, y);
@@ -119,7 +125,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
       img,
       0, 0,
       frameWidth, img.height,
-      x + metrics.width,  y - killerSprite.size.y - textSize / 2,
+      x + metrics.width,  y - killerSprite.size.y - _textSize / 2,
       killerSprite.size.x * 2, killerSprite.size.y * 2);
 
 }
