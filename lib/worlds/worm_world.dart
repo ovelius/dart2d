@@ -479,7 +479,7 @@ class WormWorld extends World {
       } else {
         log.warning("No matching sprite found for ${info}");
       }
-      if (!_network.peer.hasConnectionTo(info.connectionId)) {
+      if (!_network.peer.hasConnectionTo(info.connectionId) && !_network.peer.hasHadConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
         if (_network.peer.id.compareTo(info.connectionId) < 0) {
           hudMessages.display(

@@ -19,7 +19,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const BOUCHYNESS = 0.2;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(32.0, 32.0);
   static int MAX_HEALTH = 100;
-  static const double RESPAWN_TIME = 3.0;
+  static const double RESPAWN_TIME = 6.0;
   static const MAX_SPEED = 500.0;
 
   static Map<String, int> _default_controls = {
@@ -133,7 +133,7 @@ class LocalPlayerSprite extends MovingSprite {
         }
         // Check one more time, but y -1.
         while (world.isCanvasCollide(
-          position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
+            position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
           position.y--;
         }
       }
@@ -195,8 +195,8 @@ class LocalPlayerSprite extends MovingSprite {
     context.globalAlpha = 0.5;
     context.fillStyle = grad;
     int size = 20;
-    context.fillRect(0, world.height() - size, world.width() * healthFactor,
-        size);
+    context.fillRect(
+        0, world.height() - size, world.width() * healthFactor, size);
     context.globalAlpha = 1.0;
     return true;
   }
@@ -414,18 +414,31 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   void takeDamage(int damage, LocalPlayerSprite inflictor) {
-    health -= damage;
-    if (health <= 0) {
-      world.network().gameState.markAsUrgent();
-      info.deaths++;
-      info.inGame = false;
-      collision = false;
-      _killer = inflictor != null ? world.network().gameState.playerInfoBySpriteId(inflictor.networkId) : null;
-      if (_killer != null && _killer != info) {
-        _killer.score++;
+    if (world.network().isCommander()) {
+      health -= damage;
+      if (health <= 0) {
+        world
+            .network()
+            .gameState
+            .markAsUrgent();
+        info.deaths++;
+        info.inGame = false;
+        collision = false;
+        _killer = inflictor != null
+            ? world
+            .network()
+            .gameState
+            .playerInfoBySpriteId(inflictor.networkId)
+            : null;
+        if (_killer != null && _killer != info) {
+          _killer.score++;
+        }
+        spawnIn = RESPAWN_TIME;
+        _deathMessage();
+        if (_ownedByThisWorld()) {
+          position = world.byteWorld.randomPoint();
+        }
       }
-      spawnIn = RESPAWN_TIME;
-      _deathMessage();
     }
   }
 
@@ -434,7 +447,8 @@ class LocalPlayerSprite extends MovingSprite {
       if (_killer == info) {
         world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
       } else {
-        world.displayHudMessageAndSendToNetwork("${_killer.name} killed ${info.name}!");
+        world.displayHudMessageAndSendToNetwork(
+            "${_killer.name} killed ${info.name}!");
       }
     } else {
       world.displayHudMessageAndSendToNetwork("${info.name} died!");

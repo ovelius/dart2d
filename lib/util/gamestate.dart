@@ -11,6 +11,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 class ConnectionInfo {
   String to;
   int latencyMillis;
+  ConnectionInfo(this.to, this.latencyMillis);
 }
 
 class PlayerInfo {
@@ -20,10 +21,11 @@ class PlayerInfo {
   int score = 0;
   int deaths = 0;
   bool inGame = false;
+  int addedToGameAtMillis;
   // How many frames per second this client has.
   int fps = 45;
   // What conenctions this player has.
-  List<String> connections = [];
+  List<ConnectionInfo> connections = [];
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
   KeyState _remoteKeyState = new KeyState.remote();
@@ -37,8 +39,11 @@ class PlayerInfo {
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
-    connections = map['c'];
+    for (List item in map['c']) {
+      connections.add(new ConnectionInfo(item[0], item[1]));
+    }
     inGame = map.containsKey("g");
+    addedToGameAtMillis = map["gm"];
   }
 
   KeyState remoteKeyState() => _remoteKeyState;
@@ -53,10 +58,14 @@ class PlayerInfo {
     map["n"] = name;
     map["sid"] = spriteId;
     map["cid"] = connectionId;
-    map['c'] = connections;
+    map['c'] = [];
+    for (ConnectionInfo info in connections) {
+     map['c'].add([info.to, info.latencyMillis]);
+    }
     map['f'] = fps;
     map["s"] = score;
     map["d"] = deaths;
+    map["gm"] = addedToGameAtMillis;
     if (inGame) {
       map["g"] = inGame;
     }
@@ -125,6 +134,11 @@ class GameState {
 
   void addPlayerInfo(PlayerInfo info) {
     assert(info.connectionId != null);
+    if (_playerInfoById.containsKey(info.connectionId)) {
+      log.severe("Attempt to add playerInfo already in GameState! Not adding ${info}");
+      return;
+    }
+    info.addedToGameAtMillis = new DateTime.now().millisecondsSinceEpoch;
     _playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
   }

@@ -126,6 +126,9 @@ class PeerWrapper {
     return this.id == id || connections.containsKey(id);
   }
 
+  bool hasHadConnectionTo(String id) {
+    return _closedConnectionPeers.contains(id);
+  }
   /**
    * Callback for a peer connecting to us.
    */

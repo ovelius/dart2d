@@ -6,6 +6,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'dart:convert';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/util/hud_messages.dart';
@@ -65,11 +66,15 @@ class Network {
       }
     });
     _packetListenerBindings.bindHandler(CONNECTIONS_LIST,
-        (ConnectionWrapper connection, List<String> connections) {
+        (ConnectionWrapper connection, List connections) {
       /// Update the list of connections for this player.
       PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
       if (info != null) {
-        info.connections = connections;
+        List<ConnectionInfo> connectionList = [];
+        for (List item in connections) {
+          connectionList.add(new ConnectionInfo(item[0], item[1]));
+        }
+        info.connections = connectionList;
       }
     });
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
@@ -250,7 +255,16 @@ class Network {
           "Not parsing gamestate from ${connection.id} because we are commander!");
       return;
     }
+    PlayerInfo selfInfoBeforeUpdate = gameState.playerInfoByConnectionId(peer.id);
     gameState.updateFromMap(data);
+    PlayerInfo selfInfoAfterUpdate = gameState.playerInfoByConnectionId(peer.id);
+    if (selfInfoBeforeUpdate != null && selfInfoBeforeUpdate.inGame) {
+      if (selfInfoAfterUpdate != null && !selfInfoAfterUpdate.inGame) {
+        Sprite selfSprite = _spriteIndex[selfInfoAfterUpdate.spriteId];
+        selfSprite.position = world.byteWorld.randomPoint();
+      }
+    }
+
     world.connectToAllPeersInGameState();
     if (peer.connectedToServer() && gameState.isAtMaxPlayers()) {
       peer.disconnect();
@@ -355,7 +369,12 @@ class Network {
     if (keyFrame) {
       registerDroppedFrames(data);
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
-      data[CONNECTIONS_LIST] = peer.connections.keys.toList();
+      data[CONNECTIONS_LIST] = [];
+      for (ConnectionWrapper wrapper in safeActiveConnections().values) {
+        data[CONNECTIONS_LIST].add([wrapper.id, wrapper.expectedLatency().inMilliseconds]);
+        JSON.encode(data[CONNECTIONS_LIST]);
+      }
+      peer.connections.keys.toList();
     }
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;

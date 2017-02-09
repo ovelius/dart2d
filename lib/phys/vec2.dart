@@ -69,4 +69,9 @@ class Vec2 {
   String toString() {
     return "x: ${x.toStringAsFixed(2)} y: ${y.toStringAsFixed(2)}";
   }
+
+  int get hashCode {
+    return x.hashCode + y.hashCode;
+  }
+  bool operator ==(o) => o is Vec2 && x == o.x && y == o.y;
 }

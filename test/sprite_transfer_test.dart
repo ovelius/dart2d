@@ -202,22 +202,25 @@ void main() {
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
       expect(playerBSprite.inGame(), equals(true));
+      // Store away the position of the sprite in worldB.
+      Vec2 positionBeforeDeath = new Vec2.copy(playerBSprite.position);
       playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
+      expect(playerBSprite.position, equals(positionBeforeDeath));
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
-      
+
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
 
       // Now look how worldB views this sprite.
       playerBSprite = worldB.spriteIndex[playerId(1)];
-      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
-      expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
+      // Position got updates to random when parsing the gamestate update.
+      expect(playerBSprite.position == positionBeforeDeath, isFalse);
 
       // Pass some time.
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 20; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
         worldA.frameDraw(KEY_FRAME_DEFAULT);
       }
@@ -230,9 +233,9 @@ void main() {
 
       // World B
       playerBSprite = worldB.spriteIndex[playerId(1)];
-      expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(true));
       expect(playerBSprite.maybeRespawn(0.01), equals(false));
+
 
       expect(worldB.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
