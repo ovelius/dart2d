@@ -2,6 +2,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'dart:math';
+import 'util.dart';
 
 @Injectable()
 class MobileControls {
@@ -19,12 +20,15 @@ class MobileControls {
   Map<int, Point<int>> _touchStartPoints = {};
   Map<int, Point<int>> _touchDeltas = {};
   List<dynamic> _touchListeners = [];
+  SelfPlayerInfoProvider _selfPlayerInfoProvider;
 
   MobileControls(
+      SelfPlayerInfoProvider selfPlayerInfoProvider,
       @HtmlScreen() Object screen,
       @LocalKeyState() KeyState localKeyState,
       @TouchControls() bool isMobileBrowser,
       @WorldCanvas() Object canvasElement) {
+    this._selfPlayerInfoProvider = selfPlayerInfoProvider;
     this._isMobileBrowser = isMobileBrowser;
     this._localKeyState = localKeyState;
     var canvasHack = canvasElement;
@@ -57,6 +61,10 @@ class MobileControls {
 
   draw() {
     if (_isMobileBrowser) {
+      PlayerInfo selfInfo = _selfPlayerInfoProvider.getSelfInfo();
+      if (selfInfo == null || !selfInfo.inGame) {
+        return;
+      }
       if (isPortrait()) {
         _canvas.setFillColorRgb(200, 0, 0);
         String text = "Please rotate your device!";
