@@ -124,11 +124,11 @@ class WeaponState {
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 140);
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Zooka", 3, 3.0, 1.0, (WeaponState weaponState) {
+    new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
       sprite.radius = 40.0;
       sprite.owner = weaponState.owner;
-      sprite.gravityAffect = 0.0;
+      sprite.gravityAffect = 0.05;
       // sprite.velocity = sprite.velocity.multiply(0.2);
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("zooka.png"));
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2));
