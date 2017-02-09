@@ -58,6 +58,8 @@ class LocalPlayerSprite extends MovingSprite {
 
   MovingSprite gun;
 
+  PlayerInfo get killer => _killer;
+
   /**
    * Server constructor.
    */
@@ -99,6 +101,11 @@ class LocalPlayerSprite extends MovingSprite {
   addServerToOwnerData(List data) {
     data.add(health);
     data.add(spawnIn * DOUBLE_INT_CONVERSION);
+    if (_killer != null) {
+      data.add(_killer.connectionId);
+    } else {
+      data.add("");
+    }
     if (weaponState != null) {
       data.add(weaponState.addServerToOwnerData(data));
     }
@@ -107,8 +114,10 @@ class LocalPlayerSprite extends MovingSprite {
   bool parseServerToOwnerData(List data, int startAt) {
     health = data[startAt];
     spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
-    if (data.length > 3) {
-      this.weaponState.parseServerToOwnerData(data, startAt + 2);
+    String killerId = data[startAt + 2];
+    _killer = world.network().gameState.playerInfoByConnectionId(killerId);
+    if (data.length > 4) {
+      this.weaponState.parseServerToOwnerData(data, startAt + 3);
     }
     return true;
   }

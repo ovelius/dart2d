@@ -287,6 +287,8 @@ class WormWorld extends World {
       controlHelperTime -= duration;
     }
 
+    drawKilledView(_canvas, _width, _height, playerSprite, spriteIndex, _imageIndex);
+
     spriteIndex.removePending();
 
     // Only send to network if server frames has passed.
