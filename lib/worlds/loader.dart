@@ -66,8 +66,6 @@ class Loader {
     _width = canvas.width;
     _height = canvas.height;
     this._imageIndex = imageIndex;
-    // TODO Always remove, change this behavior.
-    _localStorage.remove('playerSprite');
   }
 
   void loaderTick([double duration = 0.01]) {

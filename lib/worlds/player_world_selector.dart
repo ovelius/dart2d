@@ -29,6 +29,7 @@ class PlayerWorldSelector {
   var _context;
   Map _localStorage;
   KeyState _keyState;
+  MobileControls _mobileControls;
   ImageIndex _imageIndex;
   int _width;
   int _height;
@@ -37,13 +38,17 @@ class PlayerWorldSelector {
   int _animateX = 0;
   double _frameTime = 0.00;
 
+  String _customMessage = null;
+
   PlayerWorldSelector(
       @LocalStorage() Map storage,
       ImageIndex imageIndex,
       @LocalKeyState() KeyState localKeyState,
+      MobileControls mobileControls,
       @WorldCanvas() Object canvasElement) {
     // Hack the typesystem.
     this._imageIndex = imageIndex;
+    this._mobileControls = mobileControls;
     var canvas = canvasElement;
     _context = canvas.context2D;
     _width = canvas.width;
@@ -57,7 +62,6 @@ class PlayerWorldSelector {
                 PLAYER_SPRITES.length;
     });
     _keyState.registerListener(KeyCodeDart.RIGHT, (){
-
         _animateX = 0;
         _selectedPlayerSprite =
             (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
@@ -65,6 +69,27 @@ class PlayerWorldSelector {
     _keyState.registerListener(KeyCodeDart.SPACE, _selectPlayer);
     _keyState.registerListener(KeyCodeDart.ENTER, _selectPlayer);
     _keyState.registerListener(KeyCodeDart.CTRL, _selectPlayer);
+    _mobileControls.listenForTouch((int x, int y) {
+      if (_spritePositions != null) {
+        double scaledWidth = _maxWidth * _scale;
+        for (int i = 0; i < PLAYER_SPRITES.length; i++) {
+          Point<int> sprite = _spritePositions[i];
+          if (x >= sprite.x && x <= sprite.x + scaledWidth) {
+            // TODO height?
+            if (y >= sprite.y && y <= sprite.y + scaledWidth) {
+              if (_selectedPlayerSprite == i) {
+                _selectPlayer();
+              } else {
+                _selectedPlayerSprite = i;
+                _customMessage = "Touch again to confirm!";
+              }
+            }
+          }
+        }
+      }
+    });
+    // TODO Always remove, change this behavior.
+    _localStorage.remove('playerSprite');
   }
 
   void _selectPlayer() {
@@ -76,30 +101,32 @@ class PlayerWorldSelector {
   }
 
   void _drawPlayerSprites(double duration) {
+    if (_spritePositions == null) {
+      _partitionSprites();
+    }
     _context.clearRect(0, 0, _width, _height);
-    drawCenteredText("${_localStorage['playerName']} select your player!", (_height /2 - _height / 8).toInt(), 50);
-    int betweenDistance = _width ~/ (PLAYER_SPRITES.length * 2);
-    int x = betweenDistance;
+    drawCenteredText(_customMessage == null ? "${_localStorage['playerName']} select your player!" : _customMessage,
+        (_height /2 - _height / 8).toInt(), 50);
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-      int imgWidth = PLAYER_SPRITE_SIZES[i];
+      Point<int> position = _spritePositions[i];
       var img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
+      int imgWidth = PLAYER_SPRITE_SIZES[i];
       int height = img.height;
-      double y = _height /2 + _height / 8;
 
       _context.save();
       if (_selectedPlayerSprite != i) {
         _context.globalAlpha = 0.5;
         _context.drawImageScaledFromSource(img,
             0, 0, imgWidth, height,
-            x, y,
-            imgWidth, height);
+            position.x, position.y,
+            imgWidth * _scale, height * _scale);
       } else {
         _frameTime += duration;
         _context.globalAlpha = 1.0;
         _context.drawImageScaledFromSource(img,
             _animateX, 0, imgWidth, height,
-            x, y,
-            imgWidth, height);
+            position.x, position.y,
+            imgWidth * _scale, height * _scale);
         if (_frameTime > 0.25) {
           _frameTime = 0.0;
           _animateX = _animateX + imgWidth;
@@ -108,10 +135,32 @@ class PlayerWorldSelector {
           }
         }
       }
-
       _context.restore();
+    }
+  }
 
-      x+= imgWidth + betweenDistance;
+  List<Point<int>> _spritePositions = null;
+  double _scale;
+  int _maxWidth = -1;
+
+  void _partitionSprites() {
+    _spritePositions = [];
+    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
+      int imgWidth = PLAYER_SPRITE_SIZES[i];
+      if (_maxWidth < imgWidth) {
+        _maxWidth = imgWidth;
+      }
+    }
+    // TODO split in multiple rows?
+    int allSpriteWidth = _maxWidth * PLAYER_SPRITES.length;
+    // Scale to fit 3/4 of screen.
+    _scale = ((_width / 4) * 3) / allSpriteWidth;
+    double x = _width / 2 - (allSpriteWidth / 2 * _scale);
+    int y = _height ~/2 + _height ~/ 8;
+
+    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
+      _spritePositions.add(new Point(x, y));
+      x += _maxWidth * _scale;
     }
   }
 

@@ -18,6 +18,7 @@ class MobileControls {
   Map<int, int> _buttonIdToTouchId = {};
   Map<int, Point<int>> _touchStartPoints = {};
   Map<int, Point<int>> _touchDeltas = {};
+  List<dynamic> _touchListeners = [];
 
   MobileControls(
       @HtmlScreen() Object screen,
@@ -81,11 +82,18 @@ class MobileControls {
     }
   }
 
+  listenForTouch(dynamic d) {
+    _touchListeners.add(d);
+  }
+
   bool isPortrait() {
     return _screen.orientation.type.contains("portrait");
   }
 
   void touchDown(int id, int x, int y) {
+    for (dynamic d in _touchListeners) {
+      d(x, y);
+    }
     bool buttonFound = false;
     for (int i = 0; i < _buttons.length; i++) {
       Point<int> btn = _buttons[i];
