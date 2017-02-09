@@ -18,6 +18,7 @@ import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
 import 'dart:math';
+import 'player_world_selector.dart';
 
 @Injectable()
 class WormWorld extends World {
@@ -382,7 +383,7 @@ class WormWorld extends World {
     var img = _imageIndex.getImageByName(spriteName);
     print("${img.runtimeType}");
     int height = img.height;
-    int width = loader.playerSpriteWidth(spriteName);
+    int width = PlayerWorldSelector.playerSpriteWidth(spriteName);
     double ratio = height / width;
     playerSprite.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE;
     playerSprite.setImage(playerSpriteId, width);

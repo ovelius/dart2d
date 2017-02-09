@@ -5,6 +5,7 @@ import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/util/util.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -61,6 +62,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(WorldListener)
       ..bind(ImageIndex)
       ..bind(ByteWorld)
+      ..bind(PlayerWorldSelector)
       ..bind(Loader)
       ..bind(PacketListenerBindings)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)

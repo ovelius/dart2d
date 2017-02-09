@@ -1,12 +1,15 @@
 import 'package:test/test.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
+
+class MockPlayerWorldSelector extends Mock implements PlayerWorldSelector { }
 
 const double TICK_TIME = 0.01;
 
@@ -33,7 +36,7 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
-    loader = new Loader(localStorage, new MockKeyState(), new FakeCanvas(),
+    loader = new Loader(localStorage, new FakeCanvas(), new MockPlayerWorldSelector(),
       mockImageIndex, mockNetwork, mockChunkHelper);
     // TODO actually test this.
     localStorage['playerSprite'] = 'playerSprite';

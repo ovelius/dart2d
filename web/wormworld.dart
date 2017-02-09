@@ -2,6 +2,7 @@ library spaceworld;
 
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/worlds/world_listener.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/byteworld.dart';
@@ -56,6 +57,7 @@ void main() {
       ..bind(WorldListener)
       ..bind(ImageIndex)
       ..bind(ByteWorld)
+      ..bind(PlayerWorldSelector)
       ..bind(Loader)
       ..bind(PacketListenerBindings)
       ..bind(SpriteIndex)

@@ -2,10 +2,9 @@ library loader;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
-import 'dart:math';
+import 'player_world_selector.dart';
 import 'package:dart2d/util/gamestate.dart';
 
 enum LoaderState {
@@ -37,8 +36,8 @@ class Loader {
   PeerWrapper _peerWrapper;
   ImageIndex _imageIndex;
   Map _localStorage;
-  KeyState _keyState;
   ChunkHelper _chunkHelper;
+  PlayerWorldSelector _playerWorldSelector;
   var _context;
   int _width;
   int _height;
@@ -51,12 +50,13 @@ class Loader {
   String _currentMessage = "";
 
   Loader(@LocalStorage() Map storage,
-         @LocalKeyState() KeyState localKeyState,
          @WorldCanvas() Object canvasElement,
+         PlayerWorldSelector playerWorldSelector,
          ImageIndex imageIndex,
          Network network,
          ChunkHelper chunkHelper) {
     this._localStorage = storage;
+    this._playerWorldSelector = playerWorldSelector;
     this._network = network;
     this._peerWrapper = network.getPeer();
     this._chunkHelper = chunkHelper;
@@ -66,33 +66,8 @@ class Loader {
     _width = canvas.width;
     _height = canvas.height;
     this._imageIndex = imageIndex;
-    this._keyState = localKeyState;
-    _keyState.registerListener(KeyCodeDart.LEFT, (){
-      if (_currentState == LoaderState.PLAYER_SELECT) {
-        _animateX = 0;
-        _selectedPlayerSprite =
-            (_selectedPlayerSprite - 1 + PLAYER_SPRITES.length) %
-                PLAYER_SPRITES.length;
-      }
-    });
-    _keyState.registerListener(KeyCodeDart.RIGHT, (){
-      if (_currentState == LoaderState.PLAYER_SELECT) {
-        _animateX = 0;
-        _selectedPlayerSprite =
-            (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
-      }
-    });
-    _keyState.registerListener(KeyCodeDart.SPACE, _selectPlayer);
-    _keyState.registerListener(KeyCodeDart.ENTER, _selectPlayer);
-    _keyState.registerListener(KeyCodeDart.CTRL, _selectPlayer);
     // TODO Always remove, change this behavior.
     _localStorage.remove('playerSprite');
-  }
-
-  void _selectPlayer() {
-    if (_currentState == LoaderState.PLAYER_SELECT) {
-      _localStorage['playerSprite'] = PLAYER_SPRITES[_selectedPlayerSprite];
-    }
   }
 
   void loaderTick([double duration = 0.01]) {
@@ -102,7 +77,7 @@ class Loader {
     }
     if (_imageIndex.finishedLoadingImages() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
-      drawPlayerSprites(duration);
+      _playerWorldSelector.frame(duration);
       return;
     }
     if (_imageIndex.finishedLoadingImages()) {
@@ -238,70 +213,6 @@ class Loader {
     _context.fillText(
         text, _width / 2 - metrics.width / 2, y);
     _context.save();
-  }
-
-  static final List<String> PLAYER_SPRITES = [
-    "sheep98.png" ,
-    "ele96.png" ,
-    "donkey98.png" ,
-    "goat93.png" ,
-    "cock77.png",
-    "lion88.png",
-    "dra98.png",
-    "turtle96.png"];
-  static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
-
-  int playerSpriteWidth(String name) {
-    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-      if (name == PLAYER_SPRITES[i]) {
-        return PLAYER_SPRITE_SIZES[i];
-      }
-    }
-  }
-
-  int _selectedPlayerSprite = new Random().nextInt(PLAYER_SPRITES.length);
-  int _animateX = 0;
-  double _frameTime = 0.00;
-
-
-  void drawPlayerSprites(double duration) {
-    _context.clearRect(0, 0, _width, _height);
-    drawCenteredText("${_localStorage['playerName']} select your player!", (_height /2 - _height / 8).toInt(), 50);
-    int betweenDistance = _width ~/ (PLAYER_SPRITES.length * 2);
-    int x = betweenDistance;
-    for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-      int imgWidth = PLAYER_SPRITE_SIZES[i];
-      var img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
-      int height = img.height;
-      double y = _height /2 + _height / 8;
-
-      _context.save();
-      if (_selectedPlayerSprite != i) {
-        _context.globalAlpha = 0.5;
-        _context.drawImageScaledFromSource(img,
-            0, 0, imgWidth, height,
-            x, y,
-            imgWidth, height);
-      } else {
-        _frameTime += duration;
-        _context.globalAlpha = 1.0;
-        _context.drawImageScaledFromSource(img,
-            _animateX, 0, imgWidth, height,
-            x, y,
-            imgWidth, height);
-        if (_frameTime > 0.25) {
-          _frameTime = 0.0;
-          _animateX = _animateX + imgWidth;
-          if (_animateX >= img.width) {
-            _animateX = 0;
-          }
-        }
-      }
-
-      _context.restore();
-
-      x+= imgWidth + betweenDistance;
-    }
   }
 
   void markCompleted() {
