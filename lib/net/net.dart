@@ -13,5 +13,6 @@ class NetModule extends Module {
  NetModule() {
    bind(Network);
    bind(ChunkHelper);
+   bind(PacketListenerBindings);
  }
 }

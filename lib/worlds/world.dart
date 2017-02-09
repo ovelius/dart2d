@@ -1,5 +1,3 @@
-library world;
-
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'package:dart2d/util/fps_counter.dart';

@@ -1,11 +1,7 @@
-import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
-import 'package:dart2d/worlds/world_listener.dart';
-import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/worlds/player_world_selector.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -56,15 +52,10 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
       ..install(new UtilModule())
       ..install(new NetModule())
+      ..install(new WorldModule())
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: new FakeScreen())
       ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
-      ..bind(WormWorld)
-      ..bind(WorldListener)
       ..bind(ImageIndex)
-      ..bind(ByteWorld)
-      ..bind(PlayerWorldSelector)
-      ..bind(Loader)
-      ..bind(PacketListenerBindings)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)
   ]);

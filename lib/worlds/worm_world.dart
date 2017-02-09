@@ -1,5 +1,3 @@
-library wormworld;
-
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/world_phys.dart';

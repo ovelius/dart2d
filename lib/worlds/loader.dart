@@ -1,5 +1,3 @@
-library loader;
-
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';

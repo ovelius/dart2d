@@ -1,17 +1,10 @@
 library test_peer;
 
 import 'test_connection.dart';
-import 'package:dart2d/util/hud_messages.dart';
-import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/js_interop/callbacks.dart';
-import 'fake_canvas.dart';
 import 'test_env.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
 
 WormWorld testWorld(String id) {

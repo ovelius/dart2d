@@ -3,12 +3,11 @@ library matchers;
 import 'package:matcher/matcher.dart';
 import 'dart:convert';
 import 'dart:mirrors';
-import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/worlds/worlds.dart';
+import 'package:dart2d/net/net.dart';
 import 'test_peer.dart';
 import 'fake_canvas.dart';
-import 'package:dart2d/util/gamestate.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/sprites/sprites.dart';
 
 playerId(int count) {

@@ -1,5 +1,3 @@
-library world_phys;
-
 import 'dart:math';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/sprites/destructoid.dart';

@@ -1,11 +1,7 @@
 library spaceworld;
 
-import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/worlds/player_world_selector.dart';
-import 'package:dart2d/worlds/world_listener.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:dart2d/worlds/byteworld.dart';
 import 'dart:math';
 import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
@@ -18,7 +14,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:html';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = true;
+const bool USE_LOCAL_HOST_PEER = false;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
@@ -49,17 +45,12 @@ void main() {
       ..install(new HtmlDomBindingsModule())
       ..install(new UtilModule())
       ..install(new NetModule())
+      ..install(new WorldModule())
       ..bind(KeyState,
           withAnnotation: const LocalKeyState(), toValue: new KeyState())
       ..bind(FpsCounter,
           withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
-      ..bind(WormWorld)
-      ..bind(WorldListener)
       ..bind(ImageIndex)
-      ..bind(ByteWorld)
-      ..bind(PlayerWorldSelector)
-      ..bind(Loader)
-      ..bind(PacketListenerBindings)
       ..bind(SpriteIndex)
   ]);
   world = injector.get(WormWorld);
