@@ -23,6 +23,7 @@ class FakeContext2D {
   var font;
   var fillStyle;
   num globalAlpha = 1.0;
+  String globalCompositeOperation;
 
   void clearRect(num one, two, three, four) {}
   void setFillColorRgb(num one, two, three, [four]) {}
@@ -36,7 +37,24 @@ class FakeContext2D {
   void rotate(num rad) {}
 
   void fillText(var str, num one, [two, three]) {
-    print("${this.runtimeType}: fillText $str");
+  }
+
+  void beginPath() {
+
+  }
+
+  void arc(num x, y, radius, degStart, degEnd, [bool clockWise = false]) {
+
+  }
+
+  void clip() { }
+
+  void scale(num one, two) {}
+
+  void fill() { }
+
+  FakeGradient createRadialGradient(num one, two, three, four, five, six) {
+    return new FakeGradient();
   }
 
   void drawImage(FakeImage img, num one, two) {}
@@ -54,6 +72,10 @@ class FakeContext2D {
    _FakeGradient createLinearGradient(num one, two, three, four) {
     return new _FakeGradient();
   }
+}
+
+class FakeGradient {
+  void addColorStop(num where, String color) {}
 }
 
 class FakeScreen {

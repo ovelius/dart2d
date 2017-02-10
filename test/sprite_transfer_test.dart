@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
@@ -323,7 +324,7 @@ void main() {
           new MapKeysMatcher.containsKeys([MESSAGE_KEY]));
     });
 
-    test('TestPlayerFireGun', () {
+    test('TestPlayerFireGunExplosionsAndKill', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       worldA.startAsServer("nameA");
@@ -345,15 +346,76 @@ void main() {
       }
 
       LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)];
+      LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)];
+      LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)];
+      // Place A very close to B.
+      aSelfSprite.position = bSelfSprite.position;
+      aSelfSprite.position.x += aSelfSprite.getRadius() * 2;
+
+      // Now switch weapons.
+      int nextWeaponKey = bSelfSprite.getControls()["Next weapon"];
+      Weapon bananaWeapons = findBananaWeapons(bSelfSprite);
+      while (bSelfSprite.weaponState.selectedWeaponName != bananaWeapons.name) {
+        worldB.localKeyState.onKeyDown(new _fakeKeyCode(nextWeaponKey));
+        expect(recentSentDataTo("a"),
+            new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(nextWeaponKey.toString(), true)));
+        worldB.localKeyState.onKeyUp(new _fakeKeyCode(nextWeaponKey));
+      }
+
+      // Propagate selected weapon to A.
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      expect(bSelfSprite.weaponState.selectedWeaponName, equals(bananaWeapons.name));
+      expect(aBSprite.weaponState.selectedWeaponName, equals(bananaWeapons.name));
+
+      // Aim up!
+      int aimUp = bSelfSprite.getControls()['Aim up'];
+      worldB.localKeyState.onKeyDown(new _fakeKeyCode(aimUp));
+      worldB.frameDraw(1.0);
+      worldB.frameDraw(1.0);
+
+      // Now fire our weapon!
       int fireKey = bSelfSprite.getControls()['Fire'];
-      // Now press the key
       worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
-      // This got send to worldA right away.
+      // This got send to worldA right away, since A decides when to fire.
       expect(recentSentDataTo("a"),
           new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
-      // TODO fill in more.
-    });
+
+      expect(worldA.spriteIndex.count(), equals(2));
+      expect(worldB.spriteIndex.count(), equals(2));
+      // The banana weapon produces one shot.
+      worldA.frameDraw();
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw();
+      expect(worldA.spriteIndex.count(), equals(3));
+      expect(worldB.spriteIndex.count(), equals(3));
+
+      // Find the projectile.
+      WorldDamageProjectile projectile = worldA.spriteIndex[0];
+      expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
+
+      // Tick do explode it.
+      worldA.frameDraw(projectile.explodeAfter + 0.1);
+      expect(recentSentDataTo("b"),
+          new MapKeyMatcher.containsKey(WORLD_DESTRUCTION));
+      worldA.frameDraw();
+      worldA.frameDraw();
+      worldA.frameDraw();
+      worldA.frameDraw();
+      worldA.frameDraw();
+
+
+      expect(worldB.spriteIndex.count(), equals(3));
+      });
   });
+}
+
+Weapon findBananaWeapons(LocalPlayerSprite sprite) {
+  for (Weapon w in sprite.weaponState.weapons) {
+    if (w.name.contains("Banana")) {
+      return w;
+    }
+  }
+  throw new StateError("Didn't find banana weapons in ${sprite.weaponState.weapons}!");
 }
 
 class _fakeKeyCode {

@@ -45,4 +45,6 @@ class Weapon {
   int reloadPercent() {
     return (untilReload * 100 ~/ reloadTime);
   }
+
+  String toString() => "Weapon $name";
 }

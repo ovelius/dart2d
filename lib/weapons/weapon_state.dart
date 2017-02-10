@@ -19,6 +19,8 @@ class WeaponState {
   double changeTime = 0.0;
   int selectedWeaponIndex = 2;
 
+  String get selectedWeaponName => weapons[selectedWeaponIndex].name;
+
   addServerToOwnerData(List data) {
     Weapon w = weapons[selectedWeaponIndex];
     data.add((w.untilReload * DOUBLE_INT_CONVERSION).toInt());
