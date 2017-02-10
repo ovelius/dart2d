@@ -3,8 +3,10 @@ import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
+import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'dart:math';
 import 'package:dart2d/net/net.dart';
 
 void main() {
@@ -324,7 +326,9 @@ void main() {
           new MapKeysMatcher.containsKeys([MESSAGE_KEY]));
     });
 
-    test('TestPlayerFireGunExplosionsAndKill', () {
+    test('TestPlayerFireBasicGun', () {
+      WorldDamageProjectile.random = new Random(1);
+      WeaponState.random = new Random(1);
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
       worldA.startAsServer("nameA");
@@ -345,7 +349,49 @@ void main() {
         expect(spriteInA.inGame(), isTrue);
       }
 
+      expect(worldA.spriteIndex.count(), 2);
+      expect(worldB.spriteIndex.count(), 2);
       LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)];
+      // Set a deterministic position for player B.
+      bSelfSprite.position.x = worldB.width() / 2;
+      bSelfSprite.position.y = worldB.height() - bSelfSprite.size.y;
+
+      int fireKey = bSelfSprite.getControls()['Fire'];
+      worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
+      // This got send to worldA right away, since A decides when to fire.
+      expect(recentSentDataTo("a"),
+          new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
+
+      for (int i = 0; i < 2; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // This should give us 10 bullets right now.
+      expect(worldA.spriteIndex.count(), 10);
+      expect(worldB.spriteIndex.count(), 10);
+    });
+
+    test('TestPlayerFireGunExplosionsAndKill', () {
+      // Use a seeded random here. This is important to make the test pass.
+      WorldDamageProjectile.random = new Random(1);
+      WeaponState.random = new Random(1);
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
+      worldA.startAsServer("nameA");
+
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection().sendClientEnter();
+
+      // Give it some frames.
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)];
+      bSelfSprite.position.x = worldB.width() / 2;
+      bSelfSprite.position.y = worldB.height() - bSelfSprite.size.y;
       LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)];
       LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)];
       // Place A very close to B.
@@ -376,9 +422,6 @@ void main() {
       // Now fire our weapon!
       int fireKey = bSelfSprite.getControls()['Fire'];
       worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
-      // This got send to worldA right away, since A decides when to fire.
-      expect(recentSentDataTo("a"),
-          new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
 
       expect(worldA.spriteIndex.count(), equals(2));
       expect(worldB.spriteIndex.count(), equals(2));
@@ -394,17 +437,17 @@ void main() {
       expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
 
       // Tick do explode it.
+      expect(projectile.velocity.y < 0.0, isTrue, reason: "Aim up so upward velocity!");
       worldA.frameDraw(projectile.explodeAfter + 0.1);
       expect(recentSentDataTo("b"),
           new MapKeyMatcher.containsKey(WORLD_DESTRUCTION));
-      worldA.frameDraw();
-      worldA.frameDraw();
-      worldA.frameDraw();
-      worldA.frameDraw();
-      worldA.frameDraw();
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
 
-
-      expect(worldB.spriteIndex.count(), equals(3));
+      expect(worldA.spriteIndex.count() > 3, isTrue);
+      // Based on the setup, this kills player a.
+      expect(aSelfSprite.inGame(), isFalse);
+      // PlayerB is the killer!
+      expect(aSelfSprite.killer.connectionId, equals("b"));
       });
   });
 }

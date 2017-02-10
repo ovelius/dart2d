@@ -1,7 +1,6 @@
 
 import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/sprites/particles.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/worlds/worm_world.dart';
@@ -29,17 +28,16 @@ class BananaCake extends WorldDamageProjectile {
   
   explode() {
     world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);
-    Random r = new Random();
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30);
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
-      sprite.velocity.x += r.nextDouble() * PI * 4;
-      sprite.velocity.y += r.nextDouble() * PI * 4;
+      sprite.velocity.x += WorldDamageProjectile.random.nextDouble() * PI * 4;
+      sprite.velocity.y += WorldDamageProjectile.random.nextDouble() * PI * 4;
       sprite.velocity = sprite.velocity.normalize().multiply(500.0);
       sprite.velocity = velocity + sprite.velocity;
-      sprite.rotationVelocity = r.nextDouble() * 200.1;
+      sprite.rotationVelocity = WorldDamageProjectile.random.nextDouble() * 200.1;
       sprite.radius = 40.0;
       world.addSprite(sprite);
     }
@@ -103,6 +101,8 @@ class BrickBuilder extends WorldDamageProjectile {
 }
 
 class WorldDamageProjectile extends MovingSprite {
+  // Visible for testing.
+  static Random random = new Random();
 
   WormWorld world;
   MovingSprite owner;

@@ -5,11 +5,11 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
 
 class WeaponState {
+  static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = .9;
   WormWorld world;
   KeyState keyState;
@@ -50,14 +50,13 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
-      Random r = new Random();
       for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
-        sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
-        sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
+        sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
+        sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
         // Add recoil in y axis only.
         weaponState.owner.velocity.y -= sprite.velocity.y * 0.1;
 
@@ -69,30 +68,28 @@ class WeaponState {
       }
     }),
     new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
-      Random r = new Random();
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
       sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
       double sum = sprite.velocity.sum();
-      sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
-      sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
+      sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
+      sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
       sprite.gravityAffect = 0.3;
       sprite.size = new Vec2(5.0, 5.0);
       sprite.radius = 2.0;
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
-      Random r = new Random();
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
       sprite.spriteType = SpriteType.CIRCLE;
-      double a = r.nextDouble() + 0.2;
-      sprite.color = "rgba(${r.nextInt(255)}, ${r.nextInt(255)}, ${r.nextInt(255)}, $a)";
+      double a = random.nextDouble() + 0.2;
+      sprite.color = "rgba(${random.nextInt(255)}, ${random.nextInt(255)}, ${random.nextInt(255)}, $a)";
       sprite.owner = weaponState.owner;
       sprite.explodeAfter = 15.0;
       sprite.velocity = sprite.velocity.multiply(0.2);
       double sum = sprite.velocity.sum();
-      sprite.velocity.x = sprite.velocity.x + r.nextDouble() * sum / 8;
-      sprite.velocity.y = sprite.velocity.y + r.nextDouble() * sum / 8;
+      sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
+      sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
       sprite.gravityAffect = 1.5;
       sprite.bounche = 0.99;
       sprite.size = new Vec2(4.0, 4.0);
