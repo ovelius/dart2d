@@ -41,7 +41,9 @@ class KeyState {
         }
       }
     }
-    if (!keysDown.containsKey(e.keyCode)) {
+    bool newlyPressed = !keysDown.containsKey(e.keyCode);
+    keysDown[e.keyCode] = strength;
+    if (newlyPressed) {
       // If this a newly pushed key, send it to the network right away.
       if (world != null) {
         world.network().maybeSendLocalKeyStateUpdate();
@@ -55,7 +57,6 @@ class KeyState {
         f(e.keyCode);
       });
     }
-    keysDown[e.keyCode] = strength;
   }
 
   void onKeyUp(var /*KeyboardEvent*/ e) {

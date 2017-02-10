@@ -433,10 +433,38 @@ class MapKeyMatcher extends Matcher {
     
     if (containsKey) {
       // If _value is null always match.
-      return _value == null ? true : data[_key] == _value;
+      if (_value == null) {
+        return true;
+      }
+      var otherValue = data[_key];
+      if (_value is Matcher) {
+        return _value.matches(otherValue, matchState);
+      }
+      return _value == otherValue;
     }
     return false;
   }
+
+  Description describeMismatch(item, Description mismatchDescription,
+      Map matchState, bool verbose) {
+    Map data = null;
+    if (item is String) {
+      data = JSON.decode(item);
+    } else if (item is Map) {
+      data = item;
+    }
+
+    bool containsKey = data != null && data.containsKey(_key);
+    if (containsKey) {
+      var otherValue = data[_key];
+      if (_value != otherValue) {
+        mismatchDescription.add("Values don't match! Expected ${_value.runtimeType} of ${_value}, was ${otherValue.runtimeType} of ${otherValue}");
+      }
+    } else {
+      mismatchDescription.add("Not such key $_key in ${data}");
+    }
+  }
+
   Description describe(Description description) {
     if (_invert) {
       description.add("Map/Json that DOES NOT contain key ${_key}");

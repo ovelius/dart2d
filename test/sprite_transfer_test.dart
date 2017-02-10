@@ -322,5 +322,41 @@ void main() {
       expect(recentReceviedDataFrom("a"), 
           new MapKeysMatcher.containsKeys([MESSAGE_KEY]));
     });
+
+    test('TestPlayerFireGun', () {
+      WormWorld worldA = testWorld("a");
+      WormWorld worldB = testWorld("b");
+      worldA.startAsServer("nameA");
+
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection().sendClientEnter();
+
+      // Give it some frames.
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (int id in [playerId(0), playerId(1)]) {
+        LocalPlayerSprite spriteInB = worldB.spriteIndex[id];
+        LocalPlayerSprite spriteInA = worldA.spriteIndex[id];
+        expect(spriteInB.inGame(), isTrue);
+        expect(spriteInA.inGame(), isTrue);
+      }
+
+      LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)];
+      int fireKey = bSelfSprite.getControls()['Fire'];
+      // Now press the key
+      worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
+      // This got send to worldA right away.
+      expect(recentSentDataTo("a"),
+          new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
+      // TODO fill in more.
+    });
   });
+}
+
+class _fakeKeyCode {
+  int keyCode;
+  _fakeKeyCode(this.keyCode);
 }
