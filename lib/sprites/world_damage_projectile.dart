@@ -27,9 +27,9 @@ class BananaCake extends WorldDamageProjectile {
     }
   
   explode() {
-    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius);
+    world.explosionAtSprite(this, this.velocity.multiply(0.2), damage, radius, this.owner);
     for (int i = 0; i < 9; i++) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30, this);
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
@@ -125,7 +125,7 @@ class WorldDamageProjectile extends MovingSprite {
     }
     assert(owner != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(/*this.owner,*/ damage, owner);
+      other.takeDamage(damage, owner);
       explode();
     }
      
@@ -165,7 +165,7 @@ class WorldDamageProjectile extends MovingSprite {
   explode() {
     if (radius > 0.0) {
       world.explosionAtSprite(
-          this, this.velocity.multiply(0.2), damage, radius);
+          this, this.velocity.multiply(0.2), damage, radius, this.owner);
     }
     this.remove = true;
   }
@@ -209,21 +209,24 @@ class WorldDamageProjectile extends MovingSprite {
     }
   }
 
-  WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage)
+  WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage, [MovingSprite positionBase])
      : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("fire.png"), world.imageIndex()) {
+    if (positionBase == null) {
+      positionBase = owner;;
+    }
     this.world = world;
     this.owner = owner;
     this.damage = damage;
-    Vec2 ownerCenter = owner.centerPoint();
     this.size = new Vec2(15.0, 7.0);
-    double ownerSize = owner.size.sum() / 2;
-    this.position.x = ownerCenter.x + cos(owner.angle) * ownerSize;
-    this.position.y = ownerCenter.y + sin(owner.angle) * ownerSize;
-    this.velocity.x = cos(owner.angle);
+    double ownerSize = positionBase.size.sum() / 2;
+    Vec2 positionCenter = positionBase.centerPoint();
+    this.position.x = positionCenter.x + cos(positionBase.angle) * ownerSize;
+    this.position.y = positionCenter.y + sin(positionBase.angle) * ownerSize;
+    this.velocity.x = cos(positionBase.angle);
     this.angle = owner.angle;
-    this.velocity.y = sin(owner.angle);
+    this.velocity.y = sin(positionBase.angle);
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);
-    this.velocity = owner.velocity + this.velocity;
+    this.velocity = positionBase.velocity + this.velocity;
   }
 }

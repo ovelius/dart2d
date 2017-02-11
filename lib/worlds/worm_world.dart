@@ -394,12 +394,12 @@ class WormWorld extends World {
     addSprite(new Particles.fromNetworkUpdate(data, this));
   }
   
-  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
+  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, Sprite damagerDoer, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {
       addSprite(new Particles(this, null, location, velocity, radius, _particleCountFromFps()));
     }
-    addVelocityFromExplosion(location, damage, radius, !fromNetwork);
+    addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer);
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity, radius, damage)};
       _network.peer.sendDataWithKeyFramesToAll(data);
@@ -439,13 +439,13 @@ class WormWorld extends World {
     return frames;
   }
 
-  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, [bool fromNetwork = false]) {
+  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, Sprite damageDoer, [bool fromNetwork = false]) {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3) {
       addSprite(
           new Particles(this, null, sprite.position, velocity, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
-          sprite.centerPoint(), damage, radius, !fromNetwork);
+          sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer);
     }
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
@@ -496,7 +496,7 @@ class WormWorld extends World {
     if (data.length > 4) {
       velocity = new Vec2(data[4] / DOUBLE_INT_CONVERSION, data[5] / DOUBLE_INT_CONVERSION);
     }
-    explosionAt(pos, velocity, damage, radius, true);
+    explosionAt(pos, velocity, damage, radius, null, true);
   }
   
   List<int> destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
@@ -528,13 +528,13 @@ class WormWorld extends World {
     colorString];
   }
   
-  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage) {
+  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, Sprite damageDoer) {
     for (int networkId in spriteIndex.spriteIds()) {
       Sprite sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
-          sprite.takeDamage(damageTaken.toInt(), null);
+          sprite.takeDamage(damageTaken.toInt(), damageDoer);
           if (sprite == this.playerSprite) {
             Random r = new Random();
             this.explosionFlash += r.nextDouble() * 1.5;

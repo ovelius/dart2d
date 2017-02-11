@@ -493,4 +493,6 @@ class LocalPlayerSprite extends MovingSprite {
   SpriteConstructor remoteRepresentation() {
     return SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE;
   }
+
+  String toString() => "PlayerSprite for ${info.name}";
 }

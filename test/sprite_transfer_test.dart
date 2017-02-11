@@ -395,8 +395,14 @@ void main() {
       LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)];
       LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)];
       // Place A very close to B.
-      aSelfSprite.position = bSelfSprite.position;
+      aSelfSprite.position = new Vec2.copy(bSelfSprite.position);
       aSelfSprite.position.x += aSelfSprite.getRadius() * 2;
+
+      // Give it some frames to propagate positions.
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
 
       // Now switch weapons.
       int nextWeaponKey = bSelfSprite.getControls()["Next weapon"];
@@ -427,14 +433,16 @@ void main() {
       expect(worldB.spriteIndex.count(), equals(2));
       // The banana weapon produces one shot.
       worldA.frameDraw();
+      worldA.frameDraw();
+      expect(worldA.spriteIndex.count(), equals(3));
+      // Find the projectile.
+      WorldDamageProjectile projectile = worldA.spriteIndex[0];
+      expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
+
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw();
       expect(worldA.spriteIndex.count(), equals(3));
       expect(worldB.spriteIndex.count(), equals(3));
-
-      // Find the projectile.
-      WorldDamageProjectile projectile = worldA.spriteIndex[0];
-      expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
 
       // Tick do explode it.
       expect(projectile.velocity.y < 0.0, isTrue, reason: "Aim up so upward velocity!");
