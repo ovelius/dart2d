@@ -148,13 +148,13 @@ class Loader {
     }
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
       PlayerInfo ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+      ConnectionWrapper serverConnection = _network.getServerConnection();
+      if (serverConnection == null) {
+        setState(LoaderState.LOADED_AS_SERVER);
+        return;
+      }
       if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
         if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
-          ConnectionWrapper serverConnection = _network.getServerConnection();
-          if (serverConnection == null) {
-            setState(LoaderState.LOADED_AS_SERVER);
-            return;
-          }
           serverConnection.sendClientEnter();
         }
         setState(LoaderState.LOADING_ENTERING_GAME);

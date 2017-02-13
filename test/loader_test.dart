@@ -46,7 +46,8 @@ void main() {
   tearDown((){
     assertNoLoggedWarnings();
   });
-  group('Loader tests', () {
+  group('Loader tests', ()
+  {
     test('Base state and load from server', () {
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
       localStorage['playerName'] = "playerA";
@@ -93,7 +94,8 @@ void main() {
       verify(mockChunkHelper.requestNetworkData(connections, TICK_TIME));
 
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
-      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(false);
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(false);
       when(mockNetwork.findServer()).thenReturn(false);
       tickAndAssertState(LoaderState.FINDING_SERVER);
 
@@ -103,10 +105,12 @@ void main() {
       tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
 
       when(connection1.isValidGameConnection()).thenReturn(true);
-      when(mockChunkHelper.getCompleteRatio(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(0.5);
+      when(mockChunkHelper.getCompleteRatio(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(0.5);
       tickAndAssertState(LoaderState.LOADING_GAMESTATE);
 
-      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)).thenReturn(true);
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(true);
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(null);
 
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
@@ -122,6 +126,34 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
 
       expect(loader.hasGameState(), isTrue);
+    });
+
+    test('server disconnect start as server', () {
+      MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      Map connections = {
+        'a': connection1,
+      };
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
+
+      when(mockNetwork.safeActiveConnections()).thenReturn(connections);
+      when(mockNetwork.hasOpenConnection()).thenReturn(true);
+      when(mockPeerWrapper.connectedToServer()).thenReturn(true);
+      when(mockImageIndex.imagesIndexed()).thenReturn(true);
+      when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
+      when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      when(connection1.isValidGameConnection()).thenReturn(false);
+      when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
+      when(connection1.isValidGameConnection()).thenReturn(true);
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(true);
+      PlayerInfo info = new PlayerInfo(null, null, null);
+      when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
+      // Last phase of entering a game.
+      tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
+      // Connection fail so we fallback to server.
+      when(mockNetwork.getServerConnection()).thenReturn(null);
+      tickAndAssertState(LoaderState.LOADED_AS_SERVER);
     });
   });
 }
