@@ -19,7 +19,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const BOUCHYNESS = 0.2;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(32.0, 32.0);
   static int MAX_HEALTH = 100;
-  static const double RESPAWN_TIME = 6.0;
+  static const double RESPAWN_TIME = 5.0;
   static const MAX_SPEED = 500.0;
 
   static Map<String, int> _default_controls = {
@@ -209,7 +209,20 @@ class LocalPlayerSprite extends MovingSprite {
     return info.connectionId == world.network().peer.getId();
   }
 
+  bool _updatePosition = false;
+
   bool maybeRespawn(double duration) {
+    if (_ownedByThisWorld()) {
+      if (!inGame() && spawnIn < RESPAWN_TIME / 2) {
+        if (_updatePosition) {
+          position = world.byteWorld.randomPoint();
+          // TODO zoom in on the new position?
+          _updatePosition = false;
+        }
+      } else {
+        _updatePosition = true;
+      }
+    }
     if (!world.network().isCommander()) {
       return false;
     }
@@ -435,9 +448,6 @@ class LocalPlayerSprite extends MovingSprite {
         }
         spawnIn = RESPAWN_TIME;
         _deathMessage();
-        if (_ownedByThisWorld()) {
-          position = world.byteWorld.randomPoint();
-        }
       }
     }
   }

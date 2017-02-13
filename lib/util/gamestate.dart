@@ -141,6 +141,7 @@ class GameState {
     info.addedToGameAtMillis = new DateTime.now().millisecondsSinceEpoch;
     _playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
+    _urgentData = true;
   }
 
   GameState(this._packetListenerBindings, this._spriteIndex) {

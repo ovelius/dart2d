@@ -255,16 +255,7 @@ class Network {
           "Not parsing gamestate from ${connection.id} because we are commander!");
       return;
     }
-    PlayerInfo selfInfoBeforeUpdate = gameState.playerInfoByConnectionId(peer.id);
     gameState.updateFromMap(data);
-    PlayerInfo selfInfoAfterUpdate = gameState.playerInfoByConnectionId(peer.id);
-    if (selfInfoBeforeUpdate != null && selfInfoBeforeUpdate.inGame) {
-      if (selfInfoAfterUpdate != null && !selfInfoAfterUpdate.inGame) {
-        Sprite selfSprite = _spriteIndex[selfInfoAfterUpdate.spriteId];
-        selfSprite.position = world.byteWorld.randomPoint();
-      }
-    }
-
     world.connectToAllPeersInGameState();
     if (peer.connectedToServer() && gameState.isAtMaxPlayers()) {
       peer.disconnect();

@@ -213,13 +213,15 @@ void main() {
       expect(playerBSprite.inGame(), equals(false));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
 
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
-
-      // Now look how worldB views this sprite.
       playerBSprite = worldB.spriteIndex[playerId(1)];
+      // Tick down half of respawn time.
+      while (playerBSprite.spawnIn > LocalPlayerSprite.RESPAWN_TIME / 2 + 0.01) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      // Now look how worldB views this sprite.
       expect(playerBSprite.inGame(), equals(false));
-      // Position got updates to random when parsing the gamestate update.
+      // Position got updates to random before spawning.
       expect(playerBSprite.position == positionBeforeDeath, isFalse);
 
       // Pass some time.

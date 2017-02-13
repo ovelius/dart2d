@@ -381,7 +381,6 @@ class WormWorld extends World {
     String spriteName = _localStorage['playerSprite'];
     int playerSpriteId = _imageIndex.getImageIdByName(spriteName);
     var img = _imageIndex.getImageByName(spriteName);
-    print("${img.runtimeType}");
     int height = img.height;
     int width = PlayerWorldSelector.playerSpriteWidth(spriteName);
     double ratio = height / width;
