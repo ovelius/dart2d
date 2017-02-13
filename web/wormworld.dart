@@ -23,8 +23,8 @@ WormWorld world;
 void main() {
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
-  canvasElement.width = max(window.screen.width, window.screen.height);
-  canvasElement.height = min(window.screen.width, window.screen.height);
+  canvasElement.width = min(canvasElement.width, max(window.screen.width, window.screen.height));
+  canvasElement.height = min(canvasElement.height, min(window.screen.width, window.screen.height));
 
   var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
 
