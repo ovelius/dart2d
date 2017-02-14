@@ -358,6 +358,21 @@ void main() {
       bSelfSprite.position.x = worldB.width() / 2;
       bSelfSprite.position.y = worldB.height() - bSelfSprite.size.y;
 
+      // Aim up!
+      int aimUp = bSelfSprite.getControls()['Aim up'];
+      worldB.localKeyState.onKeyDown(new _fakeKeyCode(aimUp));
+
+      LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)];
+      // Place A very close to B.
+      aSelfSprite.position = new Vec2.copy(bSelfSprite.position);
+      aSelfSprite.position.x += aSelfSprite.getRadius() * 10;
+
+      // Give it some frames.
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
       int fireKey = bSelfSprite.getControls()['Fire'];
       worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
       // This got send to worldA right away, since A decides when to fire.
