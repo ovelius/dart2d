@@ -68,7 +68,7 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_SERVER);
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(1)).thenReturn(false);
-      when(mockNetwork.hasOpenConnection()).thenReturn(false);
+      when(mockNetwork.findServer()).thenReturn(true);
       // Loaded from server, assert we'll start as server.
       tickAndAssertState(LoaderState.LOADED_AS_SERVER);
       expect(loader.loadedAsServer(), isTrue);
@@ -142,6 +142,7 @@ void main() {
       when(mockImageIndex.imagesIndexed()).thenReturn(true);
       when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
       when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      when(mockNetwork.findServer()).thenReturn(true);
       when(connection1.isValidGameConnection()).thenReturn(false);
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(connection1.isValidGameConnection()).thenReturn(true);

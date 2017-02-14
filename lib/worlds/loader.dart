@@ -17,6 +17,7 @@ enum LoaderState {
   CONNECTING_TO_GAME,
   WAITING_FOR_NAME,
   PLAYER_SELECT,
+  WORLD_SELECT,
 
   LOADING_GAMESTATE,
   LOADING_ENTERING_GAME, // Waiting to enter game.
@@ -77,13 +78,13 @@ class Loader {
       return;
     }
     if (_imageIndex.finishedLoadingImages()) {
-      this._loaderGameStateTick(duration);
-      return;
+      _loaderGameStateTick(duration);
+    } else {
+      _advanceStage(duration);
     }
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
-    _advanceStage(duration);
     drawCenteredText(_currentMessage);
   }
 
@@ -143,35 +144,6 @@ class Loader {
   bool loadedAsServer() => _currentState == LoaderState.LOADED_AS_SERVER;
 
   void _loaderGameStateTick([double duration = 0.01]) {
-    if (loadedAsServer()) {
-      return;
-    }
-    if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
-      PlayerInfo ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
-      ConnectionWrapper serverConnection = _network.getServerConnection();
-      if (serverConnection == null) {
-        setState(LoaderState.LOADED_AS_SERVER);
-        return;
-      }
-      if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
-        if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
-          serverConnection.sendClientEnter();
-        }
-        setState(LoaderState.LOADING_ENTERING_GAME);
-      } else {
-        setState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
-      }
-      return;
-    }
-    _loadGameStateStage(duration);
-    drawCenteredText(_currentMessage);
-  }
-
-  void _loadGameStateStage(double duration) {
-    if (!_network.hasOpenConnection()) {
-      setState(LoaderState.LOADED_AS_SERVER);
-      return;
-    }
     if (!_network.findServer()) {
       setState(LoaderState.FINDING_SERVER);
       return;
@@ -179,9 +151,37 @@ class Loader {
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
       setState(LoaderState.LOADED_AS_SERVER);
+      /*
+      TODO: Select world here.
+      setState(LoaderState.WORLD_SELECT);
+      _playerWorldSelector.frame(duration);
+      if (_playerWorldSelector.worldSelectedAndLoaded()) {
+        setState(LoaderState.LOADED_AS_SERVER);
+      } */
       return;
     }
 
+    if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
+      // World loaded, enter game.
+      _enterGame(serverConnection);
+    } else {
+      _connectToGameAndLoadGameState(duration, serverConnection);
+    }
+  }
+
+  void _enterGame(ConnectionWrapper serverConnection) {
+    PlayerInfo ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+    if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
+      if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
+        serverConnection.sendClientEnter();
+      }
+      setState(LoaderState.LOADING_ENTERING_GAME);
+    } else {
+      setState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
+    }
+  }
+
+  void _connectToGameAndLoadGameState(double duration, ConnectionWrapper serverConnection) {
     if (!serverConnection.isValidGameConnection()) {
       if (_currentState != LoaderState.CONNECTING_TO_GAME) {
         int playerSpriteId = _imageIndex.getImageIdByName(_localStorage['playerSprite']);
@@ -197,7 +197,7 @@ class Loader {
       setState(LoaderState.LOADING_GAMESTATE, "Loading gamestate... ${percentComplete}%");
     }
   }
-  
+
   void drawCenteredText(String text, [int y, int size = 20]) {
     if (y == null) {
       y = _height ~/ 2;
