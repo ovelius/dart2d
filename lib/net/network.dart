@@ -306,8 +306,7 @@ class Network {
     if (connections.isEmpty) {
       if (!peer.autoConnectToPeers()) {
         // We didn't add any new peers. Bail.
-        log.warning(
-            "didn't find any servers, and not able to connect to any more peers. Giving up.");
+        log.info("No peers to connecto to, can't find a server! Giving up.");
         return true;
       }
     }
