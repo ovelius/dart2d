@@ -95,7 +95,7 @@ class GameState {
   DateTime startedAt;
   List<PlayerInfo> _playerInfo = [];
   Map<String, PlayerInfo> _playerInfoById = {};
-  int mapId = 0;
+  String mapName = null;
   // Who has the bridge.
   String actingCommanderId = null;
   // True if we have urgent data for the network.
@@ -174,14 +174,14 @@ class GameState {
     }
     _playerInfo = newInfo;
     _playerInfoById = byId;
-    mapId = map["m"];
+    mapName = map["m"];
     actingCommanderId = map["e"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
 
   Map toMap() {
     Map map = new Map();
-    map["m"] = mapId;
+    map["m"] = mapName;
     map["e"] = actingCommanderId;
     map["s"] = startedAt.millisecondsSinceEpoch;
     List<Map> players = [];
@@ -257,6 +257,6 @@ class GameState {
   }
 
   String toString() {
-    return "GameState with map ${mapId} commander ${actingCommanderId} ${_playerInfo} started ${startedAt}";
+    return "GameState with map ${mapName} commander ${actingCommanderId} ${_playerInfo} started ${startedAt}";
   }
 }

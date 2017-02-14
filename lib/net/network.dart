@@ -303,6 +303,14 @@ class Network {
         }
       }
     }
+    if (connections.isEmpty) {
+      if (!peer.autoConnectToPeers()) {
+        // We didn't add any new peers. Bail.
+        log.warning(
+            "didn't find any servers, and not able to connect to any more peers. Giving up.");
+        return true;
+      }
+    }
     return false;
   }
 
@@ -412,8 +420,7 @@ class Network {
     }
     gameState.actingCommanderId = peer.id;
     gameState.markAsUrgent();
-    // TODO select me!
-    this.gameState.mapId = 1;
+    this.gameState.mapName = null;
     // If we have any connections, consider them to be SERVER_TO_CLIENT now.
     for (ConnectionWrapper connection in safeActiveConnections().values) {
       // Announce change in GameState.

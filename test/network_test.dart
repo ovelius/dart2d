@@ -424,6 +424,14 @@ void main() {
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNull);
   });
+
+  test('Test find server no peers', () {
+    expectWarningContaining(
+        "didn't find any servers, and not able to connect to any more peers. Giving up");
+    network.peer.receivePeers(null, []);
+    expect(network.findServer(), isTrue);
+    expect(network.getServerConnection(), isNull);
+  });
 }
 
 class _TestSprite extends MovingSprite {
