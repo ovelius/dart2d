@@ -210,7 +210,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage, [MovingSprite positionBase])
-     : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("fire.png"), world.imageIndex()) {
+     : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("zooka.png"), world.imageIndex()) {
     if (positionBase == null) {
       positionBase = owner;;
     }

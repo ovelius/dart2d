@@ -192,7 +192,6 @@ class WormWorld extends World {
   void frameDraw([double duration = 0.01, bool slowDown = false]) {
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {
-        // We are server.
         startAsServer();
         loader.markCompleted();
       } else if (loader.hasGameState()) {
@@ -254,8 +253,6 @@ class WormWorld extends World {
     }
 
    byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
-    _canvas.globalAlpha = 0.7;
-   byteWorld.drawAsMiniMap(_canvas, 0, 0);
     _canvas.restore();
 
     for (int networkId in spriteIndex.spriteIds()) {
@@ -550,7 +547,10 @@ class WormWorld extends World {
     _network.setAsActingCommander();
   }
 
-  void initByteWorld([String map = 'world.png']) {
+  void initByteWorld([String map = 'world_town.png']) {
+    if (map.isNotEmpty) {
+      network().getGameState().mapName = map;
+    }
     var worldImage = map.isNotEmpty
         ? _imageIndex.getImageByName(map)
         : _imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);

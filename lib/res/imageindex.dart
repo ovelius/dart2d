@@ -19,7 +19,13 @@ List<String> imageSources = [
     "dra98.png",
     "turtle96.png",
     "donkey.png",
-    "world.png",
+    "world_map_mini.png",
+    "world_house_mini.png",
+    "world_cloud_mini.png",
+    "world_maze_mini.png",
+    "world_town_mini.png",
+    // TODO remove this once selectable.
+    "world_town.png",
     "cake.png",
     "banana.png",
     "zooka.png",
@@ -65,11 +71,15 @@ class ImageIndex {
    */
   useEmptyImagesForTest() {
     for (var img in imageSources) {
-      images.add(_EMPTY_IMAGE);
-      int index = images.length - 1;
-      imageByName[img] = index;
-      loadedImages[index] = true;
+      addEmptyImageForTest(img);
     }
+  }
+
+  addEmptyImageForTest(String name) {
+    images.add(_EMPTY_IMAGE);
+    int index = images.length - 1;
+    imageByName[name] = index;
+    loadedImages[index] = true;
   }
 
   getImageByName(String name) {
@@ -95,7 +105,7 @@ class ImageIndex {
   }
 
   addImagesFromServer([String path = "./img/"]) {
-    loadImagesFromServer(path);
+    loadImagesFromServer();
   }
 
   void addFromImageData(int index, String data) {
@@ -122,27 +132,31 @@ class ImageIndex {
     return data;
   }
 
-  loadImagesFromServer([String path = "./img/"]) {
+  loadImagesFromServer() {
     List<Future> imageFutures = [];
     for (var imgName in imageSources) {
       // Already loaded, skip.
       if (loadedImages[imgName] == true) {
         continue;
       }
-      var element = this._imageFactory.create([path + imgName]);
-      int index = imageByName[imgName];
-      // Already indexed. Update existing item.
-      if (index != null) {
-        images[index] = element;
-      } else {
-        // Not indexed add it.
-        images.add(element);
-        index = images.length - 1;
-      }
-      imageFutures.add(_imageLoadedFuture(element, index));
-      imageByName[imgName] = index;
+      imageFutures.add(addSingleImage(imgName));
     }
     return Future.wait(imageFutures);
+  }
+
+  Future addSingleImage(String imgName, [String path = "./img/"]) {
+    var element = this._imageFactory.create([path + imgName]);
+    int index = imageByName[imgName];
+    // Already indexed. Update existing item.
+    if (index != null) {
+      images[index] = element;
+    } else {
+      // Not indexed add it.
+      images.add(element);
+      index = images.length - 1;
+    }
+    imageByName[imgName] = index;
+    return _imageLoadedFuture(element, index);
   }
 
   Future _imageLoadedFuture(var img, int index) {
@@ -166,5 +180,13 @@ class ImageIndex {
 
   bool imageIsLoaded(int index) {
     return loadedImages[index] == true;
+  }
+
+  bool imageNameIsLoaded(String name) {
+    int id = imageByName[name];
+    if (id != null) {
+      return imageIsLoaded(id);
+    }
+    return false;
   }
 }
