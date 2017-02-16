@@ -541,7 +541,8 @@ class WormWorld extends World {
   }
 
   startAsServer([String name]) {
-    initByteWorld();
+    assert(loader.selectedWorldName() != null);
+    initByteWorld(loader.selectedWorldName());
     assert(imageIndex != null);
     addLocalPlayerSprite(_localStorage['playerName']);
     _network.setAsActingCommander();

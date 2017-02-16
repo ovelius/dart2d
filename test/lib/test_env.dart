@@ -20,9 +20,11 @@ clearEnvironment() {
 
 setPlayerName(Injector i) {
   Map storage = i.get(Map, LocalStorage);
+  PlayerWorldSelector selector = i.get(PlayerWorldSelector);
   WormWorld world = i.get(WormWorld);
   storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
   storage['playerSprite'] = "lion88.png";
+  selector.setMapForTest("lion88.png");
 }
 
 Injector createWorldInjector(String id, [bool loadImages = true]) {

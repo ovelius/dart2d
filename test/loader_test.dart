@@ -9,7 +9,9 @@ import 'lib/test_lib.dart';
 
 class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
 
-class MockPlayerWorldSelector extends Mock implements PlayerWorldSelector { }
+class MockPlayerWorldSelector extends Mock implements PlayerWorldSelector {
+  String selectedWorldName = null;
+}
 
 const double TICK_TIME = 0.01;
 
@@ -20,6 +22,7 @@ void main() {
   MockPeerWrapper mockPeerWrapper;
   MockChunkHelper mockChunkHelper;
   MockGameState mockGameState;
+  MockPlayerWorldSelector selector;
   Map localStorage;
   void tickAndAssertState(LoaderState state) {
     loader.loaderTick(TICK_TIME);
@@ -33,10 +36,12 @@ void main() {
     mockPeerWrapper = new MockPeerWrapper();
     mockChunkHelper = new MockChunkHelper();
     mockGameState = new MockGameState();
+    selector = new MockPlayerWorldSelector();
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
-    loader = new Loader(localStorage, new FakeCanvas(), new MockPlayerWorldSelector(),
+    when(selector.worldSelectedAndLoaded()).thenReturn(false);
+    loader = new Loader(localStorage, new FakeCanvas(), selector,
       mockImageIndex, mockNetwork, mockChunkHelper);
     // TODO actually test this.
     localStorage['playerSprite'] = 'playerSprite';
@@ -69,6 +74,11 @@ void main() {
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(1)).thenReturn(false);
       when(mockNetwork.findServer()).thenReturn(true);
+
+      tickAndAssertState(LoaderState.WORLD_SELECT);
+      selector.selectedWorldName = "something";
+      tickAndAssertState(LoaderState.WORLD_LOADING);
+      when(selector.worldSelectedAndLoaded()).thenReturn(true);
       // Loaded from server, assert we'll start as server.
       tickAndAssertState(LoaderState.LOADED_AS_SERVER);
       expect(loader.loadedAsServer(), isTrue);
@@ -152,9 +162,9 @@ void main() {
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
       // Last phase of entering a game.
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
-      // Connection fail so we fallback to server.
+      // Connection fail so we fallback to server path.
       when(mockNetwork.getServerConnection()).thenReturn(null);
-      tickAndAssertState(LoaderState.LOADED_AS_SERVER);
+      tickAndAssertState(LoaderState.WORLD_SELECT);
     });
   });
 }

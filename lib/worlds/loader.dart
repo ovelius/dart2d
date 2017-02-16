@@ -18,6 +18,7 @@ enum LoaderState {
   WAITING_FOR_NAME,
   PLAYER_SELECT,
   WORLD_SELECT,
+  WORLD_LOADING,
 
   LOADING_GAMESTATE,
   LOADING_ENTERING_GAME, // Waiting to enter game.
@@ -85,7 +86,9 @@ class Loader {
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
-    drawCenteredText(_currentMessage);
+    if (_currentMessage != "") {
+      drawCenteredText(_currentMessage);
+    }
   }
 
   void _advanceStage(double duration) {
@@ -150,14 +153,14 @@ class Loader {
     }
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
-      setState(LoaderState.LOADED_AS_SERVER);
-      /*
-      TODO: Select world here.
-      setState(LoaderState.WORLD_SELECT);
-      _playerWorldSelector.frame(duration);
       if (_playerWorldSelector.worldSelectedAndLoaded()) {
         setState(LoaderState.LOADED_AS_SERVER);
-      } */
+      } else if (_playerWorldSelector.selectedWorldName != null) {
+        setState(LoaderState.WORLD_LOADING);
+      } else {
+        _playerWorldSelector.frame(duration);
+        setState(LoaderState.WORLD_SELECT);
+      }
       return;
     }
 
@@ -228,6 +231,8 @@ class Loader {
       throw new StateError("Missing message for ${state}");
     }
   }
+
+  String selectedWorldName() => _playerWorldSelector.selectedWorldName;
 }
 
 Map<LoaderState, String> _STATE_DESCRIPTIONS = {
@@ -241,6 +246,8 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
 
   LoaderState.WAITING_FOR_NAME: "Waiting to receive a player name...",
   LoaderState.PLAYER_SELECT: "Waiting for player select...",
+  LoaderState.WORLD_SELECT: "",
+  LoaderState.WORLD_LOADING: "Loading selected world...",
 
   LoaderState.FINDING_SERVER: "Finding game to join..",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",

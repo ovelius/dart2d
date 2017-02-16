@@ -13,11 +13,14 @@ WormWorld testWorld(String id) {
 
 WormWorld initTestWorld(Injector injector) {
   WormWorld world = injector.get(WormWorld);
+  Loader loader = injector.get(Loader);
+  PlayerWorldSelector selector = injector.get(PlayerWorldSelector);
   Map storage = injector.get(Map, LocalStorage);
   storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
   storage['playerSprite'] = "lion88.png";
-  world.loader.markCompleted();
-  world.initByteWorld();
+  loader.markCompleted();
+  selector.setMapForTest("lion88.png");
+  world.initByteWorld("lion88.png");
   return world;
 }
 

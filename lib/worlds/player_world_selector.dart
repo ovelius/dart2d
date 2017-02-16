@@ -294,8 +294,7 @@ class PlayerWorldSelector {
     _context.save();
   }
 
-  void setMapForTest() {
-    _imageIndex.addEmptyImageForTest('world_town.png');
-   _selectedWorldName = 'world_town.png';
+  void setMapForTest(String name) {
+   _selectedWorldName = name;
   }
 }

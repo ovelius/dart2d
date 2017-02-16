@@ -24,8 +24,6 @@ List<String> imageSources = [
     "world_cloud_mini.png",
     "world_maze_mini.png",
     "world_town_mini.png",
-    // TODO remove this once selectable.
-    "world_town.png",
     "cake.png",
     "banana.png",
     "zooka.png",
