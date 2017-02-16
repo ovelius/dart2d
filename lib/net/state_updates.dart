@@ -27,6 +27,7 @@ String PONG = "-o";
 String TRANSFER_COMMAND = "tt";
 String DATA_RECEIPTS = ".";
 String CONTAINED_DATA_RECEIPTS = ";";
+String OTHER_PLAYER_WORLD_SELECT = "se";
 
 /**
  * Method remaps short keynames to more readable ones during testing.
@@ -58,6 +59,7 @@ void remapKeyNamesForTest() {
 
   DATA_RECEIPTS = "data_receipts";
   CONTAINED_DATA_RECEIPTS = "contained_data_receipts";
+  OTHER_PLAYER_WORLD_SELECT = "world_select";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
@@ -95,6 +97,7 @@ Set<String> SPECIAL_KEYS = new Set.from([
   MESSAGE_KEY,
   WORLD_DESTRUCTION,
   WORLD_PARTICLE,
+  OTHER_PLAYER_WORLD_SELECT,
   DATA_RECEIPTS,
   CONTAINED_DATA_RECEIPTS,
   IMAGE_DATA_REQUEST,

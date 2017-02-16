@@ -2,10 +2,12 @@ import 'package:di/di.dart';
 import 'dart:math';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/res/imageindex.dart';
 
 @Injectable()
 class PlayerWorldSelector {
+  static final double UPDATE_SELECTION_TO_NETWORK_TIME = 0.3;
   static final List<String> PLAYER_SPRITES = [
     "sheep98.png",
     "ele96.png",
@@ -41,6 +43,8 @@ class PlayerWorldSelector {
   KeyState _keyState;
   MobileControls _mobileControls;
   ImageIndex _imageIndex;
+  Network _network;
+  PacketListenerBindings _packetListenerBindings;
   int _width;
   int _height;
 
@@ -50,20 +54,21 @@ class PlayerWorldSelector {
 
   int _selectedMap = new Random().nextInt(AVAILABLE_MAPS.length);
 
-
   String _selectedWorldName = null;
   String get selectedWorldName => _selectedWorldName;
 
   String _customMessage = null;
 
+  double _nextSendToNetwork = 0.0;
+
   PlayerWorldSelector(
+      this._packetListenerBindings,
+      this._network,
+      this._mobileControls,
+      this._imageIndex,
       @LocalStorage() Map storage,
-      ImageIndex imageIndex,
       @LocalKeyState() KeyState localKeyState,
-      MobileControls mobileControls,
       @WorldCanvas() Object canvasElement) {
-    this._imageIndex = imageIndex;
-    this._mobileControls = mobileControls;
     var canvas = canvasElement;
     _context = canvas.context2D;
     _width = canvas.width;
@@ -117,6 +122,16 @@ class PlayerWorldSelector {
         }
       }
     });
+    _packetListenerBindings.bindHandler(OTHER_PLAYER_WORLD_SELECT,
+        (ConnectionWrapper connection, List data) {
+      String playerName = data[0];
+      int selectedIndex = data[1];
+      // Clear up existing selection.
+      for (List existingSelection in _otherPlayersSelections) {
+        existingSelection.remove(playerName);
+      }
+      _otherPlayersSelections[selectedIndex].add(playerName);
+    });
     // TODO Always remove, change this behavior.
     _localStorage.remove('playerSprite');
   }
@@ -145,7 +160,8 @@ class PlayerWorldSelector {
   }
 
   bool worldSelectedAndLoaded() {
-    return _selectedWorldName != null && _imageIndex.imageNameIsLoaded(_selectedWorldName);
+    return _selectedWorldName != null &&
+        _imageIndex.imageNameIsLoaded(_selectedWorldName);
   }
 
   bool playerSelected() {
@@ -157,6 +173,15 @@ class PlayerWorldSelector {
       _drawPlayerSprites(duration);
     } else {
       _drawMaps();
+    }
+    _nextSendToNetwork -= duration;
+    if (_nextSendToNetwork < 0) {
+      _nextSendToNetwork = UPDATE_SELECTION_TO_NETWORK_TIME;
+      if (playerSelected()) {
+        _network.peer.sendDataWithKeyFramesToAll({
+          OTHER_PLAYER_WORLD_SELECT: [_localStorage['playerName'], _selectedMap]
+        });
+      }
     }
   }
 
@@ -231,13 +256,18 @@ class PlayerWorldSelector {
       _partitionMaps();
     }
     _context.clearRect(0, 0, _width, _height);
+    String message = "Select world!";
+    if (_network.hasOpenConnection()) {
+      message = "Hurry to select world!";
+    }
     drawCenteredText(
         _customMessage == null
-            ? "Looks like you are the first. Select arena!"
+            ? message
             : _customMessage,
         (_height / 2 - _height / 8).toInt(),
         50);
     for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
+      List<String> otherPlayersSelections = _otherPlayersSelections[i];
       Point<int> position = _mapPositions[i];
       var img = _imageIndex.getImageByName(AVAILABLE_MAPS[i]);
 
@@ -248,16 +278,38 @@ class PlayerWorldSelector {
         _context.globalAlpha = 0.3;
       } else {
         _context.globalAlpha = 1.0;
-        selectScale *= 2.0;
+        selectScale *= 1.5;
         xOffset = _mapScale * img.width / 2;
       }
-      _context.drawImageScaledFromSource(img, 0, 0, img.width, img.height,
-          position.x - xOffset, position.y, img.width * selectScale, img.height * selectScale);
+      double x =  position.x - xOffset;
+      double drawWidth = img.width * selectScale;
+      if (!otherPlayersSelections.isEmpty) {
+        _context.save();
+        _context.globalAlpha = 0.7;
+        _context.font = "12px Arial";
+        for (int i = 0; i < otherPlayersSelections.length; i ++) {
+          String playerName = otherPlayersSelections[i];
+          var metrics = _context.measureText(playerName);
+          _context.fillText(playerName, x  + drawWidth /2 - metrics.width / 2, position.y - 20 * i - 20);
+        }
+        _context.restore();
+      }
+      _context.drawImageScaledFromSource(
+          img,
+          0,
+          0,
+          img.width,
+          img.height,
+          x,
+          position.y,
+          drawWidth,
+          img.height * selectScale);
       _context.restore();
     }
   }
 
   List<Point<int>> _mapPositions = null;
+  List<List<String>> _otherPlayersSelections = [];
   double _mapScale;
   int _maxMapWidth = -1;
 
@@ -278,6 +330,7 @@ class PlayerWorldSelector {
 
     for (String miniMap in WORLDS.keys) {
       _mapPositions.add(new Point(x, y));
+      _otherPlayersSelections.add([]);
       x += _maxMapWidth * _mapScale;
     }
   }
@@ -295,6 +348,6 @@ class PlayerWorldSelector {
   }
 
   void setMapForTest(String name) {
-   _selectedWorldName = name;
+    _selectedWorldName = name;
   }
 }
