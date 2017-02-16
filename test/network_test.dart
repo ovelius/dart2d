@@ -317,11 +317,11 @@ void main() {
     expect(network.getServerConnection(), isNull);
   });
 
-  test('Test find server', () {
+  test('Test find server basic', () {
     List<TestPeer> peers = [];
     List<String> ids = [];
     Map<String, TestConnection> connections = {};
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 4; i++) {
       TestPeer peer = new TestPeer(i.toString());
       ids.add(i.toString());
       peers.add(peer);
@@ -331,6 +331,7 @@ void main() {
             'data', (TestConnection connection, String data) {});
       });
     }
+    // Receive 3 peers.
     network.peer.receivePeers(null, ids);
 
     expect(network.findServer(), isFalse);
@@ -343,6 +344,41 @@ void main() {
       expect(data, equals({PING: 123, KEY_FRAME_KEY: 0, IS_KEY_FRAME_KEY: 0}));
       expect(connection.dataReceivedCount, equals(1));
     }
+
+    // Returns pongs for all connection.
+    for (TestConnection connection in connections.values) {
+      connection.sendAndReceivByOtherPeerNativeObject({
+        PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+        KEY_FRAME_KEY: 0
+      });
+    }
+
+    // Search complete, we didn't find a server :(
+    for (int i = 0; i < 4; i++) {
+      expect(network.findServer(), isTrue);
+    }
+    expect(network.getServerConnection(), isNull);
+    // No connetions closed.
+    expect(network.safeActiveConnections().length, equals(4));
+  });
+
+  test('Test find server close/open connections', () {
+    List<TestPeer> peers = [];
+    List<String> ids = [];
+    Map<String, TestConnection> connections = {};
+    for (int i = 0; i < 7; i++) {
+      TestPeer peer = new TestPeer(i.toString());
+      ids.add(i.toString());
+      peers.add(peer);
+      peer.bindOnHandler('connection', (peer, TestConnection connection) {
+        connections[i.toString()] = connection;
+        connection.bindOnHandler(
+            'data', (TestConnection connection, String data) {});
+      });
+    }
+    network.peer.receivePeers(null, ids);
+
+    expect(network.findServer(), isFalse);
 
     // Respond with a Pong - this is the server.
     GameState g = new GameState(packetListenerBindings, null);
@@ -393,19 +429,20 @@ void main() {
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS));
 
     // Respond with a Pong - this is the server.
-    g.actingCommanderId = '6';
-    connections['6'].sendAndReceivByOtherPeerNativeObject({
+    print("Connetions ${network.safeActiveConnections().keys}");
+    g.actingCommanderId = '5';
+    connections['5'].sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
       GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
     });
 
-    // Number 6 came through as our server :)
+    // Number 5 came through as our server :)
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNotNull);
 
     // aaaand it's gone.
-    connections['6'].getOtherEnd().signalClose();
+    connections['5'].getOtherEnd().signalClose();
 
     // No server again.
     expect(network.findServer(), isFalse);

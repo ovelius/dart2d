@@ -97,6 +97,8 @@ class PeerWrapper {
     autoConnectToPeers();
   }
 
+  bool hasMaxAutoConnections() => connections.length >= MAX_AUTO_CONNECTIONS;
+
   /**
    * Connect to peers. Maintain connectios.
    */
@@ -246,6 +248,12 @@ class PeerWrapper {
       return false;
     }
     return _closedConnectionPeers.containsAll(_activeIds);
+  }
+
+  bool noMoreConnectionsAvailable() {
+    Set<String> activeAndClosedConnections = new Set.from(_closedConnectionPeers)
+        ..addAll(connections.keys);
+    return activeAndClosedConnections.containsAll(_activeIds);
   }
 
   /**

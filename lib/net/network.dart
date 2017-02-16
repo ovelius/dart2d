@@ -284,29 +284,34 @@ class Network {
     }
     // We examined all connections and found no server. Time to take action.
     if (new Set.from(closeAbleNotServer).containsAll(connections.keys)) {
-      for (int i = 0; i < closeAbleNotServer.length; i++) {
-        // TODO close by some heuristic here?
-        if (i > 1) break;
-        ConnectionWrapper connection = connections[closeAbleNotServer[i]];
-        log.info("Closing connection $connection in search for server.");
-        connection.close(null);
+      if (peer.hasMaxAutoConnections()) {
+        for (int i = 0; i < closeAbleNotServer.length; i++) {
+          // TODO close by some heuristic here?
+          if (i > 1) break;
+          ConnectionWrapper connection = connections[closeAbleNotServer[i]];
+          log.info("Closing connection $connection in search for server.");
+          connection.close(null);
 
-        // Remove right away, so autoConnectToPeers doesn't count this connection.
-        // TODO: Should we instead clean connections in autoConnectToPeers?
-        peer.removeClosedConnection(connection.id);
+          // Remove right away, so autoConnectToPeers doesn't count this connection.
+          // TODO: Should we instead clean connections in autoConnectToPeers?
+          peer.removeClosedConnection(connection.id);
 
-        if (!peer.autoConnectToPeers()) {
-          // We didn't add any new peers. Bail.
-          log.warning(
-              "didn't find any servers, and not able to connect to any more peers. Giving up.");
-          return true;
+          if (!peer.autoConnectToPeers()) {
+            // We didn't add any new peers. Bail.
+            log.warning(
+                "didn't find any servers, and not able to connect to any more peers. Giving up.");
+            return true;
+          }
         }
+      } else if (peer.noMoreConnectionsAvailable()) {
+        return true;
+      } else {
+        peer.autoConnectToPeers();
       }
     }
     if (connections.isEmpty) {
       if (!peer.autoConnectToPeers()) {
         // We didn't add any new peers. Bail.
-        log.info("No peers to connecto to, can't find a server! Giving up.");
         return true;
       }
     }
