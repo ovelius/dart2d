@@ -89,6 +89,7 @@ class Network {
       if (!world.loaderCompleted()) {
         log.warning(
             "Can not transfer command to us before loading has completed. Dropping request.");
+        return;
       }
       // Server wants us to take command.
       log.info("Coverting self to commander");

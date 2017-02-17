@@ -317,6 +317,49 @@ void main() {
     expect(network.getServerConnection(), isNull);
   });
 
+  test('Test explicit command transfer', () {
+    network.peer.connectPeer(null, connectionB);
+
+    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
+      connection.setHandshakeReceived();
+    }
+
+    MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
+    when(mockSpriteIndex[1]).thenReturn(sprite);
+    when(mockSpriteIndex[2]).thenReturn(sprite);
+    when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
+
+    network.gameState.actingCommanderId = 'b';
+    network.gameState.addPlayerInfo(new PlayerInfo("testC", "a", 1));
+    network.gameState.addPlayerInfo(new PlayerInfo("testB", "b", 2));
+
+    network.getServerConnection().setHandshakeReceived();
+    expect(network.getServerConnection().isValidGameConnection(), isTrue);
+
+    // We haven't finished loading yet...
+    when(mockWormWorld.loaderCompleted()).thenReturn(false);
+
+    expectWarningContaining("Can not transfer command to us before loading has completed");
+    connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+      TRANSFER_COMMAND: 'y',
+      KEY_FRAME_KEY: 0
+    });
+
+    // We did not accept the command transfer!
+    expect(network.isCommander(), isFalse);
+
+    // Now we finished loading.
+    when(mockWormWorld.loaderCompleted()).thenReturn(true);
+
+    connectionB.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+      TRANSFER_COMMAND: 'y',
+      KEY_FRAME_KEY: 0
+    });
+
+    // We accepted the command transfer.
+    expect(network.isCommander(), isTrue);
+  });
+
   test('Test find server basic', () {
     List<TestPeer> peers = [];
     List<String> ids = [];
