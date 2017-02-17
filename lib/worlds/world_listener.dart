@@ -110,7 +110,7 @@ class WorldListener {
     _network.gameState.addPlayerInfo(info);
     assert(info.connectionId != null);
 
-    Vec2 position = _byteWorld.randomPoint();
+    Vec2 position = _byteWorld.randomPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
 
     LocalPlayerSprite sprite = new LocalPlayerSprite(_world, _world.imageIndex(), _mobileControls, info, position, spriteIndex);
 

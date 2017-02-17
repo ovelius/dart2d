@@ -215,8 +215,14 @@ class LocalPlayerSprite extends MovingSprite {
     if (_ownedByThisWorld()) {
       if (!inGame() && spawnIn < RESPAWN_TIME / 2) {
         if (_updatePosition) {
-          position = world.byteWorld.randomPoint();
-          // TODO zoom in on the new position?
+          for (int i = 0; i < 20; i++) {
+            position = world.byteWorld.randomPoint(size);
+            if (!world.byteWorld.isCanvasCollide(
+                position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
+              break;
+            }
+          }
+              // TODO zoom in on the new position?
           _updatePosition = false;
         }
       } else {

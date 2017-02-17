@@ -95,10 +95,10 @@ class ByteWorld {
         ..restore();
   }
 
-  Vec2 randomPoint() {
+  Vec2 randomPoint(Vec2 sizeOffset) {
     assert(initialized());
     return new Vec2(
-        new Random().nextInt(width).toDouble(),
-        new Random().nextInt(height).toDouble());
+        new Random().nextInt(width - sizeOffset.x.toInt()).toDouble(),
+        new Random().nextInt(height - sizeOffset.y.toInt()).toDouble());
   }
 }

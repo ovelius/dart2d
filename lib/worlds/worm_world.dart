@@ -365,7 +365,7 @@ class WormWorld extends World {
     info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
-        byteWorld.randomPoint(),
+        byteWorld.randomPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE),
         0);
     playerSprite.networkId = id;
     playerSprite.spawnIn = 1.0;
