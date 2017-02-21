@@ -37,8 +37,10 @@ class Rope extends MovingSprite {
   }
     
   collide(MovingSprite other, ByteWorld world, int direction) {
-    if (other != null && other.networkId == owner.networkId) {
-      return;
+    if (other != null) {
+      if (other.networkId == owner.networkId || other is Rope) {
+        return;
+      }
     }
     locked = true;
     this.velocity = new Vec2();
