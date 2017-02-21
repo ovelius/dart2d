@@ -1,5 +1,6 @@
 import 'package:di/di.dart';
 import 'dart:math';
+import 'world_data.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
@@ -19,14 +20,6 @@ class PlayerWorldSelector {
     "turtle96.png"
   ];
   static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
-
-  static final Map<String, String> WORLDS = {
-    "world_map_mini.png": "world_map.png",
-    "world_house_mini.png": "world_house.png",
-    "world_cloud_mini.png": "world_cloud.png",
-    "world_maze_mini.png": "world_maze.png",
-    "world_town_mini.png": "world_town.png",
-  };
 
   static final List<String> AVAILABLE_MAPS = new List.from(WORLDS.keys);
 

@@ -57,12 +57,16 @@ class FakeContext2D {
     return new FakeGradient();
   }
 
-  void drawImage(FakeImage img, num one, two) {}
-  void drawImageScaled(FakeImage image, num one, two, three, four) {}
+  void drawImage(var img, num one, two) {}
+  void drawImageScaled(var image, num one, two, three, four) {}
   void drawImageScaledFromSource(var obj, num one, two, three, four, five, size, seven, eight) {}
 
   _FakeData getImageData(num x, y, w, h) {
     return new _FakeData(new List.filled((w*h).toInt() * 4 ,0));
+  }
+
+  putImageData(dynamic unused, int w, h) {
+
   }
 
   dynamic measureText(String text) {
@@ -123,5 +127,12 @@ class _FakeEvenStream {
   Future first;
   _FakeEvenStream() {
     first = _completer.future;
+  }
+}
+
+class FakeImageDataFactory extends DynamicFactory {
+  FakeImageDataFactory() : super(null);
+  create(var args) {
+    return null;
   }
 }

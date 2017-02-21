@@ -38,6 +38,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       // Test only.
       ..bind(TestPeer, toValue: peer)
       ..bind(FakeImageFactory, toValue: fakeImageFactory)
+      ..bind(FakeImageDataFactory, toValue: new FakeImageDataFactory())
       // World bindings.
       ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
       ..bind(int, withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
@@ -46,6 +47,8 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
           toValue: new DynamicFactory((args) => new FakeCanvas()))
       ..bind(DynamicFactory, withAnnotation: const ImageFactory(),
           toInstanceOf: FakeImageFactory)
+      ..bind(DynamicFactory, withAnnotation: const ImageDataFactory(),
+          toInstanceOf: FakeImageDataFactory)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)

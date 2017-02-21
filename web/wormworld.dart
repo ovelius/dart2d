@@ -129,6 +129,10 @@ class HtmlDomBindingsModule extends Module {
         withAnnotation: const CanvasFactory(),
         toValue: new DynamicFactory(
             (args) => new CanvasElement(width: args[0], height: args[1])));
+    bind(DynamicFactory,
+        withAnnotation: const ImageDataFactory(),
+        toValue: new DynamicFactory(
+            (args) => new ImageData(args[0], args[1])));
     bind(DynamicFactory, withAnnotation: const ImageFactory(),
         toValue: new DynamicFactory((args) {
       if (args.length == 0) {

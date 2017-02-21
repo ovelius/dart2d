@@ -7,16 +7,20 @@ import 'package:di/di.dart';
 @Injectable()
 class ByteWorld {
   DynamicFactory _canvasFactory;
+  DynamicFactory _imageDataFactory;
   int width;
   int height;
   Vec2 viewSize;
   var canvas;
+  var _bedrocksCanvas;
 
   ByteWorld(
       @WorldWidth() int width, @WorldHeight() int height,
+      @ImageDataFactory() DynamicFactory imageDataFactory,
       @CanvasFactory() DynamicFactory canvasFactory) {
     this.viewSize = new Vec2(width * 1.0, height * 1.0);
     this._canvasFactory = canvasFactory;
+    this._imageDataFactory = imageDataFactory;
   }
 
   /**
@@ -27,6 +31,48 @@ class ByteWorld {
     width = canvas.width;
     height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
+    _computeBedrock();
+  }
+
+  void _computeBedrock() {
+    // rgb = 59, 46, 1
+    _bedrocksCanvas = _canvasFactory.create([width, height]);
+    List data = canvas.context2D.getImageData(0, 0, width, height).data;
+    var newData = _imageDataFactory.create([width, height]);
+    for (int i = 0; i < (data.length ~/ 4); i++) {
+      int p = i * 4;
+      if (data[p] == 59 && data[p + 1] == 46 && data[p + 2] == 1) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+      if (data[p] == 255 && data[p + 1] == 145 && data[p + 2] == 34) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+      if (data[p] == 254 && data[p + 1] == 201 && data[p + 2] == 89) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+      if (data[p] == 254 && data[p + 1] == 201 && data[p + 2] == 89) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+      if (data[p] == 171 && data[p + 1] == 206 && data[p + 2] == 150) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+    }
+    _bedrocksCanvas.context2D.putImageData(newData, 0, 0);
   }
 
   bool initialized() {
@@ -93,6 +139,7 @@ class ByteWorld {
         ..clearRect(pos.x - radius - 1, pos.y - radius - 1,
                         radius * 2 + 2, radius * 2 + 2)
         ..restore();
+    canvas.context2D.drawImageScaled(_bedrocksCanvas, 0, 0, width, height);
   }
 
   Vec2 randomPoint(Vec2 sizeOffset) {

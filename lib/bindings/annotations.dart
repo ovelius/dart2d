@@ -34,6 +34,10 @@ class CanvasFactory {
   const CanvasFactory();
 }
 
+class ImageDataFactory {
+  const ImageDataFactory();
+}
+
 class ImageFactory {
   const ImageFactory();
 }
