@@ -20,10 +20,15 @@ import 'player_world_selector.dart';
 
 @Injectable()
 class WormWorld extends World {
+  // If the player gives no input for this amount of time we reload the page.
+  // We don't want idle players! And players idle att the title screen will
+  // actually serve as resource hosts :D
+  static final Duration RELOAD_TIMEOUT = new Duration(minutes: 8);
   final Logger log = new Logger('WormWorld');
   Loader loader;
   SpriteIndex spriteIndex;
   ImageIndex _imageIndex;
+  DynamicFactory _reloadFactory;
   MobileControls _mobileControls;
   FpsCounter _drawFps;
   Network _network;
@@ -44,27 +49,26 @@ class WormWorld extends World {
   WormWorld(
       Network network,
       Loader loader,
+      @ReloadFactory() DynamicFactory reloadFactory,
       @LocalKeyState() KeyState localKeyState,
       @WorldCanvas() Object canvasElement,
       @LocalStorage() Map storage,
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
-      ImageIndex imageIndex,
+      this._imageIndex,
       ChunkHelper chunkHelper,
-      ByteWorld byteWorld,
+      this.byteWorld,
       HudMessages hudMessages,
       WorldListener worldListener,
-      MobileControls mobileControls,
+      this._mobileControls,
       PacketListenerBindings packetListenerBindings) {
+    this._reloadFactory = reloadFactory;
     this._localStorage = storage;
-    this._imageIndex = imageIndex;
     this._drawFps = serverFrameCounter;
-    this._mobileControls = mobileControls;
     this._canvasElement = canvasElement;
     this._width = _canvasElement.width;
     this._height = _canvasElement.height;
     this._canvas = _canvasElement.context2D;
-    this.byteWorld = byteWorld;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     this._packetListenerBindings = packetListenerBindings;
@@ -289,6 +293,7 @@ class WormWorld extends World {
     // Only send to network if server frames has passed.
     if (frames > 0) {
       _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
+      _checkDormantPlayer();
     }
     // 1 since we count how many times this method is called.
     drawFpsCounters();
@@ -297,6 +302,18 @@ class WormWorld extends World {
     _mobileControls.draw();
 
     _canvas.restore();
+
+
+  }
+
+  void _checkDormantPlayer() {
+    if (network().currentKeyFrame % 10 == 0) {
+      Duration lastMobileInput = _mobileControls.lastUserInput();
+      Duration lastInput = localKeyState.lastUserInput();
+      if (lastMobileInput > RELOAD_TIMEOUT && lastInput > RELOAD_TIMEOUT) {
+        _reloadFactory.create([]);
+      }
+    }
   }
 
   MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
@@ -431,7 +448,6 @@ class WormWorld extends World {
       untilNextFrame += FRAME_SPEED;
       frames++;
     }
-    serverFrame += frames;
     return frames;
   }
 

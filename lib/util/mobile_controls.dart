@@ -21,6 +21,7 @@ class MobileControls {
   Map<int, Point<int>> _touchDeltas = {};
   List<dynamic> _touchListeners = [];
   SelfPlayerInfoProvider _selfPlayerInfoProvider;
+  DateTime _lastInput = new DateTime.now();
 
   MobileControls(
       SelfPlayerInfoProvider selfPlayerInfoProvider,
@@ -119,6 +120,7 @@ class MobileControls {
       _buttonIdToTouchId[NO_BUTTON_TOUCH] = id;
     }
     _touchStartPoints[id] = new Point(x, y);
+    _lastInput = new DateTime.now();
   }
 
   void touchUp(int id) {
@@ -148,6 +150,10 @@ class MobileControls {
       return _touchDeltas[id];
     }
     return null;
+  }
+
+  Duration lastUserInput() {
+    return new DateTime.now().difference(_lastInput);
   }
 }
 

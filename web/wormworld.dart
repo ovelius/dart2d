@@ -126,6 +126,10 @@ class HtmlDomBindingsModule extends Module {
   HtmlDomBindingsModule() {
     bind(JsCallbacksWrapper, toImplementation: JsCallbacksWrapperImpl);
     bind(DynamicFactory,
+        withAnnotation: const ReloadFactory(),
+        toValue: new DynamicFactory(
+        (args) => window.location.reload()));
+    bind(DynamicFactory,
         withAnnotation: const CanvasFactory(),
         toValue: new DynamicFactory(
             (args) => new CanvasElement(width: args[0], height: args[1])));

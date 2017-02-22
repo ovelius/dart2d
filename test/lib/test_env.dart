@@ -10,7 +10,6 @@ import 'package:dart2d/res/imageindex.dart';
 import 'test_peer.dart';
 import 'test_connection.dart';
 
-
 clearEnvironment() {
   droppedPacketsNextConnection.clear();
   droppedPacketsAfterNextConnection.clear();
@@ -22,7 +21,8 @@ setPlayerName(Injector i) {
   Map storage = i.get(Map, LocalStorage);
   PlayerWorldSelector selector = i.get(PlayerWorldSelector);
   WormWorld world = i.get(WormWorld);
-  storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
+  storage['playerName'] =
+      "name${world.network().peer.getId().toString().toUpperCase()}";
   storage['playerSprite'] = "lion88.png";
   selector.setMapForTest("lion88.png");
 }
@@ -41,25 +41,35 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(FakeImageDataFactory, toValue: new FakeImageDataFactory())
       // World bindings.
       ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
-      ..bind(int, withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
+      ..bind(int,
+          withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
       ..bind(DynamicFactory,
           withAnnotation: const CanvasFactory(),
           toValue: new DynamicFactory((args) => new FakeCanvas()))
-      ..bind(DynamicFactory, withAnnotation: const ImageFactory(),
-          toInstanceOf: FakeImageFactory)
-      ..bind(DynamicFactory, withAnnotation: const ImageDataFactory(),
+      ..bind(DynamicFactory,
+          withAnnotation: const ImageFactory(), toInstanceOf: FakeImageFactory)
+      ..bind(DynamicFactory,
+          withAnnotation: const ImageDataFactory(),
           toInstanceOf: FakeImageDataFactory)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
       ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..bind(bool, withAnnotation: const TouchControls(), toValue: false)
       ..bind(Map, withAnnotation: const LocalStorage(), toValue: {})
-      ..bind(KeyState, withAnnotation: const LocalKeyState(), toValue: new KeyState())
+      ..bind(KeyState,
+          withAnnotation: const LocalKeyState(), toValue: new KeyState())
       ..install(new UtilModule())
       ..install(new NetModule())
       ..install(new WorldModule())
-      ..bind(Object, withAnnotation: const HtmlScreen(), toValue: new FakeScreen())
-      ..bind(FpsCounter, withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
+      ..bind(Object,
+          withAnnotation: const HtmlScreen(), toValue: new FakeScreen())
+      ..bind(DynamicFactory,
+          withAnnotation: const ReloadFactory(),
+          toValue: new DynamicFactory((args) {
+            print("Want to reload the world! Not available in tests...");
+          }))
+      ..bind(FpsCounter,
+          withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
       ..bind(ImageIndex)
       ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)

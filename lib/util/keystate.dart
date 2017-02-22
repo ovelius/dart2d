@@ -9,6 +9,7 @@ class KeyState {
   WormWorld world;
   bool debug = false;
   bool remoteState = false;
+  DateTime _lastInput = new DateTime.now();
 
   Map<int, double> keysDown = new Map<int, double>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
@@ -40,6 +41,7 @@ class KeyState {
           log.info("Enabling print logging for ALL");
         }
       }
+      _lastInput = new DateTime.now();
     }
     bool newlyPressed = !keysDown.containsKey(e.keyCode);
     keysDown[e.keyCode] = strength;
@@ -98,6 +100,10 @@ class KeyState {
 
   registerGenericListener(dynamic f) {
     _genericListeners.add(f);
+  }
+
+  Duration lastUserInput() {
+    return new DateTime.now().difference(_lastInput);
   }
 }
 

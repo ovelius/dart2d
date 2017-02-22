@@ -13,7 +13,6 @@ import 'package:dart2d/util/keystate.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-int serverFrame = 0;
 // 15 server frames per second.
 const TARGET_SERVER_FRAMES_PER_SECOND = 15;
 const FRAME_SPEED = 1.0/TARGET_SERVER_FRAMES_PER_SECOND;
