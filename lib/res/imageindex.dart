@@ -26,6 +26,7 @@ List<String> imageSources = [
     "world_town_mini.png",
     "cake.png",
     "banana.png",
+    "shield.png",
     "zooka.png",
     "box.png",
     "gun.png",

@@ -58,6 +58,9 @@ class LocalPlayerSprite extends MovingSprite {
 
   MovingSprite gun;
 
+  double _shieldSec = -1.0;
+  StickySprite _shield;
+
   PlayerInfo get killer => _killer;
 
   /**
@@ -76,6 +79,7 @@ class LocalPlayerSprite extends MovingSprite {
     this._mobileControls = mobileControls;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
+    this._shield = _createShield(imageIndex);
     this.weaponState =
         new WeaponState(world, info.remoteKeyState(), this, this.gun);
     this.listenFor("Next weapon", () {
@@ -93,6 +97,15 @@ class LocalPlayerSprite extends MovingSprite {
     return sprite;
   }
 
+  StickySprite _createShield(ImageIndex index) {
+    MovingSprite shield = new StickySprite(this, index.getImageIdByName("shield.png"),
+        index, Sprite.UNLIMITED_LIFETIME);
+    shield.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE.multiply(1.5);
+    shield.rotationVelocity = 200.0;
+    shield.setImage(index.getImageIdByName("shield.png"), 80);
+    return shield;
+  }
+
   bool drawWeaponHelpers() => _ownedByThisWorld();
 
   hasServerToOwnerData() =>
@@ -100,6 +113,7 @@ class LocalPlayerSprite extends MovingSprite {
 
   addServerToOwnerData(List data) {
     data.add(health);
+    data.add((_shieldSec * 10).toInt());
     data.add(spawnIn * DOUBLE_INT_CONVERSION);
     if (_killer != null) {
       data.add(_killer.connectionId);
@@ -113,11 +127,12 @@ class LocalPlayerSprite extends MovingSprite {
 
   bool parseServerToOwnerData(List data, int startAt) {
     health = data[startAt];
-    spawnIn = data[startAt + 1] / DOUBLE_INT_CONVERSION;
-    String killerId = data[startAt + 2];
+    _shieldSec = data[startAt + 1] / 10.0;
+    spawnIn = data[startAt + 2] / DOUBLE_INT_CONVERSION;
+    String killerId = data[startAt + 3];
     _killer = world.network().gameState.playerInfoByConnectionId(killerId);
-    if (data.length > 4) {
-      this.weaponState.parseServerToOwnerData(data, startAt + 3);
+    if (data.length > 5) {
+      this.weaponState.parseServerToOwnerData(data, startAt + 4);
     }
     return true;
   }
@@ -178,7 +193,16 @@ class LocalPlayerSprite extends MovingSprite {
     context.save();
     gun.draw(context, debug);
     context.restore();
-    super.draw(context, debug);
+    if (_shieldSec > 0) {
+      context.save();
+      super.draw(context, debug);
+      context.restore();
+      context.save();
+      _shield.draw(context, debug);
+      context.restore();
+    } else {
+      super.draw(context, debug);
+    }
     drawHealthBar(context);
   }
 
@@ -252,7 +276,8 @@ class LocalPlayerSprite extends MovingSprite {
     checkShouldFire();
     super.frame(duration, frames, gravity);
     gun.frame(duration, frames, gravity);
-
+    _shield.frame(duration, frames, gravity);
+    _shieldSec -= duration;
     if (weaponState != null) {
       weaponState.think(duration);
     }
@@ -434,6 +459,8 @@ class LocalPlayerSprite extends MovingSprite {
 
   void takeDamage(int damage, LocalPlayerSprite inflictor) {
     if (world.network().isCommander()) {
+      // TODO check for and add shield here.
+      // _shieldSec = 0.8;
       health -= damage;
       if (health <= 0) {
         world
