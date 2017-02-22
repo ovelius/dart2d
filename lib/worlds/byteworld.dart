@@ -32,7 +32,7 @@ class ByteWorld {
     height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
     _bedrocksCanvas = _canvasFactory.create([width, height]);
-    _computeBedrockSegment(0, width);
+    _computeBedrock();
   }
 
   void _computeBedrock() {
@@ -61,6 +61,12 @@ class ByteWorld {
         newData.data[p + 3] = data[p + 3];
       }
       if (data[p] == 255 && data[p + 1] == 145 && data[p + 2] == 34) {
+        newData.data[p] = data[p];
+        newData.data[p + 1] = data[p + 1];
+        newData.data[p + 2] = data[p + 2];
+        newData.data[p + 3] = data[p + 3];
+      }
+      if (data[p] == 231 && data[p + 1] == 3 && data[p + 2] == 30) {
         newData.data[p] = data[p];
         newData.data[p + 1] = data[p + 1];
         newData.data[p + 2] = data[p + 2];
