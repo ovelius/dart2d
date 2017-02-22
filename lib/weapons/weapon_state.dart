@@ -109,7 +109,9 @@ class WeaponState {
           8.0, 5, 45, -0.3, Particles.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
-      p.damage = 22;
+      p.collision = true;
+      p.damage = 5;
+      p.owner = weaponState.owner;
       weaponState.world.addSprite(p);
     }),
     new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
@@ -123,6 +125,19 @@ class WeaponState {
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 140);
       weaponState.world.addSprite(sprite);
     }),
+    /*
+    new Weapon("Black sheep down", 1, 5.0, 0.01, (WeaponState weaponState) {
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 100);
+      sprite.radius = 450.0;
+      sprite.owner = weaponState.owner;
+      sprite.explodeAfter = 5.0;
+      sprite.size = new Vec2(58.0 * 0.7, 58.0 * 0.7);
+      sprite.angle = 0.0;
+      sprite.bounche = 1.0;
+      sprite.velocity = sprite.velocity.multiply(0.4);
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("sheep_black58.png"), 58);
+      weaponState.world.addSprite(sprite);
+    }), */
     new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
       sprite.radius = 40.0;

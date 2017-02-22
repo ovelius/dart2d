@@ -179,7 +179,7 @@ class WorldDamageProjectile extends MovingSprite {
         }
       }
     }
-    super.frame(duration, frames, gravity);
+    super.frame(duration, frameStep, gravity);
   }
   
   draw(var context, bool debug) {

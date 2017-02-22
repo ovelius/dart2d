@@ -1,15 +1,14 @@
 
-import 'package:dart2d/sprites/sprite.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
 
-class Particles extends Sprite {
+class Particles extends MovingSprite {
   static const COLORFUL = 1;
   static const FIRE = 2;
 
-  Vec2 velocityBase;
   double radius;
   int particleLifeTime;
   List<_Particle> particles;
@@ -22,17 +21,20 @@ class Particles extends Sprite {
   WormWorld world;
   // We got it from network.
   bool sendToNetwork = false;
-  
+
+  LocalPlayerSprite owner;
+
   Particles(WormWorld world, Sprite follow, Vec2 position, Vec2 velocityBase,
       [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
       super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
-    this.velocityBase = velocityBase;
+    this.velocity = velocityBase;
     this.lifeTime = lifeTime;
     this.particleType = particleType;
     this.shrinkPerStep = shrinkPerStep;
     this.networkType = NetworkType.LOCAL_ONLY;
     this.invisibleOutsideCanvas = false;
+    this.collision = false;
     Random r = new Random();
     particles = new List();
     for (int i = 0; i < count; i++) {
@@ -47,7 +49,7 @@ class Particles extends Sprite {
   Particles.fromNetworkUpdate(List<int> data, WormWorld world)
       : super(new Vec2(), new Vec2(1, 1),  SpriteType.CUSTOM) {
     this.position = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
-    this.velocityBase = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
+    this.velocity = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
     this.radius = data[4] / DOUBLE_INT_CONVERSION;
     this.particleLifeTime = data[5];
     this.particleType = data[6];
@@ -63,7 +65,7 @@ class Particles extends Sprite {
     particles = new List();
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
-       p.setToRandom(r, radius, follow, position, velocityBase, lifeTime);
+       p.setToRandom(r, radius, follow, position, velocity, lifeTime);
        particles.add(p);
     }
     this.world = world;
@@ -73,8 +75,8 @@ class Particles extends Sprite {
     List<int> list = [
         position.x * DOUBLE_INT_CONVERSION,
         position.y * DOUBLE_INT_CONVERSION,
-        velocityBase.x * DOUBLE_INT_CONVERSION,
-        velocityBase.y * DOUBLE_INT_CONVERSION,
+        velocity.x * DOUBLE_INT_CONVERSION,
+        velocity.y * DOUBLE_INT_CONVERSION,
         radius * DOUBLE_INT_CONVERSION,
         particleLifeTime,
         particleType, 
@@ -105,15 +107,10 @@ class Particles extends Sprite {
       if (gravity != null && this.particleType != FIRE) {
         p.location += g;
       }
-      if (damage != null) {
-        if (world.byteWorld.isCanvasCollide(p.location.x, p.location.y)) {
-          world.explosionAt(p.location, null, damage, radius, null);
-          p.lifeTimeRemaining = 0;
-        }
-      }
       p.lifeTimeRemaining--;
       p.radius-=shrinkPerStep;
     }
+    super.frame(duration, frames, Vec2.ZERO);
   }
   draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
     int dead = 0;
@@ -123,7 +120,7 @@ class Particles extends Sprite {
       _Particle p = particles[i];
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
         if (follow != null && !follow.remove) {
-          p.setToRandom(r, radius, follow, position, velocityBase, this.particleLifeTime);
+          p.setToRandom(r, radius, follow, position, velocity, this.particleLifeTime);
         } else {
           dead++;
         }
@@ -158,6 +155,19 @@ class Particles extends Sprite {
           "rgba(${(260 * lifePercentage).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${lifePercentageInverse})";
       context.fillStyle = color;
     } 
+  }
+
+  collide(MovingSprite other, var unused, int direction) {
+    if (!world.network().isCommander()) {
+      return;
+    }
+    if (other != null && damage != null && other.takesDamage() &&  other.networkId != owner.networkId) {
+      other.takeDamage(damage, owner);
+      lifeTime = 0;
+    } else if (direction != null && direction != 0 && damage != null) {
+      world.explosionAt(centerPoint(), null, damage, radius * 1.5, owner);
+      lifeTime = 0;
+    }
   }
 }
 

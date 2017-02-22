@@ -12,6 +12,7 @@ List<String> imageSources = [
     "dragon.png",
     "cock.png",
     "sheep98.png",
+    "sheep_black58.png",
     "ele96.png",
     "donkey98.png",
     "goat93.png",
