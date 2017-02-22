@@ -31,14 +31,27 @@ class ByteWorld {
     width = canvas.width;
     height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, width, height);
-    _computeBedrock();
+    _bedrocksCanvas = _canvasFactory.create([width, height]);
+    _computeBedrockSegment(0, width);
   }
 
   void _computeBedrock() {
+    int segments = 10;
+    // Compute 10 segments to avoid using too much memory.
+    int segmentSize = width ~/ segments;
+    for (int i = 0; i < segments + 1; i++) {
+      int startX = min(i * segmentSize, width);
+      int computeWidth = min(startX + segmentSize, width) - startX;
+      if (computeWidth > 0) {
+        _computeBedrockSegment(startX, computeWidth);
+      }
+    }
+  }
+
+  void _computeBedrockSegment(int startX, int computeWidth) {
     // rgb = 59, 46, 1
-    _bedrocksCanvas = _canvasFactory.create([width, height]);
-    List data = canvas.context2D.getImageData(0, 0, width, height).data;
-    var newData = _imageDataFactory.create([width, height]);
+    List data = canvas.context2D.getImageData(startX, 0, computeWidth, height).data;
+    var newData = _imageDataFactory.create([computeWidth, height]);
     for (int i = 0; i < (data.length ~/ 4); i++) {
       int p = i * 4;
       if (data[p] == 59 && data[p + 1] == 46 && data[p + 2] == 1) {
@@ -72,7 +85,7 @@ class ByteWorld {
         newData.data[p + 3] = data[p + 3];
       }
     }
-    _bedrocksCanvas.context2D.putImageData(newData, 0, 0);
+    _bedrocksCanvas.context2D.putImageData(newData, startX, 0);
   }
 
   bool initialized() {
