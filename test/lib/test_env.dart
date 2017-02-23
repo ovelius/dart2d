@@ -37,6 +37,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
     new Module()
       // Test only.
       ..bind(TestPeer, toValue: peer)
+      ..bind(GaReporter, toValue: new FakeGaReporter())
       ..bind(FakeImageFactory, toValue: fakeImageFactory)
       ..bind(FakeImageDataFactory, toValue: new FakeImageDataFactory())
       // World bindings.
@@ -78,4 +79,10 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
     injector.get(ImageIndex).useEmptyImagesForTest();
   }
   return injector;
+}
+
+class FakeGaReporter extends GaReporter {
+  reportEvent(String action, [String category, int count, String label]) {
+    print("Reported event $action");
+  }
 }

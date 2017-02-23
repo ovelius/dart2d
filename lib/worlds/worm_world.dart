@@ -33,6 +33,7 @@ class WormWorld extends World {
   FpsCounter _drawFps;
   Network _network;
   Map _localStorage;
+  GaReporter _gaReporter;
   KeyState localKeyState;
   HudMessages hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -56,6 +57,7 @@ class WormWorld extends World {
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       this._imageIndex,
+      this._gaReporter,
       ChunkHelper chunkHelper,
       this.byteWorld,
       HudMessages hudMessages,
@@ -198,10 +200,12 @@ class WormWorld extends World {
       if (loader.loadedAsServer()) {
         startAsServer();
         loader.markCompleted();
+        _gaReporter.reportEvent("server", "StartType");
       } else if (loader.hasGameState()) {
         // We are client.
         initByteWorld("");
         loader.markCompleted();
+        _gaReporter.reportEvent("client", "StartType");
       } else {
         // Tick the loader.
         loader.loaderTick(duration);
@@ -311,6 +315,7 @@ class WormWorld extends World {
       Duration lastMobileInput = _mobileControls.lastUserInput();
       Duration lastInput = localKeyState.lastUserInput();
       if (lastMobileInput > RELOAD_TIMEOUT && lastInput > RELOAD_TIMEOUT) {
+        _gaReporter..reportEvent("dormant_player_reload");
         _reloadFactory.create([]);
       }
     }
@@ -608,6 +613,7 @@ class WormWorld extends World {
   Network network() => _network;
   ImageIndex imageIndex() => _imageIndex;
   FpsCounter drawFps() => _drawFps;
+  gaReporter() => _gaReporter;
 
   toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
 }

@@ -54,6 +54,10 @@ class PeerMarker {
   const PeerMarker();
 }
 
+abstract class GaReporter {
+  reportEvent(String action, [String category, int count, String label]);
+}
+
 /**
  * A generic factory object.
  * We use this to create fake HTML elements in testing.

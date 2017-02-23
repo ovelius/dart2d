@@ -37,6 +37,7 @@ class PlayerWorldSelector {
   MobileControls _mobileControls;
   ImageIndex _imageIndex;
   Network _network;
+  GaReporter _gaReporter;
   PacketListenerBindings _packetListenerBindings;
   int _width;
   int _height;
@@ -59,6 +60,7 @@ class PlayerWorldSelector {
       this._network,
       this._mobileControls,
       this._imageIndex,
+      this._gaReporter,
       @LocalStorage() Map storage,
       @LocalKeyState() KeyState localKeyState,
       @WorldCanvas() Object canvasElement) {
@@ -140,7 +142,9 @@ class PlayerWorldSelector {
 
   void _selectPlayer() {
     if (!playerSelected()) {
-      _localStorage['playerSprite'] = PLAYER_SPRITES[_selectedPlayerSprite];
+      String spriteName = PLAYER_SPRITES[_selectedPlayerSprite];
+      _localStorage['playerSprite'] = spriteName;
+      _gaReporter.reportEvent(spriteName, "PlayerSelect");
     }
   }
 
@@ -149,6 +153,7 @@ class PlayerWorldSelector {
       String mapFullName = WORLDS[AVAILABLE_MAPS[_selectedMap]];
       _imageIndex.addSingleImage(mapFullName);
       _selectedWorldName = mapFullName;
+      _gaReporter.reportEvent(_selectedWorldName, "WorldSelect");
     }
   }
 

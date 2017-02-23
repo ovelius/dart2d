@@ -14,6 +14,7 @@ class PeerWrapper {
   static const MAX_AUTO_CONNECTIONS = 5;
   static const MAX_CONNECTION = 8;
   Network _network;
+  GaReporter _gaReporter;
   HudMessages _hudMessages;
   JsCallbacksWrapper _peerWrapperCallbacks;
   PacketListenerBindings _packetListenerBindings;
@@ -31,7 +32,7 @@ class PeerWrapper {
   Set<String> _closedConnectionPeers = new Set();
 
   PeerWrapper(this._network, this._hudMessages, this._packetListenerBindings, @PeerMarker() Object jsPeer,
-      this._peerWrapperCallbacks) {
+      this._peerWrapperCallbacks, this._gaReporter) {
     this.peer = jsPeer;
     _peerWrapperCallbacks
       ..bindOnFunction(jsPeer, 'open', openPeer)
@@ -44,6 +45,7 @@ class PeerWrapper {
    * Called to establish a connection to another peer.
    */
   ConnectionWrapper connectTo(id) {
+    _gaReporter.reportEvent("connection_created", "Connection");
     assert(id != null);
     var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
     var peerId = connection['peer'];
@@ -135,6 +137,7 @@ class PeerWrapper {
    * Callback for a peer connecting to us.
    */
   void connectPeer(unusedThis, connection) {
+    _gaReporter.reportEvent("connection_received", "Connection");
     var peerId = connection['peer'];
     assert(peerId != null);
     log.info("Got connection from ${peerId}");
@@ -232,8 +235,10 @@ class PeerWrapper {
     if (!wrapper.opened) {
       _blackListedIds.add(id);
       _closedConnectionPeers.add(id);
+      _gaReporter.reportEvent("closed_never_open", "Connection");
     } else {
       _closedConnectionPeers.add(id);
+      _gaReporter.reportEvent("closed_after_open", "Connection");
     }
     // Assign back.
     connections = connectionsCopy;

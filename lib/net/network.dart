@@ -26,6 +26,7 @@ class Network {
   GameState gameState;
   HudMessages _hudMessages;
   SpriteIndex _spriteIndex;
+  GaReporter _gaReporter;
   KeyState _localKeyState;
   PeerWrapper peer;
   PacketListenerBindings _packetListenerBindings;
@@ -41,6 +42,7 @@ class Network {
   String _pendingCommandTransfer = null;
 
   Network(
+      this._gaReporter,
       HudMessages hudMessages,
       this.gameState,
       this._packetListenerBindings,
@@ -54,7 +56,7 @@ class Network {
     this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer,
-        peerWrapperCallbacks);
+        peerWrapperCallbacks, _gaReporter);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,
@@ -94,6 +96,7 @@ class Network {
       // Server wants us to take command.
       log.info("Coverting self to commander");
       this.convertToCommander(this.safeActiveConnections());
+      _gaReporter.reportEvent("convert_self_to_commander_on_request", "Commander");
     });
   }
 

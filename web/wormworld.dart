@@ -125,6 +125,7 @@ void setKeyListeners(WormWorld world, var canvasElement) {
 class HtmlDomBindingsModule extends Module {
   HtmlDomBindingsModule() {
     bind(JsCallbacksWrapper, toImplementation: JsCallbacksWrapperImpl);
+    bind(GaReporter, toImplementation:  RealGaReporter);
     bind(DynamicFactory,
         withAnnotation: const ReloadFactory(),
         toValue: new DynamicFactory(
@@ -147,6 +148,23 @@ class HtmlDomBindingsModule extends Module {
         return new ImageElement(width: args[0], height: args[1]);
       }
     }));
+  }
+}
+
+@Injectable()
+class RealGaReporter extends GaReporter {
+  reportEvent(String action, [String category, int count, String label]) {
+    Map data = {'eventAction': action, 'hitType': 'event'};
+    if (category != null) {
+      data['eventCategory'] = category;
+    }
+    if (count != null) {
+      data['eventValue'] = count;
+    }
+    if (label != null) {
+      data['eventLabel'] = label;
+    }
+    context.callMethod('ga',  ['send', new JsObject.jsify(data)]);
   }
 }
 

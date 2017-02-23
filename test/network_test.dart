@@ -40,6 +40,7 @@ void main() {
     gameState = new GameState(packetListenerBindings, mockSpriteIndex);
     peer = new TestPeer('a');
     network = new Network(
+        new FakeGaReporter(),
         mockHudMessages,
         gameState,
         packetListenerBindings,

@@ -463,6 +463,7 @@ class LocalPlayerSprite extends MovingSprite {
       // _shieldSec = 0.8;
       health -= damage;
       if (health <= 0) {
+        world.gaReporter().reportEvent("player_killed", "Frags");
         world
             .network()
             .gameState
@@ -478,6 +479,7 @@ class LocalPlayerSprite extends MovingSprite {
             : null;
         if (_killer != null && _killer != info) {
           _killer.score++;
+          world.gaReporter().reportEvent("player_frags", "Frags");
         }
         spawnIn = RESPAWN_TIME;
         _deathMessage();
@@ -489,6 +491,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (_killer != null) {
       if (_killer == info) {
         world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
+        world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
         world.displayHudMessageAndSendToNetwork(
             "${_killer.name} killed ${info.name}!");
