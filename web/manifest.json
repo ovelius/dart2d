@@ -1,0 +1,7 @@
+{
+  "short_name": "Dart2D",
+  "name": "Dart2D realtime multiplayer game",
+  "start_url": "/wormworld.html",
+  "display": "fullscreen",
+  "orientation": "landscape"
+}

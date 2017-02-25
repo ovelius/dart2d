@@ -96,6 +96,9 @@ class MobileControls {
   }
 
   bool isPortrait() {
+    if (_screen.orientation == null) {
+      return false;
+    }
     return _screen.orientation.type.contains("portrait");
   }
 
