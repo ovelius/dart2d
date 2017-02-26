@@ -308,11 +308,11 @@ class _DataCounter {
   String format() {
     int bytesPerSecond = getBytes();
     if (bytesPerSecond > 2 * 1024 * 1024) {
-      return "${bytesPerSecond ~/ (1024 * 1024)} MB";
+      return "${bytesPerSecond ~/ (1024 * 1024)} MB/s";
     }
     if (bytesPerSecond > 2 * 1024) {
-      return "${bytesPerSecond ~/ 1024} kB";
+      return "${bytesPerSecond ~/ 1024} kB/s";
     }
-    return "${bytesPerSecond} B";
+    return "${bytesPerSecond} B/s";
   }
 }

@@ -4,6 +4,7 @@ export 'movingsprite.dart';
 export 'destructoid.dart';
 export 'movingsprite.dart';
 export 'particles.dart';
+export 'powerup.dart';
 export 'rope.dart';
 export 'sprite.dart';
 export 'sprite_index.dart';

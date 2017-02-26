@@ -1,20 +1,14 @@
-import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/worlds/world_phys.dart';
-import 'package:dart2d/worlds/world_listener.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/worlds/world_util.dart';
-import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:di/di.dart';
+import 'world_util.dart';
 import 'dart:math';
 import 'player_world_selector.dart';
 
@@ -34,6 +28,7 @@ class WormWorld extends World {
   Network _network;
   Map _localStorage;
   GaReporter _gaReporter;
+  PowerupManager _powerupManager;
   KeyState localKeyState;
   HudMessages hudMessages;
   PacketListenerBindings _packetListenerBindings;
@@ -57,6 +52,7 @@ class WormWorld extends World {
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       this._imageIndex,
+      this._powerupManager,
       this._gaReporter,
       ChunkHelper chunkHelper,
       this.byteWorld,
@@ -298,6 +294,9 @@ class WormWorld extends World {
     if (frames > 0) {
       _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
       _checkDormantPlayer();
+      if (_network.isCommander()) {
+        _powerupManager.frame(duration);
+      }
     }
     // 1 since we count how many times this method is called.
     drawFpsCounters();
@@ -387,7 +386,7 @@ class WormWorld extends World {
     info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
-        byteWorld.randomPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE),
+        byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE),
         0);
     playerSprite.networkId = id;
     playerSprite.spawnIn = 1.0;

@@ -14,6 +14,7 @@ enum SpriteConstructor {
   MOVING_SPRITE,
   DAMAGE_PROJECTILE,
   REMOTE_PLAYER_CLIENT_SPRITE,
+  POWERUP,
   ROPE_SPRITE
 }
 /**
@@ -38,6 +39,7 @@ class SpriteIndex {
       return new LocalPlayerSprite(world, world.imageIndex(), null, info, new Vec2(), 0);
     },
     SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),
+    SpriteConstructor.POWERUP: (WormWorld world, int spriteId, String connectionId) => new Powerup.createEmpty(world.imageIndex()),
     SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),
   };
     

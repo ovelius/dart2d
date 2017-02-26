@@ -78,6 +78,7 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
   if (loadImages) {
     injector.get(ImageIndex).useEmptyImagesForTest();
   }
+  injector.get(PowerupManager).setNextPowerForTest(1000.0);
   return injector;
 }
 

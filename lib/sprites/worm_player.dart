@@ -6,8 +6,7 @@ import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/util/mobile_controls.dart';
-import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -19,6 +18,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const BOUCHYNESS = 0.2;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(32.0, 32.0);
   static int MAX_HEALTH = 100;
+  static int MAX_SHIELD = 250;
   static const double RESPAWN_TIME = 5.0;
   static const MAX_SPEED = 500.0;
 
@@ -44,6 +44,7 @@ class LocalPlayerSprite extends MovingSprite {
 
   WormWorld world;
   int health = MAX_HEALTH;
+  int _shieldPoints = 0;
   PlayerInfo info;
   PlayerInfo _killer = null;
   Rope rope;
@@ -115,6 +116,7 @@ class LocalPlayerSprite extends MovingSprite {
     data.add(health);
     data.add((_shieldSec * 10).toInt());
     data.add(spawnIn * DOUBLE_INT_CONVERSION);
+    data.add(_shieldPoints);
     if (_killer != null) {
       data.add(_killer.connectionId);
     } else {
@@ -129,10 +131,11 @@ class LocalPlayerSprite extends MovingSprite {
     health = data[startAt];
     _shieldSec = data[startAt + 1] / 10.0;
     spawnIn = data[startAt + 2] / DOUBLE_INT_CONVERSION;
-    String killerId = data[startAt + 3];
+    _shieldPoints = data[startAt + 3];
+    String killerId = data[startAt + 4];
     _killer = world.network().gameState.playerInfoByConnectionId(killerId);
-    if (data.length > 5) {
-      this.weaponState.parseServerToOwnerData(data, startAt + 4);
+    if (data.length > 6) {
+      this.weaponState.parseServerToOwnerData(data, startAt + 5);
     }
     return true;
   }
@@ -213,7 +216,7 @@ class LocalPlayerSprite extends MovingSprite {
     double healthFactor = health / MAX_HEALTH;
     context.resetTransform();
     var grad = context.createLinearGradient(
-        0, 0, 3 * world.width() * healthFactor, 10);
+        0, 0, 2 * world.width() * healthFactor, 10);
     grad.addColorStop(0, "#00ff00");
     grad.addColorStop(1, "#FF0000");
     context.globalAlpha = 0.5;
@@ -221,6 +224,12 @@ class LocalPlayerSprite extends MovingSprite {
     int size = 20;
     context.fillRect(
         0, world.height() - size, world.width() * healthFactor, size);
+    if (_shieldPoints > 0) {
+      double shieldFactor = _shieldPoints / MAX_SHIELD;
+      context.fillStyle = "#0000ff";
+      context.fillRect(
+          0, world.height() - size, world.width() * shieldFactor, size);
+    }
     context.globalAlpha = 1.0;
     return true;
   }
@@ -239,14 +248,8 @@ class LocalPlayerSprite extends MovingSprite {
     if (_ownedByThisWorld()) {
       if (!inGame() && spawnIn < RESPAWN_TIME / 2) {
         if (_updatePosition) {
-          for (int i = 0; i < 20; i++) {
-            position = world.byteWorld.randomPoint(size);
-            if (!world.byteWorld.isCanvasCollide(
-                position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
-              break;
-            }
-          }
-              // TODO zoom in on the new position?
+          position = world.byteWorld.randomNotSolidPoint(size);
+          // TODO zoom in on the new position?
           _updatePosition = false;
         }
       } else {
@@ -459,9 +462,17 @@ class LocalPlayerSprite extends MovingSprite {
 
   void takeDamage(int damage, LocalPlayerSprite inflictor) {
     if (world.network().isCommander()) {
-      // TODO check for and add shield here.
-      // _shieldSec = 0.8;
-      health -= damage;
+      if (_shieldPoints > 0) {
+        _shieldSec = 0.8;
+        _shieldPoints -= damage;
+        if (_shieldPoints < 0) {
+          health += _shieldPoints;
+          _shieldPoints = 0;
+          _shieldSec = 0.0;
+        }
+      } else {
+        health -= damage;
+      }
       if (health <= 0) {
         world.gaReporter().reportEvent("player_killed", "Frags");
         world
@@ -517,19 +528,34 @@ class LocalPlayerSprite extends MovingSprite {
     return info.remoteKeyState().keyIsDownStrength(getControls()[key]);
   }
 
-  void addExtraNetworkData(List<int> data) {
+  void addExtraNetworkData(List data) {
     data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
     data.add(weaponState.selectedWeaponIndex);
+    if (world.network().isCommander()) {
+      data.add(health);
+      data.add(_shieldPoints);
+      data.add(_shieldSec);
+    }
   }
 
-  void parseExtraNetworkData(List<int> data, int startAt) {
+  void parseExtraNetworkData(List data, int startAt) {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
     if (weaponState != null) {
-      assert(data[startAt + 1] < weaponState.weapons.length);
       if (!_ownedByThisWorld()) {
         weaponState.selectedWeaponIndex = data[startAt + 1];
       }
     }
+    if (data.length > startAt + 2) {
+      health = data[startAt + 2];
+      _shieldPoints = data[startAt + 3];
+      _shieldSec = data[startAt + 4];
+    }
+  }
+
+  int get shieldPoints => _shieldPoints;
+
+  void set shieldPoints(int shieldPoints) {
+    this._shieldPoints = shieldPoints;
   }
 
   int extraSendFlags() {

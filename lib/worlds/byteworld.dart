@@ -161,10 +161,17 @@ class ByteWorld {
     canvas.context2D.drawImageScaled(_bedrocksCanvas, 0, 0, width, height);
   }
 
-  Vec2 randomPoint(Vec2 sizeOffset) {
+  Vec2 randomNotSolidPoint(Vec2 sizeOffset) {
     assert(initialized());
-    return new Vec2(
-        new Random().nextInt(width - sizeOffset.x.toInt()).toDouble(),
-        new Random().nextInt(height - sizeOffset.y.toInt()).toDouble());
+    Vec2 point = null;
+    for (int i = 0; i < 30; i++) {
+      point = new Vec2(
+          new Random().nextInt(width - sizeOffset.x.toInt()).toDouble(),
+          new Random().nextInt(height - sizeOffset.y.toInt()).toDouble());
+      if (!isCanvasCollide(point.x, point.y)) {
+        return point;
+      }
+    }
+    return point;
   }
 }
