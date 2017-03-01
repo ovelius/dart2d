@@ -45,6 +45,9 @@ class LocalPlayerSprite extends MovingSprite {
   WormWorld world;
   int health = MAX_HEALTH;
   int _shieldPoints = 0;
+  double _jetPackSec = 0.0;
+  Particles _jetParticles = null;
+
   PlayerInfo info;
   PlayerInfo _killer = null;
   Rope rope;
@@ -281,6 +284,7 @@ class LocalPlayerSprite extends MovingSprite {
     gun.frame(duration, frames, gravity);
     _shield.frame(duration, frames, gravity);
     _shieldSec -= duration;
+    _jetPackSec -= duration;
     if (weaponState != null) {
       weaponState.think(duration);
     }
@@ -311,10 +315,33 @@ class LocalPlayerSprite extends MovingSprite {
       rope = null;
     }
 
-    if (keyIsDown("Jump") && onGround) {
-      this.velocity.y -= 200.0;
-      this.onGround = false;
-    } else if (aimUp != null) {
+    if (_jetPackSec <= 0 || !keyIsDown("Jump")) {
+      if (_jetParticles != null) {
+        _jetParticles.remove = true;
+        _jetParticles = null;
+      }
+    }
+
+    if (keyIsDown("Jump")) {
+      if (_jetPackSec > 0) {
+        velocity.y -= 700 * duration;
+        if (_jetParticles != null && _jetParticles.remove) {
+          _jetParticles = null;
+        }
+        if (_jetParticles == null) {
+          _jetParticles = new Particles(weaponState.world,
+              this, new Vec2.copy(this.position), new Vec2(0, velocity.y + 50),
+              new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, Particles.SODA);
+          _jetParticles.sendToNetwork = true;
+          world.addSprite(_jetParticles);
+        }
+      } else if (onGround) {
+        velocity.y -= 200.0;
+        onGround = false;
+      }
+    }
+
+    if (aimUp != null) {
       _gunUp(duration * aimUp);
     } else if (aimDown != null) {
       _gunDown(duration * aimDown);
@@ -556,6 +583,10 @@ class LocalPlayerSprite extends MovingSprite {
 
   void set shieldPoints(int shieldPoints) {
     this._shieldPoints = shieldPoints;
+  }
+
+  void set jetPackSec(double secs) {
+    this._jetPackSec = secs;
   }
 
   int extraSendFlags() {

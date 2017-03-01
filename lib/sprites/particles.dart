@@ -8,11 +8,13 @@ import 'dart:math';
 class Particles extends MovingSprite {
   static const COLORFUL = 1;
   static const FIRE = 2;
+  static const SODA = 3;
 
   double radius;
   int particleLifeTime;
   List<_Particle> particles;
   Sprite follow;
+  Vec2 followOffset = null;
   int followId;
   int particleType;
   double shrinkPerStep;
@@ -25,13 +27,14 @@ class Particles extends MovingSprite {
   LocalPlayerSprite owner;
 
   Particles(WormWorld world, Sprite follow, Vec2 position, Vec2 velocityBase,
-      [double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
+      [Vec2 followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
       super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
     this.velocity = velocityBase;
     this.lifeTime = lifeTime;
     this.particleType = particleType;
     this.shrinkPerStep = shrinkPerStep;
+    this.followOffset = followOffset;
     this.networkType = NetworkType.LOCAL_ONLY;
     this.invisibleOutsideCanvas = false;
     this.collision = false;
@@ -39,7 +42,7 @@ class Particles extends MovingSprite {
     particles = new List();
     for (int i = 0; i < count; i++) {
       _Particle p = new _Particle();
-      p.setToRandom(r, radius, follow, position, velocityBase, lifeTime);
+      p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime);
       particles.add(p);
     }
     this.radius = radius;
@@ -48,7 +51,7 @@ class Particles extends MovingSprite {
   
   Particles.fromNetworkUpdate(List<int> data, WormWorld world)
       : super(new Vec2(), new Vec2(1, 1),  SpriteType.CUSTOM) {
-    this.position = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
+    this.position = new Vec2(data[0], data[1]);
     this.velocity = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
     this.radius = data[4] / DOUBLE_INT_CONVERSION;
     this.particleLifeTime = data[5];
@@ -56,8 +59,11 @@ class Particles extends MovingSprite {
     this.shrinkPerStep = data[7] / DOUBLE_INT_CONVERSION;
     int count = data[8];
     this.lifeTime = data[9];
-    if (data.length > 10) {
-      this.followId = data[10];
+    if (data[10] != null) {
+      this.followOffset = new Vec2(data[10], data[11]);
+    }
+    if (data.length > 12) {
+      this.followId = data[12];
     }
     this.networkType = NetworkType.LOCAL_ONLY;
     this.invisibleOutsideCanvas = false;
@@ -65,7 +71,7 @@ class Particles extends MovingSprite {
     particles = new List();
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
-       p.setToRandom(r, radius, follow, position, velocity, lifeTime);
+       p.setToRandom(r, radius, follow, followOffset, position, velocity, lifeTime);
        particles.add(p);
     }
     this.world = world;
@@ -73,8 +79,8 @@ class Particles extends MovingSprite {
   
   List<int> toNetworkUpdate() {
     List<int> list = [
-        position.x * DOUBLE_INT_CONVERSION,
-        position.y * DOUBLE_INT_CONVERSION,
+        position.x,
+        position.y,
         velocity.x * DOUBLE_INT_CONVERSION,
         velocity.y * DOUBLE_INT_CONVERSION,
         radius * DOUBLE_INT_CONVERSION,
@@ -84,6 +90,13 @@ class Particles extends MovingSprite {
         particles.length,
         lifeTime,
       ];
+    if (followOffset != null) {
+      list.add(followOffset.x.toInt());
+      list.add(followOffset.y.toInt());
+    } else {
+      list.add(null);
+      list.add(null);
+    }
     if (follow != null) {
       list.add(follow.networkId);
     }
@@ -115,12 +128,14 @@ class Particles extends MovingSprite {
   draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
     int dead = 0;
     Random r = new Random();
-    context.globalCompositeOperation = "lighter";
+    if (particleType != SODA) {
+      context.globalCompositeOperation = "lighter";
+    }
     for(var i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
         if (follow != null && !follow.remove) {
-          p.setToRandom(r, radius, follow, position, velocity, this.particleLifeTime);
+          p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime);
         } else {
           dead++;
         }
@@ -154,7 +169,13 @@ class Particles extends MovingSprite {
       String color = 
           "rgba(${(260 * lifePercentage).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${lifePercentageInverse})";
       context.fillStyle = color;
-    } 
+    } else if (this.particleType == SODA) {
+      double lifePercentage = p.lifeTimeRemaining / this.particleLifeTime;
+      double lifePercentageInverse = 1.0 - lifePercentage;
+      String color =
+          "rgba(239, 204, 10, ${lifePercentageInverse})";
+      context.fillStyle = color;
+    }
   }
 
   collide(MovingSprite other, var unused, int direction) {
@@ -178,13 +199,17 @@ class _Particle {
   int r, g, b;
   double radius;
   
-  setToRandom(Random ra, double radius, Sprite follow, Vec2 location, Vec2 velocityBase, int lifeTime) {
+  setToRandom(Random ra, double radius, Sprite follow, Vec2 followOffset, Vec2 location, Vec2 velocityBase, int lifeTime) {
     r = ra.nextInt(255);
     g = ra.nextInt(255);
     b = ra.nextInt(255);
     this.radius = (radius * ra.nextDouble());
     if (follow != null) {
-      this.location = follow.centerPoint();
+      if (followOffset != null) {
+        this.location = follow.centerPoint() + followOffset;
+      } else {
+        this.location = follow.centerPoint();
+      }
     } else {
       this.location = new Vec2.copy(location);
     }

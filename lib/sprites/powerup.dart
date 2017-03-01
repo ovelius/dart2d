@@ -7,7 +7,7 @@ import 'dart:math';
 enum PowerUpType {
   SHIELD,
   HEALTH,
-  // JETPACK,
+  JETPACK,
   // DFG,
   // BLACK_SHEEP_WALL
 }
@@ -22,11 +22,12 @@ class Powerup extends MovingSprite {
   static Map<PowerUpType, String> _IMAGES = {
     PowerUpType.HEALTH: "health02.png",
     PowerUpType.SHIELD: "shieldi02.png",
+    PowerUpType.JETPACK: "soda.png",
   };
   static Map<PowerUpType, String> _NAMES = {
     PowerUpType.HEALTH: "Health restoration",
     PowerUpType.SHIELD: "Border wall",
-    // PowerUpType.JETPACK:"Fizzy Bubblech",
+    PowerUpType.JETPACK:"Fizzy Bubblech",
   };
   static Map<PowerUpType, dynamic> _ACTIONS =  {
     PowerUpType.HEALTH: (Powerup self, LocalPlayerSprite s) {
@@ -40,6 +41,10 @@ class Powerup extends MovingSprite {
         s.shieldPoints = LocalPlayerSprite.MAX_SHIELD;
         self.remove = true;
       }
+    },
+    PowerUpType.JETPACK: (Powerup self, LocalPlayerSprite s) {
+      s.jetPackSec = 60.0;
+      self.remove = true;
     },
   };
 
@@ -85,11 +90,21 @@ class Powerup extends MovingSprite {
       }
       if(direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
         if (velocity.x < 0) {
+          if (velocity.x < -2.0) {
+            rotationVelocity = velocity.x / 2;
+          } else {
+            rotationVelocity = 0.0;
+          }
           velocity.x = -velocity.x * BOUNCHE;
         }
       }
       if(direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
         if (velocity.x > 0) {
+          if (velocity.x > 2.0) {
+            rotationVelocity = velocity.x / 2;
+          } else {
+            rotationVelocity = 0.0;
+          }
           velocity.x = -velocity.x * BOUNCHE;
         }
       }

@@ -106,7 +106,7 @@ class WeaponState {
       Particles p = new Particles(
           weaponState.world,
           null, position, vel.multiply(200.0),
-          8.0, 5, 45, -0.3, Particles.FIRE);
+          null, 8.0, 5, 45, -0.3, Particles.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;

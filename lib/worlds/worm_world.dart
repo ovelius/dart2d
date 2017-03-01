@@ -119,12 +119,15 @@ class WormWorld extends World {
         // Out of bounds check.
         if (sprite.position.x + sprite.size.x > byteWorld.width) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
+          sprite.position.x = byteWorld.width - sprite.size.x;
         }
         if (sprite.position.x < 0) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_LEFT);
+          sprite.position.x = 0.0;
         }
         if (sprite.position.y + sprite.size.y > byteWorld.height) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
+          sprite.position.y = byteWorld.height - sprite.size.y;
         }
         if (sprite.position.y - sprite.size.y < 0) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
@@ -414,7 +417,7 @@ class WormWorld extends World {
   void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, Sprite damagerDoer, [bool fromNetwork = false]) {
     clearWorldArea(location, radius);
     if (velocity != null) {
-      addSprite(new Particles(this, null, location, velocity, radius, _particleCountFromFps()));
+      addSprite(new Particles(this, null, location, velocity, null, radius, _particleCountFromFps()));
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer);
     if (!fromNetwork) {
@@ -459,7 +462,7 @@ class WormWorld extends World {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3) {
       addSprite(
-          new Particles(this, null, sprite.position, velocity, radius * 1.5, _particleCountFromFps()));
+          new Particles(this, null, sprite.position, velocity, null, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
           sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer);
     }
