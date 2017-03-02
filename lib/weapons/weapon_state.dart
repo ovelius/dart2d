@@ -17,9 +17,20 @@ class WeaponState {
   Sprite gun;
   
   double changeTime = 0.0;
+  bool _forwardChange = true;
+  String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
 
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
+
+
+  WeaponState(this.world, this.keyState, this.owner, this.gun) {
+    for (Weapon w in weapons) {
+      if (w.name.length > _longestWeaponName.length) {
+        _longestWeaponName = w.name;
+      }
+    }
+  }
 
   addServerToOwnerData(List data) {
     Weapon w = weapons[selectedWeaponIndex];
@@ -153,15 +164,15 @@ class WeaponState {
     }),
   ];
   
-  WeaponState(this.world, this.keyState, this.owner, this.gun);
-  
   nextWeapon() {
+    _forwardChange = true;
     selectedWeaponIndex++;
     selectedWeaponIndex = selectedWeaponIndex % weapons.length;
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
   prevWeapon() {
+    _forwardChange = false;
     selectedWeaponIndex--;
     if (selectedWeaponIndex < 0) {
       selectedWeaponIndex = weapons.length - 1;
@@ -177,32 +188,68 @@ class WeaponState {
     changeTime -= duration;
     weapons[selectedWeaponIndex].think(duration);
   }
-  
+
+  _drawChangeTime(var context, Vec2 center) {
+    double halfTime = SHOW_WEAPON_NAME_TIME / 2;
+    double changeTimePercentLeft = changeTime < halfTime ? 0.0 :
+    (changeTime - halfTime) / halfTime;
+    double changeTimePercenLeftInverse = 1.0 - changeTimePercentLeft;
+    context.save();
+    var metrics = context.measureText(_longestWeaponName);
+    double baseX = center.x - metrics.width / 2;
+    double baseY = center.y - owner.size.y;
+    int textDistance = 20;
+    double nextPrevY = baseY + textDistance;
+    int next = ((selectedWeaponIndex + 1) % weapons.length);
+    int prev = ((selectedWeaponIndex - 1 + weapons.length) % weapons.length);
+    if (_forwardChange) {
+      int prevPrev = ((selectedWeaponIndex - 2 + weapons.length) % weapons.length);
+
+      double nextXTravel =  (metrics.width + textDistance) * changeTimePercentLeft;
+
+      context.fillText(weapons[selectedWeaponIndex].name, baseX + nextXTravel, baseY + (textDistance * changeTimePercentLeft));
+
+      context.fillText(
+          weapons[prev].name, baseX - (metrics.width - textDistance) * changeTimePercenLeftInverse,  baseY + textDistance * changeTimePercenLeftInverse);
+      context.globalAlpha = changeTimePercenLeftInverse;
+      context.fillText(
+          weapons[next].name, baseX + metrics.width + textDistance,
+          nextPrevY + (textDistance + textDistance) * changeTimePercentLeft);
+      context.globalAlpha = changeTimePercentLeft;
+      context.fillText(
+          weapons[prevPrev].name, baseX - metrics.width - textDistance,
+          nextPrevY + (textDistance + textDistance) * changeTimePercenLeftInverse);
+    } else {
+      int nextNext = ((selectedWeaponIndex + 2) % weapons.length);
+
+      double nextXTravel =  (metrics.width + textDistance) * changeTimePercentLeft;
+
+      context.fillText(weapons[selectedWeaponIndex].name, baseX - nextXTravel, baseY + (textDistance * changeTimePercentLeft));
+
+      context.fillText(
+          weapons[next].name, baseX + (metrics.width - textDistance) * changeTimePercenLeftInverse,  baseY + textDistance * changeTimePercenLeftInverse);
+
+      context.globalAlpha = changeTimePercenLeftInverse;
+      context.fillText(
+          weapons[prev].name, baseX - metrics.width - textDistance,
+          nextPrevY + (textDistance + textDistance) * changeTimePercentLeft);
+      context.globalAlpha = changeTimePercentLeft;
+      context.fillText(
+          weapons[nextNext].name, baseX + metrics.width + textDistance,
+          nextPrevY + (textDistance + textDistance) * changeTimePercenLeftInverse);
+    }
+
+    context.restore();
+  }
+
   draw(var /*CanvasRenderingContext2D*/ context) {
     if (owner.drawWeaponHelpers()) {
       double radius = owner.getRadius();
       context.fillStyle = "#ffffff";
       Vec2 center = owner.centerPoint();
       if (changeTime > 0) {
-        context.save();
-        var metrics = context.measureText(weapons[selectedWeaponIndex].name);
-        double baseX = center.x - metrics.width / 2;
-        double baseY = center.y - owner.size.y;
-        context.fillText(weapons[selectedWeaponIndex].name, baseX, baseY);
-
-        int textDistance = 20;
-        int next = ((selectedWeaponIndex + 1) % weapons.length);
-        int prev = ((selectedWeaponIndex - 1 + weapons.length)  % weapons.length);
-
-        // TODO animate selection.
-        context.globalAlpha = 0.8;
-        context.fillText(
-            weapons[next].name, baseX + metrics.width + textDistance, baseY);
-        var metrics2 = context.measureText(weapons[prev].name);
-        context.fillText(
-            weapons[prev].name, baseX - metrics2.width - textDistance, baseY);
-
-        context.restore();
+        // TODO make nicer animation!
+        _drawChangeTime(context, center);
       }
       if (reloading()) {
         double percentInverse = (100 - reloadPercent()) / 100.0;

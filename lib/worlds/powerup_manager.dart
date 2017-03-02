@@ -9,14 +9,14 @@ import 'dart:math';
 class PowerupManager {
   final Logger log = new Logger('PowerupManager');
   static int MAX_POWERUPS = 4;
-  static double POWERUP_SPAWN_TIME = 5.0;
+  static double POWERUP_SPAWN_TIME = 10.0;
 
   SpriteIndex _spriteIndex;
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
   List<Powerup> activePowerups = [];
 
-  double _nextPowerupIn = POWERUP_SPAWN_TIME * 2;
+  double _nextPowerupIn = POWERUP_SPAWN_TIME / 2;
 
   PowerupManager(this._spriteIndex, this._imageIndex, this._byteWorld);
 

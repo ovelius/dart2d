@@ -66,11 +66,6 @@ class Powerup extends MovingSprite {
       : super.empty(index) {
   }
 
-  frame(double duration, int frames, [Vec2 gravity]) {
-    // TODO: Animate powerup?
-    super.frame(duration, frames, gravity);
-  }
-
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (other != null && other is LocalPlayerSprite) {
       dynamic action = _ACTIONS[_type];

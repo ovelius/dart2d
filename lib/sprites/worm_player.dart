@@ -18,7 +18,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const BOUCHYNESS = 0.2;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(32.0, 32.0);
   static int MAX_HEALTH = 100;
-  static int MAX_SHIELD = 250;
+  static int MAX_SHIELD = 200;
   static const double RESPAWN_TIME = 5.0;
   static const MAX_SPEED = 500.0;
 
