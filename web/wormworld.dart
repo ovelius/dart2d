@@ -38,6 +38,8 @@ void main() {
           withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
       ..bind(Map,
           withAnnotation: const LocalStorage(), toValue: window.localStorage)
+      ..bind(Map,
+          withAnnotation: const UriParameters(), toValue: Uri.base.queryParametersAll)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: canvasElement)
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)

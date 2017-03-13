@@ -9,6 +9,7 @@ export 'hud_messages.dart';
 export 'keystate.dart';
 export 'mobile_controls.dart';
 export 'gamestate.dart';
+export 'config_params.dart';
 
 class UtilModule extends Module {
   UtilModule() {
@@ -17,6 +18,7 @@ class UtilModule extends Module {
     bind(HudMessages);
     bind(MobileControls);
     bind(SelfPlayerInfoProvider);
+    bind(ConfigParams);
   }
 }
 

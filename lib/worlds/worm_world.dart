@@ -26,6 +26,7 @@ class WormWorld extends World {
   MobileControls _mobileControls;
   FpsCounter _drawFps;
   Network _network;
+  ConfigParams _configParams;
   Map _localStorage;
   GaReporter _gaReporter;
   PowerupManager _powerupManager;
@@ -52,6 +53,7 @@ class WormWorld extends World {
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       this._imageIndex,
+      this._configParams,
       this._powerupManager,
       this._gaReporter,
       ChunkHelper chunkHelper,
