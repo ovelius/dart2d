@@ -14,6 +14,10 @@ class LocalStorage {
   const LocalStorage();
 }
 
+class UriParameters {
+  const UriParameters();
+}
+
 class HtmlScreen {
   const HtmlScreen();
 }
