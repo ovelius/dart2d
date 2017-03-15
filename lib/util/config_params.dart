@@ -24,7 +24,7 @@ class ConfigParams {
 
   int getInt(ConfigParam p) {
     List<String> data = _uriParams[_names[p]];
-    if (data.length > 0 && data[0].isNotEmpty) {
+    if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return int.parse(data[0]);
     }
     return _defaults[p];
@@ -32,7 +32,7 @@ class ConfigParams {
 
   List<String> getStringList(ConfigParam p) {
     List<String> data = _uriParams[_names[p]];
-    if (data.length > 0 && data[0].isNotEmpty) {
+    if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return data;
     }
     return _defaults[p];

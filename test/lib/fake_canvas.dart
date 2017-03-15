@@ -110,7 +110,12 @@ class FakeImageFactory extends DynamicFactory {
   }
 
   void completeAllImages() {
-    createdImages.forEach((image) => image.onLoad._completer.complete(0));
+    createdImages.forEach((image) {
+      if (!image.onLoad._completer.isCompleted) {
+        image.onLoad._completer.complete(0);
+        print("Completed fake image ${image.src}");
+      }
+    });
   }
 }
 

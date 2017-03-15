@@ -180,6 +180,12 @@ class Network {
     return bestFpsKey;
   }
 
+  void resetGameConnections() {
+    for (ConnectionWrapper connection in safeActiveConnections().values) {
+      connection.resetHandshakeReceived();
+    }
+  }
+
   /**
    * Set this peer as the commander.
    */
@@ -363,7 +369,8 @@ class Network {
       }
     } else {
       // Command transfer successful.
-      if (gameState.actingCommanderId == _pendingCommandTransfer) {
+      if (_pendingCommandTransfer != null &&
+          gameState.actingCommanderId == _pendingCommandTransfer) {
         log.info(
             "Succcesfully transfered command to ${gameState.actingCommanderId}");
         _pendingCommandTransfer = null;

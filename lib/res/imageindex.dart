@@ -185,6 +185,10 @@ class ImageIndex {
     return loadedImages[index] == true;
   }
 
+  void clearImageLoader(int index) {
+    loadedImages[index] = false;
+  }
+
   bool imageNameIsLoaded(String name) {
     int id = imageByName[name];
     if (id != null) {

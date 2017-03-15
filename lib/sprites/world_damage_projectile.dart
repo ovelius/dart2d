@@ -45,6 +45,88 @@ class BananaCake extends WorldDamageProjectile {
   }
 }
 
+class Hyper extends WorldDamageProjectile {
+  int _quality = 40;
+
+  Hyper(double x, double y, int imageId, ImageIndex imageIndex)
+      : super(x, y, imageId, imageIndex);
+
+  Hyper.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+      : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
+    this.world = world;
+    this.owner = owner;
+    this.damage = damage;
+    Vec2 ownerCenter = owner.centerPoint();
+    this.size = new Vec2(15.0, 15.0);
+    setRadius(70.0);
+    this.position.x = ownerCenter.x - size.x / 2;
+    this.position.y = ownerCenter.y - size.y / 2;
+    this.velocity.x = cos(owner.angle);
+    // this.angle = owner.angle;
+    this.velocity.y = sin(owner.angle);
+    this.outOfBoundsMovesRemaining = 2;
+    this.velocity = this.velocity.multiply(300.0);
+    this.velocity = owner.velocity + this.velocity;
+    this.spriteType = SpriteType.CUSTOM;
+  }
+
+  draw(var context, bool debug) {
+    super.draw(context, debug);
+    context.translate(-getRadius(), -getRadius());
+    //context.strokeStyle = "#37FDFC";
+    context.strokeStyle = "#A400AF";
+    context.globalCompositeOperation = "lighter";
+    for (var i = 0; i < _quality; i++) {
+      var theta = 2 * PI * WorldDamageProjectile.random.nextDouble();
+      var x = getRadius() + (getRadius() * cos(theta) / 2);
+      var y = getRadius() + (getRadius() * sin(theta) / 2);
+      drawSeed(context, x,y);
+    }
+  }
+
+  drawSeed(var ctx, num x,y) {
+    num fractions = 3;
+    num xM = getRadius();
+    num yM = getRadius();
+    num xStep = (xM - x) / fractions;
+    num yStep = (yM - y) / fractions;
+    for (int i = 0; i < fractions; i++) {
+      num nextX = xStep * WorldDamageProjectile.random.nextDouble();
+      num nextY = yStep * WorldDamageProjectile.random.nextDouble();
+      ctx.globalAlpha = 1.0 - (i / fractions);
+      drawPath(ctx, xM, yM, xM + nextX, yM + nextY);
+      xM += nextX;
+      yM += nextY;
+    }
+  }
+
+  drawPath(var ctx, num startX, startY, num destX, destY) {
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(destX, destY);
+    ctx.stroke();
+  }
+
+  collide(MovingSprite other, ByteWorld world, int direction) {
+    if (networkType == NetworkType.REMOTE) {
+      return;
+    }
+    assert(owner != null);
+    if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
+      other.takeDamage(damage, owner);
+      remove = true;
+    }
+
+    if (world != null && other == null) {
+      remove = true;
+    }
+  }
+
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.HYPER;
+  }
+}
+
 class BrickBuilder extends WorldDamageProjectile {
   static const String COLOR = "#aa3311";
   static const int COLOR_R = 170;
@@ -196,6 +278,7 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   void addExtraNetworkData(List data) {
+    data.add(radius);
     data.add(showCounter);
     if (explodeAfter != null) {
       data.add(explodeAfter.toInt());
@@ -203,9 +286,10 @@ class WorldDamageProjectile extends MovingSprite {
   }
 
   void parseExtraNetworkData(List data, int startAt) {
-    showCounter = data[startAt];
-    if (data.length > startAt + 1) {
-      this.explodeAfter = data[startAt + 1].toDouble();
+    radius = data[startAt];
+    showCounter = data[startAt + 1];
+    if (data.length > startAt + 2) {
+      this.explodeAfter = data[startAt + 2].toDouble();
     }
   }
 

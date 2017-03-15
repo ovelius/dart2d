@@ -100,6 +100,8 @@ class GameState {
   String actingCommanderId = null;
   // True if we have urgent data for the network.
   bool _urgentData = false;
+  // If we have a winner, this will be set.
+  String winnerPlayerId = null;
 
   bool retrieveAndResetUrgentData() {
     bool tUrgentData = _urgentData;
@@ -113,13 +115,20 @@ class GameState {
 
   void reset() {
     actingCommanderId = null;
+    mapName = null;
     _playerInfo = [];
     _playerInfoById = {};
     startedAt = new DateTime.now();
+    winnerPlayerId = null;
+    markAsUrgent();
   }
 
   bool isInGame(String id) {
     return _playerInfoById.containsKey(id);
+  }
+
+  bool hasWinner() {
+    return winnerPlayerId != null;
   }
 
   bool hasCommander() {
@@ -149,8 +158,11 @@ class GameState {
         (ConnectionWrapper connection, Map keyState) {
       PlayerInfo info = playerInfoByConnectionId(connection.id);
       if (info == null) {
-        log.warning(
-            "Received KeyState for Player that doesn't exist? ${connection.id}");
+        if (actingCommanderId != null) {
+          log.warning(
+              "Received KeyState for Player that doesn't exist? ${connection
+                  .id}");
+        }
         return;
       }
       info._remoteKeyState.setEnabledKeys(keyState);
@@ -176,6 +188,7 @@ class GameState {
     _playerInfoById = byId;
     mapName = map["m"];
     actingCommanderId = map["e"];
+    winnerPlayerId = map["w"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
 
@@ -184,6 +197,7 @@ class GameState {
     map["m"] = mapName;
     map["e"] = actingCommanderId;
     map["s"] = startedAt.millisecondsSinceEpoch;
+    map["w"] = winnerPlayerId;
     List<Map> players = [];
     for (PlayerInfo info in _playerInfo) {
       players.add(info.toMap());

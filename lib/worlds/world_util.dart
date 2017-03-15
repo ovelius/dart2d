@@ -86,6 +86,49 @@ void drawPlayerStats(
 
 int _textSize = 40;
 
+void drawWinView(var /*CanvasRenderingContext2D*/ context,
+    WormWorld world,
+    int width, int height,
+    LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
+
+  if (player == null || player.inGame()) {
+    return;
+  }
+  context.setFillColorRgb(0, 0, 0, 0.5);
+  context.fillRect(0, 0, width, height);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex);
+  GameState gameState = world.network().getGameState();
+  PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId);
+  assert (winner != null);
+  LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId];
+  if (killerSprite == null) {
+    return;
+  }
+  var img = imageIndex.getImageById(killerSprite.imageId);
+  context.font = "${_textSize}px Arial";
+  String text = "${winner.name} you're winner!";
+  var metrics = context.measureText(text);
+
+  context.setFillColorRgb(255, 255, 255, 0.5);
+  double messageLength =  metrics.width + killerSprite.size.x;
+  if (messageLength > width) {
+    // OOps we are larger than screen. Reduce text size for next frame.
+    _textSize -= 2;
+  }
+  double x = width / 2 - messageLength / 2;
+  double y = height / 3;
+  context.fillText(text, x, y);
+
+  double frameWidth = (img.width / killerSprite.frames);
+  context.drawImageScaledFromSource(
+      img,
+      0, 0,
+      frameWidth, img.height,
+      x + metrics.width,  y - killerSprite.size.y - _textSize / 2,
+      killerSprite.size.x * 2, killerSprite.size.y * 2);
+
+}
+
 void drawKilledView(var /*CanvasRenderingContext2D*/ context,
     WormWorld world,
     int width, int height,

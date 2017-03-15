@@ -125,7 +125,9 @@ class PlayerWorldSelector {
       for (List existingSelection in _otherPlayersSelections) {
         existingSelection.remove(playerName);
       }
-      _otherPlayersSelections[selectedIndex].add(playerName);
+      if (_otherPlayersSelections.length > selectedIndex) {
+        _otherPlayersSelections[selectedIndex].add(playerName);
+      }
     });
     // TODO Always remove, change this behavior.
     _localStorage.remove('playerSprite');
@@ -160,6 +162,11 @@ class PlayerWorldSelector {
   bool worldSelectedAndLoaded() {
     return _selectedWorldName != null &&
         _imageIndex.imageNameIsLoaded(_selectedWorldName);
+  }
+
+  void reset() {
+    _localStorage.remove("playerSprite");
+    _selectedWorldName = null;
   }
 
   bool playerSelected() {

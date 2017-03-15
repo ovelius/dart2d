@@ -100,6 +100,15 @@ class WorldListener {
       connection.close(null);
       return;
     }
+    if (_gameState.hasWinner()) {
+      connection.sendData({
+        SERVER_PLAYER_REJECT: 'Game already completed',
+        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
+        IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+      // Mark as closed.
+      connection.close(null);
+      return;
+    }
     // Consider the client CLIENT_PLAYER_SPEC as the client having seen
     // the latest keyframe.
     // It will anyway get the keyframe from our response.

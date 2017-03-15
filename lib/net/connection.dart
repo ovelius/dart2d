@@ -171,6 +171,10 @@ class ConnectionWrapper {
     _handshakeReceived = true;
   }
 
+  void resetHandshakeReceived() {
+    _handshakeReceived = false;
+  }
+
   /**
    * Client to client connections to not need to shake hands :)
    * Server knows about both clients anyway.
@@ -365,7 +369,10 @@ class ConnectionWrapper {
   }
 
   void sampleLatency(Duration latency) {
-    assert(latency.inMilliseconds >= 0);
+    if (latency.inMilliseconds < 0) {
+      log.warning("None positive latency of $latency ignored");
+      return;
+    }
     this._latency = latency;
   }
 

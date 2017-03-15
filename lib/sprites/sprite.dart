@@ -154,10 +154,7 @@ class Sprite {
           size.x, size.y);
     } else if (spriteType == SpriteType.RECT) {
       drawRect(context);
-    } else {
-      print("Warning: Can't handle sprite type $spriteType");
     }
-
   }
   
   setColor(var context) {

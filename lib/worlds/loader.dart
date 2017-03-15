@@ -91,6 +91,12 @@ class Loader {
     }
   }
 
+  void resetToPlayerSelect() {
+    _currentState = LoaderState.PLAYER_SELECT;
+    _playerWorldSelector.reset();
+    _completed = false;
+  }
+
   void _advanceStage(double duration) {
     if (!_peerWrapper.connectedToServer()) {
       if (_peerWrapper.getLastError() != null) {

@@ -196,6 +196,8 @@ class WormWorld extends World {
 
   bool loaderCompleted() => loader.completed();
 
+  double _winTime = 10.0;
+
   void frameDraw([double duration = 0.01, bool slowDown = false]) {
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {
@@ -291,7 +293,20 @@ class WormWorld extends World {
       controlHelperTime -= duration;
     }
 
-    drawKilledView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
+    if (network().getGameState().hasWinner()) {
+      drawWinView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
+      _winTime -= duration;
+      if (_winTime < 0) {
+        spriteIndex.clear();
+        _winTime = 10.0;
+        network().getGameState().reset();
+        network().resetGameConnections();
+        _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
+        loader.resetToPlayerSelect();
+      }
+    } else {
+      drawKilledView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
+    }
 
     spriteIndex.removePending();
 
@@ -311,7 +326,17 @@ class WormWorld extends World {
 
     _canvas.restore();
 
+  }
 
+  void checkWinner(PlayerInfo info) {
+    int max = _configParams.getInt(ConfigParam.MAX_FRAGS);
+    if (info.score >= max) {
+      _network.getGameState().winnerPlayerId = info.connectionId;
+      for (PlayerInfo info in _network.getGameState().playerInfoList()) {
+        info.inGame = false;
+      }
+      _gaReporter.reportEvent("game_over");
+    }
   }
 
   void _checkDormantPlayer() {
@@ -319,7 +344,7 @@ class WormWorld extends World {
       Duration lastMobileInput = _mobileControls.lastUserInput();
       Duration lastInput = localKeyState.lastUserInput();
       if (lastMobileInput > RELOAD_TIMEOUT && lastInput > RELOAD_TIMEOUT) {
-        _gaReporter..reportEvent("dormant_player_reload");
+        _gaReporter.reportEvent("dormant_player_reload");
         _reloadFactory.create([]);
       }
     }

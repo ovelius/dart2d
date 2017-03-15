@@ -262,7 +262,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (!world.network().isCommander()) {
       return false;
     }
-    if (info != null && !inGame()) {
+    if (info != null && !inGame() && !world.network().getGameState().hasWinner()) {
       spawnIn -= duration;
       if (spawnIn < 0) {
         velocity = new Vec2();
@@ -518,6 +518,7 @@ class LocalPlayerSprite extends MovingSprite {
         if (_killer != null && _killer != info) {
           _killer.score++;
           world.gaReporter().reportEvent("player_frags", "Frags");
+          world.checkWinner(killer);
         }
         spawnIn = RESPAWN_TIME;
         _deathMessage();
