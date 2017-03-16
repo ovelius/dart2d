@@ -121,7 +121,7 @@ singleTonStoredValue(var a, var b) {
   return a == null ? b : a;
 }
 
-Set<SpriteType> _colorSpriteTypes = new Set.from([SpriteType.RECT, SpriteType.CIRCLE]);
+Set<SpriteType> _colorSpriteTypes = new Set.from([SpriteType.RECT, SpriteType.CIRCLE, SpriteType.CUSTOM]);
 
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {

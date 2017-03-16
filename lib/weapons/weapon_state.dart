@@ -163,13 +163,13 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     // TODO enable this weapon.
-    /* new Weapon("Blaster", 40, 2.5, 0.15, (WeaponState weaponState) {
+    new Weapon("Neon Blaster", 30, 2.5, 0.25, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.gun, 20);
       sprite.radius = 15.0;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;
       weaponState.world.addSprite(sprite);
-    }), */
+    }),
   ];
   
   nextWeapon() {

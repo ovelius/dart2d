@@ -56,9 +56,9 @@ class Hyper extends WorldDamageProjectile {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
+    this.color = "#A400AF";
     Vec2 ownerCenter = owner.centerPoint();
-    this.size = new Vec2(15.0, 15.0);
-    setRadius(70.0);
+    this.size = new Vec2(17.0, 17.0);
     this.position.x = ownerCenter.x - size.x / 2;
     this.position.y = ownerCenter.y - size.y / 2;
     this.velocity.x = cos(owner.angle);
@@ -72,22 +72,23 @@ class Hyper extends WorldDamageProjectile {
 
   draw(var context, bool debug) {
     super.draw(context, debug);
-    context.translate(-getRadius(), -getRadius());
-    //context.strokeStyle = "#37FDFC";
-    context.strokeStyle = "#A400AF";
+    double r = getRadius() * 4;
+    context.translate(-r, -r);
+    context.strokeStyle = this.color;
     context.globalCompositeOperation = "lighter";
+    context.lineWidth = 2;
     for (var i = 0; i < _quality; i++) {
       var theta = 2 * PI * WorldDamageProjectile.random.nextDouble();
-      var x = getRadius() + (getRadius() * cos(theta) / 2);
-      var y = getRadius() + (getRadius() * sin(theta) / 2);
-      drawSeed(context, x,y);
+      var x = r + (r * cos(theta) / 2);
+      var y = r + (r * sin(theta) / 2);
+      drawSeed(context, x, y, r);
     }
   }
 
-  drawSeed(var ctx, num x,y) {
+  drawSeed(var ctx, num x,y,r) {
     num fractions = 3;
-    num xM = getRadius();
-    num yM = getRadius();
+    num xM = r;
+    num yM = r;
     num xStep = (xM - x) / fractions;
     num yStep = (yM - y) / fractions;
     for (int i = 0; i < fractions; i++) {
