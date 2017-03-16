@@ -47,6 +47,45 @@ void main() {
       expect(sprite.drawCalls, equals(2));
       expect(sprite.frameCalls, equals(3));
     });
+
+    test('TestVelcityAndDamageFromExplosion', () {
+      WormWorld worldA = testWorld("a");
+      worldA.viewPoint = new Vec2();
+      worldA.startAsServer("a");
+      worldA.frameDraw();
+      LocalPlayerSprite player = worldA.spriteIndex[playerId(0)];
+      player.position = new Vec2();
+      player.velocity = new Vec2();
+
+      // 10 damage at 0 distance.
+      int damageDone = 10;
+      worldA.explosionAt(
+          player.centerPoint(), null, damageDone, 10.0, null, false);
+
+      expect(player.velocity.x, equals(0));
+      expect(player.velocity.y, equals(0));
+      expect(player.health, equals(LocalPlayerSprite.MAX_HEALTH - damageDone));
+
+      // 10 damage at 20 distance to the left.
+      worldA.explosionAt(
+          player.centerPoint() + new Vec2(-40.0, 0), null, damageDone, 50.0, null, false);
+
+      // Momentum to the right.
+      expect(player.velocity.x, equals(120.0));
+      expect(player.velocity.y, equals(0));
+      expect(player.health, equals(
+          LocalPlayerSprite.MAX_HEALTH - damageDone - 3));
+
+      player.velocity = new Vec2();
+      // 10 damage at 20 distance to the left.
+      worldA.explosionAt(
+          player.centerPoint() + new Vec2(30.0, 30.0), null, damageDone, 50.0, null, false);
+      // Momentum up to the left.
+      expect(player.velocity.x.toInt(), equals(-60));
+      expect(player.velocity.y.toInt(), equals(-60));
+      expect(player.health, equals(
+          LocalPlayerSprite.MAX_HEALTH - damageDone - 5));
+    });
   });
 }
 

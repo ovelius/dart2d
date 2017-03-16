@@ -432,7 +432,7 @@ class WormWorld extends World {
     int height = img.height;
     int width = PlayerWorldSelector.playerSpriteWidth(spriteName);
     double ratio = height / width;
-    playerSprite.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE;
+    playerSprite.size = new Vec2.copy(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
     playerSprite.setImage(playerSpriteId, width);
     playerSprite.size.y *= ratio;
   }
@@ -578,7 +578,7 @@ class WormWorld extends World {
     for (int networkId in spriteIndex.spriteIds()) {
       Sprite sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
-        int damageTaken = velocityForSingleSprite(sprite, location, radius, damage).toInt();
+        int damageTaken = velocityForSingleSprite(sprite, location, radius, damage);
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
           sprite.takeDamage(damageTaken.toInt(), damageDoer);
           if (sprite == this.playerSprite) {
