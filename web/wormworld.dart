@@ -12,6 +12,7 @@ import 'package:di/di.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:html';
+import 'dart:convert';
 import 'dart:async';
 
 const bool USE_LOCAL_HOST_PEER = false;
@@ -19,8 +20,29 @@ const Duration TIMEOUT = const Duration(milliseconds: 21);
 
 DateTime lastStep;
 WormWorld world;
+List iceServers = [{'url': 'stun:stun.l.google.com:19302'}];
 
 void main() {
+  String url = "<URL for ICE config>";
+  HttpRequest request = new HttpRequest();
+  request.open("POST", url, async: true);
+  request.onReadyStateChange.listen((_) {
+    if (request.readyState == HttpRequest.DONE) {
+      if (request.status == 200 || request.status == 0) {
+        iceServers = JSON.decode(request.responseText)["iceServers"];
+        print("Fetched ICE config from HTTP");
+        init();
+      } else {
+        print("Failure loading ICE config HTTP ${request.status} ${request
+            .responseText}");
+        init();
+      }
+    }
+  });
+  request.send("{}");
+}
+
+void init() {
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
   canvasElement.width = min(canvasElement.width, max(window.screen.width, window.screen.height));
@@ -201,9 +223,7 @@ createPeerJs() {
       'debug': 7,
       'config': {
         // TODO: Use list of public ICE servers instead.
-        'iceServers': [
-          {'url': 'stun:stun.l.google.com:19302'}
-        ]
+        'iceServers': iceServers
       }
     })
   ]);
@@ -218,9 +238,7 @@ createLocalHostPeerJs() {
       'debug': 7,
       'config': {
         // TODO: Use list of public ICE servers instead.
-        'iceServers': [
-          {'url': 'stun:stun.l.google.com:19302'}
-        ]
+        'iceServers': iceServers
       }
     })
   ]);
