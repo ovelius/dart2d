@@ -329,7 +329,6 @@ var util = {
     var audioVideo = true;
 
     var binaryBlob = false;
-    var sctp = false;
     var onnegotiationneeded = !!window.webkitRTCPeerConnection;
 
     var pc, dc;
@@ -339,7 +338,6 @@ var util = {
       data = false;
       audioVideo = false;
     }
-    sctp = true;
     binaryBlob = true;
 
     // FIXME: this is not great because in theory it doesn't work for
@@ -352,9 +350,7 @@ var util = {
       audioVideo: audioVideo,
       data: data,
       binaryBlob: binaryBlob,
-      binary: sctp, // deprecated; sctp implies binary support.
-      reliable: sctp, // deprecated; sctp implies reliable data.
-      sctp: sctp,
+      sctp: true,
       onnegotiationneeded: onnegotiationneeded
     };
   }()),

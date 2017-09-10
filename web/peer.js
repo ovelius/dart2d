@@ -150,6 +150,7 @@ Peer.prototype._handleMessage = function(message) {
       } else {
         // Create a new connection.
         if (payload.type === 'media') {
+          throw new Error('Media not supported here!');
           var connection = new MediaConnection(peer, this, {
             connectionId: connectionId,
             _payload: payload,
@@ -428,9 +429,6 @@ function DataConnection(peer, provider, options) {
   this._buffering = false;
   this.bufferSize = 0;
 
-  // For storing large data.
-  this._chunkedData = {};
-
   if (this.options._payload) {
     this._peerBrowser = this.options._payload.browser;
   }
@@ -455,18 +453,11 @@ DataConnection.prototype.initialize = function(dc) {
 
 DataConnection.prototype._configureDataChannel = function() {
   var self = this;
-  if (util.supports.sctp) {
-    this._dc.binaryType = 'arraybuffer';
-  }
+  this._dc.binaryType = 'arraybuffer';
   this._dc.onopen = function() {
     util.log('Data channel connection success');
     self.open = true;
     self.emit('open');
-  }
-
-  // Use the Reliable shim for non Firefox browsers
-  if (!util.supports.sctp && this.reliable) {
-    throw new Error("Not supported!");
   }
 
   if (this._reliable) {
@@ -596,11 +587,6 @@ Negotiator._idPrefix = 'pc_';
 Negotiator.startConnection = function(connection, options) {
   var pc = Negotiator._getPeerConnection(connection, options);
 
-  if (connection.type === 'media' && options._stream) {
-    // Add the stream.
-    pc.addStream(options._stream);
-  }
-
   // Set the connection's PC.
   connection.pc = connection.peerConnection = pc;
   // What do we need to do now?
@@ -608,10 +594,6 @@ Negotiator.startConnection = function(connection, options) {
     if (connection.type === 'data') {
       // Create the datachannel.
       var config = {};
-      // Fallback to ensure older browsers don't crash.
-      if (!util.supports.sctp) {
-        config = {reliable: options.reliable};
-      }
       var dc = pc.createDataChannel(connection.label, config);
       connection.initialize(dc);
     }
@@ -651,13 +633,6 @@ Negotiator._startPeerConnection = function(connection) {
 
   var id = Negotiator._idPrefix + util.randomToken();
   var optional = {};
-
-  if (connection.type === 'data' && !util.supports.sctp) {
-    optional = {optional: [{RtpDataChannels: true}]};
-  } else if (connection.type === 'media') {
-    // Interop req for chrome.
-    optional = {optional: [{DtlsSrtpKeyAgreement: true}]};
-  }
 
   var pc = new RTCPeerConnection(connection.provider.options.config, optional);
   Negotiator.pcs[connection.type][connection.peer][id] = pc;
@@ -727,14 +702,6 @@ Negotiator._setupListeners = function(connection, pc, pc_id) {
     var connection = provider.getConnection(peerId, connectionId);
     connection.initialize(dc);
   };
-
-  // MEDIACONNECTION.
-  util.log('Listening for remote stream');
-  pc.onaddstream = function(evt) {
-    util.log('Received remote stream');
-    var stream = evt.stream;
-    provider.getConnection(peerId, connectionId).addStream(stream);
-  };
 }
 
 Negotiator.cleanup = function(connection) {
@@ -752,10 +719,6 @@ Negotiator._makeOffer = function(connection) {
   var pc = connection.pc;
   pc.createOffer(function(offer) {
     util.log('Created offer.');
-
-    if (!util.supports.sctp && connection.type === 'data' && connection.reliable) {
-      offer.sdp = Reliable.higherBandwidthSDP(offer.sdp);
-    }
 
     pc.setLocalDescription(offer, function() {
       util.log('Set localDescription: offer', 'for:', connection.peer);
@@ -788,10 +751,6 @@ Negotiator._makeAnswer = function(connection) {
 
   pc.createAnswer(function(answer) {
     util.log('Created answer.');
-
-    if (!util.supports.sctp && connection.type === 'data' && connection.reliable) {
-      answer.sdp = Reliable.higherBandwidthSDP(answer.sdp);
-    }
 
     pc.setLocalDescription(answer, function() {
       util.log('Set localDescription: answer', 'for:', connection.peer);
@@ -884,13 +843,8 @@ Socket.prototype._startWebSocket = function(id) {
   this._socket = new WebSocket(this._wsUrl);
 
   this._socket.onmessage = function(event) {
-    try {
-      var data = JSON.parse(event.data);
-      self.emit('message', data);
-    } catch(e) {
-      util.log('Invalid server message', event.data);
-      return;
-    }
+    var data = JSON.parse(event.data);
+    self.emit('message', data);
   };
 
   this._socket.onclose = function(event) {
