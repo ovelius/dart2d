@@ -1,22 +1,3 @@
-
-var binaryFeatures = {};
-binaryFeatures.useBlobBuilder = (function(){
-  try {
-    new Blob([]);
-    return false;
-  } catch (e) {
-    return true;
-  }
-})();
-
-binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-  try {
-    return (new Blob([new Uint8Array([])])).size === 0;
-  } catch (e) {
-    return true;
-  }
-})();
-
 BlobBuilder = window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
 
 /**
@@ -366,6 +347,5 @@ var util = {
   randomToken: function () {
     return Math.random().toString(36).substr(2);
   },
-  //
 };
 

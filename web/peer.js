@@ -143,17 +143,7 @@ Peer.prototype._handleMessage = function(message) {
         util.warn('Offer received for existing Connection ID:', connectionId);
         //connection.handleMessage(message);
       } else {
-        // Create a new connection.
-        if (payload.type === 'media') {
-          throw new Error('Media not supported here!');
-          var connection = new MediaConnection(peer, this, {
-            connectionId: connectionId,
-            _payload: payload,
-            metadata: payload.metadata
-          });
-          this._addConnection(peer, connection);
-          this.emit('call', connection);
-        } else if (payload.type === 'data') {
+        if (payload.type === 'data') {
           connection = new DataConnection(peer, this, {
             connectionId: connectionId,
             _payload: payload,
@@ -241,29 +231,6 @@ Peer.prototype.connect = function(peer, options) {
 */
 Peer.prototype.sendToServer = function(data) {
   this.socket.send(data);
-}
-
-/**
- * Returns a MediaConnection to the specified peer. See documentation for a
- * complete list of options.
- */
-Peer.prototype.call = function(peer, stream, options) {
-  if (this.disconnected) {
-    util.warn('You cannot connect to a new Peer because you called '
-        + '.disconnect() on this Peer and ended your connection with the'
-        + ' server. You can create a new Peer to reconnect.');
-    this.emitError('disconnected', 'Cannot connect to new Peer after disconnecting from server.');
-    return;
-  }
-  if (!stream) {
-    util.error('To call a peer, you must provide a stream from your browser\'s `getUserMedia`.');
-    return;
-  }
-  options = options || {};
-  options._stream = stream;
-  var call = new MediaConnection(peer, this, options);
-  this._addConnection(peer, call);
-  return call;
 }
 
 /** Add a data/media connection to this peer. */
