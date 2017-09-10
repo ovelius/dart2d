@@ -19,63 +19,6 @@ binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(
 
 BlobBuilder = window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
 
-function BufferBuilder(){
-  this._pieces = [];
-  this._parts = [];
-}
-
-BufferBuilder.prototype.append = function(data) {
-  if(typeof data === 'number') {
-    this._pieces.push(data);
-  } else {
-    this.flush();
-    this._parts.push(data);
-  }
-};
-
-BufferBuilder.prototype.flush = function() {
-  if (this._pieces.length > 0) {
-    var buf = new Uint8Array(this._pieces);
-    if(!binaryFeatures.useArrayBufferView) {
-      buf = buf.buffer;
-    }
-    this._parts.push(buf);
-    this._pieces = [];
-  }
-};
-
-BufferBuilder.prototype.getBuffer = function() {
-  this.flush();
-  if(binaryFeatures.useBlobBuilder) {
-    var builder = new BlobBuilder();
-    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-      builder.append(this._parts[i]);
-    }
-    return builder.getBlob();
-  } else {
-    return new Blob(this._parts);
-  }
-};
-
-function _utf8Replace(m){
-  var code = m.charCodeAt(0);
-
-  if(code <= 0x7ff) return '00';
-  if(code <= 0xffff) return '000';
-  if(code <= 0x1fffff) return '0000';
-  if(code <= 0x3ffffff) return '00000';
-  return '000000';
-}
-
-function utf8Length(str){
-  if (str.length > 600) {
-    // Blob method faster for large strings
-    return (new Blob([str])).size;
-  } else {
-    return str.replace(/[^\u0000-\u007F]/g, _utf8Replace).length;
-  }
-}
-
 /**
  * Light EventEmitter. Ported from Node.js/events.js
  * Eric Zhang
