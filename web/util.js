@@ -339,59 +339,11 @@ var util = {
       data = false;
       audioVideo = false;
     }
-
-    if (data) {
-      try {
-        dc = pc.createDataChannel('_PEERJSTEST');
-      } catch (e) {
-        data = false;
-      }
-    }
-
-    if (data) {
-      // Binary test
-      try {
-        dc.binaryType = 'blob';
-        binaryBlob = true;
-      } catch (e) {
-      }
-
-      // Reliable test.
-      // Unfortunately Chrome is a bit unreliable about whether or not they
-      // support reliable.
-      var reliablePC = new RTCPeerConnection(defaultConfig, {});
-      try {
-        var reliableDC = reliablePC.createDataChannel('_PEERJSRELIABLETEST', {});
-        sctp = reliableDC.reliable;
-      } catch (e) {
-      }
-      reliablePC.close();
-    }
-
-    // FIXME: not really the best check...
-    if (audioVideo) {
-      audioVideo = !!pc.addStream;
-    }
+    sctp = true;
+    binaryBlob = true;
 
     // FIXME: this is not great because in theory it doesn't work for
     // av-only browsers (?).
-    if (!onnegotiationneeded && data) {
-      // sync default check.
-      var negotiationPC = new RTCPeerConnection(defaultConfig, {optional: [{RtpDataChannels: true}]});
-      negotiationPC.onnegotiationneeded = function() {
-        onnegotiationneeded = true;
-        // async check.
-        if (util && util.supports) {
-          util.supports.onnegotiationneeded = true;
-        }
-      };
-      var negotiationDC = negotiationPC.createDataChannel('_PEERJSNEGOTIATIONTEST');
-
-      setTimeout(function() {
-        negotiationPC.close();
-      }, 1000);
-    }
-
     if (pc) {
       pc.close();
     }
@@ -473,22 +425,6 @@ var util = {
     return setZeroTimeoutPostMessage;
   }(this)),
 
-  // Binary stuff
-
-  blobToArrayBuffer: function(blob, cb){
-    var fr = new FileReader();
-    fr.onload = function(evt) {
-      cb(evt.target.result);
-    };
-    fr.readAsArrayBuffer(blob);
-  },
-  blobToBinaryString: function(blob, cb){
-    var fr = new FileReader();
-    fr.onload = function(evt) {
-      cb(evt.target.result);
-    };
-    fr.readAsBinaryString(blob);
-  },
   binaryStringToArrayBuffer: function(binary) {
     var byteArray = new Uint8Array(binary.length);
     for (var i = 0; i < binary.length; i++) {
