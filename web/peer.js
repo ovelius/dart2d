@@ -20,8 +20,8 @@ function Peer(id, options) {
   // Configurize options
   options = util.extend({
     debug: 0, // 1: Errors, 2: Warnings, 3: All logs
-    host: util.CLOUD_HOST,
-    port: util.CLOUD_PORT,
+    host: '',
+    port: 900,
     key: 'peerjs',
     path: '/',
     token: util.randomToken(),
@@ -40,10 +40,7 @@ function Peer(id, options) {
     options.path += '/';
   }
 
-  // Set whether we use SSL to same as current host
-  if (options.secure === undefined && options.host !== util.CLOUD_HOST) {
-    options.secure = util.isSecure();
-  }
+  options.secure = false;
   // Set a custom log function if present
   if (options.logFunction) {
     util.setLogFunction(options.logFunction);

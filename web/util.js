@@ -186,14 +186,6 @@ var dataCount = 1;
 
 var util = {
   noop: function() {},
-
-  CLOUD_HOST: '0.peerjs.com',
-  CLOUD_PORT: 9000,
-
-  // Browsers that need chunking:
-  // chunkedBrowsers: {'Chrome': 1},
-  chunkedMTU: 16300, // The original 60000 bytes setting does not work when sending data from Firefox to Chrome, which is "cut off" after 16384 bytes and delivered individually.
-
   // Logging logic
   logLevel: 0,
   setLogLevel: function(level) {
@@ -375,9 +367,5 @@ var util = {
     return Math.random().toString(36).substr(2);
   },
   //
-
-  isSecure: function() {
-    return location.protocol === 'https:';
-  }
 };
 
