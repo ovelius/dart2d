@@ -39,8 +39,6 @@ function Peer(id, options) {
   if (options.path[options.path.length - 1] !== '/') {
     options.path += '/';
   }
-
-  options.secure = false;
   // Set a custom log function if present
   if (options.logFunction) {
     util.setLogFunction(options.logFunction);
@@ -75,7 +73,7 @@ util.inherits(Peer, EventEmitter);
 // websockets.)
 Peer.prototype._initializeServerConnection = function() {
   var self = this;
-  this.socket = new Socket(this.options.secure, this.options.host, this.options.port, this.options.path, this.options.key);
+  this.socket = new Socket(this.options.host, this.options.port, this.options.path, this.options.key);
   this.socket.on('message', function(data) {
     self._handleMessage(data);
   });
@@ -803,16 +801,13 @@ Negotiator.handleCandidate = function(connection, ice) {
  * An abstraction on top of WebSockets and XHR streaming to provide fastest
  * possible connection for peers.
  */
-function Socket(secure, host, port, path, key) {
-  if (!(this instanceof Socket)) return new Socket(secure, host, port, path, key);
+function Socket(host, port, path, key) {
+  if (!(this instanceof Socket)) return new Socket(host, port, path, key);
 
   EventEmitter.call(this);
-
   // Disconnected manually.
   this.disconnected = false;
-
-  var wsProtocol = secure ? 'wss://' : 'ws://';
-  this._wsUrl = wsProtocol + host + ':' + port + path + 'peerjs?key=' + key;
+  this._wsUrl = 'ws://' + host + ':' + port + path + 'peerjs?key=' + key;
 }
 
 util.inherits(Socket, EventEmitter);
