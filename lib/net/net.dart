@@ -5,6 +5,7 @@ import "net.dart";
 
 export 'network.dart';
 export 'peer.dart';
+export 'signal.dart';
 export 'connection.dart';
 export 'state_updates.dart';
 export 'chunk_helper.dart';
@@ -13,6 +14,7 @@ class NetModule extends Module {
  NetModule() {
    bind(Network);
    bind(ChunkHelper);
+   bind(Signal);
    bind(PacketListenerBindings);
  }
 }

@@ -521,19 +521,19 @@ class LocalPlayerSprite extends MovingSprite {
           world.checkWinner(killer);
         }
         spawnIn = RESPAWN_TIME;
-        _deathMessage();
+        _deathMessage(Mod.UNKNOWN);
       }
     }
   }
 
-  void _deathMessage() {
+  void _deathMessage(Mod mod) {
     if (_killer != null) {
       if (_killer == info) {
         world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
         world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
-        world.displayHudMessageAndSendToNetwork(
-            "${_killer.name} killed ${info.name}!");
+        String message = killedMessage(info.name, killer.name, mod);
+        world.displayHudMessageAndSendToNetwork(message);
       }
     } else {
       world.displayHudMessageAndSendToNetwork("${info.name} died!");

@@ -3,7 +3,6 @@ library spaceworld;
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'dart:math';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -15,15 +14,19 @@ import 'dart:html';
 import 'dart:convert';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = false;
+const bool USE_LOCAL_HOST_PEER = true;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
+final Logger log = new Logger('Connection');
 
 DateTime lastStep;
 WormWorld world;
-List iceServers = [{'url': 'stun:stun.l.google.com:19302'}];
+List iceServers = [ /*{'url': 'stun:stun.l.google.com:19302'} */];
 
 void main() {
-  String url = "<URL for ICE config>";
+  init();
+  // Logger.root.level = Level.ALL;
+  return;
+  String url = "something";
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
   request.onReadyStateChange.listen((_) {
@@ -48,8 +51,6 @@ void init() {
   canvasElement.width = min(canvasElement.width, max(window.screen.width, window.screen.height));
   canvasElement.height = min(canvasElement.height, min(window.screen.width, window.screen.height));
 
-  var peer = USE_LOCAL_HOST_PEER ? createLocalHostPeerJs() : createPeerJs();
-
   var injector = new ModuleInjector([
     new Module()
       ..bind(int,
@@ -65,7 +66,6 @@ void init() {
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: canvasElement)
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
-      ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..install(new HtmlDomBindingsModule())
       ..install(new UtilModule())
       ..install(new NetModule())
@@ -146,10 +146,194 @@ void setKeyListeners(WormWorld world, var canvasElement) {
   canvasElement.addEventListener("keyup", world.localKeyState.onKeyUp);
 }
 
+class WebSocketServerChannel extends ServerChannel {
+  WebSocket _socket;
+  bool _ready;
+
+  WebSocketServerChannel() {
+    _socket = new WebSocket(_socketUrl());
+    _socket.onOpen.listen((_) => _ready = true);
+    _socket.onClose.listen((_) => _ready = false);
+  }
+
+  sendData(Map<dynamic, dynamic> data) {
+    if (!_ready) {
+      throw new StateError("Socket not read! State is ${_socket.readyState}");
+    }
+    _socket.send(JSON.encoder.convert(data));
+  }
+
+  setInstance(WebSocket socket) {
+    _socket = socket;
+  }
+
+  Stream<dynamic> dataStream() {
+    return _socket.onMessage.map((MessageEvent e) => JSON.decode(e.data));
+  }
+
+  void disconnect() {
+    _socket.close();
+  }
+
+  void reconnect(String id) {
+    if (_socket.readyState == 1) {
+     throw new StateError("Socket still open!");
+    }
+    _socket = new WebSocket(_socketUrl(id));
+    _socket.onOpen.listen((_) => _ready = true);
+    _socket.onClose.listen((_) => _ready = false);
+  }
+
+  String _socketUrl([String id = null]) {
+    if (id != null) {
+      return USE_LOCAL_HOST_PEER ? 'ws://127.0.0.1:8089/peerjs?id=$id' : 'ws://anka.locutus.se:8089/peerjs?id=$id';
+    } else {
+      return USE_LOCAL_HOST_PEER ? 'ws://127.0.0.1:8089/peerjs' : 'ws://anka.locutus.se:8089/peerjs';
+    }
+  }
+
+  bool ready() => _ready;
+}
+
+/**
+ * This is where the WebRTC magic happens.
+ */
+@Injectable()
+class RtcConnectionFactory extends ConnectionFactory {
+
+  /**
+   * Try to connect to a remote peer.
+   */
+  connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
+    Map config =  {'iceServers': iceServers};
+    String connectionId = "${ourPeerId}->${otherPeerId}";
+    RtcPeerConnection connection = new RtcPeerConnection(config);
+    _listenForAndSendIceCandidatesToPeer(connection, otherPeerId, connectionId);
+    _addConnectionListeners(wrapper, connection);
+    RtcDataChannel channel = connection.createDataChannel('dart2d');
+    wrapper.readyDataChannel(channel);
+    wrapper.setRtcConnection(connection);
+    channel.onMessage.listen((MessageEvent e) {
+      wrapper.receiveData(e.data);
+    });
+    connection.createOffer().then((RtcSessionDescription desc) {
+      connection.setLocalDescription(desc).then((_) {
+        _serverChannel.sendData({
+          'type': 'OFFER',
+          'payload': {
+            'sdp': { 'sdp': desc.sdp, 'type': desc.type },
+            'type': 'data',
+            'label': 'dart2d',
+            'connectionId': connectionId,
+            'reliable': 'false',
+            'serialization': 'none',
+          },
+          'dst': otherPeerId});
+      });
+    });
+    return connection;
+  }
+
+  /**
+   * Someone sent us an offer and wants to connect.
+   */
+  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
+      String otherPeerId,  String ourPeerId, String connectionId) {
+    Map config =  {'iceServers': iceServers};
+    // Create a local peer object.
+    RtcPeerConnection connection = new RtcPeerConnection(config);
+    wrapper.setRtcConnection(connection);
+    // Make sure ICE candidates are sent to our remote peer.
+    _listenForAndSendIceCandidatesToPeer(connection, otherPeerId, connectionId);
+    _addConnectionListeners(wrapper, connection);
+    // We expect there to be a datachannel available here eventually.
+    connection.onDataChannel.listen((RtcDataChannelEvent e) {
+      wrapper.readyDataChannel(e.channel);
+      wrapper.setRtcConnection(connection);
+      e.channel.onMessage.listen((MessageEvent e) {
+        wrapper.receiveData(e.data);
+      });
+    });
+    // Set our local peers remote description, what type of data thus the other
+    // peer want us to receive?
+    connection.setRemoteDescription(new RtcSessionDescription(sdp));
+    return connection;
+  }
+
+  _addConnectionListeners(ConnectionWrapper wrapper, RtcPeerConnection connection) {
+    connection.onIceConnectionStateChange.listen((Event e) {
+      if (connection.iceConnectionState == "connected") {
+        wrapper.open();
+      } else if (connection.iceConnectionState == 'closed') {
+        wrapper.close();
+      } else  if (connection.iceConnectionState == 'failed'){
+        wrapper.error(e.toString());
+      } else {
+        log.warning("Unhandled ICE connection state ${connection.iceConnectionState}");
+      }
+    });
+  }
+
+  _listenForAndSendIceCandidatesToPeer(
+      RtcPeerConnection connection, String otherPeerId, String connectionId) {
+    connection.onIceCandidate.listen((RtcIceCandidateEvent e) {
+      if (e.candidate == null) {
+        log.warning("Received null ICE candidate :/");
+        return;
+      }
+      _serverChannel.sendData({
+        'type': 'CANDIDATE',
+        'payload': {
+          'candidate': {
+            'candidate': e.candidate.candidate,
+            'sdpMLineIndex':  e.candidate.sdpMLineIndex,
+            'sdpMid': e.candidate.sdpMid,
+          },
+          'type': 'data',
+          'connectionId': connectionId,
+        },
+        'dst': otherPeerId
+      });
+    });
+  }
+
+  handleIceCandidateReceived(RtcPeerConnection connection, dynamic iceCandidate) {
+    assert(connection != null, "Connection is null!");
+    RtcIceCandidate candidate = new RtcIceCandidate(iceCandidate);
+    connection.addIceCandidate(candidate);
+  }
+
+  handleCreateAnswer(RtcPeerConnection connection, String src, String dst, String connectionId) {
+    connection.createAnswer().then((RtcSessionDescription desc) {
+      connection.setLocalDescription(desc).then((_) {
+        _serverChannel.sendData({
+          'type': 'ANSWER',
+          'payload': {
+            'sdp': { 'sdp': desc.sdp, 'type': desc.type },
+            'type': 'data',
+            'connectionId': connectionId,
+            'browser': 'fixme',
+          },
+          'src': dst,
+          'dst': src});
+      });
+    });
+  }
+
+  handleGotAnswer(RtcPeerConnection connection, dynamic sdp) {
+    connection.setRemoteDescription(new RtcSessionDescription(sdp));
+  }
+}
+
+WebSocketServerChannel _serverChannel;
+
 class HtmlDomBindingsModule extends Module {
   HtmlDomBindingsModule() {
-    bind(JsCallbacksWrapper, toImplementation: JsCallbacksWrapperImpl);
     bind(GaReporter, toImplementation:  RealGaReporter);
+    // Initialize server signalling channel.
+    _serverChannel = new WebSocketServerChannel();
+    bind(ServerChannel, toValue: _serverChannel);
+    bind(ConnectionFactory, toImplementation: RtcConnectionFactory);
     bind(DynamicFactory,
         withAnnotation: const ReloadFactory(),
         toValue: new DynamicFactory(
@@ -190,56 +374,4 @@ class RealGaReporter extends GaReporter {
     }
     context.callMethod('ga',  ['send', new JsObject.jsify(data)]);
   }
-}
-
-@Injectable()
-class JsCallbacksWrapperImpl extends JsCallbacksWrapper {
-  void bindOnFunction(var jsObject, String methodName, dynamic callback) {
-    jsObject.callMethod('on',
-        new JsObject.jsify([methodName, new JsFunction.withThis(callback)]));
-  }
-
-  void callJsMethod(var jsObject, String methodName) {
-    jsObject.callMethod(methodName);
-  }
-
-  dynamic connectToPeer(var jsPeer, String id) {
-    var metaData = new JsObject.jsify({
-      'label': 'dart2d',
-      'reliable': 'false',
-      'metadata': {},
-      'serialization': 'none',
-    });
-    return jsPeer.callMethod('connect', [id, metaData]);
-  }
-}
-
-createPeerJs() {
-  return new JsObject(context['Peer'], [
-    new JsObject.jsify({
-      'key': 'peerconfig', // TODO: Change this.
-      'host': 'anka.locutus.se',
-      'port': 8089,
-      'debug': 7,
-      'config': {
-        // TODO: Use list of public ICE servers instead.
-        'iceServers': iceServers
-      }
-    })
-  ]);
-}
-
-createLocalHostPeerJs() {
-  return new JsObject(context['Peer'], [
-    new JsObject.jsify({
-      'key': 'peerconfig', // TODO: Change this.
-      'host': 'localhost',
-      'port': 8089,
-      'debug': 7,
-      'config': {
-        // TODO: Use list of public ICE servers instead.
-        'iceServers': iceServers
-      }
-    })
-  ]);
 }

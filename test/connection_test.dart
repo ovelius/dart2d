@@ -7,7 +7,6 @@ import 'package:mockito/mockito.dart';
 void main() {
   MockNetwork mockNetwork;
   MockHudMessages mockHudMessages;
-  MockJsCallbacksWrapper mockJsCallbacksWrapper;
   PacketListenerBindings packetListenerBindings;
   ConnectionWrapper connection;
   TestConnection testConnection;
@@ -19,12 +18,13 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(new Mock());
     when(mockNetwork.isCommander()).thenReturn(false);
     mockHudMessages = new MockHudMessages();
-    mockJsCallbacksWrapper = new MockJsCallbacksWrapper();
     packetListenerBindings = new PacketListenerBindings();
-    testConnection = new TestConnection("a");
+    testConnection = new TestConnection("a", null);
     testConnection.buffer = true;
     connection = new ConnectionWrapper(mockNetwork, mockHudMessages, "a",
-        testConnection, packetListenerBindings, mockJsCallbacksWrapper);
+        packetListenerBindings);
+    connection.setRtcConnection(testConnection);
+    connection.readyDataChannel(testConnection);
   });
 
   tearDown(() {
@@ -54,7 +54,6 @@ void main() {
 
     expectWarningContaining("Data receipt 123456789");
     connection.receiveData(
-        null,
         JSON.encode({
           KEY_FRAME_KEY: 1,
           DATA_RECEIPTS: [123456789, 743729159]
@@ -116,7 +115,7 @@ void main() {
   test('TestReceiveReliableDataAndSendVerification', () {
     String reliableKey = RELIABLE_KEYS.keys.first;
     packetListenerBindings.bindHandler(reliableKey, (ConnectionWrapper c, Object o) {});
-    connection.receiveData(null, JSON.encode({KEY_FRAME_KEY:0, reliableKey: "test", CONTAINED_DATA_RECEIPTS:[123, 456]}));
+    connection.receiveData(JSON.encode({KEY_FRAME_KEY:0, reliableKey: "test", CONTAINED_DATA_RECEIPTS:[123, 456]}));
 
     List expected = [123, 456];
     expect(connection.reliableDataToVerify, equals(expected));

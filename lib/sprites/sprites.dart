@@ -5,6 +5,7 @@ export 'destructoid.dart';
 export 'movingsprite.dart';
 export 'particles.dart';
 export 'powerup.dart';
+export 'mods.dart';
 export 'rope.dart';
 export 'sprite.dart';
 export 'sprite_index.dart';

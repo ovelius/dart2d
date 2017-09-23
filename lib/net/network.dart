@@ -7,10 +7,10 @@ import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'dart:convert';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/world.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/util/hud_messages.dart';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:di/di.dart';
 import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -27,6 +27,7 @@ class Network {
   HudMessages _hudMessages;
   SpriteIndex _spriteIndex;
   GaReporter _gaReporter;
+  ConnectionFactory _connectionFactory;
   KeyState _localKeyState;
   PeerWrapper peer;
   PacketListenerBindings _packetListenerBindings;
@@ -43,20 +44,20 @@ class Network {
 
   Network(
       this._gaReporter,
+      this._connectionFactory,
       HudMessages hudMessages,
       this.gameState,
       this._packetListenerBindings,
       @ServerFrameCounter() FpsCounter serverFrameCounter,
-      @PeerMarker() Object jsPeer,
-      JsCallbacksWrapper peerWrapperCallbacks,
+      ServerChannel serverChannel,
       SpriteIndex spriteIndex,
       @LocalKeyState() KeyState localKeyState) {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
     this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
-    peer = new PeerWrapper(this, hudMessages, _packetListenerBindings, jsPeer,
-        peerWrapperCallbacks, _gaReporter);
+    peer = new PeerWrapper(
+        _connectionFactory, this, hudMessages, serverChannel, _packetListenerBindings, _gaReporter);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,
@@ -83,7 +84,7 @@ class Network {
         (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
       gameState.reset();
-      connection.close(null);
+      connection.close();
     });
 
     _packetListenerBindings.bindHandler(TRANSFER_COMMAND,
@@ -94,7 +95,7 @@ class Network {
         return;
       }
       // Server wants us to take command.
-      log.info("Coverting self to commander");
+      log.info("Coverting self ${peer.id} to commander");
       this.convertToCommander(this.safeActiveConnections());
       _gaReporter.reportEvent("convert_self_to_commander_on_request", "Commander");
     });
@@ -300,7 +301,7 @@ class Network {
           if (i > 1) break;
           ConnectionWrapper connection = connections[closeAbleNotServer[i]];
           log.info("Closing connection $connection in search for server.");
-          connection.close(null);
+          connection.close();
 
           // Remove right away, so autoConnectToPeers doesn't count this connection.
           // TODO: Should we instead clean connections in autoConnectToPeers?

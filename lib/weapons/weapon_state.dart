@@ -108,7 +108,7 @@ class WeaponState {
       sprite.showCounter = false;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Cofee Burn", 150, 2.0, .05, (WeaponState weaponState) {
+    new Weapon("Coffee Burn", 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
       Vec2 position = weaponState.gun.centerPoint();
       double gunRadius = weaponState.gun.size.sum() / 2;

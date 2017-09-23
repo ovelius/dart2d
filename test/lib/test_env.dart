@@ -1,5 +1,4 @@
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
@@ -22,25 +21,41 @@ setPlayerName(Injector i) {
   PlayerWorldSelector selector = i.get(PlayerWorldSelector);
   WormWorld world = i.get(WormWorld);
   storage['playerName'] =
-      "name${world.network().peer.getId().toString().toUpperCase()}";
+  "name${world.network().peer.getId().toString().toUpperCase()}";
   storage['playerSprite'] = "lion88.png";
   selector.setMapForTest("lion88.png");
 }
 
+setPlayerNameAndSignalOpen(Injector i) {
+  Map storage = i.get(Map, LocalStorage);
+  PlayerWorldSelector selector = i.get(PlayerWorldSelector);
+  WormWorld world = i.get(WormWorld);
+  storage['playerName'] =
+      "name${world.network().peer.getId().toString().toUpperCase()}";
+  storage['playerSprite'] = "lion88.png";
+  selector.setMapForTest("lion88.png");
+  TestServerChannel channel = i.get(TestServerChannel);
+  channel.sendOpenMessage();
+}
+
 Injector createWorldInjector(String id, [bool loadImages = true]) {
-  TestPeer peer = new TestPeer(id);
+  TestServerChannel channel = new TestServerChannel(id);
   FakeCanvas fakeCanvas = new FakeCanvas();
   FakeImageFactory fakeImageFactory = new FakeImageFactory();
+  TestConnectionFactory connectionFactory = new TestConnectionFactory();
   FpsCounter frameCounter = new FpsCounter();
   frameCounter.setFpsForTest(45.0);
   ModuleInjector injector = new ModuleInjector([
     new Module()
       // Test only.
-      ..bind(TestPeer, toValue: peer)
+      ..bind(TestConnectionFactory, toValue: connectionFactory)
       ..bind(GaReporter, toValue: new FakeGaReporter())
+      ..bind(TestServerChannel, toValue: channel)
       ..bind(FakeImageFactory, toValue: fakeImageFactory)
+      ..bind(ConnectionFactory, toValue: connectionFactory)
       ..bind(FakeImageDataFactory, toValue: new FakeImageDataFactory())
       // World bindings.
+      ..bind(ServerChannel, toValue: channel)
       ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
       ..bind(int,
           withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
@@ -54,7 +69,6 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
           toInstanceOf: FakeImageDataFactory)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
-      ..bind(Object, withAnnotation: const PeerMarker(), toValue: peer)
       ..bind(bool, withAnnotation: const TouchControls(), toValue: false)
       ..bind(Map, withAnnotation: const LocalStorage(), toValue: {})
       ..bind(Map, withAnnotation: const UriParameters(), toValue: {})
@@ -73,7 +87,6 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
       ..bind(FpsCounter,
           withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
       ..bind(ImageIndex)
-      ..bind(JsCallbacksWrapper, toImplementation: FakeJsCallbacksWrapper)
       ..bind(SpriteIndex)
   ]);
   if (loadImages) {

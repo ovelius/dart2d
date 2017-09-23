@@ -35,18 +35,18 @@ void main() {
       setPlayerName(injectorB);
 
       WormWorld worldA = injectorA.get(WormWorld);
-      TestPeer peerA = injectorA.get(TestPeer);
+      TestServerChannel peerA = injectorA.get(TestServerChannel);
       Loader loaderA = worldA.loader;
       FakeImageFactory fakeImageFactoryA = injectorA .get(FakeImageFactory);
 
       WormWorld worldB = injectorB.get(WormWorld);
       Loader loaderB = worldB.loader;
-      TestPeer peerB = injectorB.get(TestPeer);
+      TestServerChannel peerB = injectorB.get(TestServerChannel);
 
       // WorldA receives no peers.
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
-      peerA.receiveActivePeer([]);
+      expect(loaderA.currentState(), equals(LoaderState.WEB_RTC_INIT));
+      peerA.sendOpenMessage();
       worldA.frameDraw();
       // Completes loading from Server.
       expect(loaderA.currentState(), equals(LoaderState.LOADING_SERVER));
@@ -61,9 +61,9 @@ void main() {
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      expect(loaderB.currentState(), equals(LoaderState.WEB_RTC_INIT));
       worldB.frameDraw();
-      peerB.receiveActivePeer(['a', 'b']);
+      peerB.sendOpenMessage(['a', 'b']);
       expect(worldB.network().peer.connections.length, equals(1));
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
@@ -106,17 +106,18 @@ void main() {
       // Now comes a goofy client, unable to connect to anyone!
       WormWorld worldC = injectorC.get(WormWorld);
       Loader loaderC = worldC.loader;
-      TestPeer peerC = injectorC.get(TestPeer);
+      TestServerChannel peerC = injectorC.get(TestServerChannel);
       // Connections fail big time.
-      peerC.failConnectionsTo
+      TestConnectionFactory connectionFactoryC = injectorC.get(TestConnectionFactory);
+      connectionFactoryC.failConnectionsTo
         ..add("a")
         ..add("b");
       worldC.frameDraw();
-      expect(loaderC.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
-      peerC.receiveActivePeer(['a', 'b', 'c']);
+      expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
+      peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.CONNECTING_TO_PEER));
-      peerC.signalErrorAllConnections();
+      connectionFactoryC.signalErrorAllConnections('c');
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.LOADING_SERVER));
       FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
@@ -137,18 +138,18 @@ void main() {
       setPlayerName(injectorB);
 
       WormWorld worldA = injectorA.get(WormWorld);
-      TestPeer peerA = injectorA.get(TestPeer);
+      TestServerChannel peerA = injectorA.get(TestServerChannel);
       Loader loaderA = worldA.loader;
       FakeImageFactory fakeImageFactoryA = injectorA.get(FakeImageFactory);
 
       WormWorld worldB = injectorB.get(WormWorld);
       Loader loaderB = worldB.loader;
-      TestPeer peerB = injectorB.get(TestPeer);
+      TestServerChannel peerB = injectorB.get(TestServerChannel);
 
       // WorldA receives no peers.
       worldA.frameDraw();
-      expect(loaderA.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
-      peerA.receiveActivePeer([]);
+      expect(loaderA.currentState(), equals(LoaderState.WEB_RTC_INIT));
+      peerA.sendOpenMessage([]);
       worldA.frameDraw();
       // Completes loading from Server.
       expect(loaderA.currentState(), equals(LoaderState.LOADING_SERVER));
@@ -159,18 +160,19 @@ void main() {
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      expect(loaderB.currentState(), equals(LoaderState.WEB_RTC_INIT));
       worldB.frameDraw();
       // Connection works for 5 packets;
       droppedPacketsAfterNextConnection.add(5);
-      peerB.receiveActivePeer(['a', 'b']);
+      peerB.sendOpenMessage(['a', 'b']);
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
 
       // All connections just died.
-      peerB.signalCloseOnAllConnections();
+      TestConnectionFactory connectionFactoryB = injectorB.get(TestConnectionFactory);
+      connectionFactoryB.signalCloseOnAllConnections('b');
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_SERVER));
 
@@ -189,24 +191,24 @@ void main() {
       Injector injectorA = createWorldInjector("a", false);
       Map uriParameters = injectorA.get(Map, UriParameters);
       uriParameters['maxFrags'] = ["1"];
-      setPlayerName(injectorA);
+      setPlayerNameAndSignalOpen(injectorA);
       Injector injectorB = createWorldInjector("b", false);
       uriParameters = injectorB.get(Map, UriParameters);
       uriParameters['maxFrags'] = ["1"];
       setPlayerName(injectorB);
 
       WormWorld worldA = injectorA.get(WormWorld);
-      TestPeer peerA = injectorA.get(TestPeer);
+      TestServerChannel peerA = injectorA.get(TestServerChannel);
       Loader loaderA = worldA.loader;
       FakeImageFactory fakeImageFactoryA = injectorA .get(FakeImageFactory);
 
       WormWorld worldB = injectorB.get(WormWorld);
       Loader loaderB = worldB.loader;
-      TestPeer peerB = injectorB.get(TestPeer);
+      TestServerChannel peerB = injectorB.get(TestServerChannel);
 
       // WorldA receives no peers.
       worldA.frameDraw();
-      peerA.receiveActivePeer([]);
+      peerA.sendOpenMessage([]);
       worldA.frameDraw();
       fakeImageFactoryA.completeAllImages();
       worldA.frameDraw();
@@ -215,9 +217,9 @@ void main() {
 
       // WorldB receives worldA as peer.
       worldB.frameDraw();
-      expect(loaderB.currentState(), equals(LoaderState.WAITING_FOR_PEER_DATA));
+      expect(loaderB.currentState(), equals(LoaderState.WEB_RTC_INIT));
       worldB.frameDraw();
-      peerB.receiveActivePeer(['a', 'b']);
+      peerB.sendOpenMessage(['a', 'b']);
       expect(worldB.network().peer.connections.length, equals(1));
 
       for (int i = 0; i < 20; i++) {

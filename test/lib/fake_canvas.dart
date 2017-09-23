@@ -1,4 +1,5 @@
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/net.dart';
 import 'dart:async';
 
 class FakeCanvas {

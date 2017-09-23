@@ -591,6 +591,8 @@ class WormWorld extends World {
   }
 
   startAsServer([String name]) {
+    assert(network().peer.connectedToServer());
+    assert(network().peer.id != null);
     assert(loader.selectedWorldName() != null);
     initByteWorld(loader.selectedWorldName());
     assert(imageIndex != null);

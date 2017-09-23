@@ -1,11 +1,9 @@
-import 'network.dart';
-import 'connection.dart';
 import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/util/hud_messages.dart';
+import 'dart:convert';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 @Injectable() // TODO: Make Injectable.
@@ -14,13 +12,13 @@ class PeerWrapper {
   static const MAX_AUTO_CONNECTIONS = 5;
   static const MAX_CONNECTION = 8;
   Network _network;
+  ConnectionFactory _connectionFactory;
+  ServerChannel _serverChannel;
   GaReporter _gaReporter;
   HudMessages _hudMessages;
-  JsCallbacksWrapper _peerWrapperCallbacks;
   PacketListenerBindings _packetListenerBindings;
-  var peer;
-  var id = null;
-  var _connectedToServer = false;
+  String id = null;
+  bool _connectedToServer = false;
   Map<String, ConnectionWrapper> connections = {};
   var _error;
 
@@ -31,14 +29,9 @@ class PeerWrapper {
   // Peers which we have has a connection to, but is now closed.
   Set<String> _closedConnectionPeers = new Set();
 
-  PeerWrapper(this._network, this._hudMessages, this._packetListenerBindings, @PeerMarker() Object jsPeer,
-      this._peerWrapperCallbacks, this._gaReporter) {
-    this.peer = jsPeer;
-    _peerWrapperCallbacks
-      ..bindOnFunction(jsPeer, 'open', openPeer)
-      ..bindOnFunction(jsPeer, 'receiveActivePeers', receivePeers)
-      ..bindOnFunction(jsPeer, 'connection', connectPeer)
-      ..bindOnFunction(jsPeer, 'error', error);
+  PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._serverChannel, this._packetListenerBindings, this._gaReporter) {
+    assert(_serverChannel != null);
+    _serverChannel.dataStream().listen((dynamic data) => _onServerMessage(data));
   }
 
   /**
@@ -47,16 +40,15 @@ class PeerWrapper {
   ConnectionWrapper connectTo(id) {
     _gaReporter.reportEvent("connection_created", "Connection");
     assert(id != null);
-    var connection = _peerWrapperCallbacks.connectToPeer(peer, id);
-    var peerId = connection['peer'];
     if (connections.containsKey(id)) {
       log.warning("Already a connection to ${id}!");
+      return connections[id];
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
-        peerId, connection, _packetListenerBindings,
-        this._peerWrapperCallbacks);
-    connections[peerId] = connectionWrapper;
+        id, _packetListenerBindings);
+    _connectionFactory.connectTo(connectionWrapper, this.id, id);
+    connections[id] = connectionWrapper;
     return connectionWrapper;
   }
 
@@ -65,14 +57,14 @@ class PeerWrapper {
    */
   void disconnect() {
     _connectedToServer = false;
-    this._peerWrapperCallbacks.callJsMethod(this.peer, "disconnect");
+    _serverChannel.disconnect();
   }
 
   /**
    * Re-connect this peer to the server.
    */
   void reconnect() {
-    this._peerWrapperCallbacks.callJsMethod(this.peer, "reconnect");
+    _serverChannel.reconnect(id);
     _connectedToServer = true;
   }
 
@@ -81,7 +73,7 @@ class PeerWrapper {
     _hudMessages.display("Peer error: ${e}");
   }
 
-  void openPeer(unusedThis, id) {
+  void _openPeer(id) {
     this.id = id;
     // We blacklist from connection to self.
     _blackListedIds.add(id);
@@ -92,7 +84,7 @@ class PeerWrapper {
   /**
    * Receive list of peers from server. Automatically connect. 
    */
-  void receivePeers(unusedThis, List<String> ids) {
+  void _receivePeers(List<String> ids) {
     ids.remove(this.id);
     log.info("Received active peers of $ids");
     _activeIds = ids;
@@ -136,22 +128,21 @@ class PeerWrapper {
   /**
    * Callback for a peer connecting to us.
    */
-  void connectPeer(unusedThis, connection) {
+  ConnectionWrapper _createWrapper(String otherPeerId) {
     _gaReporter.reportEvent("connection_received", "Connection");
-    var peerId = connection['peer'];
-    assert(peerId != null);
-    log.info("Got connection from ${peerId}");
-    _hudMessages.display("Got connection from ${peerId}");
-    if (connections.containsKey(peerId)) {
-      log.warning("Already a connection to ${peerId}!");
+    assert(otherPeerId != null);
+    log.info("Got connection from ${otherPeerId}");
+    _hudMessages.display("Got connection from ${otherPeerId}");
+    if (connections.containsKey(otherPeerId)) {
+      log.warning("Already a connection to ${otherPeerId}!");
     }
-    connections[peerId] = new ConnectionWrapper(_network, _hudMessages,
-        peerId, connection, _packetListenerBindings,
-        this._peerWrapperCallbacks);
+    connections[otherPeerId] = new ConnectionWrapper(_network, _hudMessages,
+        otherPeerId, _packetListenerBindings);
     if (!_network.isCommander()
-        && _network.gameState.playerInfoByConnectionId(peerId) != null) {
-      connections[peerId].markAsClientToClientConnection();
+        && _network.gameState.playerInfoByConnectionId(otherPeerId) != null) {
+      connections[otherPeerId].markAsClientToClientConnection();
     }
+    return connections[otherPeerId];
   }
 
   void sendDataWithKeyFramesToAll(Map data, [var dontSendTo]) {
@@ -221,6 +212,7 @@ class PeerWrapper {
           // Start treating the other peer as server.
           ConnectionWrapper connection = connections[commanderId];
           _network.gameState.actingCommanderId = commanderId;
+          log.info("Commander is now ${commanderId}");
           _hudMessages.display("Elected new server ${info.name}");
         }
       } else {
@@ -266,6 +258,67 @@ class PeerWrapper {
    */
   bool hasReceivedActiveIds() {
     return _activeIds != null;
+  }
+
+  /**
+   * Callback for receiving a message from signaling server.
+   */
+  _onServerMessage(Map<dynamic, dynamic> json) {
+    log.fine("Got ServerChannel data ${json}");
+    String type = json['type'];
+    dynamic payload = json['payload'];
+    String src = json['src'];
+    String dst = json['dst'];
+
+    switch (type) {
+      case 'ACTIVE_IDS':
+        _openPeer(json['id']);
+        _receivePeers(json['ids']);
+        break;
+      case 'ERROR':
+        log.severe("Got error from server ${payload}");
+        break;
+      case 'CANDIDATE':
+        ConnectionWrapper connection = connections[src];
+        if (connection == null) {
+          log.warning(
+              "Missing connection for candidate data ${payload}");
+        } else {
+          _connectionFactory.handleIceCandidateReceived(
+              connection.rtcConnection(), payload['candidate']);
+          log.info("Added ICE candidate ${payload}");
+        }
+        break;
+      case 'LEAVE':
+      // Someone left, fixme...
+        break;
+      case 'EXPIRE': // The offer sent to a peer has expired without response.
+        log.warning("Could not connect to peer ${src}");
+        break;
+      case 'OFFER':
+        ConnectionWrapper connection = connections[src];
+        if (connection != null) {
+          log.warning(
+              "Received offer from peer that has connection? ${src} Existing connection: ${connection}");
+        } else {
+          log.info("Handling offer from ${src} offer: ${payload}");
+          ConnectionWrapper wrapper = _createWrapper(src);
+          dynamic connection = _connectionFactory.createInboundConnection(
+              wrapper, payload['sdp'], src, dst, payload['connectionId']);
+          connections[src] = wrapper;
+          _connectionFactory.handleCreateAnswer(connection, src, dst, payload['connectionId']);
+        }
+        break;
+      case 'ANSWER':
+        log.info("Handling answer from ${src} offer: ${payload}");
+        ConnectionWrapper connection = connections[src];
+        _connectionFactory.handleGotAnswer(connection.rtcConnection(), payload['sdp']);
+        break;
+
+      default:
+        log.severe("Unhandled message ${json}");
+        break;
+    }
   }
 
   getLastError() => this._error;

@@ -1,13 +1,7 @@
-import 'package:dart2d/util/keystate.dart';
-import 'package:dart2d/util/gamestate.dart';
 import 'package:dart2d/net/network.dart';
-import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/util/hud_messages.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/js_interop/callbacks.dart';
 import 'dart:convert';
 import 'package:di/di.dart';
 import 'dart:core';
@@ -37,7 +31,9 @@ class PacketListenerBindings {
 class ConnectionWrapper {
   final Logger log = new Logger('Connection');
   // How many keyframes the connection can be behind before it is dropped.
-  static int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
+  static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
+  // How many items the reliable buffer can contain before we consider the connection dead.
+  static const int MAX_RELIABLE_BUFFER_SIZE = 4;
   // How long until connection attempt times out.
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
@@ -45,7 +41,8 @@ class ConnectionWrapper {
   HudMessages _hudMessages;
   PacketListenerBindings _packetListenerBindings;
   final String id;
-  var connection;
+  var _dataChannel;
+  var _rtcConnection;
   // True if connection was successfully opened.
   bool opened = false;
   bool closed = false;
@@ -73,16 +70,9 @@ class ConnectionWrapper {
       this._network,
       this._hudMessages,
       this.id,
-      this.connection,
       this._packetListenerBindings,
-      JsCallbacksWrapper peerWrapperCallbacks,
       [timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
-    peerWrapperCallbacks
-      ..bindOnFunction(connection, 'data', receiveData)
-      ..bindOnFunction(connection, 'close', close)
-      ..bindOnFunction(connection, 'open', open)
-      ..bindOnFunction(connection, 'error', error);
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
@@ -107,12 +97,12 @@ class ConnectionWrapper {
     }
   }
 
-  void close(unusedThis) {
+  void close() {
     _hudMessages.display("Connection to ${id} closed :(");
     closed = true;
   }
 
-  void open(unusedThis) {
+  void open() {
     _hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
@@ -186,8 +176,8 @@ class ConnectionWrapper {
     lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
   }
 
-  void error(unusedThis, error) {
-    _hudMessages.display("Connection ${id}: ${error}");
+  void error(error) {
+    _hudMessages.display("Connection ${id}: ${error} closing!");
     closed = true;
   }
 
@@ -200,7 +190,7 @@ class ConnectionWrapper {
     PONG,
   ]);
 
-  void receiveData(unusedThis, data) {
+  void receiveData(data) {
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     if (Logger.root.isLoggable(Level.FINE)) {
@@ -305,16 +295,22 @@ class ConnectionWrapper {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
           "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
-      close(null);
+      close();
       return;
     }
   }
 
   void sendData(Map data) {
+    assert(_dataChannel != null);
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (!_reliableDataToVerify.isEmpty) {
       data[DATA_RECEIPTS] = _reliableDataToVerify;
       _reliableDataToVerify = [];
+    }
+    if (_reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE && !_initialPongReceived) {
+      log.warning(
+          "Connection to $id too many reliable packets behind ${_reliableDataBuffer.length}, dropping!");
+      close();
     }
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
@@ -329,7 +325,15 @@ class ConnectionWrapper {
       storeAwayReliableData(data);
     }
     var jsonData = JSON.encode(data);
-    connection.callMethod('send', [jsonData]);
+    _dataChannel.sendString(jsonData);
+  }
+
+  void readyDataChannel(var dataChannel) {
+    _dataChannel = dataChannel;
+  }
+
+  void setRtcConnection(var rtcConnection) {
+    _rtcConnection = rtcConnection;
   }
 
   void registerDroppedKeyFrames(int expectedKeyFrame) {
@@ -377,6 +381,8 @@ class ConnectionWrapper {
   }
 
   Duration expectedLatency() => _latency;
+
+  dynamic rtcConnection() => _rtcConnection;
 
   toString() => "Connection to ${id} latency ${_latency}";
 }

@@ -100,9 +100,8 @@ class PeerStateMatcher extends Matcher {
   PeerStateMatcher(this._connected);
 
   bool matches(item, Map matchState) {
-    if (item is World) {
-      TestPeer peer = item.network().peer.peer;
-      return peer.connectedToServer == _connected;
+    if (item is WormWorld) {
+      return item.network().getPeer().connectedToServer() == _connected;
     }
     return false;
   }

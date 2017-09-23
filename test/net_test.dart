@@ -18,6 +18,8 @@ void main() {
     test('TestBasicSmokeConnection', () {
       WormWorld worldA = testWorld("c");
       WormWorld worldB = testWorld("b");
+      expect(worldA.network().getPeer().connectedToServer(), isTrue);
+      expect(worldB.network().getPeer().connectedToServer(), isTrue);
 
       // A framedraw will start worldB as server.
       worldB.startAsServer("nameB");
