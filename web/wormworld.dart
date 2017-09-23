@@ -26,7 +26,7 @@ void main() {
   init();
   // Logger.root.level = Level.ALL;
   return;
-  String url = "something";
+  String url = "some url";
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
   request.onReadyStateChange.listen((_) {
@@ -206,9 +206,8 @@ class RtcConnectionFactory extends ConnectionFactory {
    */
   connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
     Map config =  {'iceServers': iceServers};
-    String connectionId = "${ourPeerId}->${otherPeerId}";
     RtcPeerConnection connection = new RtcPeerConnection(config);
-    _listenForAndSendIceCandidatesToPeer(connection, otherPeerId, connectionId);
+    _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     RtcDataChannel channel = connection.createDataChannel('dart2d');
     wrapper.readyDataChannel(channel);
@@ -224,7 +223,6 @@ class RtcConnectionFactory extends ConnectionFactory {
             'sdp': { 'sdp': desc.sdp, 'type': desc.type },
             'type': 'data',
             'label': 'dart2d',
-            'connectionId': connectionId,
             'reliable': 'false',
             'serialization': 'none',
           },
@@ -238,13 +236,13 @@ class RtcConnectionFactory extends ConnectionFactory {
    * Someone sent us an offer and wants to connect.
    */
   createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
-      String otherPeerId,  String ourPeerId, String connectionId) {
+      String otherPeerId,  String ourPeerId) {
     Map config =  {'iceServers': iceServers};
     // Create a local peer object.
     RtcPeerConnection connection = new RtcPeerConnection(config);
     wrapper.setRtcConnection(connection);
     // Make sure ICE candidates are sent to our remote peer.
-    _listenForAndSendIceCandidatesToPeer(connection, otherPeerId, connectionId);
+    _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     // We expect there to be a datachannel available here eventually.
     connection.onDataChannel.listen((RtcDataChannelEvent e) {
@@ -268,6 +266,8 @@ class RtcConnectionFactory extends ConnectionFactory {
         wrapper.close();
       } else  if (connection.iceConnectionState == 'failed'){
         wrapper.error(e.toString());
+      } else if (connection.iceConnectionState == 'disconnected'){
+        wrapper.close();
       } else {
         log.warning("Unhandled ICE connection state ${connection.iceConnectionState}");
       }
@@ -275,7 +275,7 @@ class RtcConnectionFactory extends ConnectionFactory {
   }
 
   _listenForAndSendIceCandidatesToPeer(
-      RtcPeerConnection connection, String otherPeerId, String connectionId) {
+      RtcPeerConnection connection, String ourPeerId, String otherPeerId) {
     connection.onIceCandidate.listen((RtcIceCandidateEvent e) {
       if (e.candidate == null) {
         log.warning("Received null ICE candidate :/");
@@ -290,8 +290,8 @@ class RtcConnectionFactory extends ConnectionFactory {
             'sdpMid': e.candidate.sdpMid,
           },
           'type': 'data',
-          'connectionId': connectionId,
         },
+        'src': ourPeerId,
         'dst': otherPeerId
       });
     });
@@ -303,7 +303,7 @@ class RtcConnectionFactory extends ConnectionFactory {
     connection.addIceCandidate(candidate);
   }
 
-  handleCreateAnswer(RtcPeerConnection connection, String src, String dst, String connectionId) {
+  handleCreateAnswer(RtcPeerConnection connection, String src, String dst) {
     connection.createAnswer().then((RtcSessionDescription desc) {
       connection.setLocalDescription(desc).then((_) {
         _serverChannel.sendData({
@@ -311,7 +311,6 @@ class RtcConnectionFactory extends ConnectionFactory {
           'payload': {
             'sdp': { 'sdp': desc.sdp, 'type': desc.type },
             'type': 'data',
-            'connectionId': connectionId,
             'browser': 'fixme',
           },
           'src': dst,

@@ -30,9 +30,8 @@ class FakeConnectionFactory extends ConnectionFactory {
     otherEnd.setOtherEnd(testConnection);
   }
   createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,  String otherPeerId,
-      String ourPeerId,
-      String connectionId) { }
-  handleCreateAnswer(dynamic connection, String src, String dst, String connectionId) {}
+      String ourPeerId) { }
+  handleCreateAnswer(dynamic connection, String src, String dst) {}
   handleGotAnswer(dynamic connection, dynamic sdp) {}
   handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {}
 }

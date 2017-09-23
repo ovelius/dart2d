@@ -204,7 +204,7 @@ class TestConnectionFactory extends ConnectionFactory {
    * Callback for someone trying to connection to us.
    */
   createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
-      String otherPeerId, String ourPeerId, String connectionId) {
+      String otherPeerId, String ourPeerId) {
     print("Create inbound connection from ${otherPeerId} to ${ourPeerId}");
     TestServerChannel ourChannel = testPeers[ourPeerId];
     if (ourChannel == null) {
@@ -223,7 +223,7 @@ class TestConnectionFactory extends ConnectionFactory {
   /**
    * Create and answer for our inbound connection.
    */
-  handleCreateAnswer(ConnectionWrapper connection, String src, String dst, String connectionId) {
+  handleCreateAnswer(ConnectionWrapper connection, String src, String dst) {
 
   }
   /**

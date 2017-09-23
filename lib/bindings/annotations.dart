@@ -81,12 +81,11 @@ abstract class ConnectionFactory {
    * Callback for someone trying to connection to us.
    */
   createInboundConnection(dynamic wrapper, dynamic sdp,  String otherPeerId,
-      String ourPeerId,
-      String connectionId);
+      String ourPeerId);
   /**
    * Create and answer for our inbound connection.
    */
-  handleCreateAnswer(dynamic connection, String src, String dst, String connectionId);
+  handleCreateAnswer(dynamic connection, String src, String dst);
   /**
    * Handle receiving that answer.
    */

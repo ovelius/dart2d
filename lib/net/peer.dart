@@ -304,9 +304,9 @@ class PeerWrapper {
           log.info("Handling offer from ${src} offer: ${payload}");
           ConnectionWrapper wrapper = _createWrapper(src);
           dynamic connection = _connectionFactory.createInboundConnection(
-              wrapper, payload['sdp'], src, dst, payload['connectionId']);
+              wrapper, payload['sdp'], src, dst);
           connections[src] = wrapper;
-          _connectionFactory.handleCreateAnswer(connection, src, dst, payload['connectionId']);
+          _connectionFactory.handleCreateAnswer(connection, src, dst);
         }
         break;
       case 'ANSWER':
