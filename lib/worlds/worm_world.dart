@@ -521,7 +521,7 @@ class WormWorld extends World {
         sprite.ownerId = info.connectionId;
         sprite.info = info;
       } else {
-        log.warning("No matching sprite found for ${info}");
+        log.warning("No matching sprite found for ${info} ?");
       }
       if (!_network.peer.hasConnectionTo(info.connectionId) && !_network.peer.hasHadConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.

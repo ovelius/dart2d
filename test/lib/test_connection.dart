@@ -147,17 +147,17 @@ class TestConnectionWrapper {
 }
 
 class TestConnectionFactory extends ConnectionFactory {
-  Map<String, List<TestConnection>> connections = {};
+  Map<String, Map<String, TestConnection>> connections = {};
   Set<String> failConnectionsTo = new Set();
 
   void signalErrorAllConnections(String to) {
-    connections[to].forEach((c) {
+    connections[to].values.forEach((c) {
       c._internalWrapper.error("Test error");
     });
   }
 
   void signalCloseOnAllConnections(String to) {
-    connections[to].forEach((c) {
+    connections[to].values.forEach((c) {
       c._internalWrapper.close();
     });
   }
@@ -168,9 +168,9 @@ class TestConnectionFactory extends ConnectionFactory {
     print("Create outbound connection from ${ourPeerId} to ${otherPeerId}");
     TestConnection c = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
-      connections[ourPeerId] = [];
+      connections[ourPeerId] = {};
     }
-    connections[ourPeerId].add(c);
+    connections[ourPeerId][otherPeerId] = c;
     wrapper.setRtcConnection(c);
     wrapper.readyDataChannel(c);
     TestServerChannel ourChannel = testPeers[ourPeerId];
@@ -212,9 +212,9 @@ class TestConnectionFactory extends ConnectionFactory {
     }
     TestConnection c = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
-      connections[ourPeerId] = [];
+      connections[ourPeerId] = {};
     }
-    connections[ourPeerId].add(c);
+    connections[ourPeerId][otherPeerId] = c;
     wrapper.setRtcConnection(c);
     wrapper.readyDataChannel(c);
     wrapper.open();

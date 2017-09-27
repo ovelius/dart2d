@@ -20,12 +20,10 @@ final Logger log = new Logger('Connection');
 
 DateTime lastStep;
 WormWorld world;
-List iceServers = [ /*{'url': 'stun:stun.l.google.com:19302'} */];
+List iceServers = [{'url': 'stun:stun.l.google.com:19302'}];
 
 void main() {
   init();
-  // Logger.root.level = Level.ALL;
-  return;
   String url = "some url";
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
@@ -175,13 +173,14 @@ class WebSocketServerChannel extends ServerChannel {
     _socket.close();
   }
 
-  void reconnect(String id) {
+  Stream<dynamic> reconnect(String id) {
     if (_socket.readyState == 1) {
      throw new StateError("Socket still open!");
     }
     _socket = new WebSocket(_socketUrl(id));
     _socket.onOpen.listen((_) => _ready = true);
     _socket.onClose.listen((_) => _ready = false);
+    return dataStream();
   }
 
   String _socketUrl([String id = null]) {
@@ -260,7 +259,9 @@ class RtcConnectionFactory extends ConnectionFactory {
 
   _addConnectionListeners(ConnectionWrapper wrapper, RtcPeerConnection connection) {
     connection.onIceConnectionStateChange.listen((Event e) {
-      if (connection.iceConnectionState == "connected") {
+      if (connection.iceConnectionState == "checking") {
+        // Do nothing...
+      } else if (connection.iceConnectionState == "connected") {
         wrapper.open();
       } else if (connection.iceConnectionState == 'closed') {
         wrapper.close();

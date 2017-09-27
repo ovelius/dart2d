@@ -30,7 +30,6 @@ Map<String, TestServerChannel> testPeers = {};
 
 class TestServerChannel extends ServerChannel {
   String id;
-  var eventHandlers = {};
   List<TestConnection> connections = [];
   bool connectedToServer = false;
 
@@ -57,9 +56,11 @@ class TestServerChannel extends ServerChannel {
   void disconnect() {
     this.connectedToServer = false;
   }
-  void reconnect(String id) {
+  Stream<dynamic> reconnect(String id) {
+    _streamController = new StreamController<Map>(sync: true);
     assert(this.id == id);
     this.connectedToServer = true;
+    return _streamController.stream;
   }
 
   fakeIncomingConnection(String fromId) {

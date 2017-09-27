@@ -64,7 +64,8 @@ class PeerWrapper {
    * Re-connect this peer to the server.
    */
   void reconnect() {
-    _serverChannel.reconnect(id);
+    _serverChannel.reconnect(id)
+        .listen((dynamic data) => _onServerMessage(data));
     _connectedToServer = true;
   }
 
