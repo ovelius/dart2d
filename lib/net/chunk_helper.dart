@@ -9,7 +9,7 @@ import 'package:di/di.dart';
 @Injectable()
 class ChunkHelper {
   final Logger log = new Logger('ChunkHelper');
-  static const int DEFAULT_CHUNK_SIZE = 1024;
+  static const int DEFAULT_CHUNK_SIZE = 1400;
   static const int MAX_CHUNK_SIZE = 65000;
   static const int MIN_CHUNK_SIZE = 100;
   // TODO: Lower with ping time?
