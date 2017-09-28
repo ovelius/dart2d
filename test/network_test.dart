@@ -371,7 +371,6 @@ void main() {
     for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
       Map data = connection.getOtherEnd().decodedRecentDataRecevied();
       data[PING] = 123;
-      data.remove(CONTAINED_DATA_RECEIPTS);
       expect(data, equals({PING: 123, KEY_FRAME_KEY: 0, IS_KEY_FRAME_KEY: 0}));
       expect(connection.getOtherEnd().dataReceivedCount, equals(1));
     }

@@ -107,68 +107,6 @@ void main() {
           isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
     });
 
-    test('TestDroppedKeyFrame', () {
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
-      // Tick a frame to start the game.
-      worldB.startAsServer("nameB");
-      worldB.frameDraw();
-      // First connection will drop one packet.
-      droppedPacketsNextConnection.add(1);
-      // Second connection will drop two.
-      droppedPacketsNextConnection.add(2);
-
-      worldA.connectTo("b", "nameA", false);
-      worldA.network().safeActiveConnections().values.first.sendPing(true);
-      // Ping was sent to b from a:
-      expect(recentSentDataTo("b"),
-          new MapKeyMatcher.containsKey(PING));
-      // But it was dropped :(
-      expect(recentReceviedDataFrom("a"), equals(null));
-      // Make A advance a keyframe:
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      // No we get the stuff:
-      expect(recentReceviedDataFrom("a"),
-          new MapKeysMatcher.containsKeys(
-              [IS_KEY_FRAME_KEY, PING]));
-      // Reply was dropped.
-      expect(recentReceviedDataFrom("b"), equals(null));
-      // Advance two keyframes and data will be there!
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-
-      expect(recentReceviedDataFrom("b"),
-          new MapKeysMatcher.containsKeys(
-              [IS_KEY_FRAME_KEY, PONG]));
-
-      worldA.network().getServerConnection().connectToGame('nameA', 2);
-
-      expect(recentSentDataTo("b"),
-          new MapKeyMatcher.containsKey(CLIENT_PLAYER_SPEC));
-      expect(recentReceviedDataFrom("a"),
-          new MapKeysMatcher.containsKeys(
-              [IS_KEY_FRAME_KEY, CLIENT_PLAYER_SPEC]));
-
-      expect(recentReceviedDataFrom("b"),
-          new MapKeysMatcher.containsKeys(
-              [SERVER_PLAYER_REPLY, IS_KEY_FRAME_KEY]));
-
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-
-      expect(recentReceviedDataFrom("b"),
-          new MapKeysMatcher.containsKeys(
-              [GAME_STATE, IS_KEY_FRAME_KEY]));
-
-      // Game should get underway about one keyframe later.
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-
-      // Game has started.
-      expect(worldA.spriteIndex.count(), equals(2));
-      expect(worldB.spriteIndex.count(), equals(2));
-    });
-  
-  
     test('TestThreeWorlds', () {
       print("Testing connecting with three players");
       WormWorld worldA = testWorld("a");
@@ -358,7 +296,7 @@ void main() {
       expect(worldD, isConnectedToServer(false));
       
       // Now make a drop away.
-      testConnections['a'].forEach((e) { e.dropPackets = 100;});
+      testConnections['a'].forEach((e) { e.signalClose(); });
 
       // TODO bring back!
       // expect(worldB.spriteIndex[playerId(1)].frames,
@@ -398,7 +336,7 @@ void main() {
       // TODO: Check type of playerId(1).
             
       // Now b is having issues.
-      testConnections['b'].forEach((e) { e.dropPackets = 100;});
+      testConnections['b'].forEach((e) { e..signalClose(); });
       for (int i = 0; i < 18; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -419,7 +357,7 @@ void main() {
           .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       
       // Finally C is having issues.
-      testConnections['c'].forEach((e) { e.dropPackets = 100;});
+      testConnections['c'].forEach((e) { e.signalClose(); });
       for (int i = 0; i < 18; i++) {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
@@ -569,33 +507,7 @@ void main() {
       expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
     });
-    
-    test('TestReliableMessage', () {
-        logConnectionData = true;
-        WormWorld worldA = testWorld("a");
-        worldA.startAsServer("nameA");
-        WormWorld worldB = testWorld("b");
-        worldB.connectTo("a", "nameB");
-        
-        testConnections['b'].forEach((e) { e.dropPackets = 1;});
-        
-        worldA.network().sendMessage("test me");
-        
-        // This got dropped.
-        expect(recentReceviedDataFrom("a"),
-               new MapKeysMatcher.containsKeys(
-                   [SERVER_PLAYER_REPLY]));
-        
-        worldA.frameDraw();
-        worldB.frameDraw();
-        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-        
-        // After the next keyframe it gets sent.
-        expect(recentReceviedDataFrom("a"),
-             new MapKeysMatcher.containsKeys(
-                 [MESSAGE_KEY]));
-    });
-    
+
     test('TestMaxPlayers', () {
         logConnectionData = false;
         WormWorld worldA = testWorld("a");

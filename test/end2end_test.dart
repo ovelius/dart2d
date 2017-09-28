@@ -162,9 +162,10 @@ void main() {
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.WEB_RTC_INIT));
       worldB.frameDraw();
-      // Connection works for 5 packets;
-      droppedPacketsAfterNextConnection.add(5);
+
       peerB.sendOpenMessage(['a', 'b']);
+      // Connection works for 5 packets;
+      peerB.connections.forEach((e) { e.dropPacketsAfter = 5; });
       worldB.frameDraw();
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       worldB.frameDraw();

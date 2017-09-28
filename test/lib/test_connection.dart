@@ -16,16 +16,9 @@ recentReceviedDataFrom(id, [int index = 0]) {
 // Map of connections from id.
 Map<String, List<TestConnection>> testConnections = {};
 
-// Next created TestConnection will drop these many packets.
-List<int> droppedPacketsNextConnection = [];
-// Next created TEstConnection will start to drop packets after this many
-// packets.
-List<int> droppedPacketsAfterNextConnection = [];
-
 bool logConnectionData = true;
 
 class TestConnection {
-  int dropPackets = 0;
   int dropPacketsAfter = 900000000;
   TestConnection _otherEnd;
   var id;
@@ -52,12 +45,6 @@ class TestConnection {
       testConnections[id] = [];
     }
     testConnections[id].add(this);
-    if (!droppedPacketsNextConnection.isEmpty) {
-      this.dropPackets = droppedPacketsNextConnection.removeAt(0);
-    }
-    if (!droppedPacketsAfterNextConnection.isEmpty) {
-      this.dropPacketsAfter = droppedPacketsAfterNextConnection.removeAt(0);
-    }
   }
 
   setOtherEnd(TestConnection otherEnd) {
@@ -92,18 +79,18 @@ class TestConnection {
     if (_otherEnd == null) {
       throw new StateError('_otherEnd is null: ${this.id}');
     }
-    bool drop = dropPackets > 0 || dropPacketsAfter <=0;
-    dropPackets--;
+    bool drop = dropPacketsAfter <=0;
     dropPacketsAfter--;
     if (logConnectionData) {
       print("Data ${drop ? "DROPPED" : ""} ${_otherEnd.id} -> ${id}: ${jsonString}");
     }
-    recentDataSent = jsonString;
-    if (!drop){
+    if (!drop) {
+      recentDataSent = jsonString;
       _otherEnd.recentDataRecevied = jsonString;
       _otherEnd.dataReceivedCount++;
       if (_otherEnd._internalWrapper == null) {
-        throw new StateError("Can't send data on ${this}, receipient missing receive endpoint!");
+        throw new StateError(
+            "Can't send data on ${this}, receipient missing receive endpoint!");
       }
       _otherEnd._internalWrapper.receiveData(jsonString);
     }

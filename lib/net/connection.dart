@@ -55,10 +55,6 @@ class ConnectionWrapper {
   int lastLocalPeerKeyFrameVerified = 0;
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
-  // Storage of our reliable key data.
-  Map _reliableDataBuffer = {};
-  // Reliable verifications.
-  List<int> _reliableDataToVerify = [];
   // Keep track of how long connection has been open.
   Stopwatch _connectionTimer = new Stopwatch();
   // When we time out.
@@ -78,9 +74,6 @@ class ConnectionWrapper {
     _timeout = timeout;
     log.fine("Opened connection to $id");
   }
-
-  Map get reliableDataBuffer => _reliableDataBuffer;
-  List get reliableDataToVerify => _reliableDataToVerify;
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
     if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
@@ -184,8 +177,6 @@ class ConnectionWrapper {
   Set<String> _ignoreListeners = new Set.from([
     IS_KEY_FRAME_KEY,
     KEY_FRAME_KEY,
-    DATA_RECEIPTS,
-    CONTAINED_DATA_RECEIPTS,
     PING,
     PONG,
   ]);
@@ -213,18 +204,9 @@ class ConnectionWrapper {
       _initialPongReceived = true;
     }
 
-    if (dataMap.containsKey(DATA_RECEIPTS)) {
-      for (int receipt in dataMap[DATA_RECEIPTS]) {
-        _reliableDataBuffer.remove(receipt);
-      }
-    }
-
     // New path.
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
-        if (key == CONTAINED_DATA_RECEIPTS) {
-         _reliableDataToVerify.addAll(dataMap[CONTAINED_DATA_RECEIPTS]);
-        }
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
             handler(this, dataMap[key]);
@@ -254,43 +236,6 @@ class ConnectionWrapper {
     _network.parseBundle(this, dataMap);
   }
 
-  void alsoSendWithStoredData(Map dataMap) {
-    storeAwayReliableData(dataMap);
-    for (int hash in new List.from(_reliableDataBuffer.keys)) {
-      List tuple = _reliableDataBuffer[hash];
-      String reliableKey = tuple[0];
-      if (dataMap.containsKey(reliableKey)) {
-        // Merge data with previously saved data for this key.
-        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
-        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
-        _addContainedReceipt(dataMap, hash);
-      } else {
-        dataMap[reliableKey] = tuple[1];
-        _addContainedReceipt(dataMap, hash);
-      }
-    }
-  }
-
-  void _addContainedReceipt(Map dataMap, int receipt) {
-    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
-      dataMap[CONTAINED_DATA_RECEIPTS] = [];
-    }
-    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
-      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
-    }
-  }
-
-  void storeAwayReliableData(Map dataMap) {
-    for (String reliableKey in RELIABLE_KEYS.keys) {
-      if (dataMap.containsKey(reliableKey)) {
-        Object data = dataMap[reliableKey];
-        int jsonHash = JSON.encode(data).hashCode;
-        _reliableDataBuffer[jsonHash] = [reliableKey, data];
-        _addContainedReceipt(dataMap, jsonHash);
-      }
-    };
-  }
-
   void checkIfShouldClose(int keyFrame) {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
@@ -303,26 +248,13 @@ class ConnectionWrapper {
   void sendData(Map data) {
     assert(_dataChannel != null);
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
-    if (!_reliableDataToVerify.isEmpty) {
-      data[DATA_RECEIPTS] = _reliableDataToVerify;
-      _reliableDataToVerify = [];
-    }
-    if (_reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE && !_initialPongReceived) {
-      log.warning(
-          "Connection to $id too many reliable packets behind ${_reliableDataBuffer.length}, dropping!");
-      close();
-    }
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
       checkIfShouldClose(data[IS_KEY_FRAME_KEY]);
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
-      data = new Map.from(data);
-      alsoSendWithStoredData(data);
-    } else {
-      // Store away any reliable data sent.
-      storeAwayReliableData(data);
+      data = new Map.from(data);;
     }
     var jsonData = JSON.encode(data);
     _dataChannel.sendString(jsonData);
