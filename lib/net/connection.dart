@@ -44,7 +44,7 @@ class ConnectionWrapper {
   var _dataChannel;
   var _rtcConnection;
   // True if connection was successfully opened.
-  bool opened = false;
+  bool _opened = false;
   bool closed = false;
   bool _initialPingSent = false;
   bool _initialPongReceived = false;
@@ -100,7 +100,7 @@ class ConnectionWrapper {
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
-    opened = true;
+    _opened = true;
     _connectionTimer.stop();
   }
 
@@ -285,15 +285,17 @@ class ConnectionWrapper {
   }
 
   bool isActiveConnection() {
-    return opened && !closed;
+    return _opened && !closed  && _dataChannel != null && _rtcConnection != null;
   }
+
+  bool wasOpen() => _opened;
 
   bool isValidConnection() {
     if (closed) {
       return false;
     }
     // Timed out waiting to become open.
-    if (!opened && _timedOut()) {
+    if (!_opened && _timedOut()) {
       return false;
     }
 

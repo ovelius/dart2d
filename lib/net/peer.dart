@@ -137,13 +137,13 @@ class PeerWrapper {
     if (connections.containsKey(otherPeerId)) {
       log.warning("Already a connection to ${otherPeerId}!");
     }
-    connections[otherPeerId] = new ConnectionWrapper(_network, _hudMessages,
+    ConnectionWrapper wrapper = new ConnectionWrapper(_network, _hudMessages,
         otherPeerId, _packetListenerBindings);
     if (!_network.isCommander()
         && _network.gameState.playerInfoByConnectionId(otherPeerId) != null) {
-      connections[otherPeerId].markAsClientToClientConnection();
+      wrapper.markAsClientToClientConnection();
     }
-    return connections[otherPeerId];
+    return wrapper;
   }
 
   void sendDataWithKeyFramesToAll(Map data, [var dontSendTo]) {
@@ -154,7 +154,7 @@ class PeerWrapper {
         closedConnections.add(key);
         continue;
       }
-      if (!connection.opened) {
+      if (!connection.isActiveConnection()) {
         continue;
       }
       if (dontSendTo != null && dontSendTo == connection.id) {
@@ -225,7 +225,7 @@ class PeerWrapper {
       reconnect();
     }
     // Connection was never open, blacklist the id.
-    if (!wrapper.opened) {
+    if (!wrapper.wasOpen()) {
       _blackListedIds.add(id);
       _closedConnectionPeers.add(id);
       _gaReporter.reportEvent("closed_never_open", "Connection");

@@ -14,7 +14,7 @@ import 'dart:html';
 import 'dart:convert';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = true;
+const bool USE_LOCAL_HOST_PEER = false;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
 final Logger log = new Logger('Connection');
 
@@ -23,8 +23,7 @@ WormWorld world;
 List iceServers = [{'url': 'stun:stun.l.google.com:19302'}];
 
 void main() {
-  init();
-  String url = "some url";
+  String url = "url";
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
   request.onReadyStateChange.listen((_) {
@@ -161,10 +160,6 @@ class WebSocketServerChannel extends ServerChannel {
     _socket.send(JSON.encoder.convert(data));
   }
 
-  setInstance(WebSocket socket) {
-    _socket = socket;
-  }
-
   Stream<dynamic> dataStream() {
     return _socket.onMessage.map((MessageEvent e) => JSON.decode(e.data));
   }
@@ -209,8 +204,10 @@ class RtcConnectionFactory extends ConnectionFactory {
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     RtcDataChannel channel = connection.createDataChannel('dart2d');
-    wrapper.readyDataChannel(channel);
-    wrapper.setRtcConnection(connection);
+    log.info("Created DataChannel ${ourPeerId} <-> ${otherPeerId} Reliable: ${channel.reliable} Ordered: ${channel.ordered}");
+    channel.onOpen.listen((_) {
+      wrapper.readyDataChannel(channel);
+    });
     channel.onMessage.listen((MessageEvent e) {
       wrapper.receiveData(e.data);
     });
@@ -221,9 +218,6 @@ class RtcConnectionFactory extends ConnectionFactory {
           'payload': {
             'sdp': { 'sdp': desc.sdp, 'type': desc.type },
             'type': 'data',
-            'label': 'dart2d',
-            'reliable': 'false',
-            'serialization': 'none',
           },
           'dst': otherPeerId});
       });
@@ -239,14 +233,15 @@ class RtcConnectionFactory extends ConnectionFactory {
     Map config =  {'iceServers': iceServers};
     // Create a local peer object.
     RtcPeerConnection connection = new RtcPeerConnection(config);
-    wrapper.setRtcConnection(connection);
+
     // Make sure ICE candidates are sent to our remote peer.
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     // We expect there to be a datachannel available here eventually.
     connection.onDataChannel.listen((RtcDataChannelEvent e) {
-      wrapper.readyDataChannel(e.channel);
-      wrapper.setRtcConnection(connection);
+      e.channel.onOpen.listen((_){
+        wrapper.readyDataChannel(e.channel);
+      });
       e.channel.onMessage.listen((MessageEvent e) {
         wrapper.receiveData(e.data);
       });
@@ -258,6 +253,7 @@ class RtcConnectionFactory extends ConnectionFactory {
   }
 
   _addConnectionListeners(ConnectionWrapper wrapper, RtcPeerConnection connection) {
+    wrapper.setRtcConnection(connection);
     connection.onIceConnectionStateChange.listen((Event e) {
       if (connection.iceConnectionState == "checking") {
         // Do nothing...
