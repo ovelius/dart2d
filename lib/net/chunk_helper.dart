@@ -1,5 +1,5 @@
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
@@ -272,7 +272,7 @@ class ChunkHelper {
   }
 
   String getTransferSpeed() {
-    return counter.format();
+    return "${formatBytes(counter.getBytes())}/s";
   }
 
   Map<String, int> failuresByConnection() => new Map.from(_failures);
@@ -305,14 +305,4 @@ class _DataCounter {
     return bytesPerSecond;
   }
 
-  String format() {
-    int bytesPerSecond = getBytes();
-    if (bytesPerSecond > 2 * 1024 * 1024) {
-      return "${bytesPerSecond ~/ (1024 * 1024)} MB/s";
-    }
-    if (bytesPerSecond > 2 * 1024) {
-      return "${bytesPerSecond ~/ 1024} kB/s";
-    }
-    return "${bytesPerSecond} B/s";
-  }
 }

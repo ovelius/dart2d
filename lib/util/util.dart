@@ -32,3 +32,19 @@ class SelfPlayerInfoProvider {
     return _network.getGameState().playerInfoByConnectionId(peerId);
   }
 }
+
+T checkNotNull<T>(T t) {
+  if (t == null) {
+    throw new ArgumentError.notNull("Null not allowed!");
+  }
+}
+
+String formatBytes(int bytes) {
+  if (bytes > 4 * 1024 * 1024) {
+    return "${bytes ~/ (1024 * 1024)} MB";
+  }
+  if (bytes > 4 * 1024) {
+    return "${bytes ~/ 1024} kB";
+  }
+  return "${bytes} B";
+}

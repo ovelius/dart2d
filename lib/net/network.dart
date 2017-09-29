@@ -1,18 +1,11 @@
 import 'connection.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/util/gamestate.dart';
-import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/net/peer.dart';
-import 'package:dart2d/worlds/worm_world.dart';
-import 'dart:convert';
 import 'package:dart2d/net/net.dart';
-import 'package:dart2d/worlds/world.dart';
-import 'package:dart2d/util/keystate.dart';
-import 'package:dart2d/util/hud_messages.dart';
+import 'package:dart2d/util/util.dart';
+import 'dart:convert';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:di/di.dart';
-import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 // Network has 2 keyframes per second.
@@ -461,16 +454,15 @@ class Network {
     return false;
   }
 
-  String keyFrameDebugData() {
+  List<String> keyFrameDebugData() {
+    List<String> debugStrings = ["Connected to signal sever: ${peer.connectedToServer()}"];
     if (!hasReadyConnection()) {
-      return "No connections";
+      return debugStrings;
     }
-    String debugString = "";
     for (ConnectionWrapper connection in peer.connections.values) {
-      debugString +=
-          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms R/X/D: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}/${connection.droppedKeyFrames}";
+      debugStrings.add("${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: rx/tx: ${formatBytes(connection.rxBytes)}/${formatBytes(connection.txBytes)} kf: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}");
     }
-    return debugString;
+    return debugStrings;
   }
 
   void parseBundle(ConnectionWrapper connection, Map<String, dynamic> bundle) {

@@ -55,6 +55,10 @@ class ConnectionWrapper {
   int lastLocalPeerKeyFrameVerified = 0;
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
+
+  int rxBytes = 0;
+  int txBytes = 0;
+
   // Keep track of how long connection has been open.
   Stopwatch _connectionTimer = new Stopwatch();
   // When we time out.
@@ -182,6 +186,7 @@ class ConnectionWrapper {
   ]);
 
   void receiveData(data) {
+    rxBytes += data.length;
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     if (Logger.root.isLoggable(Level.FINE)) {
@@ -246,6 +251,9 @@ class ConnectionWrapper {
   }
 
   void sendData(Map data) {
+    if (Logger.root.isLoggable(Level.FINE)) {
+      log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
+    }
     assert(_dataChannel != null);
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
@@ -256,13 +264,17 @@ class ConnectionWrapper {
       // Then add previous data to it.
       data = new Map.from(data);;
     }
-    var jsonData = JSON.encode(data);
+    String jsonData = JSON.encode(data);
+    // Approximate it!
+    txBytes += jsonData.length;
     _dataChannel.sendString(jsonData);
   }
 
   void readyDataChannel(var dataChannel) {
     _dataChannel = dataChannel;
   }
+
+  bool hasReadyDataChannel() => _dataChannel != null;
 
   void setRtcConnection(var rtcConnection) {
     _rtcConnection = rtcConnection;

@@ -186,7 +186,8 @@ class Particles extends MovingSprite {
       other.takeDamage(damage, owner);
       lifeTime = 0;
     } else if (direction != null && direction != 0 && damage != null) {
-      world.explosionAt(centerPoint(), null, damage, radius * 1.5, owner);
+      world.explosionAt(
+          location: centerPoint(), damage:damage, radius:radius * 1.5, damagerDoer: owner);
       lifeTime = 0;
     }
   }

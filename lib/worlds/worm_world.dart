@@ -233,9 +233,12 @@ class WormWorld extends World {
     int frames = advanceFrames(duration);
 
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
+      List particles = [];
      if (sprite is Particles && sprite.sendToNetwork) {
-       Map data = {WORLD_PARTICLE: sprite.toNetworkUpdate()};
-       _network.peer.sendDataWithKeyFramesToAll(data);
+       particles.add(sprite.toNetworkUpdate());
+     }
+     if (particles.isNotEmpty) {
+       _network.peer.sendDataWithKeyFramesToAll({WORLD_PARTICLE: particles});
      }
     }
 
@@ -441,10 +444,30 @@ class WormWorld extends World {
     addSprite(new Particles.fromNetworkUpdate(data, this));
   }
   
-  void explosionAt(Vec2 location, Vec2 velocity, int damage, double radius, Sprite damagerDoer, [bool fromNetwork = false]) {
+  void explosionAt({
+        Vec2 location,
+        Vec2 velocity = null,
+        bool addParticles = false,
+        int damage,
+        double radius,
+        Sprite damagerDoer = null,
+        bool fromNetwork = false}) {
     clearWorldArea(location, radius);
-    if (velocity != null) {
-      addSprite(new Particles(this, null, location, velocity, null, radius, _particleCountFromFps()));
+    if (addParticles) {
+      checkNotNull(velocity);
+    }
+    if (velocity != null && addParticles) {
+      int particleCount = _particleCountFromFps();
+      if (particleCount > 0) {
+        addSprite(new Particles(
+            this,
+            null,
+            location,
+            velocity,
+            null,
+            radius,
+            particleCount));
+      }
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer);
     if (!fromNetwork) {
@@ -458,12 +481,12 @@ class WormWorld extends World {
    */
   int _particleCountFromFps() {
     if (_drawFps.fps() < 25) {
-      return 5;
+      return 0;
     }
     if (_drawFps.fps() < 40) {
-      return 15;
+      return 10;
     }
-    return 30;
+    return 20;
   }
 
   void fillRectAt(Vec2 pos, Vec2 size, String colorString,  [bool fromNetwork = false]) {
@@ -485,9 +508,16 @@ class WormWorld extends World {
     return frames;
   }
 
-  void explosionAtSprite(Sprite sprite, Vec2 velocity, int damage, double radius, Sprite damageDoer, [bool fromNetwork = false]) {
+  void explosionAtSprite({
+        Sprite sprite,
+        Vec2 velocity = null,
+        bool addpParticles = false,
+        int damage,
+        double radius,
+        Sprite damageDoer,
+        bool fromNetwork = false}) {
     clearWorldArea(sprite.centerPoint(), radius);
-    if (radius > 3) {
+    if (radius > 3 && addpParticles) {
       addSprite(
           new Particles(this, null, sprite.position, velocity, null, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
@@ -495,6 +525,7 @@ class WormWorld extends World {
     }
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
+      // TODO: Buffer here instead ?
       _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
@@ -542,7 +573,10 @@ class WormWorld extends World {
     if (data.length > 4) {
       velocity = new Vec2(data[4] / DOUBLE_INT_CONVERSION, data[5] / DOUBLE_INT_CONVERSION);
     }
-    explosionAt(pos, velocity, damage, radius, null, true);
+    explosionAt(
+        location:pos, velocity:velocity,
+        addParticles:velocity != null, damage:damage,
+        radius:radius, fromNetwork:true);
   }
   
   List<int> destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
@@ -629,12 +663,16 @@ class WormWorld extends World {
   void drawFpsCounters() {
     if (localKeyState.debug) {
       var font = _canvas.font;
-      _canvas.fillStyle = "#ffffff";
+      _canvas.fillStyle = "#ff0000";
       _canvas.font = '16pt Calibri';
       _canvas.fillText("DrawFps: $_drawFps", 0, 20);
       _canvas.fillText("NetworkFps: $networkFps", 0, 40);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);
-      _canvas.fillText("KeyFrames: ${_network.keyFrameDebugData()}", 0, 80);
+      int i = 0;
+      for (String connectionDebug in _network.keyFrameDebugData()) {
+        _canvas.fillText(connectionDebug, 0, 80 + i *20);
+        i++;
+      }
       _canvas.font = font;
     }
   }

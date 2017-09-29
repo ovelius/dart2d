@@ -16,13 +16,12 @@ class WorldListener {
   WormWorld _world;
   ByteWorld _byteWorld;
   GameState _gameState;
-  ImageIndex _imageIndex;
   PacketListenerBindings _packetListenerBindings;
   Network _network;
   MobileControls _mobileControls;
   HudMessages hudMessages;
 
-  WorldListener(this._packetListenerBindings, this._byteWorld, this._gameState, this._network, this.hudMessages, this._imageIndex, this._mobileControls) {
+  WorldListener(this._packetListenerBindings, this._byteWorld, this._gameState, this._network, this.hudMessages, this._mobileControls) {
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
     _packetListenerBindings.bindHandler(REMOVE_KEY, (ConnectionWrapper c, List removals) {
@@ -52,7 +51,9 @@ class WorldListener {
     });
     _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List data) {
       if (c.isValidGameConnection()) {
-        _world.addParticlesFromNetworkData(data);
+        for (List particleData in data) {
+          _world.addParticlesFromNetworkData(particleData);
+        }
       }
     });
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
