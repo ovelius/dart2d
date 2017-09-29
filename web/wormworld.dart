@@ -16,7 +16,7 @@ import 'dart:async';
 
 const bool USE_LOCAL_HOST_PEER = false;
 const Duration TIMEOUT = const Duration(milliseconds: 21);
-final Logger log = new Logger('Connection');
+final Logger log = new Logger('WormWorldMain');
 
 DateTime lastStep;
 WormWorld world;
@@ -207,8 +207,13 @@ class RtcConnectionFactory extends ConnectionFactory {
     log.info("Created DataChannel ${ourPeerId} <-> ${otherPeerId} Reliable: ${channel.reliable} Ordered: ${channel.ordered}");
     channel.onOpen.listen((_) {
       wrapper.readyDataChannel(channel);
+      log.info("Outbound datachannel to ${otherPeerId} ready.");
     });
     channel.onMessage.listen((MessageEvent e) {
+      if (!wrapper.hasReadyDataChannel()) {
+        log.warning("Receiving data on channel not marked as open, forcing open!");
+        wrapper.readyDataChannel(channel);
+      }
       wrapper.receiveData(e.data);
     });
     connection.createOffer().then((RtcSessionDescription desc) {
@@ -241,9 +246,14 @@ class RtcConnectionFactory extends ConnectionFactory {
     connection.onDataChannel.listen((RtcDataChannelEvent e) {
       e.channel.onOpen.listen((_){
         wrapper.readyDataChannel(e.channel);
+        log.info("Inbound datachannel to ${otherPeerId} ready.");
       });
-      e.channel.onMessage.listen((MessageEvent e) {
-        wrapper.receiveData(e.data);
+      e.channel.onMessage.listen((MessageEvent messageEvent) {
+        if (!wrapper.hasReadyDataChannel()) {
+          log.warning("Receiving data on channel not marked as open, forcing open!");
+          wrapper.readyDataChannel(e.channel);
+        }
+        wrapper.receiveData(messageEvent.data);
       });
     });
     // Set our local peers remote description, what type of data thus the other
@@ -268,6 +278,7 @@ class RtcConnectionFactory extends ConnectionFactory {
       } else {
         log.warning("Unhandled ICE connection state ${connection.iceConnectionState}");
       }
+      log.info("ICE connection to ${wrapper.id} state ${connection.iceConnectionState}");
     });
   }
 
