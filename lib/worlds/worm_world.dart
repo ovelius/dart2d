@@ -530,19 +530,15 @@ class WormWorld extends World {
     }
   }
 
-
-  
   void clearWorldArea(Vec2 location, double radius) {
     byteWorld.clearAt(location, radius);
-    // Breaking away stuff is too slow :(
-    // WorldPhys.lookAround(this, location.x, location.y, radius);
   }
 
   /**
    * Ensures that we have a connection to all clients in the game.
    * This is to be able to elect a new server in case the current server dies.
    *
-   * We also ensure the sprites in the world have consitent owners.
+   * We also ensure the sprites in the world have consistent owners.
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in _network.gameState.playerInfoList()) {

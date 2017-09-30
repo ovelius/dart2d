@@ -37,6 +37,7 @@ T checkNotNull<T>(T t) {
   if (t == null) {
     throw new ArgumentError.notNull("Null not allowed!");
   }
+  return t;
 }
 
 String formatBytes(int bytes) {

@@ -33,7 +33,6 @@ class BananaCake extends WorldDamageProjectile {
         damage: damage, radius: radius, damageDoer: owner);
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30, this);
-      sprite.particlesOnExplode = false;
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 

@@ -11,6 +11,14 @@ class Vec2 {
     return (first.x * second.x) + (first.y * second.y);
   }
 
+  static Point<int> createIntPointFromVec2(Vec2 vec2) {
+    return createIntPoint(vec2.x, vec2.y);
+  }
+
+  static Point<int> createIntPoint(double x, double y) {
+    return new Point(x.toInt(), y.toInt());
+  }
+
   double x;
   double y;
   
@@ -44,6 +52,10 @@ class Vec2 {
   
   double toAngle() {
     return atan2(y, x);
+  }
+
+  Point<int> asIntPoint() {
+    return createIntPointFromVec2(this);
   }
 
   Vec2 normalize() {
