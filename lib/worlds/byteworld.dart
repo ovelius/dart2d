@@ -5,22 +5,31 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 @Injectable()
+/**
+ * Represents the destructable world.
+ */
 class ByteWorld {
+  // Needs to create canvas.
   DynamicFactory _canvasFactory;
+  // Needs to create imageData.
   DynamicFactory _imageDataFactory;
-  int width;
-  int height;
-  Vec2 viewSize;
+  // Needs to create images.
+  DynamicFactory _imageFactory;
+  int _width;
+  int _height;
+  Point<int> viewSize;
   var canvas;
-  var _bedrocksCanvas;
+  var _bedrockImage;
 
   ByteWorld(
+      @ImageFactory() DynamicFactory imageFactory,
       @WorldWidth() int width, @WorldHeight() int height,
       @ImageDataFactory() DynamicFactory imageDataFactory,
       @CanvasFactory() DynamicFactory canvasFactory) {
-    this.viewSize = new Vec2(width * 1.0, height * 1.0);
+    this.viewSize = new Point(width, height);
     this._canvasFactory = canvasFactory;
     this._imageDataFactory = imageDataFactory;
+    this._imageFactory = imageFactory;
   }
 
   /**
@@ -28,30 +37,39 @@ class ByteWorld {
    */
   void setWorldImage(var image) {
     canvas = _canvasFactory.create([image.width, image.height]);
-    width = canvas.width;
-    height = canvas.height;
-    canvas.context2D.drawImageScaled(image, 0, 0, width, height);
-    _bedrocksCanvas = _canvasFactory.create([width, height]);
-    _computeBedrock();
+    _width = canvas.width;
+    _height = canvas.height;
+    canvas.context2D.drawImageScaled(image, 0, 0, _width, _height);
+    var bedrocksCanvas = _canvasFactory.create([_width, _height]);
+    _computeBedrock(bedrocksCanvas);
+    // Store bedrock result in image.
+    _bedrockImage = _imageFactory.create([_width, _height]);
+    _bedrockImage.src = bedrocksCanvas.toDataUrl();
   }
 
-  void _computeBedrock() {
+  /**
+   * Bedrock represents the parts of the world that can't be destroyed.
+   */
+  void _computeBedrock(var bedrockCanvas) {
     int segments = 10;
     // Compute 10 segments to avoid using too much memory.
-    int segmentSize = width ~/ segments;
+    int segmentSize = _width ~/ segments;
     for (int i = 0; i < segments + 1; i++) {
-      int startX = min(i * segmentSize, width);
-      int computeWidth = min(startX + segmentSize, width) - startX;
+      int startX = min(i * segmentSize, _width);
+      int computeWidth = min(startX + segmentSize, _width) - startX;
       if (computeWidth > 0) {
-        _computeBedrockSegment(startX, computeWidth);
+        _computeBedrockSegment(startX, computeWidth, bedrockCanvas);
       }
     }
   }
 
-  void _computeBedrockSegment(int startX, int computeWidth) {
-    // rgb = 59, 46, 1
-    List data = canvas.context2D.getImageData(startX, 0, computeWidth, height).data;
-    var newData = _imageDataFactory.create([computeWidth, height]);
+  /**
+   * Some colors in the level image can't be, we find them and put them
+   * in it's own image.
+   */
+  void _computeBedrockSegment(int startX, int computeWidth, var bedrockCanvas) {
+    List data = canvas.context2D.getImageData(startX, 0, computeWidth, _height).data;
+    var newData = _imageDataFactory.create([computeWidth, _height]);
     for (int i = 0; i < (data.length ~/ 4); i++) {
       int p = i * 4;
       if (data[p] == 59 && data[p + 1] == 46 && data[p + 2] == 1) {
@@ -91,7 +109,7 @@ class ByteWorld {
         newData.data[p + 3] = data[p + 3];
       }
     }
-    _bedrocksCanvas.context2D.putImageData(newData, startX, 0);
+    bedrockCanvas.context2D.putImageData(newData, startX, 0);
   }
 
   bool initialized() {
@@ -118,13 +136,17 @@ class ByteWorld {
     canvas.drawImageScaledFromSource(
        this.canvas,
        0, 0, // Source
-       width, height, // width.
-       x, y, width * wScale, height * hScale);
+       _width, _height, // width.
+       x, y, _width * wScale, _height * hScale);
   }
-  
+
+  /**
+   * Check if any pixel inside area is solid.
+   */
   bool isCanvasCollide(num x, num y, [num width = 1, num height = 1]) {
     List<int> data = canvas.context2D.getImageData(x, y, width, height).data;
     for (int i = 0; i < data.length / 4; i++) {
+      // If transparency data is present, we are solid.
       if (data[i*4 + 3] > 0) {
         return true;
       }
@@ -149,16 +171,21 @@ class ByteWorld {
       ..restore();
   }
 
+  /**
+   * Destroy part of the world. From an explosion perhaps?
+   */
   clearAt(Vec2 pos, double radius) {
+    Point<int> restoreRect = Vec2.createIntPoint(pos.x - radius - 1, pos.y - radius - 1);
+    int restoreSize =  (radius * 2 + 2).toInt();
     canvas.context2D
         ..save()
         ..beginPath()
         ..arc(pos.x, pos.y, radius, 0, 2 * PI, false)
         ..clip()
-        ..clearRect(pos.x - radius - 1, pos.y - radius - 1,
-                        radius * 2 + 2, radius * 2 + 2)
+        ..clearRect(restoreRect.x, restoreRect.y, restoreSize, restoreSize)
         ..restore();
-    canvas.context2D.drawImageScaled(_bedrocksCanvas, 0, 0, width, height);
+    // Re-apply any destroyed bedrock. It can't be destroyed :)
+    canvas.context2D.drawImage(_bedrockImage, 0, 0);
   }
 
   Vec2 randomNotSolidPoint(Vec2 sizeOffset) {
@@ -166,12 +193,15 @@ class ByteWorld {
     Vec2 point = null;
     for (int i = 0; i < 30; i++) {
       point = new Vec2(
-          new Random().nextInt(width - sizeOffset.x.toInt()).toDouble(),
-          new Random().nextInt(height - sizeOffset.y.toInt()).toDouble());
+          new Random().nextInt(_width - sizeOffset.x.toInt()).toDouble(),
+          new Random().nextInt(_height - sizeOffset.y.toInt()).toDouble());
       if (!isCanvasCollide(point.x, point.y)) {
         return point;
       }
     }
     return point;
   }
+
+  int get width => _width;
+  int get height => _height;
 }

@@ -13,7 +13,7 @@ class FakeCanvas {
     context2D = new FakeContext2D(this);
   }
 
-  toDataUrl(String type) => DATA_URL;
+  toDataUrl([String type]) => DATA_URL;
 }
 
 class FakeContext2D {
