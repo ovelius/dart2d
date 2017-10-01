@@ -7,8 +7,11 @@ enum Mod {
   DARTGUN,
   TV,
   BANANA,
+  HYPER,
   COFFEE,
   LITTER,
+  BRICK,
+  SHOTGUN,
   UNKNOWN,
 }
 
@@ -19,13 +22,14 @@ Map<Mod, dynamic> _killedMessages = {
   Mod.BANANA: (String killed, String killer) => "$killed went bananas from ${killer}'s banana pankcake",
   Mod.COFFEE: (String killed, String killer) => "$killed got burned by ${killer}'s coffee",
   Mod.LITTER: (String killed, String killer) => "$killed took a dive in ${killer}'s cat litter box",
+  Mod.BRICK: (String killed, String killer) => "$killed got hit by a ${killer}'s bricks",
+  Mod.HYPER: (String killed, String killer) => "$killed neon neon neon ${killer}'s blaster",
+  Mod.SHOTGUN: (String killed, String killer) => "$killed went on a date with ${killer}'s Old Betsy",
 };
 
 String killedMessage(String killed, String killer, Mod mod) {
   if (_killedMessages.containsKey(mod)) {
     return _killedMessages[mod](killed, killer);
   }
-  // TODO: Bring this back!
-  // log_.warning("Missing custom message for ${mod}!");
   return "$killed was killed by $killer";
 }

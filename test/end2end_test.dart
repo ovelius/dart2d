@@ -238,7 +238,7 @@ void main() {
 
       LocalPlayerSprite spriteA = worldA.spriteIndex[playerId(0)];
       LocalPlayerSprite spriteB = worldA.spriteIndex[playerId(1)];
-      spriteA.takeDamage(spriteA.health, spriteB);
+      spriteA.takeDamage(spriteA.health, spriteB, Mod.UNKNOWN);
 
       for (int i = 0; i < 50; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT);

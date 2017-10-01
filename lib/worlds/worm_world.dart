@@ -451,7 +451,8 @@ class WormWorld extends World {
         int damage,
         double radius,
         Sprite damagerDoer = null,
-        bool fromNetwork = false}) {
+        bool fromNetwork = false,
+        Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(location, radius);
     if (addParticles) {
       checkNotNull(velocity);
@@ -469,7 +470,7 @@ class WormWorld extends World {
             particleCount));
       }
     }
-    addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer);
+    addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity, radius, damage)};
       _network.peer.sendDataWithKeyFramesToAll(data);
@@ -515,13 +516,14 @@ class WormWorld extends World {
         int damage,
         double radius,
         Sprite damageDoer,
-        bool fromNetwork = false}) {
+        bool fromNetwork = false,
+        Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3 && addpParticles) {
       addSprite(
           new Particles(this, null, sprite.position, velocity, null, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
-          sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer);
+          sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer, mod);
     }
     if (!fromNetwork) {
       Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
@@ -604,13 +606,13 @@ class WormWorld extends World {
     colorString];
   }
   
-  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, Sprite damageDoer) {
+  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, Sprite damageDoer, Mod mod) {
     for (int networkId in spriteIndex.spriteIds()) {
       Sprite sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage);
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
-          sprite.takeDamage(damageTaken.toInt(), damageDoer);
+          sprite.takeDamage(damageTaken.toInt(), damageDoer, mod);
           if (sprite == this.playerSprite) {
             Random r = new Random();
             this.explosionFlash += r.nextDouble() * 1.5;

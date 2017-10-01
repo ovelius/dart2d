@@ -1,6 +1,7 @@
 
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
@@ -183,7 +184,7 @@ class Particles extends MovingSprite {
       return;
     }
     if (other != null && damage != null && other.takesDamage() &&  other.networkId != owner.networkId) {
-      other.takeDamage(damage, owner);
+      other.takeDamage(damage, owner, Mod.COFFEE);
       lifeTime = 0;
     } else if (direction != null && direction != 0 && damage != null) {
       world.explosionAt(

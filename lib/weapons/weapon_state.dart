@@ -56,6 +56,7 @@ class WeaponState {
     }),
     new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.gun, 2);
+      sprite.mod = Mod.BRICK;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
@@ -63,6 +64,7 @@ class WeaponState {
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
+        sprite.mod = Mod.SHOTGUN;
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
@@ -80,6 +82,7 @@ class WeaponState {
     }),
     new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
+      sprite.mod = Mod.DARTGUN;
       sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
       double sum = sprite.velocity.sum();
@@ -92,6 +95,7 @@ class WeaponState {
     }),
     new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
+      sprite.mod = Mod.TV;
       sprite.spriteType = SpriteType.CIRCLE;
       double a = random.nextDouble() + 0.2;
       sprite.color = "rgba(${random.nextInt(255)}, ${random.nextInt(255)}, ${random.nextInt(255)}, $a)";
@@ -127,6 +131,7 @@ class WeaponState {
     }),
     new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 100);
+      sprite.mod = Mod.LITTER;
       sprite.radius = 150.0;
       sprite.owner = weaponState.owner;
       sprite.explodeAfter = 5.0;
@@ -151,6 +156,7 @@ class WeaponState {
     }), */
     new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
+      sprite.mod = Mod.ZOOKA;
       sprite.radius = 40.0;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.05;

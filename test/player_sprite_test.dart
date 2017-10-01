@@ -40,27 +40,27 @@ void main() {
   });
   test('Test take damage', () {
     expect(otherSprite.health, equals(LocalPlayerSprite.MAX_HEALTH));
-    otherSprite.takeDamage(1, commanderSprite);
+    otherSprite.takeDamage(1, commanderSprite, Mod.UNKNOWN);
     expect(otherSprite.health, equals(LocalPlayerSprite.MAX_HEALTH));
 
     expect(commanderSprite.health, equals(LocalPlayerSprite.MAX_HEALTH));
-    commanderSprite.takeDamage(1, otherSprite);
+    commanderSprite.takeDamage(1, otherSprite, Mod.UNKNOWN);
     expect(commanderSprite.health, equals(LocalPlayerSprite.MAX_HEALTH - 1));
 
     commanderSprite.shieldPoints = 25;
-    commanderSprite.takeDamage(25, otherSprite);
+    commanderSprite.takeDamage(25, otherSprite, Mod.UNKNOWN);
     expect(commanderSprite.health, equals(LocalPlayerSprite.MAX_HEALTH - 1));
     expect(commanderSprite.shieldPoints, equals(0));
 
     commanderSprite.shieldPoints = 2;
-    commanderSprite.takeDamage(3, otherSprite);
+    commanderSprite.takeDamage(3, otherSprite, Mod.UNKNOWN);
     expect(commanderSprite.health, equals(LocalPlayerSprite.MAX_HEALTH - 2));
     expect(commanderSprite.shieldPoints, equals(0));
   });
 
   test("Test health powerup", () {
     when(mockImageIndex.getImageIdByName("health02.png")).thenReturn(3);
-    commanderSprite.takeDamage(99, otherSprite);
+    commanderSprite.takeDamage(99, otherSprite, Mod.UNKNOWN);
     Powerup p = new Powerup(Vec2.ONE, PowerUpType.HEALTH, mockImageIndex);
     p.collide(commanderSprite, null, null);
     expect(commanderSprite.health, equals(LocalPlayerSprite.MAX_HEALTH));
@@ -68,7 +68,7 @@ void main() {
 
   test("Test shield powerup", () {
     when(mockImageIndex.getImageIdByName("shieldi02.png")).thenReturn(3);
-    commanderSprite.takeDamage(99, otherSprite);
+    commanderSprite.takeDamage(99, otherSprite, Mod.UNKNOWN);
     Powerup p = new Powerup(Vec2.ONE, PowerUpType.SHIELD, mockImageIndex);
     p.collide(commanderSprite, null, null);
     expect(commanderSprite.shieldPoints, equals(LocalPlayerSprite.MAX_SHIELD));

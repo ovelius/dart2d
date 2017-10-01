@@ -1,4 +1,4 @@
-
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
@@ -201,7 +201,7 @@ class Sprite {
   }
 
   // TODO: Make methods below abstract?
-  void takeDamage(int damage, Sprite inflictor) {
+  void takeDamage(int damage, Sprite inflictor, Mod mod) {
 
   }
 

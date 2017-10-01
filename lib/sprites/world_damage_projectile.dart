@@ -3,6 +3,7 @@ import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
@@ -30,9 +31,10 @@ class BananaCake extends WorldDamageProjectile {
     world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
         addpParticles: particlesOnExplode,
-        damage: damage, radius: radius, damageDoer: owner);
+        damage: damage, radius: radius, damageDoer: owner, mod:Mod.BANANA);
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30, this);
+      sprite.mod = Mod.BANANA;
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -PI * 2; 
       sprite.velocity.y = -PI * 2; 
@@ -117,7 +119,7 @@ class Hyper extends WorldDamageProjectile {
     }
     assert(owner != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(damage, owner);
+      other.takeDamage(damage, owner, Mod.HYPER);
       remove = true;
     }
 
@@ -203,6 +205,8 @@ class WorldDamageProjectile extends MovingSprite {
   bool showCounter = true;
 
   bool particlesOnExplode = true;
+
+  Mod mod = Mod.UNKNOWN;
   
   WorldDamageProjectile(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
       : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
@@ -216,7 +220,7 @@ class WorldDamageProjectile extends MovingSprite {
     assert(owner != null);
     assert(damage != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(damage, owner);
+      other.takeDamage(damage, owner, mod);
       explode();
     }
      
@@ -258,7 +262,7 @@ class WorldDamageProjectile extends MovingSprite {
       world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
         addpParticles: particlesOnExplode,
-        damage: damage, radius: radius, damageDoer: owner);
+        damage: damage, radius: radius, damageDoer: owner, mod:mod);
     }
     this.remove = true;
   }

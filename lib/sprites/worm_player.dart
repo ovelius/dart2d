@@ -367,7 +367,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   int extraSendFlags() {
-   return Sprite.FLAG_NO_GRAVITY;
+   return 0;
   }
 
   void _applyVel(double right, double left) {
@@ -491,7 +491,7 @@ class LocalPlayerSprite extends MovingSprite {
     return collision;
   }
 
-  void takeDamage(int damage, LocalPlayerSprite inflictor) {
+  void takeDamage(int damage, LocalPlayerSprite inflictor, Mod mod) {
     if (world.network().isCommander()) {
       if (_shieldPoints > 0) {
         _shieldSec = 0.8;
@@ -525,7 +525,7 @@ class LocalPlayerSprite extends MovingSprite {
           world.checkWinner(killer);
         }
         spawnIn = RESPAWN_TIME;
-        _deathMessage(Mod.UNKNOWN);
+        _deathMessage(mod);
       }
     }
   }

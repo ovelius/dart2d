@@ -51,9 +51,14 @@ class HudMessages {
   }
 
   void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
-    if (shouldDrawTable()) {
+    bool netIssue = world.network().hasNetworkProblem();
+    if (shouldDrawTable() || netIssue) {
       context.save();
-      drawPlayerStats(context, world, world.width(), world.height(), world.spriteIndex, world.imageIndex());
+      if (netIssue) {
+        context.setFillColorRgb(0, 0, 0, 0.7);
+        context.fillRect(0, 0, world.width(), world.height());
+      }
+      drawPlayerStats(context, world, world.width(), world.height(), world.spriteIndex, world.imageIndex(), netIssue);
       context.restore();
     }
   }

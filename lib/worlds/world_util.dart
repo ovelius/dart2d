@@ -2,6 +2,7 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
 import 'worm_world.dart';
+import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
 
 Map<int, String> _KEY_TO_NAME = {
@@ -43,7 +44,8 @@ void drawPlayerStats(
     WormWorld world,
     int width, int height,
     SpriteIndex spriteIndex,
-    ImageIndex imageIndex) {
+    ImageIndex imageIndex,
+    bool netIssue) {
   GameState gameState = world.network().gameState;
   List<PlayerInfo> infoList = world.network().gameState.playerInfoList();
   Map<String, ConnectionWrapper> connections = world.network().safeActiveConnections();
@@ -68,7 +70,13 @@ void drawPlayerStats(
     }
     var img = imageIndex.getImageById(sprite.imageId);
     int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId].expectedLatency().inMilliseconds : 0;
-    String text = "${info.score} ${info.name} ${latency} ms ${gameState.actingCommanderId == info.connectionId ? "*" : ""}";
+    String text;
+    if (netIssue && gameState.actingCommanderId == info.connectionId) {
+      Random r = new Random();
+      text = "${info.score} ${info.name} ${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"} ms *";
+    } else {
+      text = "${info.score} ${info.name} ${latency} ms ${gameState.actingCommanderId == info.connectionId ? "*" : ""}";
+    }
     var metrics = context.measureText(text);
     double totalWidth = sprite.size.x * spriteScale + metrics.width;
     double x = width / 2 - totalWidth / 2;
@@ -96,7 +104,7 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
   }
   context.setFillColorRgb(0, 0, 0, 0.5);
   context.fillRect(0, 0, width, height);
-  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
   GameState gameState = world.network().getGameState();
   PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId);
   assert (winner != null);
@@ -139,7 +147,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   }
   context.setFillColorRgb(0, 0, 0, 0.5);
   context.fillRect(0, 0, width, height);
-  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
   PlayerInfo killer = player.killer;
   if (killer == null || killer == player.info) {
     return;

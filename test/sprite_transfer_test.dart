@@ -280,7 +280,7 @@ void main() {
       expect(playerBSprite.inGame(), equals(true));
       // Store away the position of the sprite in worldB.
       Vec2 positionBeforeDeath = new Vec2.copy(playerBSprite.position);
-      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
+      playerBSprite.takeDamage(playerBSprite.health, playerBSprite, Mod.UNKNOWN);
       expect(playerBSprite.position, equals(positionBeforeDeath));
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(false));
@@ -323,7 +323,7 @@ void main() {
       // Now force a switch of commander, but kill player first!
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
-      playerBSprite.takeDamage(playerBSprite.health, playerBSprite);
+      playerBSprite.takeDamage(playerBSprite.health, playerBSprite, Mod.UNKNOWN);
 
       worldA.drawFps().setFpsForTest(3.1);
       // Should be enough frames to switch commander and respawn the player.
@@ -378,7 +378,7 @@ void main() {
             ]));
 
       LocalPlayerSprite playerBSprite = worldA.spriteIndex[playerId(1)];
-      playerBSprite.takeDamage(playerBSprite.health - 1, playerBSprite);
+      playerBSprite.takeDamage(playerBSprite.health - 1, playerBSprite, Mod.UNKNOWN);
       int healthRemaining = playerBSprite.health;
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -388,7 +388,7 @@ void main() {
       LocalPlayerSprite playerBSpriteInB = worldB.spriteIndex[playerId(1)];
       expect(playerBSpriteInB.health, equals(playerBSprite.health));
 
-      playerBSprite.takeDamage(1, playerBSprite);
+      playerBSprite.takeDamage(1, playerBSprite, Mod.UNKNOWN);
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
