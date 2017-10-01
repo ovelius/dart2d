@@ -43,6 +43,7 @@ class Network {
       this._packetListenerBindings,
       @ServerFrameCounter() FpsCounter serverFrameCounter,
       ServerChannel serverChannel,
+      ConfigParams configParams,
       SpriteIndex spriteIndex,
       @LocalKeyState() KeyState localKeyState) {
     this._hudMessages = hudMessages;
@@ -50,7 +51,7 @@ class Network {
     this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(
-        _connectionFactory, this, hudMessages, serverChannel, _packetListenerBindings, _gaReporter);
+        _connectionFactory, this, hudMessages, configParams, serverChannel, _packetListenerBindings, _gaReporter);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,

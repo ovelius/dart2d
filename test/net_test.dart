@@ -3,6 +3,7 @@ library dart2d;
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprite.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
 
@@ -10,7 +11,8 @@ void main() {
   setUp(() {
     logOutputForTest();
     clearEnvironment();
-    logConnectionData = true;
+    logConnectionData = false;
+    Logger.root.level = Level.INFO;
     remapKeyNamesForTest();
   });
 

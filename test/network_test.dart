@@ -80,6 +80,7 @@ void main() {
         packetListenerBindings,
         mockFpsCounter,
         channel,
+        new ConfigParams({}),
         mockSpriteIndex,
         mockKeyState);
     network.world = mockWormWorld;

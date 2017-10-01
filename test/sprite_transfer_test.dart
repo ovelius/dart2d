@@ -16,6 +16,7 @@ void main() {
     testConnections.clear();
     testPeers.clear();
     logConnectionData = false;
+    Logger.root.level = Level.INFO;
     remapKeyNamesForTest();
   });
 

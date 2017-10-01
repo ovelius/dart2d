@@ -16,6 +16,7 @@ class PeerWrapper {
   ServerChannel _serverChannel;
   GaReporter _gaReporter;
   HudMessages _hudMessages;
+  ConfigParams _configParams;
   PacketListenerBindings _packetListenerBindings;
   String id = null;
   bool _connectedToServer = false;
@@ -29,7 +30,7 @@ class PeerWrapper {
   // Peers which we have has a connection to, but is now closed.
   Set<String> _closedConnectionPeers = new Set();
 
-  PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._serverChannel, this._packetListenerBindings, this._gaReporter) {
+  PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._configParams, this._serverChannel, this._packetListenerBindings, this._gaReporter) {
     assert(_serverChannel != null);
     _serverChannel.dataStream().listen((dynamic data) => _onServerMessage(data));
   }
@@ -86,10 +87,17 @@ class PeerWrapper {
    * Receive list of peers from server. Automatically connect. 
    */
   void _receivePeers(List<String> ids) {
-    ids.remove(this.id);
-    log.info("Received active peers of $ids");
-    _activeIds = ids;
-    autoConnectToPeers();
+    List<String> configIds = _configParams.getStringList(ConfigParam.EXPLICIT_PEERS);
+    if (configIds.isEmpty) {
+      ids.remove(this.id);
+      log.info("Received active peers of $ids");
+      _activeIds = ids;
+      autoConnectToPeers();
+    } else {
+      log.info("Using peersIds from URL parameters $configIds");
+      _activeIds = configIds;
+      autoConnectToPeers();
+    }
   }
 
   bool hasMaxAutoConnections() => connections.length >= MAX_AUTO_CONNECTIONS;

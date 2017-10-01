@@ -4,6 +4,7 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:di/di.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
@@ -17,7 +18,8 @@ void main() {
     expectWarningContaining('DO_NOT_CREATE');
     expectWarningContaining('would overwrite existing sprite');
     clearEnvironment();
-    logConnectionData = true;
+    logConnectionData = false;
+    Logger.root.level = Level.INFO;
     remapKeyNamesForTest();
   });
 
