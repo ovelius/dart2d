@@ -366,6 +366,10 @@ class LocalPlayerSprite extends MovingSprite {
     return true;
   }
 
+  int extraSendFlags() {
+   return Sprite.FLAG_NO_GRAVITY;
+  }
+
   void _applyVel(double right, double left) {
     if (left != null) {
       if (velocity.x > -100) {
@@ -588,10 +592,6 @@ class LocalPlayerSprite extends MovingSprite {
 
   void set jetPackSec(double secs) {
     this._jetPackSec = secs;
-  }
-
-  int extraSendFlags() {
-    return 0;
   }
 
   SpriteConstructor remoteRepresentation() {

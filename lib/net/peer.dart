@@ -146,18 +146,18 @@ class PeerWrapper {
     return wrapper;
   }
 
-  void sendDataWithKeyFramesToAll(Map data, [var dontSendTo]) {
+  void sendDataWithKeyFramesToAll(Map data, [String dontSendTo]) {
     List<String> closedConnections = [];
     for (var key in connections.keys) {
       ConnectionWrapper connection = connections[key];
+      if (dontSendTo != null && dontSendTo == connection.id) {
+        continue;
+      }
       if (!connection.isValidConnection()) {
         closedConnections.add(key);
         continue;
       }
       if (!connection.isActiveConnection()) {
-        continue;
-      }
-      if (dontSendTo != null && dontSendTo == connection.id) {
         continue;
       }
       connection.sendData(data);
@@ -204,9 +204,10 @@ class PeerWrapper {
       if (commanderId != null) {
         // We got elected the new server, first task is to remove the old.
         if (commanderId == this.id) {
-          log.info("Server: Removing GameState for ${id}");
-          _network.gameState.removeByConnectionId(_network.world, id);
-          _network.convertToCommander(connectionsCopy);
+          log.info("Server ${this.id}: Removing GameState for ${id}");
+          PlayerInfo info = _network.gameState.removeByConnectionId(_network.world, id);
+          log.info("Info is ${info} i am ${this.id}");
+          _network.convertToCommander(connectionsCopy, info);
           _network.gameState.markAsUrgent();
         } else {
           PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
@@ -214,10 +215,10 @@ class PeerWrapper {
           ConnectionWrapper connection = connections[commanderId];
           _network.gameState.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
-          _hudMessages.display("Elected new server ${info.name}");
+          _hudMessages.display("Elected new commander ${info.name}");
         }
       } else {
-        log.fine("Not switching commander after dropping ${id}");
+        log.info("Not switching commander after dropping ${id}");
       }
     }
     // Reconnect peer to server to allow receiving connections yet again.

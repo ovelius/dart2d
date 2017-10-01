@@ -73,6 +73,7 @@ class TestConnection {
 
   void signalClose() {
     _internalWrapper.close();
+    _otherEnd._internalWrapper.close();
   }
 
   sendAndReceivByOtherPeer(String jsonString) {

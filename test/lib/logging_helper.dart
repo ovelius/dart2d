@@ -1,5 +1,4 @@
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'package:test/test.dart';
 
 Map<Level, List<String>> _logged = {};
 List<String> _expected = [];

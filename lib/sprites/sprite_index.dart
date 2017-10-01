@@ -41,8 +41,8 @@ class SpriteIndex {
     },
     SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),
     SpriteConstructor.POWERUP: (WormWorld world, int spriteId, String connectionId) => new Powerup.createEmpty(world.imageIndex()),
-    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(0.0, 0.0, 0, world.imageIndex()),
-    SpriteConstructor.HYPER: (WormWorld world, int spriteId, String connectionId) => new Hyper(0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HYPER: (WormWorld world, int spriteId, String connectionId) => new Hyper(world, 0.0, 0.0, 0, world.imageIndex()),
   };
     
   static MovingSprite fromWorldByIndex(WormWorld world, int spriteId, String connectionId, SpriteConstructor constructor) {

@@ -43,13 +43,14 @@ class Sprite {
   int frameIndex = 0;
   int frames = 1;
 
-  // Frame when sprite is remoted from world.
   int lifeTime = UNLIMITED_LIFETIME;
 
   int networkId;
   NetworkType networkType = NetworkType.LOCAL;
-  var ownerId;
-  // Send a coulple of frames of full data for newly added sprites.
+  // The connection that originally created this sprite.
+  // If the local world is owner, can be left null.
+  String ownerId;
+  // Send a couple of frames of full data for newly added sprites.
   int fullFramesOverNetwork = 3;
   // Will be removed by the engine.
   bool remove = false;

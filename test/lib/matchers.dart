@@ -137,6 +137,11 @@ class WorldPlayerMatcher extends WorldSpriteMatcher {
     return this;
   }
 
+  WorldPlayerMatcher andOwnerId(String ownerId) {
+    super.andOwnerId(ownerId);
+    return this;
+  }
+
   bool _keyStateMatches(LocalPlayerSprite sprite) {
     return sprite.info.remoteKeyState().remoteState == _remoteKeyState;
   }
@@ -168,10 +173,16 @@ class WorldSpriteMatcher extends Matcher {
   int _networkId;
   int _imageIndex = null;
   NetworkType _networkType = null;
+  String _ownerId = null;
   WorldSpriteMatcher(this._networkId);
 
   WorldSpriteMatcher andSpriteId(int id) {
     _networkId = id;
+    return this;
+  }
+
+  WorldSpriteMatcher andOwnerId(String ownerId) {
+    _ownerId = ownerId;
     return this;
   }
 
@@ -183,10 +194,14 @@ class WorldSpriteMatcher extends Matcher {
   WorldSpriteMatcher andNetworkType(NetworkType networkType) {
      _networkType = networkType;
      return this;
-   } 
+  }
 
   bool matchesNetworkType(Sprite sprite) {
     return _networkType != null ? sprite.networkType == _networkType : true;
+  }
+
+  bool matchesOwnerId(Sprite sprite) {
+    return _ownerId != null ? sprite.ownerId == _ownerId : true;
   }
 
   bool matchesImageIndex(Sprite sprite) {
@@ -207,7 +222,7 @@ class WorldSpriteMatcher extends Matcher {
     Sprite sprite = _spriteFromItem(item);
     if (sprite != null) {
       if (sprite.networkId == _networkId) {
-        return matchesNetworkType(sprite) && matchesImageIndex(sprite);
+        return matchesNetworkType(sprite) && matchesImageIndex(sprite) && matchesOwnerId(sprite);
       }
     }
     return false;
@@ -221,6 +236,8 @@ class WorldSpriteMatcher extends Matcher {
         mismatchDescription.add("World sprites ${item.spriteIndex} does not contain key ${_networkId}\n");
       } else if (sprite.networkType != _networkType) {
         mismatchDescription.add("Sprite.networktype = ${sprite.networkType} != ${_networkType}\n");
+      } else if (sprite.ownerId != _ownerId) {
+        mismatchDescription.add("Sprite.ownerId = ${sprite.ownerId} != ${_ownerId}\n");
       }
     } else {
       mismatchDescription.add("Matched item must be World");

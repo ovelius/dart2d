@@ -1,7 +1,8 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/worlds.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:di/di.dart';
@@ -44,19 +45,23 @@ void main() {
               .andNetworkType(NetworkType.LOCAL),
           hasPlayerSpriteWithNetworkId(playerId(1))
               .andNetworkType(NetworkType.REMOTE_FORWARD)
+              .andOwnerId('b')
               .andRemoteKeyState(),
           hasPlayerSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.REMOTE_FORWARD)
+              .andOwnerId('c')
               .andRemoteKeyState(),
       ]));
       expect(worldB, hasExactSprites([
         hasPlayerSpriteWithNetworkId(playerId(0))
                 .andNetworkType(NetworkType.REMOTE)
+                .andOwnerId('a')
                 .andRemoteKeyState(),
         hasPlayerSpriteWithNetworkId(playerId(1))
                 .andNetworkType(NetworkType.LOCAL),
         hasPlayerSpriteWithNetworkId(playerId(2))
                 .andNetworkType(NetworkType.REMOTE)
+                .andOwnerId('c')
                 .andRemoteKeyState(),
       ]));
       // Assert server A representation.
@@ -139,8 +144,10 @@ void main() {
         hasPlayerSpriteWithNetworkId(playerId(2))
              .andNetworkType(NetworkType.LOCAL),
         hasSpriteWithNetworkId(sprite.networkId)
+             .andOwnerId('b')
              .andNetworkType(NetworkType.REMOTE),
         hasSpriteWithNetworkId(imageSprite.networkId)
+             .andOwnerId('b')
              .andNetworkType(NetworkType.REMOTE),
       ]));
       // Now remove the sprite.
@@ -150,7 +157,8 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
         worldC.frameDraw(KEY_FRAME_DEFAULT);
       }
-      
+
+      // It's removed from all worlds.
       expect(worldB, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
               .andNetworkType(NetworkType.LOCAL),
@@ -169,7 +177,72 @@ void main() {
       expect(recentReceviedDataFrom("c", 1),
           new MapKeyMatcher.doesNotContain(REMOVE_KEY));
     });
-    
+
+    test('TestKillDormantSprites', () {
+      Logger.root.level = Level.FINE;
+      Injector injectorA = createWorldInjector('a');
+      Injector injectorB = createWorldInjector('b');
+      Injector injectorC = createWorldInjector('c');
+      WormWorld worldA = initTestWorld(injectorA);
+      WormWorld worldB = initTestWorld(injectorB);;
+      WormWorld worldC = initTestWorld(injectorC);;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw();
+      expect(worldA, hasPlayerSpriteWithNetworkId(playerId(0))
+          .andNetworkType(NetworkType.LOCAL));
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+
+      LocalPlayerSprite playerSprite = worldB.spriteIndex[playerId(0)];
+      expect(playerSprite, isNotNull);
+      _TestDamageProjectile sprite = new _TestDamageProjectile(worldA, playerSprite, 100);
+      sprite.explodeAfter = 1000.0;
+      sprite.position.y = 0.0;
+      sprite.networkId = 999;
+      worldA.addSprite(sprite);
+      worldA.frameDraw();
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+      expect(worldB, hasSpriteWithNetworkId(sprite.networkId)
+          .andNetworkType(NetworkType.REMOTE)
+          .andOwnerId('a'));
+      expect(worldA, hasSpriteWithNetworkId(sprite.networkId)
+          .andNetworkType(NetworkType.LOCAL));
+      expect(worldC, hasSpriteWithNetworkId(sprite.networkId)
+          .andNetworkType(NetworkType.REMOTE)
+          .andOwnerId('a'));
+
+      sprite.verifyAgainst(worldA.spriteIndex[sprite.networkId]);
+      sprite.verifyAgainst(worldB.spriteIndex[sprite.networkId]);
+      sprite.verifyAgainst(worldC.spriteIndex[sprite.networkId]);
+
+      // A is dying.
+      testConnections['a'].forEach((e) { e.signalClose(); });
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+        worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      }
+
+      // WorldB took ownership of this sprite, but deleted it since
+      // a was the owner of it.
+      expect(worldB.network().isCommander(), isTrue);
+      expect(worldB.spriteIndex.hasSprite(sprite.networkId), isFalse);
+      expect(worldC.spriteIndex.hasSprite(sprite.networkId), isFalse);
+      // Still remains in a.
+      expect(worldA.spriteIndex.hasSprite(sprite.networkId), isTrue);
+    });
+
     test('TestGameStateTransferKillPlayer', () {
       WormWorld worldA = testWorld("a");
       WormWorld worldB = testWorld("b");
@@ -519,4 +592,22 @@ Weapon findBananaWeapons(LocalPlayerSprite sprite) {
 class _fakeKeyCode {
   int keyCode;
   _fakeKeyCode(this.keyCode);
+}
+
+class _TestDamageProjectile extends WorldDamageProjectile {
+  _TestDamageProjectile(WormWorld world, MovingSprite owner, int damage, [MovingSprite positionBase])
+      : super.createWithOwner(world, owner, damage, positionBase) {
+    radius = 99.0;
+  }
+
+  collide(MovingSprite other, ByteWorld world, int direction) {
+    print("_TestDamageProjectile collide ${other} ${world} ${direction}");
+  }
+
+  verifyAgainst(WorldDamageProjectile other) {
+    expect(radius, equals(other.radius));
+    expect(damage, equals(other.damage));
+    expect(showCounter, equals(other.showCounter));
+    expect(owner.networkId, equals(other.owner.networkId));
+  }
 }

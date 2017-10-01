@@ -89,7 +89,7 @@ class Network {
       }
       // Server wants us to take command.
       log.info("Coverting self ${peer.id} to commander");
-      this.convertToCommander(this.safeActiveConnections());
+      this.convertToCommander(this.safeActiveConnections(), null);
       _gaReporter.reportEvent("convert_self_to_commander_on_request", "Commander");
     });
   }
@@ -183,15 +183,38 @@ class Network {
   /**
    * Set this peer as the commander.
    */
-  void convertToCommander(Map connections) {
+  void convertToCommander(Map connections, PlayerInfo previousCommanderPlayerInfo) {
     _hudMessages.display("Commander role tranferred to you :)");
+    String oldCommanderId = gameState.actingCommanderId;
     gameState.convertToServer(world, this.peer.id);
+    List<int> spriteIds = new List.from(_spriteIndex.spriteIds());
+    for (int id in spriteIds) {
+      Sprite sprite = _spriteIndex[id];
+      if (sprite == null) {
+        continue;
+      }
+      // Transfer ownership of the old commanders sprites to us.
+      if (sprite.ownerId == oldCommanderId && sprite.networkType == NetworkType.REMOTE) {
+        sprite.ownerId = null;
+        sprite.networkType = NetworkType.LOCAL;
+      }
+      // Remove any projectiles without owner.
+      if (previousCommanderPlayerInfo != null) {
+        if (sprite is WorldDamageProjectile && sprite.owner != null
+            && sprite.owner.networkId == previousCommanderPlayerInfo.spriteId) {
+          sprite.remove = true;
+          sprite.collision = false;
+
+        }
+      }
+    }
+
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id];
       connection.sendPing();
       if (connection.isValidGameConnection()) {
         PlayerInfo info = gameState.playerInfoByConnectionId(id);
-        // Make it our responsibility to foward data from other players.
+        // Make it our responsibility to forward data from other players.
         Sprite sprite = _spriteIndex[info.spriteId];
         if (sprite.networkType == NetworkType.REMOTE) {
           sprite.networkType = NetworkType.REMOTE_FORWARD;
@@ -329,12 +352,12 @@ class Network {
     return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isCommander();
   }
 
-  void sendMessage(String message) {
+  void sendMessage(String message, [String dontSendTo]) {
     Map data = {
       MESSAGE_KEY: [message],
       IS_KEY_FRAME_KEY: currentKeyFrame
     };
-    peer.sendDataWithKeyFramesToAll(data);
+    peer.sendDataWithKeyFramesToAll(data, dontSendTo);
   }
 
   void maybeSendLocalKeyStateUpdate() {

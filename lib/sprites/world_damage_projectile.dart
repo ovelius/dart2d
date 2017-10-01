@@ -9,7 +9,7 @@ import 'dart:math';
 
 class BananaCake extends WorldDamageProjectile {
   BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
-       : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
+       : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
       this.world = world;
       this.owner = owner;
       this.damage = damage;
@@ -51,11 +51,11 @@ class BananaCake extends WorldDamageProjectile {
 class Hyper extends WorldDamageProjectile {
   int _quality = 40;
 
-  Hyper(double x, double y, int imageId, ImageIndex imageIndex)
-      : super(x, y, imageId, imageIndex);
+  Hyper(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, imageId, imageIndex);
 
   Hyper.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
-      : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
+      : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
@@ -137,7 +137,7 @@ class BrickBuilder extends WorldDamageProjectile {
   static const int COLOR_G = 51;
   static const int COLOR_B = 17;
   BrickBuilder.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
-      : super(0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
+      : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
@@ -204,14 +204,17 @@ class WorldDamageProjectile extends MovingSprite {
 
   bool particlesOnExplode = true;
   
-  WorldDamageProjectile(double x, double y, int imageId, ImageIndex imageIndex)
-      : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex);
+  WorldDamageProjectile(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super.imageBasedSprite(new Vec2(x, y), imageId, imageIndex) {
+    this.world = world;
+  }
 
   collide(MovingSprite other, ByteWorld world, int direction) {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
     assert(owner != null);
+    assert(damage != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
       other.takeDamage(damage, owner);
       explode();
@@ -287,7 +290,9 @@ class WorldDamageProjectile extends MovingSprite {
 
   void addExtraNetworkData(List data) {
     data.add(radius);
+    data.add(damage);
     data.add(showCounter);
+    data.add(owner.networkId);
     if (explodeAfter != null) {
       data.add(explodeAfter.toInt());
     }
@@ -295,9 +300,12 @@ class WorldDamageProjectile extends MovingSprite {
 
   void parseExtraNetworkData(List data, int startAt) {
     radius = data[startAt];
-    showCounter = data[startAt + 1];
-    if (data.length > startAt + 2) {
-      this.explodeAfter = data[startAt + 2].toDouble();
+    damage = data[startAt + 1];
+    showCounter = data[startAt + 2];
+    int ownerId = data[startAt + 3];
+    this.owner = world.spriteIndex[ownerId];
+    if (data.length > startAt + 4) {
+      this.explodeAfter = data[startAt + 4].toDouble();
     }
   }
 

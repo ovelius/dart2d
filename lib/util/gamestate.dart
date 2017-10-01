@@ -206,13 +206,13 @@ class GameState {
     return map;
   }
 
-  removeByConnectionId(WormWorld world, var id) {
+  PlayerInfo removeByConnectionId(WormWorld world, String id) {
     for (int i = _playerInfo.length - 1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       if (info.connectionId == id) {
         _playerInfo.removeAt(i);
         _playerInfoById.remove(info.connectionId);
-        world.network().sendMessage("${info.name} disconnected :/");
+        world.network().sendMessage("${info.name} disconnected :/", id);
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
         Sprite sprite = _spriteIndex[info.spriteId];
@@ -222,9 +222,11 @@ class GameState {
           sprite.networkType = NetworkType.REMOTE_FORWARD;
         }
         world.removeSprite(info.spriteId);
-        return;
+        return info;
       }
     }
+    // throw new ArgumentError("Invalid id ${id}");
+    return null;
   }
 
   /**
