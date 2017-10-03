@@ -522,7 +522,7 @@ class Network {
           MovingSprite sprite =
               world.getOrCreateSprite(parsedNetworkId, constructor, connection);
           if (sprite == null) {
-            log.info(
+            log.fine(
                 "Not creating sprite from update ${networkId}, constructor is ${constructor}");
             continue;
           }

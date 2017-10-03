@@ -10,6 +10,9 @@ class MobileControls {
   static const int NO_BUTTON_TOUCH = -1;
   bool _isMobileBrowser;
   KeyState _localKeyState;
+  Bot _bot;
+  bool _botEnabled;
+  ConfigParams _configParams;
   int _width, _height;
   var _canvas = null;
   var _screen = null;
@@ -24,12 +27,13 @@ class MobileControls {
   DateTime _lastInput = new DateTime.now();
 
   MobileControls(
-      SelfPlayerInfoProvider selfPlayerInfoProvider,
+      this._selfPlayerInfoProvider,
+      this._configParams,
+      this._bot,
       @HtmlScreen() Object screen,
       @LocalKeyState() KeyState localKeyState,
       @TouchControls() bool isMobileBrowser,
       @WorldCanvas() Object canvasElement) {
-    this._selfPlayerInfoProvider = selfPlayerInfoProvider;
     this._isMobileBrowser = isMobileBrowser;
     this._localKeyState = localKeyState;
     var canvasHack = canvasElement;
@@ -37,7 +41,7 @@ class MobileControls {
     this._screen = screen;
     this._width = canvasHack.width;
     this._height = canvasHack.height;
-
+    this._botEnabled = _configParams.getBool(ConfigParam.BOT_ENABLED);
     num thirdX = _width / 3;
     num halfY = _height / 2 + BUTTON_SIZE + BUTTON_SIZE;
     num yDiff = 50;
@@ -60,8 +64,10 @@ class MobileControls {
     _buttonToKey[4] = new _fakeKeyCode(KeyCodeDart.Q);
   }
 
-  draw() {
-    if (_isMobileBrowser) {
+  draw(double duration) {
+    if (_botEnabled) {
+      _bot.tick(duration);
+    } else if (_isMobileBrowser) {
       PlayerInfo selfInfo = _selfPlayerInfoProvider.getSelfInfo();
       if (selfInfo == null || !selfInfo.inGame) {
         return;

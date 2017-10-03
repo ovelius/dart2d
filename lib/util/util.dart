@@ -8,6 +8,7 @@ export 'fps_counter.dart';
 export 'hud_messages.dart';
 export 'keystate.dart';
 export 'mobile_controls.dart';
+export 'bot.dart';
 export 'gamestate.dart';
 export 'config_params.dart';
 
@@ -19,6 +20,7 @@ class UtilModule extends Module {
     bind(MobileControls);
     bind(SelfPlayerInfoProvider);
     bind(ConfigParams);
+    bind(Bot);
   }
 }
 

@@ -325,7 +325,7 @@ class WormWorld extends World {
     drawFpsCounters();
     hudMessages.render(this, _canvas, duration);
 
-    _mobileControls.draw();
+    _mobileControls.draw(duration);
 
     _canvas.restore();
 
