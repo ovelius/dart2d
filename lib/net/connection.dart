@@ -56,6 +56,14 @@ class ConnectionWrapper {
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
 
+  // Storage of our reliable key data.
+  Map _reliableDataBuffer = {};
+  // Reliable verifications.
+  List<int> _reliableDataToVerify = [];
+
+  Map get reliableDataBuffer => _reliableDataBuffer;
+  List get reliableDataToVerify => _reliableDataToVerify;
+
   int rxBytes = 0;
   int txBytes = 0;
 
@@ -67,10 +75,7 @@ class ConnectionWrapper {
   Duration _latency = DEFAULT_TIMEOUT;
 
   ConnectionWrapper(
-      this._network,
-      this._hudMessages,
-      this.id,
-      this._packetListenerBindings,
+      this._network, this._hudMessages, this.id, this._packetListenerBindings,
       [timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Start the connection timer.
@@ -181,6 +186,8 @@ class ConnectionWrapper {
   Set<String> _ignoreListeners = new Set.from([
     IS_KEY_FRAME_KEY,
     KEY_FRAME_KEY,
+    DATA_RECEIPTS,
+    CONTAINED_DATA_RECEIPTS,
     PING,
     PONG,
   ]);
@@ -209,9 +216,18 @@ class ConnectionWrapper {
       _initialPongReceived = true;
     }
 
+    if (dataMap.containsKey(DATA_RECEIPTS)) {
+      for (int receipt in dataMap[DATA_RECEIPTS]) {
+        _reliableDataBuffer.remove(receipt);
+      }
+    }
+
     // New path.
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
+        if (key == CONTAINED_DATA_RECEIPTS) {
+          _reliableDataToVerify.addAll(dataMap[CONTAINED_DATA_RECEIPTS]);
+        }
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
             handler(this, dataMap[key]);
@@ -230,15 +246,56 @@ class ConnectionWrapper {
     // Don't continue handling data if handshake is not finished.
     if (!_handshakeReceived) {
       log.fine("not handling data ${dataMap}, handshake not received.");
-      if (_network.getGameState().isInGame(_network.peer.id) && _network.getGameState().playerInfoByConnectionId(this.id) != null && !_network.isCommander()) {
+      if (_network.getGameState().isInGame(_network.peer.id) &&
+          _network.getGameState().playerInfoByConnectionId(this.id) != null &&
+          !_network.isCommander()) {
         // TODO figure out why this hack is needed...
-        log.warning("This is odd since connections is in the gamestate. Overriding!");
+        log.warning(
+            "This is odd since connections is in the gamestate. Overriding!");
         _handshakeReceived = true;
       } else {
         return;
       }
     }
     _network.parseBundle(this, dataMap);
+  }
+
+  void alsoSendWithStoredData(Map dataMap) {
+    storeAwayReliableData(dataMap);
+    for (int hash in new List.from(_reliableDataBuffer.keys)) {
+      List tuple = _reliableDataBuffer[hash];
+      String reliableKey = tuple[0];
+      if (dataMap.containsKey(reliableKey)) {
+        // Merge data with previously saved data for this key.
+        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
+        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
+        _addContainedReceipt(dataMap, hash);
+      } else {
+        dataMap[reliableKey] = tuple[1];
+        _addContainedReceipt(dataMap, hash);
+      }
+    }
+  }
+
+  void _addContainedReceipt(Map dataMap, int receipt) {
+    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
+      dataMap[CONTAINED_DATA_RECEIPTS] = [];
+    }
+    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
+      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
+    }
+  }
+
+  void storeAwayReliableData(Map dataMap) {
+    for (String reliableKey in RELIABLE_KEYS.keys) {
+      if (dataMap.containsKey(reliableKey)) {
+        Object data = dataMap[reliableKey];
+        int jsonHash = JSON.encode(data).hashCode;
+        _reliableDataBuffer[jsonHash] = [reliableKey, data];
+        _addContainedReceipt(dataMap, jsonHash);
+      }
+    }
+    ;
   }
 
   void checkIfShouldClose(int keyFrame) {
@@ -254,6 +311,16 @@ class ConnectionWrapper {
     if (Logger.root.isLoggable(Level.FINE)) {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
     }
+    if (!_reliableDataToVerify.isEmpty) {
+      data[DATA_RECEIPTS] = _reliableDataToVerify;
+      _reliableDataToVerify = [];
+    }
+    if (_reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE &&
+        !_initialPongReceived) {
+      log.warning(
+          "Connection to $id too many reliable packets behind ${_reliableDataBuffer.length}, dropping!");
+      close();
+    }
     assert(_dataChannel != null);
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
@@ -262,7 +329,11 @@ class ConnectionWrapper {
       checkIfShouldClose(data[IS_KEY_FRAME_KEY]);
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
-      data = new Map.from(data);;
+      data = new Map.from(data);
+      alsoSendWithStoredData(data);
+    } else {
+      // Store away any reliable data sent.
+      storeAwayReliableData(data);
     }
     String jsonData = JSON.encode(data);
     // Approximate it!
@@ -297,7 +368,7 @@ class ConnectionWrapper {
   }
 
   bool isActiveConnection() {
-    return _opened && !closed  && _dataChannel != null && _rtcConnection != null;
+    return _opened && !closed && _dataChannel != null && _rtcConnection != null;
   }
 
   bool wasOpen() => _opened;

@@ -25,6 +25,8 @@ String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
 String TRANSFER_COMMAND = "tt";
+String DATA_RECEIPTS = ".";
+String CONTAINED_DATA_RECEIPTS = ";";
 String OTHER_PLAYER_WORLD_SELECT = "se";
 
 /**
@@ -55,11 +57,27 @@ void remapKeyNamesForTest() {
 
   TRANSFER_COMMAND = "transfer_command";
 
+  DATA_RECEIPTS = "data_receipts";
+  CONTAINED_DATA_RECEIPTS = "contained_data_receipts";
   OTHER_PLAYER_WORLD_SELECT = "world_select";
 }
 
 // We lazily convert doubles to int by multiplying them with this factor.
 const double DOUBLE_INT_CONVERSION = 10000.0;
+
+// Keys that should be delivered reliable.
+// Mapped to the function how old and new data should be merged.
+Map RELIABLE_KEYS = {
+  REMOVE_KEY: mergeUniqueList,
+  MESSAGE_KEY: mergeUniqueList,
+  WORLD_DESTRUCTION: mergeUniqueList,
+  WORLD_DRAW: mergeUniqueList,
+  CLIENT_PLAYER_SPEC: singleTonStoredValue,
+  CLIENT_PLAYER_ENTER: singleTonStoredValue,
+  SERVER_PLAYER_REPLY: singleTonStoredValue,
+  PING: singleTonStoredValue,
+  PONG: singleTonStoredValue,
+};
 
 // Keys that should not be handled as sprite state updates.
 Set<String> SPECIAL_KEYS = new Set.from([
@@ -82,11 +100,30 @@ Set<String> SPECIAL_KEYS = new Set.from([
   WORLD_PARTICLE,
   OTHER_PLAYER_WORLD_SELECT,
   IMAGE_DATA_REQUEST,
+  DATA_RECEIPTS,
+  CONTAINED_DATA_RECEIPTS,
   TRANSFER_COMMAND,
   IMAGE_DATA_RESPONSE
 ]);
 
-Set<SpriteType> _colorSpriteTypes = new Set.from([SpriteType.RECT, SpriteType.CIRCLE, SpriteType.CUSTOM]);
+List mergeUniqueList(List list1, List list2) {
+  Set merged = new Set();
+  if (list1 != null) {
+    merged.addAll(list1);
+  }
+  if (list2 != null) {
+    merged.addAll(list2);
+  }
+  List data = new List.from(merged, growable: false);
+  return data.length == 0 ? null : data;
+}
+
+singleTonStoredValue(var a, var b) {
+  return a == null ? b : a;
+}
+
+Set<SpriteType> _colorSpriteTypes =
+    new Set.from([SpriteType.RECT, SpriteType.CIRCLE, SpriteType.CUSTOM]);
 
 // Store all the properties of the sprite as a list of ints.
 List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
