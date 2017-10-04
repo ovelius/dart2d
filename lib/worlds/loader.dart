@@ -1,6 +1,7 @@
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:di/di.dart';
 import 'player_world_selector.dart';
 import 'package:dart2d/util/gamestate.dart';
@@ -28,8 +29,14 @@ enum LoaderState {
   LOADED_AS_SERVER, // Server ready to start game.
 }
 
+// What is a reasonable transfer speed when loading from other clients?
+const ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND = 1024*70;
+// How many of slow samples we accept before loading from server instead.
+const SAMPLES_BEFORE_FALLBACK = 3;
+
 @Injectable()
 class Loader {
+  final Logger log = new Logger('Loader');
   final List<int> GAME_STATE_RESOURCES =
       new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
   Network _network;
@@ -41,8 +48,11 @@ class Loader {
   var _context;
   int _width;
   int _height;
-  
+
+  // When we started loading data.
   DateTime startedAt;
+  // How many samples we have that indicates a slow data transfer.
+  int _slowDownloadRateSamples = 0;
 
   LoaderState _currentState = LoaderState.WEB_RTC_INIT;
   bool _completed = false;
@@ -73,6 +83,9 @@ class Loader {
       setState(LoaderState.WAITING_FOR_NAME);
       return;
     }
+    if (startedAt == null) {
+      startedAt = new DateTime.now();
+    }
     if (_imageIndex.finishedLoadingImages() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
       _playerWorldSelector.frame(duration);
@@ -82,9 +95,6 @@ class Loader {
       _loaderGameStateTick(duration);
     } else {
       _advanceStage(duration);
-    }
-    if (startedAt == null) {
-      startedAt = new DateTime.now();
     }
     if (_currentMessage != "") {
       drawCenteredText(_currentMessage);
@@ -121,17 +131,31 @@ class Loader {
   }
 
   void _loadImagesStage(double duration) {
-    if (_network.hasOpenConnection()) {
+    if (_currentState != LoaderState.LOADING_SERVER && _network.hasOpenConnection()) {
       if (!_imageIndex.imagesIndexed()) {
         _imageIndex.loadImagesFromNetwork();
       }
       Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
       assert(!connections.isEmpty);
       _chunkHelper.requestNetworkData(connections, duration);
+      if (_currentState != LoaderState.LOADING_OTHER_CLIENT) {
+        _chunkHelper.bytesPerSecondSamples().listen((int sample) {
+          if (sample < ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND) {
+            _slowDownloadRateSamples++;
+          } else {
+            _slowDownloadRateSamples = 0;
+          }
+        });
+      }
       // load from client.
       setState(LoaderState.LOADING_OTHER_CLIENT,
           "Loading images from other client(s) ${_imageIndex.imagesLoadedString()} ${_chunkHelper.getTransferSpeed()}");
-      return;
+      if (_slowDownloadRateSamples < SAMPLES_BEFORE_FALLBACK) {
+        // Continue loading from other clients.
+        return;
+      } else {
+        log.info("Slow download rate from clients, switching to server.");
+      }
     }
 
     // Either we

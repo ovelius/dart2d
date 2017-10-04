@@ -4,6 +4,7 @@ import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
+import 'dart:async';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 
@@ -24,13 +25,16 @@ void main() {
   MockGameState mockGameState;
   MockPlayerWorldSelector selector;
   Map localStorage;
+  StreamController<int> streamController;
   void tickAndAssertState(LoaderState state) {
     loader.loaderTick(TICK_TIME);
     expect(loader.currentState(), equals(state));
   }
+
   setUp(() {
     logOutputForTest();
     localStorage = {};
+    streamController = new StreamController(sync: true);
     mockImageIndex = new MockImageIndex();
     mockNetwork = new MockNetwork();
     mockPeerWrapper = new MockPeerWrapper();
@@ -40,19 +44,20 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.getId()).thenReturn('b');
+    when(mockChunkHelper.bytesPerSecondSamples())
+        .thenReturn(streamController.stream);
     when(selector.worldSelectedAndLoaded()).thenReturn(false);
     loader = new Loader(localStorage, new FakeCanvas(), selector,
-      mockImageIndex, mockNetwork, mockChunkHelper);
+        mockImageIndex, mockNetwork, mockChunkHelper);
     // TODO actually test this.
     localStorage['playerSprite'] = 'playerSprite';
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
     when(mockPeerWrapper.connectedToServer()).thenReturn(false);
   });
-  tearDown((){
+  tearDown(() {
     assertNoLoggedWarnings();
   });
-  group('Loader tests', ()
-  {
+  group('Loader tests', () {
     test('Base state and load from server', () {
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
       localStorage['playerName'] = "playerA";
@@ -82,6 +87,55 @@ void main() {
       // Loaded from server, assert we'll start as server.
       tickAndAssertState(LoaderState.LOADED_AS_SERVER);
       expect(loader.loadedAsServer(), isTrue);
+    });
+
+    test('Start loading from client, fallback server', () {
+      MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      Map connections = {
+        'a': connection1,
+      };
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
+      when(mockPeerWrapper.connectedToServer()).thenReturn(true);
+      when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
+      when(mockNetwork.hasOpenConnection()).thenReturn(false);
+      when(mockPeerWrapper.connectionsExhausted()).thenReturn(false);
+      tickAndAssertState(LoaderState.CONNECTING_TO_PEER);
+      when(mockNetwork.hasOpenConnection()).thenReturn(true);
+      when(mockImageIndex.imagesIndexed()).thenReturn(false);
+      when(mockNetwork.safeActiveConnections()).thenReturn(connections);
+      tickAndAssertState(LoaderState.LOADING_OTHER_CLIENT);
+      // Now drops connection.
+      when(mockNetwork.hasOpenConnection()).thenReturn(false);
+      // Trying to connect again.
+      tickAndAssertState(LoaderState.CONNECTING_TO_PEER);
+      // Now screwed, back to loading server.
+      when(mockPeerWrapper.connectionsExhausted()).thenReturn(true);
+      tickAndAssertState(LoaderState.LOADING_SERVER);
+    });
+
+    test('Start loading from client too slow so, fallback to server', () {
+      MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      Map connections = {
+        'a': connection1,
+      };
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
+      when(mockPeerWrapper.connectedToServer()).thenReturn(true);
+      when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
+      when(mockNetwork.hasOpenConnection()).thenReturn(false);
+      when(mockPeerWrapper.connectionsExhausted()).thenReturn(false);
+      tickAndAssertState(LoaderState.CONNECTING_TO_PEER);
+      when(mockNetwork.hasOpenConnection()).thenReturn(true);
+      when(mockImageIndex.imagesIndexed()).thenReturn(false);
+      when(mockNetwork.safeActiveConnections()).thenReturn(connections);
+      tickAndAssertState(LoaderState.LOADING_OTHER_CLIENT);
+
+      for (int i = 0; i < SAMPLES_BEFORE_FALLBACK; i++) {
+        streamController.add(ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND - 1);
+      }
+      // Falling back to using server.
+      tickAndAssertState(LoaderState.LOADING_SERVER);
     });
 
     test('Base state and load from other client', () {

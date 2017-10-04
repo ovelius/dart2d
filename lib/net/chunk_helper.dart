@@ -4,6 +4,7 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
+import 'dart:async';
 import 'package:di/di.dart';
 
 @Injectable()
@@ -114,7 +115,8 @@ class ChunkHelper {
       } else {
         // TODO do something smarter here, like load from server?
         _imageIndex.loadImagesFromServer();
-        throw new StateError("Can not return data for $index, it's not loaded!");
+        throw new StateError(
+            "Can not return data for $index, it's not loaded!");
       }
     }
     _dataUrlCache[index] = data;
@@ -275,6 +277,8 @@ class ChunkHelper {
     return "${formatBytes(counter.getBytes())}/s";
   }
 
+  Stream<int> bytesPerSecondSamples() => counter.readSample();
+
   Map<String, int> failuresByConnection() => new Map.from(_failures);
 
   void setChunkSizeForTest(int chunkSize) {
@@ -283,13 +287,17 @@ class ChunkHelper {
 }
 
 class _DataCounter {
-  _DataCounter(this.secondsInterval);
+  _DataCounter(this.secondsInterval) {
+    _streamController = new StreamController();
+  }
 
   int secondsInterval;
   int bytesPerSecond = 0;
 
   int bytesSinceLast = 0;
   DateTime lastCheck = new DateTime.now();
+
+  StreamController<int> _streamController;
 
   collect(int bytes) {
     bytesSinceLast += bytes;
@@ -301,8 +309,14 @@ class _DataCounter {
       lastCheck = new DateTime.now();
       bytesPerSecond = bytesSinceLast ~/ diff.inSeconds;
       bytesSinceLast = 0;
+      if (_streamController.hasListener) {
+        _streamController.add(bytesPerSecond);
+      }
     }
     return bytesPerSecond;
   }
 
+  Stream<int> readSample() {
+    return _streamController.stream;
+  }
 }
