@@ -20,10 +20,16 @@ final Logger log = new Logger('WormWorldMain');
 
 DateTime lastStep;
 WormWorld world;
-List iceServers = [{'url': 'stun:stun.l.google.com:19302'}];
+List iceServers = [
+  {'url': 'stun:stun.l.google.com:19302'}
+];
 
 void main() {
-  String url = "url";
+  String url = "";
+  if (url.isEmpty) {
+    init();
+    return;
+  }
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
   request.onReadyStateChange.listen((_) {
@@ -45,8 +51,10 @@ void main() {
 void init() {
   CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
   //TODO should we really to this?
-  canvasElement.width = min(canvasElement.width, max(window.screen.width, window.screen.height));
-  canvasElement.height = min(canvasElement.height, min(window.screen.width, window.screen.height));
+  canvasElement.width =
+      min(canvasElement.width, max(window.screen.width, window.screen.height));
+  canvasElement.height =
+      min(canvasElement.height, min(window.screen.width, window.screen.height));
 
   var injector = new ModuleInjector([
     new Module()
@@ -59,7 +67,8 @@ void init() {
       ..bind(Map,
           withAnnotation: const LocalStorage(), toValue: window.localStorage)
       ..bind(Map,
-          withAnnotation: const UriParameters(), toValue: Uri.base.queryParametersAll)
+          withAnnotation: const UriParameters(),
+          toValue: Uri.base.queryParametersAll)
       ..bind(Object,
           withAnnotation: const WorldCanvas(), toValue: canvasElement)
       ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
@@ -170,7 +179,7 @@ class WebSocketServerChannel extends ServerChannel {
 
   Stream<dynamic> reconnect(String id) {
     if (_socket.readyState == 1) {
-     throw new StateError("Socket still open!");
+      throw new StateError("Socket still open!");
     }
     _socket = new WebSocket(_socketUrl(id));
     _socket.onOpen.listen((_) => _ready = true);
@@ -180,9 +189,13 @@ class WebSocketServerChannel extends ServerChannel {
 
   String _socketUrl([String id = null]) {
     if (id != null) {
-      return USE_LOCAL_HOST_PEER ? 'ws://127.0.0.1:8089/peerjs?id=$id' : 'ws://anka.locutus.se:8089/peerjs?id=$id';
+      return USE_LOCAL_HOST_PEER
+          ? 'ws://127.0.0.1:8089/peerjs?id=$id'
+          : 'ws://anka.locutus.se:8089/peerjs?id=$id';
     } else {
-      return USE_LOCAL_HOST_PEER ? 'ws://127.0.0.1:8089/peerjs' : 'ws://anka.locutus.se:8089/peerjs';
+      return USE_LOCAL_HOST_PEER
+          ? 'ws://127.0.0.1:8089/peerjs'
+          : 'ws://anka.locutus.se:8089/peerjs';
     }
   }
 
@@ -194,24 +207,26 @@ class WebSocketServerChannel extends ServerChannel {
  */
 @Injectable()
 class RtcConnectionFactory extends ConnectionFactory {
-
   /**
    * Try to connect to a remote peer.
    */
   connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
-    Map config =  {'iceServers': iceServers};
+    Map config = {'iceServers': iceServers};
     RtcPeerConnection connection = new RtcPeerConnection(config);
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
-    RtcDataChannel channel = connection.createDataChannel('dart2d');
-    log.info("Created DataChannel ${ourPeerId} <-> ${otherPeerId} Reliable: ${channel.reliable} Ordered: ${channel.ordered}");
+    RtcDataChannel channel = connection
+        .createDataChannel('dart2d', {'ordered': false, 'maxRetransmits': 0});
+    log.info(
+        "Created DataChannel ${ourPeerId} <-> ${otherPeerId} maxRetransmits: ${channel.maxRetransmits} Ordered: ${channel.ordered}");
     channel.onOpen.listen((_) {
       wrapper.readyDataChannel(channel);
       log.info("Outbound datachannel to ${otherPeerId} ready.");
     });
     channel.onMessage.listen((MessageEvent e) {
       if (!wrapper.hasReadyDataChannel()) {
-        log.warning("Receiving data on channel not marked as open, forcing open!");
+        log.warning(
+            "Receiving data on channel not marked as open, forcing open!");
         wrapper.readyDataChannel(channel);
       }
       wrapper.receiveData(e.data);
@@ -221,10 +236,11 @@ class RtcConnectionFactory extends ConnectionFactory {
         _serverChannel.sendData({
           'type': 'OFFER',
           'payload': {
-            'sdp': { 'sdp': desc.sdp, 'type': desc.type },
+            'sdp': {'sdp': desc.sdp, 'type': desc.type},
             'type': 'data',
           },
-          'dst': otherPeerId});
+          'dst': otherPeerId
+        });
       });
     });
     return connection;
@@ -234,8 +250,8 @@ class RtcConnectionFactory extends ConnectionFactory {
    * Someone sent us an offer and wants to connect.
    */
   createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
-      String otherPeerId,  String ourPeerId) {
-    Map config =  {'iceServers': iceServers};
+      String otherPeerId, String ourPeerId) {
+    Map config = {'iceServers': iceServers};
     // Create a local peer object.
     RtcPeerConnection connection = new RtcPeerConnection(config);
 
@@ -244,13 +260,14 @@ class RtcConnectionFactory extends ConnectionFactory {
     _addConnectionListeners(wrapper, connection);
     // We expect there to be a datachannel available here eventually.
     connection.onDataChannel.listen((RtcDataChannelEvent e) {
-      e.channel.onOpen.listen((_){
+      e.channel.onOpen.listen((_) {
         wrapper.readyDataChannel(e.channel);
         log.info("Inbound datachannel to ${otherPeerId} ready.");
       });
       e.channel.onMessage.listen((MessageEvent messageEvent) {
         if (!wrapper.hasReadyDataChannel()) {
-          log.warning("Receiving data on channel not marked as open, forcing open!");
+          log.warning(
+              "Receiving data on channel not marked as open, forcing open!");
           wrapper.readyDataChannel(e.channel);
         }
         wrapper.receiveData(messageEvent.data);
@@ -262,7 +279,8 @@ class RtcConnectionFactory extends ConnectionFactory {
     return connection;
   }
 
-  _addConnectionListeners(ConnectionWrapper wrapper, RtcPeerConnection connection) {
+  _addConnectionListeners(
+      ConnectionWrapper wrapper, RtcPeerConnection connection) {
     wrapper.setRtcConnection(connection);
     connection.onIceConnectionStateChange.listen((Event e) {
       if (connection.iceConnectionState == "checking") {
@@ -271,14 +289,16 @@ class RtcConnectionFactory extends ConnectionFactory {
         wrapper.open();
       } else if (connection.iceConnectionState == 'closed') {
         wrapper.close();
-      } else  if (connection.iceConnectionState == 'failed'){
+      } else if (connection.iceConnectionState == 'failed') {
         wrapper.error(e.toString());
-      } else if (connection.iceConnectionState == 'disconnected'){
+      } else if (connection.iceConnectionState == 'disconnected') {
         wrapper.close();
       } else {
-        log.warning("Unhandled ICE connection state ${connection.iceConnectionState}");
+        log.warning(
+            "Unhandled ICE connection state ${connection.iceConnectionState}");
       }
-      log.info("ICE connection to ${wrapper.id} state ${connection.iceConnectionState}");
+      log.info(
+          "ICE connection to ${wrapper.id} state ${connection.iceConnectionState}");
     });
   }
 
@@ -294,7 +314,7 @@ class RtcConnectionFactory extends ConnectionFactory {
         'payload': {
           'candidate': {
             'candidate': e.candidate.candidate,
-            'sdpMLineIndex':  e.candidate.sdpMLineIndex,
+            'sdpMLineIndex': e.candidate.sdpMLineIndex,
             'sdpMid': e.candidate.sdpMid,
           },
           'type': 'data',
@@ -305,7 +325,8 @@ class RtcConnectionFactory extends ConnectionFactory {
     });
   }
 
-  handleIceCandidateReceived(RtcPeerConnection connection, dynamic iceCandidate) {
+  handleIceCandidateReceived(
+      RtcPeerConnection connection, dynamic iceCandidate) {
     assert(connection != null, "Connection is null!");
     RtcIceCandidate candidate = new RtcIceCandidate(iceCandidate);
     connection.addIceCandidate(candidate);
@@ -317,12 +338,13 @@ class RtcConnectionFactory extends ConnectionFactory {
         _serverChannel.sendData({
           'type': 'ANSWER',
           'payload': {
-            'sdp': { 'sdp': desc.sdp, 'type': desc.type },
+            'sdp': {'sdp': desc.sdp, 'type': desc.type},
             'type': 'data',
             'browser': 'fixme',
           },
           'src': dst,
-          'dst': src});
+          'dst': src
+        });
       });
     });
   }
@@ -336,23 +358,21 @@ WebSocketServerChannel _serverChannel;
 
 class HtmlDomBindingsModule extends Module {
   HtmlDomBindingsModule() {
-    bind(GaReporter, toImplementation:  RealGaReporter);
+    bind(GaReporter, toImplementation: RealGaReporter);
     // Initialize server signalling channel.
     _serverChannel = new WebSocketServerChannel();
     bind(ServerChannel, toValue: _serverChannel);
     bind(ConnectionFactory, toImplementation: RtcConnectionFactory);
     bind(DynamicFactory,
         withAnnotation: const ReloadFactory(),
-        toValue: new DynamicFactory(
-        (args) => window.location.reload()));
+        toValue: new DynamicFactory((args) => window.location.reload()));
     bind(DynamicFactory,
         withAnnotation: const CanvasFactory(),
         toValue: new DynamicFactory(
             (args) => new CanvasElement(width: args[0], height: args[1])));
     bind(DynamicFactory,
         withAnnotation: const ImageDataFactory(),
-        toValue: new DynamicFactory(
-            (args) => new ImageData(args[0], args[1])));
+        toValue: new DynamicFactory((args) => new ImageData(args[0], args[1])));
     bind(DynamicFactory, withAnnotation: const ImageFactory(),
         toValue: new DynamicFactory((args) {
       if (args.length == 0) {
@@ -379,6 +399,6 @@ class RealGaReporter extends GaReporter {
     if (label != null) {
       data['eventLabel'] = label;
     }
-    context.callMethod('ga',  ['send', new JsObject.jsify(data)]);
+    context.callMethod('ga', ['send', new JsObject.jsify(data)]);
   }
 }
