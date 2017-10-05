@@ -195,9 +195,12 @@ class Network {
         continue;
       }
       // Transfer ownership of the old commanders sprites to us.
-      if (sprite.ownerId == oldCommanderId && sprite.networkType == NetworkType.REMOTE) {
-        sprite.ownerId = null;
-        sprite.networkType = NetworkType.LOCAL;
+      if (!(sprite is LocalPlayerSprite)) {
+        if (sprite.ownerId == oldCommanderId &&
+            sprite.networkType == NetworkType.REMOTE) {
+          sprite.ownerId = null;
+          sprite.networkType = NetworkType.LOCAL;
+        }
       }
       // Remove any projectiles without owner.
       if (previousCommanderPlayerInfo != null) {

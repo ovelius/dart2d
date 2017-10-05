@@ -308,11 +308,13 @@ void main() {
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
       expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
 
       // World B
       playerBSprite = worldB.spriteIndex[playerId(1)];
       expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(false));
 
 
@@ -344,13 +346,55 @@ void main() {
       playerBSprite = worldA.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(false));
       expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(false));
 
       // World B
       playerBSprite = worldB.spriteIndex[playerId(1)];
       expect(playerBSprite.collision, equals(true));
       expect(playerBSprite.inGame(), equals(true));
+      expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
+
+      // Player should be back in game now in both worlds.
+      // World A
+      playerASprite = worldA.spriteIndex[playerId(0)];
+      expect(playerASprite.collision, equals(true));
+      expect(playerASprite.inGame(), equals(true));
+      expect(playerASprite.ownerId, 'a');
+      expect(playerASprite.networkType, equals(NetworkType.LOCAL));
+      expect(playerASprite.maybeRespawn(0.01), equals(false));
+
+      // World B
+      playerASprite = worldB.spriteIndex[playerId(0)];
+      expect(playerASprite.collision, equals(true));
+      expect(playerASprite.inGame(), equals(true));
+      expect(playerASprite.ownerId, 'a');
+      expect(playerASprite.networkType, equals(NetworkType.REMOTE_FORWARD));
+      expect(playerASprite.maybeRespawn(0.01), equals(true));
+
+      // Now switchs back.
+      worldA.drawFps().setFpsForTest(46.1);
+      worldB.drawFps().setFpsForTest(2.0);
+      for (int i = 0; i < 25; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      expect(worldB.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
+      expect(worldA.network().gameState,
+          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
+
+      playerASprite = worldA.spriteIndex[playerId(0)];
+      expect(playerASprite.ownerId, 'a');
+      playerBSprite = worldA.spriteIndex[playerId(1)];
+      expect(playerBSprite.ownerId, 'b');
+
+      playerASprite = worldB.spriteIndex[playerId(0)];
+      expect(playerASprite.ownerId, 'a');
+      playerBSprite = worldB.spriteIndex[playerId(1)];
+      expect(playerBSprite.ownerId, 'b');
     });
     
     test('TestPlayerDeath', () {
