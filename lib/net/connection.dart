@@ -1,8 +1,9 @@
 import 'package:dart2d/net/network.dart';
-import 'package:dart2d/util/hud_messages.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:convert';
+import 'dart:math';
 import 'package:di/di.dart';
 import 'dart:core';
 
@@ -33,12 +34,15 @@ class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
   // How many items the reliable buffer can contain before we consider the connection dead.
-  static const int MAX_RELIABLE_BUFFER_SIZE = 4;
+  static const int MAX_RELIABLE_BUFFER_SIZE = 6;
   // How long until connection attempt times out.
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
   Network _network;
+  ConfigParams _configParams;
   HudMessages _hudMessages;
+  LeakyBucket _ingressLimit;
+  LeakyBucket _egressLimit;
   PacketListenerBindings _packetListenerBindings;
   final String id;
   var _dataChannel;
@@ -74,13 +78,23 @@ class ConnectionWrapper {
   // The monitored latency of the connection.
   Duration _latency = DEFAULT_TIMEOUT;
 
-  ConnectionWrapper(
-      this._network, this._hudMessages, this.id, this._packetListenerBindings,
+  ConnectionWrapper(this._network, this._hudMessages, this.id,
+      this._packetListenerBindings, this._configParams,
       [timeout = DEFAULT_TIMEOUT]) {
     assert(id != null);
     // Start the connection timer.
     _connectionTimer.start();
     _timeout = timeout;
+    if (_configParams.getInt(ConfigParam.INGRESS_BANDWIDTH) > 0) {
+      _ingressLimit = new LeakyBucket(
+          _configParams.getInt(ConfigParam.INGRESS_BANDWIDTH));
+      log.info("Limit ingress bandwidth to ${_configParams.getInt(ConfigParam.INGRESS_BANDWIDTH)  / 1000 } ~kB/s");
+    }
+    if (_configParams.getInt(ConfigParam.EGRESS_BANDWIDTH) > 0) {
+      _egressLimit = new LeakyBucket(
+          _configParams.getInt(ConfigParam.EGRESS_BANDWIDTH));
+      log.info("Limit egress bandwidth to ${_configParams.getInt(ConfigParam.EGRESS_BANDWIDTH)  / 1000 } ~kB/s");
+    }
     log.fine("Opened connection to $id");
   }
 
@@ -192,7 +206,15 @@ class ConnectionWrapper {
     PONG,
   ]);
 
+  Random r = new Random();
+
   void receiveData(data) {
+    if (_ingressLimit != null) {
+      if (!_ingressLimit.removeTokens(data.length)) {
+        log.info("Dropping due to ingress bandswith limitation");
+        return;
+      }
+    }
     rxBytes += data.length;
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
@@ -336,7 +358,13 @@ class ConnectionWrapper {
       storeAwayReliableData(data);
     }
     String jsonData = JSON.encode(data);
-    // Approximate it!
+
+    if (_egressLimit != null) {
+      if (!_egressLimit.removeTokens(jsonData.length)) {
+        log.info("Dropping due to engress bandswith limitation");
+        return;
+      }
+    }
     txBytes += jsonData.length;
     _dataChannel.sendString(jsonData);
   }
@@ -402,4 +430,36 @@ class ConnectionWrapper {
   dynamic rtcConnection() => _rtcConnection;
 
   toString() => "Connection to ${id} latency ${_latency}";
+}
+
+class LeakyBucket {
+  int _fillRatePerMillis;
+  int _tokenBuffer;
+
+  DateTime _lastCall;
+
+  LeakyBucket(this._fillRatePerMillis, [int startBuffer]) {
+    _tokenBuffer = _fillRatePerMillis;
+    if (startBuffer != null) {
+      _tokenBuffer = startBuffer;
+    }
+    _lastCall = new DateTime.now();
+  }
+
+  bool removeTokens(int tokens) {
+    DateTime now = new DateTime.now();
+    int durationMillis =
+        (now.millisecondsSinceEpoch - _lastCall.millisecondsSinceEpoch);
+    _lastCall = now;
+
+    _tokenBuffer += (_fillRatePerMillis  * durationMillis).toInt();
+    // Max out to one second of buffer.
+    _tokenBuffer = min(_fillRatePerMillis * 1000, _tokenBuffer);
+
+    if (_tokenBuffer < tokens) {
+      return false;
+    }
+    _tokenBuffer -= tokens;
+    return true;
+  }
 }

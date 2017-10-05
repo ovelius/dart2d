@@ -5,6 +5,8 @@ enum ConfigParam {
   MAX_FRAGS,
   EXPLICIT_PEERS,
   BOT_ENABLED,
+  INGRESS_BANDWIDTH,
+  EGRESS_BANDWIDTH,
 }
 
 @Injectable()
@@ -13,11 +15,17 @@ class ConfigParams {
     ConfigParam.MAX_FRAGS: "maxFrags",
     ConfigParam.EXPLICIT_PEERS: "connectTo",
     ConfigParam.BOT_ENABLED: "bot",
+    // Ingress bandwidth in kB/s.
+    ConfigParam.INGRESS_BANDWIDTH: "ingress",
+    // Egress bandwidth in kB/s.
+    ConfigParam.EGRESS_BANDWIDTH: "egress",
   };
   static Map<ConfigParam, Object> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
     ConfigParam.EXPLICIT_PEERS: [],
     ConfigParam.BOT_ENABLED: false,
+    ConfigParam.INGRESS_BANDWIDTH: -1,
+    ConfigParam.EGRESS_BANDWIDTH: -1,
   };
 
   Map<String, List<String>> _uriParams;

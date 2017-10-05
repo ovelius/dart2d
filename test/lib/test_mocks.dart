@@ -19,6 +19,8 @@ class MockFpsCounter extends Mock implements FpsCounter {}
 
 class MockNetwork extends Mock implements Network {}
 
+class MockConfigParams extends Mock implements ConfigParams { }
+
 class MockChunkHelper extends Mock implements ChunkHelper {}
 
 class MockGameState extends Mock implements GameState {}

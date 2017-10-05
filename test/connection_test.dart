@@ -1,11 +1,14 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/net/net.dart';
-import 'dart:convert';
+import 'package:dart2d/util/util.dart';
 import 'package:mockito/mockito.dart';
+import 'dart:convert';
+import 'dart:io';
 
 void main() {
   MockNetwork mockNetwork;
+  ConfigParams testConfigParams;
   MockHudMessages mockHudMessages;
   PacketListenerBindings packetListenerBindings;
   ConnectionWrapper connection;
@@ -18,11 +21,13 @@ void main() {
     when(mockNetwork.getPeer()).thenReturn(new Mock());
     when(mockNetwork.isCommander()).thenReturn(false);
     mockHudMessages = new MockHudMessages();
+    testConfigParams = new ConfigParams({});
     packetListenerBindings = new PacketListenerBindings();
     testConnection = new TestConnection("a", null);
     testConnection.buffer = true;
     connection = new ConnectionWrapper(
-        mockNetwork, mockHudMessages, "a", packetListenerBindings);
+        mockNetwork, mockHudMessages, "a", packetListenerBindings,
+        testConfigParams);
     connection.setRtcConnection(testConnection);
     connection.readyDataChannel(testConnection);
   });
@@ -32,7 +37,6 @@ void main() {
   });
 
   test('TestReliableDataSend', () {
-    // No tests?
     String reliableKey = RELIABLE_KEYS.keys.first;
     connection.sendData({
       reliableKey: ["test"]
@@ -137,5 +141,12 @@ void main() {
 
     expect(testConnection.nativeBufferedDataAt(0),
         equals({DATA_RECEIPTS: expected, KEY_FRAME_KEY: 0}));
+  });
+
+  test('TestLeakyBucket', () {
+    LeakyBucket leakyBucket = new LeakyBucket(1);
+    expect(leakyBucket.removeTokens(1), isTrue);
+    sleep(new Duration(milliseconds: 10));
+    expect(leakyBucket.removeTokens(10), isTrue);
   });
 }
