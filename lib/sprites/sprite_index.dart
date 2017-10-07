@@ -68,16 +68,20 @@ class SpriteIndex {
    */
   MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
       SpriteConstructor constructor, ConnectionWrapper wrapper) {
-    assert(SpriteConstructor != SpriteConstructor.DO_NOT_CREATE);
+    if (SpriteConstructor == SpriteConstructor.DO_NOT_CREATE) {
+      return null;
+    }
     MovingSprite sprite =
         SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
-    sprite.networkType = NetworkType.REMOTE;
-    sprite.networkId = networkId;
-    // This might not be 100% accurate, since onwer might be:
-    // Client -> Server -> Client.
-    // But if that is the case it will be updated when we parse the GameState.
-    sprite.ownerId = wrapper.id;
-    addSprite(sprite);
+    if (sprite != null) {
+      sprite.networkType = NetworkType.REMOTE;
+      sprite.networkId = networkId;
+      // This might not be 100% accurate, since onwer might be:
+      // Client -> Server -> Client.
+      // But if that is the case it will be updated when we parse the GameState.
+      sprite.ownerId = wrapper.id;
+      addSprite(sprite);
+    }
     return sprite;
   }
 
@@ -120,7 +124,7 @@ class SpriteIndex {
         newSprite.networkId = spriteNetworkId++;
         while (_sprites.containsKey(newSprite.networkId)) {
           log.warning(
-              "${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
+              "${this}: World contains sprite ${newSprite.networkId} adding 1");
           newSprite.networkId = spriteNetworkId++;
         }
       }

@@ -303,7 +303,7 @@ void main() {
     frame();
 
     expect(network.isCommander(), isFalse);
-    network.getServerConnection().close();
+    network.getServerConnection().close("Test");
 
     frame();
 
@@ -522,7 +522,7 @@ void main() {
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNotNull);
     // Close it.
-    network.getServerConnection().close();
+    network.getServerConnection().close("Test");
 
     expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
@@ -569,7 +569,7 @@ void main() {
     expect(network.getServerConnection(), isNotNull);
 
     // aaaand it's gone.
-    network.getServerConnection().close();
+    network.getServerConnection().close("Test");
 
     // No server again.
     expect(network.findServer(), isFalse);

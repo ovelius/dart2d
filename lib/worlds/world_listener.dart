@@ -98,7 +98,7 @@ class WorldListener {
         KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
       // Mark as closed.
-      connection.close();
+      connection.close("Game full");
       return;
     }
     if (_gameState.hasWinner()) {
@@ -107,7 +107,7 @@ class WorldListener {
         KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
       // Mark as closed.
-      connection.close();
+      connection.close("Game over");
       return;
     }
     // Consider the client CLIENT_PLAYER_SPEC as the client having seen

@@ -34,7 +34,7 @@ class ConnectionWrapper {
   // How many keyframes the connection can be behind before it is dropped.
   static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
   // How many items the reliable buffer can contain before we consider the connection dead.
-  static const int MAX_RELIABLE_BUFFER_SIZE = 6;
+  static const int MAX_RELIABLE_BUFFER_SIZE = 80;
   // How long until connection attempt times out.
   static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
@@ -113,8 +113,11 @@ class ConnectionWrapper {
     }
   }
 
-  void close() {
-    _hudMessages.display("Connection to ${id} closed :(");
+  void close(String reason) {
+    if (!closed) {
+      _hudMessages.display("Connection to ${id} closed: $reason");
+    }
+    log.info("Closed connection to ${id} reason: ${reason}");
     closed = true;
   }
 
@@ -324,7 +327,7 @@ class ConnectionWrapper {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
           "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
-      close();
+      close("Not responding");
       return;
     }
   }
@@ -341,7 +344,8 @@ class ConnectionWrapper {
         !_initialPongReceived) {
       log.warning(
           "Connection to $id too many reliable packets behind ${_reliableDataBuffer.length}, dropping!");
-      close();
+      close("Not responding");
+      return;
     }
     assert(_dataChannel != null);
     data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
@@ -366,7 +370,12 @@ class ConnectionWrapper {
       }
     }
     txBytes += jsonData.length;
-    _dataChannel.sendString(jsonData);
+    try {
+      _dataChannel.sendString(jsonData);
+    } catch (e, s) {
+      log.severe("Failed to send to $id: $e, closing connection");
+      close("Failed to send data");
+    }
   }
 
   void readyDataChannel(var dataChannel) {

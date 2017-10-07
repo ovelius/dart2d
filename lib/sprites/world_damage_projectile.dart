@@ -296,7 +296,8 @@ class WorldDamageProjectile extends MovingSprite {
     data.add(radius);
     data.add(damage);
     data.add(showCounter);
-    data.add(owner.networkId);
+    // Will eventually be corrected.
+    data.add(owner == null ? -1 : owner.networkId);
     if (explodeAfter != null) {
       data.add(explodeAfter.toInt());
     }

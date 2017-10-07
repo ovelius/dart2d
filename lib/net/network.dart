@@ -78,7 +78,7 @@ class Network {
         (ConnectionWrapper connection, var data) {
       hudMessages.display("Game is full :/");
       gameState.reset();
-      connection.close();
+      connection.close("Game full");
     });
 
     _packetListenerBindings.bindHandler(TRANSFER_COMMAND,
@@ -321,7 +321,7 @@ class Network {
           if (i > 1) break;
           ConnectionWrapper connection = connections[closeAbleNotServer[i]];
           log.info("Closing connection $connection in search for server.");
-          connection.close();
+          connection.close("No game found");
 
           // Remove right away, so autoConnectToPeers doesn't count this connection.
           // TODO: Should we instead clean connections in autoConnectToPeers?
@@ -530,10 +530,9 @@ class Network {
           }
           MovingSprite sprite = _spriteIndex[parsedNetworkId];
           if (sprite == null) {
-            if (constructor != SpriteConstructor.DO_NOT_CREATE) {
-              sprite = _spriteIndex.CreateSpriteFromNetwork(
-                  world, parsedNetworkId, constructor, connection);
-            } else {
+            sprite = _spriteIndex.CreateSpriteFromNetwork(
+                world, parsedNetworkId, constructor, connection);
+            if (sprite == null) {
               log.fine(
                   "Not creating sprite from update ${networkId}, constructor is ${constructor}");
               continue;

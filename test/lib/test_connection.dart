@@ -21,8 +21,9 @@ bool logConnectionData = true;
 class TestConnection {
   int dropPacketsAfter = 900000000;
   TestConnection _otherEnd;
-  var id;
+  String id;
   ConnectionWrapper _internalWrapper;
+  bool closed = false;
 
   String recentDataSent = null;
   int dataReceivedCount = 0;
@@ -72,11 +73,18 @@ class TestConnection {
   }
 
   void signalClose() {
-    _internalWrapper.close();
-    _otherEnd._internalWrapper.close();
+    _internalWrapper.close("Test");
+    _otherEnd._internalWrapper.close("TestOtherEnd");
+  }
+
+  void close() {
+    closed = true;
   }
 
   sendAndReceivByOtherPeer(String jsonString) {
+    if (closed) {
+      throw new StateError("TestConnection is closed, can't send!");
+    }
     if (_otherEnd == null) {
       throw new StateError('_otherEnd is null: ${this.id}');
     }
@@ -146,7 +154,7 @@ class TestConnectionFactory extends ConnectionFactory {
 
   void signalCloseOnAllConnections(String to) {
     connections[to].values.forEach((c) {
-      c._internalWrapper.close();
+      c._internalWrapper.close("Test");
     });
   }
   /**

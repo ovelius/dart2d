@@ -201,6 +201,11 @@ class ChunkHelper {
     }
     // Look if we should retry.
     var connection = connections[connectionId];
+    if (connection == null) {
+      // Connection removed?
+      _imageToConnection.remove(index);
+      return false;
+    }
     Duration latency = _now().difference(lastRequest);
     if (latency.inMilliseconds > _connectionLatencyMillis(connection)) {
       // Request smaller chunk. This was a retry.

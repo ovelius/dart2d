@@ -1,9 +1,12 @@
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'worm_world.dart';
 import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
+
+final Logger log = new Logger('WormWorld');
 
 Map<int, String> _KEY_TO_NAME = {
   KeyCodeDart.LEFT: "Left",
@@ -66,6 +69,7 @@ void drawPlayerStats(
     LocalPlayerSprite sprite = spriteIndex[info.spriteId];
     // Can happen when starting a game...
     if (sprite == null) {
+      log.warning("Not drawing ${info}, sprite is missing");
       continue;
     }
     var img = imageIndex.getImageById(sprite.imageId);

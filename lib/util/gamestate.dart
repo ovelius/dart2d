@@ -33,15 +33,21 @@ class PlayerInfo {
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
   PlayerInfo.fromMap(Map map) {
+    updateFromMap(map);
+  }
+
+  void updateFromMap(Map map) {
     name = map["n"];
     spriteId = map["sid"];
     fps = map['f'];
     connectionId = map["cid"];
     score = map["s"];
     deaths = map["d"];
+    Map<String, ConnectionInfo> newConnectionsInfo = {};
     for (List item in map['c']) {
-      connections[item[0]] = new ConnectionInfo(item[0], item[1]);
+      newConnectionsInfo[item[0]] = new ConnectionInfo(item[0], item[1]);
     }
+    connections = newConnectionsInfo;
     inGame = map.containsKey("g");
     addedToGameAtMillis = map["gm"];
   }
@@ -173,11 +179,11 @@ class GameState {
     List<PlayerInfo> newInfo = [];
     Map<String, PlayerInfo> byId = {};
     for (Map playerMap in players) {
-      PlayerInfo info = new PlayerInfo.fromMap(playerMap);
-      assert(info.remoteKeyState().remoteState);
-      PlayerInfo oldInfo = playerInfoByConnectionId(info.connectionId);
-      if (oldInfo != null) {
-        info._remoteKeyState = oldInfo._remoteKeyState;
+      PlayerInfo info = playerInfoByConnectionId(playerMap["cid"]);
+      if (info == null) {
+        info = new PlayerInfo.fromMap(playerMap);
+      } else {
+        info.updateFromMap(playerMap);
       }
       newInfo.add(info);
       byId[info.connectionId] = info;

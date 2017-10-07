@@ -45,7 +45,11 @@ class Bot {
     if (_currentTargetSprite != null) {
       _aimAndWalkToTarget();
     }
-    _localKeyState.onKeyDown(_key(KeyCodeDart.F));
+    if (_currentTargetSprite != null) {
+      _localKeyState.onKeyDown(_key(KeyCodeDart.F));
+    } else {
+      _localKeyState.onKeyUp(_key(KeyCodeDart.F));
+    }
 
     _weaponChangeTime -= duration;
     if (_weaponChangeTime < 0.0) {

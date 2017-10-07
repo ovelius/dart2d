@@ -254,7 +254,6 @@ class RtcConnectionFactory extends ConnectionFactory {
     Map config = {'iceServers': iceServers};
     // Create a local peer object.
     RtcPeerConnection connection = new RtcPeerConnection(config);
-
     // Make sure ICE candidates are sent to our remote peer.
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
@@ -288,11 +287,11 @@ class RtcConnectionFactory extends ConnectionFactory {
       } else if (connection.iceConnectionState == "connected") {
         wrapper.open();
       } else if (connection.iceConnectionState == 'closed') {
-        wrapper.close();
+        wrapper.close("ICE closed");
       } else if (connection.iceConnectionState == 'failed') {
         wrapper.error(e.toString());
       } else if (connection.iceConnectionState == 'disconnected') {
-        wrapper.close();
+        wrapper.close("ICE disconnected");
       } else {
         log.warning(
             "Unhandled ICE connection state ${connection.iceConnectionState}");

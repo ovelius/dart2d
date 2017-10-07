@@ -244,6 +244,12 @@ class PeerWrapper {
       _closedConnectionPeers.add(id);
       _gaReporter.reportEvent("closed_after_open", "Connection");
     }
+    // Close the underlying WebRTC connection.
+    try {
+      wrapper.rtcConnection().close();
+    } catch (e, s) {
+      log.warning("Failed to close RTCConnection ${e}");
+    }
     // Assign back.
     connections = connectionsCopy;
   }
