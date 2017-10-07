@@ -63,7 +63,7 @@ class WeaponState {
     }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       for (int i = 0; i < 8; i++) {
-        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 15);
+        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 7);
         sprite.mod = Mod.SHOTGUN;
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
@@ -81,7 +81,7 @@ class WeaponState {
       }
     }),
     new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 5);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
       sprite.mod = Mod.DARTGUN;
       sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
