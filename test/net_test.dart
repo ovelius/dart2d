@@ -6,6 +6,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/util/util.dart';
 
 void main() {
   setUp(() {
@@ -508,6 +509,19 @@ void main() {
       // Should work just fine.
       expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+
+      for (WormWorld w in [worldA, worldB, worldC]) {
+        for (WormWorld w2 in [worldA, worldB, worldC]) {
+          GameState gameState = w.network().getGameState();
+          String id1 = w.network().getPeer().getId();
+          String id2 = w2.network().getPeer().getId();
+          if (id1 == id2) {
+            continue;
+          }
+          print("verify ${id1} connected to ${id2}");
+          expect(gameState.isConnected(id1, id2), isTrue);
+        }
+      }
     });
 
     test('TestMaxPlayers', () {

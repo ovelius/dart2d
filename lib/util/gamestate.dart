@@ -9,8 +9,8 @@ import 'package:dart2d/util/keystate.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 class ConnectionInfo {
-  String to;
-  int latencyMillis;
+  final String to;
+  final latencyMillis;
   ConnectionInfo(this.to, this.latencyMillis);
 }
 
@@ -25,7 +25,7 @@ class PlayerInfo {
   // How many frames per second this client has.
   int fps = 45;
   // What conenctions this player has.
-  List<ConnectionInfo> connections = [];
+  Map<String, ConnectionInfo> connections = {};
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
   KeyState _remoteKeyState = new KeyState.remote();
@@ -40,13 +40,15 @@ class PlayerInfo {
     score = map["s"];
     deaths = map["d"];
     for (List item in map['c']) {
-      connections.add(new ConnectionInfo(item[0], item[1]));
+      connections[item[0]] = new ConnectionInfo(item[0], item[1]);
     }
     inGame = map.containsKey("g");
     addedToGameAtMillis = map["gm"];
   }
 
   KeyState remoteKeyState() => _remoteKeyState;
+
+  bool isConnectedTo(String other) => connections.containsKey(other);
 
   void updateWithLocalKeyState(KeyState localState) {
     assert(!localState.remoteState);
@@ -59,7 +61,7 @@ class PlayerInfo {
     map["sid"] = spriteId;
     map["cid"] = connectionId;
     map['c'] = [];
-    for (ConnectionInfo info in connections) {
+    for (ConnectionInfo info in connections.values) {
      map['c'].add([info.to, info.latencyMillis]);
     }
     map['f'] = fps;
@@ -81,12 +83,6 @@ class GameState {
   static const MAX_PLAYERS = 4;
   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
-  static final List<String> USEABLE_SPRITES = [
-    "duck.png",
-    "cock.png",
-    "donkey.png",
-    "dragon.png"
-  ];
 
   // Injected members.
   PacketListenerBindings _packetListenerBindings;
@@ -112,6 +108,8 @@ class GameState {
   void markAsUrgent() {
     this._urgentData = true;
   }
+
+  bool isConnected(String a, String b) => _playerInfoById[a].isConnectedTo(b);
 
   void reset() {
     actingCommanderId = null;

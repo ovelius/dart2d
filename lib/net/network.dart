@@ -67,11 +67,11 @@ class Network {
       /// Update the list of connections for this player.
       PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
       if (info != null) {
-        List<ConnectionInfo> connectionList = [];
+        Map<String,ConnectionInfo> connectionMap = {};
         for (List item in connections) {
-          connectionList.add(new ConnectionInfo(item[0], item[1]));
+          connectionMap[item[0]] = new ConnectionInfo(item[0], item[1]);
         }
-        info.connections = connectionList;
+        info.connections = connectionMap;
       }
     });
     _packetListenerBindings.bindHandler(SERVER_PLAYER_REJECT,
@@ -400,16 +400,22 @@ class Network {
     // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
     Map data = stateBundle(keyFrame);
-    // A keyframe indicates that we are sending data with garantueed delivery.
+    // A keyframe indicates that we are sending a complete state.
     if (keyFrame) {
       registerDroppedFrames(data);
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
       data[CONNECTIONS_LIST] = [];
+      Map<String, ConnectionInfo> connections = {};
       for (ConnectionWrapper wrapper in safeActiveConnections().values) {
-        data[CONNECTIONS_LIST].add([wrapper.id, wrapper.expectedLatency().inMilliseconds]);
-        JSON.encode(data[CONNECTIONS_LIST]);
+        ConnectionInfo info =
+           new ConnectionInfo(wrapper.id, wrapper.expectedLatency().inMilliseconds);
+        data[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
+        connections[info.to] = info;
       }
-      peer.connections.keys.toList();
+      PlayerInfo info = gameState.playerInfoByConnectionId(peer.id);
+      if (info != null) {
+        info.connections = connections;
+      }
     }
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;
