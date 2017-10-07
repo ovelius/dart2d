@@ -3,10 +3,13 @@ import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/sprites/sprites.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+
+final Logger log = new Logger('DamageProjectile');
 
 class BananaCake extends WorldDamageProjectile {
   BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
@@ -51,7 +54,12 @@ class BananaCake extends WorldDamageProjectile {
 }
 
 class Hyper extends WorldDamageProjectile {
+  static const int EFFECTIVE_DISTANCE = 300;
+  static const int DPS_BEAM = 30;
   int _quality = 40;
+
+  List<LocalPlayerSprite> _spritesInDamageArea = [];
+  double _time = 0.0;
 
   Hyper(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
       : super(world, x, y, imageId, imageIndex);
@@ -63,19 +71,62 @@ class Hyper extends WorldDamageProjectile {
     this.damage = damage;
     this.color = "#A400AF";
     Vec2 ownerCenter = owner.centerPoint();
-    this.size = new Vec2(17.0, 17.0);
+    this.size = new Vec2(25.0, 25.0);
     this.position.x = ownerCenter.x - size.x / 2;
     this.position.y = ownerCenter.y - size.y / 2;
     this.velocity.x = cos(owner.angle);
     // this.angle = owner.angle;
     this.velocity.y = sin(owner.angle);
     this.outOfBoundsMovesRemaining = 2;
-    this.velocity = this.velocity.multiply(300.0);
+    this.velocity = this.velocity.multiply(150.0);
     this.velocity = owner.velocity + this.velocity;
     this.spriteType = SpriteType.CUSTOM;
   }
 
+  void _collectDamageSprites() {
+    List<LocalPlayerSprite> spritesInDamageArea = [];
+    for (PlayerInfo inf in world.network().gameState.playerInfoList()) {
+      if (owner != null && inf.spriteId != owner.networkId) {
+        LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId];
+        if (sprite != null && sprite.inGame() && sprite.takesDamage()) {
+          double dst = distanceTo(sprite);
+          if (dst < EFFECTIVE_DISTANCE) {
+            spritesInDamageArea.add(sprite);
+          }
+        }
+      }
+    }
+    _spritesInDamageArea = spritesInDamageArea;
+  }
+
+  frame(double duration, int frameStep, [Vec2 gravity]) {
+    _time += duration;
+    int damage = (_time * DPS_BEAM).toInt();
+    _time -= (damage / DPS_BEAM);
+    _collectDamageSprites();
+    for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
+      if (damageSprite.takesDamage()) {
+        damageSprite.takeDamage(damage, owner, Mod.HYPER);
+      }
+    }
+    super.frame(duration, frameStep, gravity);
+  }
+
   draw(var context, bool debug) {
+    Vec2 center = centerPoint();
+    for (LocalPlayerSprite sprite in _spritesInDamageArea) {
+      if (sprite.inGame() && sprite.takesDamage()) {
+        Vec2 targetCenter = sprite.centerPoint();
+        context.lineWidth = 4;
+        context.strokeStyle = color;
+        context.globalCompositeOperation = "lighter";
+        context.beginPath();
+        context.moveTo(center.x, center.y);
+        context.lineTo(targetCenter.x, targetCenter.y);
+        context.stroke();
+      }
+    }
+
     super.draw(context, debug);
     double r = getRadius() * 4;
     context.translate(-r, -r);

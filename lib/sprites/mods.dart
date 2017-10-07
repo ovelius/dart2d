@@ -23,7 +23,7 @@ Map<Mod, dynamic> _killedMessages = {
   Mod.COFFEE: (String killed, String killer) => "$killed got burned by ${killer}'s coffee",
   Mod.LITTER: (String killed, String killer) => "$killed took a dive in ${killer}'s cat litter box",
   Mod.BRICK: (String killed, String killer) => "$killed got hit by a ${killer}'s bricks",
-  Mod.HYPER: (String killed, String killer) => "$killed neon neon neon ${killer}'s blaster",
+  Mod.HYPER: (String killed, String killer) => "$killed neon neon neon ${killer}'s blaster bream",
   Mod.SHOTGUN: (String killed, String killer) => "$killed went on a date with ${killer}'s Old Betsy",
 };
 
