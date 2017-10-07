@@ -60,6 +60,9 @@ class SpriteIndex {
 
   static MovingSprite fromWorldByIndex(WormWorld world, int spriteId,
       String connectionId, SpriteConstructor constructor) {
+    if (!_spriteConstructors.containsKey(constructor)) {
+      throw new ArgumentError("No such Spriteconstructor mapped $constructor");
+    }
     return _spriteConstructors[constructor](world, spriteId, connectionId);
   }
 
@@ -68,7 +71,7 @@ class SpriteIndex {
    */
   MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
       SpriteConstructor constructor, ConnectionWrapper wrapper) {
-    if (SpriteConstructor == SpriteConstructor.DO_NOT_CREATE) {
+    if (constructor == SpriteConstructor.DO_NOT_CREATE) {
       return null;
     }
     MovingSprite sprite =

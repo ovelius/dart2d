@@ -41,6 +41,9 @@ class Rope extends MovingSprite {
       if (other.networkId == owner.networkId || other is Rope) {
         return;
       }
+      if (networkType != NetworkType.LOCAL) {
+        return;
+      }
     }
     locked = true;
     this.velocity = new Vec2();
