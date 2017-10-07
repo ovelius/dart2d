@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'lib/test_lib.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -25,12 +26,14 @@ class FakeConnectionFactory extends ConnectionFactory {
     wrapper.readyDataChannel(testConnection);
     wrapper.open();
 
-    TestConnection otherEnd = new TestConnection(ourPeerId, new MockConnectionWrapper());
+    TestConnection otherEnd =
+        new TestConnection(ourPeerId, new MockConnectionWrapper());
     testConnection.setOtherEnd(otherEnd);
     otherEnd.setOtherEnd(testConnection);
   }
-  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,  String otherPeerId,
-      String ourPeerId) { }
+
+  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
+      String otherPeerId, String ourPeerId) {}
   handleCreateAnswer(dynamic connection, String src, String dst) {}
   handleGotAnswer(dynamic connection, dynamic sdp) {}
   handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {}
@@ -100,7 +103,8 @@ void main() {
 
     network.peer.connectTo('b');
     expect(network.peer.connections.keys, contains('b'));
-    TestConnection connectionBtoC = fakeConnectionFactory.connections['c']['b'].getOtherEnd();
+    TestConnection connectionBtoC =
+        fakeConnectionFactory.connections['c']['b'].getOtherEnd();
 
     frame();
     expect(connectionBtoC.decodedRecentDataRecevied(),
@@ -139,16 +143,8 @@ void main() {
 
     // Now only delta updates.
     network.frame(0.01, new List());
-    expect(
-        connectionBtoC.decodedRecentDataRecevied()['1000'],
-        equals([
-          sprite.extraSendFlags(),
-          9,
-          9,
-          0,
-          180000,
-          180000
-        ]));
+    expect(connectionBtoC.decodedRecentDataRecevied()['1000'],
+        equals([sprite.extraSendFlags(), 9, 9, 0, 180000, 180000]));
   });
 
   test('Test many connections different types', () {
@@ -168,7 +164,8 @@ void main() {
     expectWarningContaining("CLIENT_TO_SERVER connection without being server");
 
     int connectionNr = 0;
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -186,7 +183,8 @@ void main() {
     expect(network.getServerConnection(), isNotNull);
 
     // Close down every connection.
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.signalClose();
     }
     expect(network.safeActiveConnections().length, equals(0));
@@ -240,7 +238,11 @@ void main() {
     // We signaled a transfer to another active game connection.
     // We picked 3 (index 2) since that has the highest current FPS.
     print(fakeConnectionFactory.connections);
-    expect(fakeConnectionFactory.connections['c']['3'].getOtherEnd().decodedRecentDataRecevied().keys,
+    expect(
+        fakeConnectionFactory.connections['c']['3']
+            .getOtherEnd()
+            .decodedRecentDataRecevied()
+            .keys,
         contains(TRANSFER_COMMAND));
   });
 
@@ -249,7 +251,8 @@ void main() {
     expect(network.isCommander(), isFalse);
     expect(network.safeActiveConnections(), hasLength(1));
 
-    fakeConnectionFactory.connections['c']['b'].sendAndReceivByOtherPeerNativeObject({
+    fakeConnectionFactory.connections['c']['b']
+        .sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
       KEY_FRAME_KEY: 0
     });
@@ -273,7 +276,8 @@ void main() {
 
     frame();
 
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -298,6 +302,7 @@ void main() {
 
     frame();
 
+    expect(network.isCommander(), isFalse);
     network.getServerConnection().close();
 
     frame();
@@ -310,10 +315,96 @@ void main() {
     expect(network.getServerConnection(), isNull);
   });
 
+  test('Test network sprite types', () {
+    // Connect to two peers.
+    network.peer.connectTo('b');
+    network.peer.connectTo('d');
+
+    network.gameState.actingCommanderId = 'c';
+    expect(network.isCommander(), isTrue);
+
+    for (ConnectionWrapper connection
+        in network.safeActiveConnections().values) {
+      connection.setHandshakeReceived();
+    }
+
+    // Not sent to network.
+    _TestSprite sprite = new _TestSprite.withVecPosition(1, Vec2.ONE);
+    sprite.networkType = NetworkType.REMOTE_FORWARD;
+    sprite.ownerId = 'b';
+    when(mockSpriteIndex[1]).thenReturn(sprite);
+    when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
+
+    // Not sent to network.
+    _TestSprite sprite2 = new _TestSprite.withVecPosition(2, Vec2.ONE);
+    sprite2.networkType = NetworkType.LOCAL_ONLY;
+    when(mockSpriteIndex[2]).thenReturn(sprite2);
+    when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
+
+    // Sent to network.
+    _TestSprite sprite3 = new _TestSprite.withVecPosition(3, Vec2.ONE);
+    sprite3.networkType = NetworkType.LOCAL;
+    when(mockSpriteIndex[3]).thenReturn(sprite3);
+    when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
+
+    when(mockSpriteIndex.spriteIds()).thenReturn([1, 2, 3]);
+
+    frame();
+
+    expect(recentSentDataTo("b"),
+        new MapKeyMatcher.doesNotContain(sprite.networkId.toString()));
+    expect(recentSentDataTo("d"),
+        new MapKeyMatcher.doesNotContain(sprite.networkId.toString()));
+    expect(recentSentDataTo("b"),
+        new MapKeyMatcher.doesNotContain(sprite2.networkId.toString()));
+    expect(recentSentDataTo("d"),
+        new MapKeyMatcher.doesNotContain(sprite2.networkId.toString()));
+    expect(recentSentDataTo("b"),
+        new MapKeyMatcher.containsKey(sprite3.networkId.toString()));
+    expect(recentSentDataTo("d"),
+        new MapKeyMatcher.containsKey(sprite3.networkId.toString()));
+
+    List<int> data = propertiesToIntList(sprite, false);
+    TestConnection connectionBtoC =
+        fakeConnectionFactory.connections['c']['b'].getOtherEnd();
+    connectionBtoC.sendAndReceivByOtherPeerNativeObject(
+        {KEY_FRAME_KEY: 1, sprite.networkId.toString(): data});
+
+    // b and d is not connected.
+    expect(gameState.isConnected('b', 'd'), isFalse);
+    // b should not get this REMOTE_FORWARD, it is the owner of the sprite.
+    expect(recentSentDataTo("b"),
+        new MapKeyMatcher.doesNotContain(sprite.networkId.toString()));
+    // d should get this, since there is no direct connection b -> d yet.
+    expect(recentSentDataTo("d"),
+        new MapKeyMatcher.containsKey(sprite.networkId.toString()));
+
+    frame();
+
+    gameState.addPlayerInfo(new PlayerInfo("testB", "b", sprite.networkId));
+    PlayerInfo bInfo = gameState.playerInfoByConnectionId('b');
+    bInfo.connections = {'d': new ConnectionInfo('d', 100)};
+
+    expect(gameState.isConnected('b', 'd'), isTrue);
+
+    // Sent data again from b.
+    connectionBtoC.sendAndReceivByOtherPeerNativeObject(
+        {KEY_FRAME_KEY: 1, sprite.networkId.toString(): data});
+
+    // b should not get this REMOTE_FORWARD, it is the owner of the sprite.
+    expect(recentSentDataTo("b"),
+        new MapKeyMatcher.doesNotContain(sprite.networkId.toString()));
+    // d should NOT get it either this time, has we know there is a direct
+    // connection here.
+    expect(recentSentDataTo("d"),
+        new MapKeyMatcher.doesNotContain(sprite.networkId.toString()));
+  });
+
   test('Test explicit command transfer', () {
     network.peer.connectTo('b');
 
-    for (ConnectionWrapper connection in network.safeActiveConnections().values) {
+    for (ConnectionWrapper connection
+        in network.safeActiveConnections().values) {
       connection.setHandshakeReceived();
     }
 
@@ -333,11 +424,12 @@ void main() {
     // We haven't finished loading yet...
     when(mockWormWorld.loaderCompleted()).thenReturn(false);
 
-    expectWarningContaining("Can not transfer command to us before loading has completed");
-    fakeConnectionFactory.connections['c']['b'].getOtherEnd().sendAndReceivByOtherPeerNativeObject({
-      TRANSFER_COMMAND: 'y',
-      KEY_FRAME_KEY: 0
-    });
+    expectWarningContaining(
+        "Can not transfer command to us before loading has completed");
+    fakeConnectionFactory.connections['c']['b']
+        .getOtherEnd()
+        .sendAndReceivByOtherPeerNativeObject(
+            {TRANSFER_COMMAND: 'y', KEY_FRAME_KEY: 0});
 
     // We did not accept the command transfer!
     expect(network.isCommander(), isFalse);
@@ -345,10 +437,10 @@ void main() {
     // Now we finished loading.
     when(mockWormWorld.loaderCompleted()).thenReturn(true);
 
-    fakeConnectionFactory.connections['c']['b'].getOtherEnd().sendAndReceivByOtherPeerNativeObject({
-      TRANSFER_COMMAND: 'y',
-      KEY_FRAME_KEY: 0
-    });
+    fakeConnectionFactory.connections['c']['b']
+        .getOtherEnd()
+        .sendAndReceivByOtherPeerNativeObject(
+            {TRANSFER_COMMAND: 'y', KEY_FRAME_KEY: 0});
 
     // We accepted the command transfer.
     expect(network.isCommander(), isTrue);
@@ -369,16 +461,25 @@ void main() {
     expect(network.findServer(), isFalse);
 
     // All connections got pinged.
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       Map data = connection.getOtherEnd().decodedRecentDataRecevied();
       data[PING] = 123;
       data[CONTAINED_DATA_RECEIPTS] = [999];
-      expect(data, equals({PING: 123, CONTAINED_DATA_RECEIPTS:[999], KEY_FRAME_KEY: 0, IS_KEY_FRAME_KEY: 0}));
+      expect(
+          data,
+          equals({
+            PING: 123,
+            CONTAINED_DATA_RECEIPTS: [999],
+            KEY_FRAME_KEY: 0,
+            IS_KEY_FRAME_KEY: 0
+          }));
       expect(connection.getOtherEnd().dataReceivedCount, equals(1));
     }
 
     // Returns pongs for all connection.
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -409,7 +510,9 @@ void main() {
     // Respond with a Pong - this is the server.
     GameState g = new GameState(packetListenerBindings, null);
     g.actingCommanderId = '0';
-    fakeConnectionFactory.connections['c']['0'].getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+    fakeConnectionFactory.connections['c']['0']
+        .getOtherEnd()
+        .sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
       GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
@@ -433,7 +536,8 @@ void main() {
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
 
     // Returns pongs for all connection.
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -452,7 +556,9 @@ void main() {
     // Respond with a Pong - this is the server.
     print("Connetions ${network.safeActiveConnections().keys}");
     g.actingCommanderId = '5';
-    fakeConnectionFactory.connections['c']['5'].getOtherEnd().sendAndReceivByOtherPeerNativeObject({
+    fakeConnectionFactory.connections['c']['5']
+        .getOtherEnd()
+        .sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
       GAME_STATE: g.toMap(),
       KEY_FRAME_KEY: 0
@@ -469,7 +575,8 @@ void main() {
     expect(network.findServer(), isFalse);
 
     // Returns pongs for all connections again - no server connection.
-    for (TestConnection connection in fakeConnectionFactory.connections['c'].values) {
+    for (TestConnection connection
+        in fakeConnectionFactory.connections['c'].values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0

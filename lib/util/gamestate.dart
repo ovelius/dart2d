@@ -109,7 +109,7 @@ class GameState {
     this._urgentData = true;
   }
 
-  bool isConnected(String a, String b) => _playerInfoById[a].isConnectedTo(b);
+  bool isConnected(String a, String b) =>  _playerInfoById.containsKey(a) ? _playerInfoById[a].isConnectedTo(b) : false;
 
   void reset() {
     actingCommanderId = null;

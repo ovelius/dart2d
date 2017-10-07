@@ -24,7 +24,7 @@ class TestConnection {
   var id;
   ConnectionWrapper _internalWrapper;
 
-  var recentDataSent = null;
+  String recentDataSent = null;
   int dataReceivedCount = 0;
   var recentDataRecevied = null;
 
@@ -34,7 +34,7 @@ class TestConnection {
     }
     return JSON.decode(recentDataRecevied);
   }
-  
+
   bool buffer = false;
   List<String> dataBuffer = [];
 

@@ -528,18 +528,33 @@ class Network {
           if (data[0] & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
             constructor = SpriteConstructor.values[data[6]];
           }
-          MovingSprite sprite =
-              world.getOrCreateSprite(parsedNetworkId, constructor, connection);
+          MovingSprite sprite = _spriteIndex[parsedNetworkId];
           if (sprite == null) {
-            log.fine(
-                "Not creating sprite from update ${networkId}, constructor is ${constructor}");
-            continue;
+            if (constructor != SpriteConstructor.DO_NOT_CREATE) {
+              sprite = _spriteIndex.CreateSpriteFromNetwork(
+                  world, parsedNetworkId, constructor, connection);
+            } else {
+              log.fine(
+                  "Not creating sprite from update ${networkId}, constructor is ${constructor}");
+              continue;
+            }
           }
           intListToSpriteProperties(bundle[networkId], sprite);
           // Forward sprite to others.
           if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-            Map data = {networkId: bundle[networkId]};
-            peer.sendDataWithKeyFramesToAll(data, connection.id);
+            for (ConnectionWrapper receipientConnection in  safeActiveConnections().values) {
+              if (connection.id == receipientConnection.id) {
+                // Don't send back from where it came.
+                continue;
+              }
+              // Don't forward if we know there is a direct connection between these
+              // two peers already.
+              // TODO: Forward if latency is better this path?
+              if (!gameState.isConnected(connection.id, receipientConnection.id)) {
+                Map data = {networkId: bundle[networkId]};
+                peer.sendDataWithKeyFramesToAll(data, null, receipientConnection.id);
+              }
+            }
           }
         }
       }

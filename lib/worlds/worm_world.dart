@@ -353,25 +353,6 @@ class WormWorld extends World {
     }
   }
 
-  MovingSprite getOrCreateSprite(int networkId, SpriteConstructor constructor, ConnectionWrapper wrapper) {
-    Sprite sprite = spriteIndex[networkId];
-    if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
-      sprite = SpriteIndex.fromWorldByIndex(this, networkId, wrapper.id, constructor);
-      if (sprite != null) {
-        sprite.networkType = NetworkType.REMOTE;
-        sprite.networkId = networkId;
-        // This might not be 100% accurate, since onwer might be:
-        // Client -> Server -> Client.
-        // But if that is the case it will be updated when we parse the GameState.
-        sprite.ownerId = wrapper.id;
-        addSprite(sprite);
-      } else {
-        log.warning("Unable to create sprite ${networkId} with constructor ${constructor}");
-      }
-    }
-    return sprite;
-  }
-
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
       double xMin = viewPoint.x;                        //leftest x-value

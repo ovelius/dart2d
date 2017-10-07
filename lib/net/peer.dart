@@ -154,10 +154,12 @@ class PeerWrapper {
     return wrapper;
   }
 
-  void sendDataWithKeyFramesToAll(Map data, [String dontSendTo]) {
+  void sendDataWithKeyFramesToAll(Map data,
+      [String dontSendTo, String onlySendTo]) {
     List<String> closedConnections = [];
-    for (var key in connections.keys) {
+    for (var key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
       ConnectionWrapper connection = connections[key];
+      assert(connection != null);
       if (dontSendTo != null && dontSendTo == connection.id) {
         continue;
       }

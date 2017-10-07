@@ -1,6 +1,4 @@
-
-import 'package:dart2d/sprites/sprite.dart';
-import 'package:dart2d/sprites/movingsprite.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
@@ -18,6 +16,7 @@ enum SpriteConstructor {
   POWERUP,
   ROPE_SPRITE
 }
+
 /**
  * Contains the world sprite data, indexed by id.
  */
@@ -26,27 +25,60 @@ class SpriteIndex {
   static final Logger log = new Logger('SpriteIndex');
 
   static final Map<SpriteConstructor, dynamic> _spriteConstructors = {
-    SpriteConstructor.MOVING_SPRITE: (WormWorld world, int spriteId, String connectionId) => new MovingSprite.imageBasedSprite(
-        new Vec2(), 0, world.imageIndex()),
-    SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE: (WormWorld world, int spriteId, String connectionId) {
-      PlayerInfo info = world.network().getGameState().playerInfoByConnectionId(connectionId);
+    SpriteConstructor.MOVING_SPRITE: (WormWorld world, int spriteId,
+            String connectionId) =>
+        new MovingSprite.imageBasedSprite(new Vec2(), 0, world.imageIndex()),
+    SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE:
+        (WormWorld world, int spriteId, String connectionId) {
+      PlayerInfo info =
+          world.network().getGameState().playerInfoByConnectionId(connectionId);
       if (info == null) {
-        log.warning("Recieved player sprite not in Gamestate ${world.network().getGameState()}");
+        log.warning(
+            "Recieved player sprite not in Gamestate ${world.network().getGameState()}");
         return null;
       }
       if (!info.remoteKeyState().remoteState) {
-        throw new ArgumentError("Cannot create a remote sprite with local keystate! ${world}");
+        throw new ArgumentError(
+            "Cannot create a remote sprite with local keystate! ${world}");
       }
-      return new LocalPlayerSprite(world, world.imageIndex(), null, info, new Vec2(), 0);
+      return new LocalPlayerSprite(
+          world, world.imageIndex(), null, info, new Vec2(), 0);
     },
-    SpriteConstructor.ROPE_SPRITE: (WormWorld world, int spriteId, String connectionId) => new Rope.createEmpty(world),
-    SpriteConstructor.POWERUP: (WormWorld world, int spriteId, String connectionId) => new Powerup.createEmpty(world.imageIndex()),
-    SpriteConstructor.DAMAGE_PROJECTILE: (WormWorld world, int spriteId, String connectionId) => new WorldDamageProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
-    SpriteConstructor.HYPER: (WormWorld world, int spriteId, String connectionId) => new Hyper(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.ROPE_SPRITE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new Rope.createEmpty(world),
+    SpriteConstructor.POWERUP:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new Powerup.createEmpty(world.imageIndex()),
+    SpriteConstructor.DAMAGE_PROJECTILE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new WorldDamageProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HYPER:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new Hyper(world, 0.0, 0.0, 0, world.imageIndex()),
   };
-    
-  static MovingSprite fromWorldByIndex(WormWorld world, int spriteId, String connectionId, SpriteConstructor constructor) {
+
+  static MovingSprite fromWorldByIndex(WormWorld world, int spriteId,
+      String connectionId, SpriteConstructor constructor) {
     return _spriteConstructors[constructor](world, spriteId, connectionId);
+  }
+
+  /**
+   * Creates a sprite we got to know over the network.
+   */
+  MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
+      SpriteConstructor constructor, ConnectionWrapper wrapper) {
+    assert(SpriteConstructor != SpriteConstructor.DO_NOT_CREATE);
+    MovingSprite sprite =
+        SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
+    sprite.networkType = NetworkType.REMOTE;
+    sprite.networkId = networkId;
+    // This might not be 100% accurate, since onwer might be:
+    // Client -> Server -> Client.
+    // But if that is the case it will be updated when we parse the GameState.
+    sprite.ownerId = wrapper.id;
+    addSprite(sprite);
+    return sprite;
   }
 
   // Current sprites in our world.
@@ -59,10 +91,10 @@ class SpriteIndex {
   List<int> _removeSprites = [];
   // Sprites that will replace the current world sprites next frame.
   Map<int, Sprite> _replaceSprite = {};
-  
+
   // When adding local world sprite we start from this number.
   int spriteNetworkId = 0;
-  
+
   /**
    * Put the sprite in queue to be added.
    * The networkId of the sprite might be left empty, which means the sprite
@@ -87,13 +119,15 @@ class SpriteIndex {
       if (newSprite.networkId == null) {
         newSprite.networkId = spriteNetworkId++;
         while (_sprites.containsKey(newSprite.networkId)) {
-          log.warning("${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
+          log.warning(
+              "${this}: Warning: World contains sprite ${newSprite.networkId} adding 1");
           newSprite.networkId = spriteNetworkId++;
         }
       }
       if (_sprites.containsKey(newSprite.networkId)) {
-        log.severe("Network controlled sprite ${newSprite}[${newSprite.networkId}]"
-            + "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
+        log.severe(
+            "Network controlled sprite ${newSprite}[${newSprite.networkId}]" +
+                "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
         continue;
       }
       _sprites[newSprite.networkId] = newSprite;
@@ -102,14 +136,14 @@ class SpriteIndex {
     _replacePending();
     return added;
   }
-  
+
   /**
    * Replace this sprite at next frame. 
    */
   void replaceSprite(int id, Sprite sprite) {
     _replaceSprite[id] = sprite;
   }
-  
+
   /**
    * Replace the sprites in index with pending replacements.
    */
@@ -118,14 +152,14 @@ class SpriteIndex {
       _sprites[id] = _replaceSprite.remove(id);
     }
   }
-  
+
   /**
    * Add the sprite to the pending removals queue.
    */
   void removeSprite(int id) {
     _removeSprites.add(id);
   }
-  
+
   /**
    * Mutate the world by running the pending removals.
    * Populates the pending network removals queue.
@@ -145,7 +179,7 @@ class SpriteIndex {
       }
     }
   }
-  
+
   /**
    * Return an iterable of the sprites keys. 
    * We do not return a defense copy.
@@ -153,7 +187,7 @@ class SpriteIndex {
   Iterable<int> spriteIds() {
     return _sprites.keys;
   }
-  
+
   /**
    * Grab the current nework removals and clear the state.
    */
@@ -162,7 +196,7 @@ class SpriteIndex {
     _networkRemovals.clear();
     return copy;
   }
-   
+
   /**
    * Clear away all sprites and reset state.
    */
@@ -172,7 +206,7 @@ class SpriteIndex {
     _removeSprites.clear();
     _replaceSprite.clear();
   }
-  
+
   int count() => _sprites.length;
   operator [](index) => _sprites[index];
   operator []=(int i, Sprite value) => _sprites[i] = value;
