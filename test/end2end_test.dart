@@ -111,9 +111,8 @@ void main() {
       TestServerChannel peerC = injectorC.get(TestServerChannel);
       // Connections fail big time.
       TestConnectionFactory connectionFactoryC = injectorC.get(TestConnectionFactory);
-      connectionFactoryC.failConnectionsTo
-        ..add("a")
-        ..add("b");
+      connectionFactoryC.failConnection('c', 'a').failConnection('c', 'b');
+
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
       peerC.sendOpenMessage(['a', 'b', 'c']);

@@ -144,7 +144,15 @@ class TestConnectionWrapper {
 
 class TestConnectionFactory extends ConnectionFactory {
   Map<String, Map<String, TestConnection>> connections = {};
-  Set<String> failConnectionsTo = new Set();
+  Map<String, List<String>> failConnectionsTo = {};
+
+  TestConnectionFactory failConnection(String from, String to) {
+    if (!failConnectionsTo.containsKey(from)) {
+      failConnectionsTo[from] = [];
+    }
+    failConnectionsTo[from].add(to);
+    return this;
+  }
 
   void signalErrorAllConnections(String to) {
     connections[to].values.forEach((c) {
@@ -174,8 +182,8 @@ class TestConnectionFactory extends ConnectionFactory {
       throw new ArgumentError("No peer with id ${ourPeerId}");
     }
     ourChannel.connections.add(c);
-    if (failConnectionsTo.contains(otherPeerId)) {
-      print("DROPPING connection to ${otherPeerId}, configured to fail!");
+    if (failConnectionsTo.containsKey(ourPeerId) && failConnectionsTo[ourPeerId].contains(otherPeerId)) {
+      print("DROPPING connection $ourPeerId -> $otherPeerId, configured to fail!");
       return;
     }
     // Signal open connection right away.

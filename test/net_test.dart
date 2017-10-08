@@ -6,6 +6,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:di/di.dart';
 import 'package:dart2d/util/util.dart';
 
 void main() {
@@ -17,7 +18,7 @@ void main() {
     remapKeyNamesForTest();
   });
 
-  group('World smoke tests', () {
+  group('World 2 world network tests', () {
     test('TestBasicSmokeConnection', () {
       WormWorld worldA = testWorld("c");
       WormWorld worldB = testWorld("b");
@@ -462,9 +463,10 @@ void main() {
       expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
       expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
 
+      // But no a is having trouble.
       worldA.drawFps().setFpsForTest(3.1);
 
-      // And all is well for a while.
+      // Pas some time.
       for (int i = 0; i < 10; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
@@ -481,6 +483,67 @@ void main() {
       expect(worldB.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
       expect(worldA.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
 
+    });
+
+    test('TestCommanderSpriteForward', () {
+      Injector injectorA = createWorldInjector('a');
+      TestConnectionFactory connectionFactory = injectorA.get(TestConnectionFactory);
+
+      WormWorld worldA = initTestWorld(injectorA);
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
+
+      worldB.startAsServer("nameB");
+      worldB.frameDraw();
+      connectionFactory.failConnection('c', 'a').failConnection('a', 'c');
+
+      worldA.connectTo('b');
+      worldA.network().getServerConnection().sendClientEnter();
+      worldC.connectTo('b');
+      worldC.network().getServerConnection().sendClientEnter();
+
+      for (int i = 0; i < 8; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      expect(worldB, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(0))
+            .andNetworkType(NetworkType.LOCAL),
+        hasSpriteWithNetworkId(playerId(1))
+            .andNetworkType(NetworkType.REMOTE_FORWARD),
+        hasSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.REMOTE_FORWARD),
+      ]));
+
+      expect(worldA, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(0))
+            .andNetworkType(NetworkType.REMOTE),
+        hasSpriteWithNetworkId(playerId(1))
+            .andNetworkType(NetworkType.LOCAL),
+        hasSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.REMOTE),
+      ]));
+
+      expect(worldC, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(0))
+            .andNetworkType(NetworkType.REMOTE),
+        hasSpriteWithNetworkId(playerId(1))
+            .andNetworkType(NetworkType.REMOTE),
+        hasSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.LOCAL),
+      ]));
+
+      Sprite spriteA = worldA.spriteIndex[playerId(1)];
+      Sprite spriteC = worldC.spriteIndex[playerId(1)];
+      spriteA.position.x = 99.0;
+      spriteC.position.x = 88.0;
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+
+      // C received the data from A through B.
+      expect(spriteA.position.x, equals(spriteC.position.x));
     });
 
     test('TestThreePlayerOneJoinsLater', () {
