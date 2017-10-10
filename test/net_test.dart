@@ -544,6 +544,28 @@ void main() {
 
       // C received the data from A through B.
       expect(spriteA.position.x, equals(spriteC.position.x));
+
+      // Now commander dies.
+      testConnections['b'].forEach((e) { e.signalClose(); });
+
+      for (int i = 0; i < 8; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // We ended up with two distinct commanders.
+      expect(worldA.network().isCommander(), isTrue);
+      expect(worldA, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(1))
+            .andNetworkType(NetworkType.LOCAL),
+      ]));
+
+      expect(worldC.network().isCommander(), isTrue);
+      expect(worldC, hasExactSprites([
+        hasSpriteWithNetworkId(playerId(2))
+            .andNetworkType(NetworkType.LOCAL),
+      ]));
     });
 
     test('TestThreePlayerOneJoinsLater', () {
