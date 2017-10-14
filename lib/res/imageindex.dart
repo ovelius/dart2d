@@ -5,7 +5,9 @@ import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
-List<String> imageSources = [
+const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
+
+List<String> IMAGE_SOURCES = [
     "lion88.png", // Put here as first item for easier testing.
     "fire.png",
     "duck.png",
@@ -46,13 +48,17 @@ class ImageIndex {
   DynamicFactory _canvasFactory;
   DynamicFactory _imageFactory;
   // Map ImageName -> ImageIndex.
-  Map imageByName = new Map<String, int>();
+  Map<String, int> imageByName = new Map<String, int>();
   // Map ImageName -> Loaded bool.
-  Map loadedImages = new Map<int, bool>();
+  Map<int, bool> loadedImages = new Map<int, bool>();
   List images = new List();
+  Map _localStorage;
 
-  ImageIndex(@CanvasFactory() DynamicFactory canvasFactory,
+  ImageIndex(
+      @LocalStorage() Map localStorage,
+      @CanvasFactory() DynamicFactory canvasFactory,
       @ImageFactory() DynamicFactory imageFactory) {
+    this._localStorage = localStorage;
     this._imageFactory = imageFactory;
     this._canvasFactory = canvasFactory;
     // Image 0 is always empty image.
@@ -73,7 +79,7 @@ class ImageIndex {
    * Factory constructor to be used in testing.
    */
   useEmptyImagesForTest() {
-    for (var img in imageSources) {
+    for (var img in IMAGE_SOURCES) {
       addEmptyImageForTest(img);
     }
   }
@@ -101,10 +107,10 @@ class ImageIndex {
     return images[id];
   }
   bool finishedLoadingImages() {
-    return loadedImages.length >= imageSources.length;
+    return loadedImages.length >= IMAGE_SOURCES.length;
   }
   String imagesLoadedString() {
-    return "${loadedImages.length}/${imageSources.length}";
+    return "${loadedImages.length}/${IMAGE_SOURCES.length}";
   }
 
   addImagesFromServer([String path = "./img/"]) {
@@ -114,6 +120,9 @@ class ImageIndex {
   void addFromImageData(int index, String data) {
     images[index] = _imageFactory.create([data]);
     loadedImages[index] = true;
+    if (finishedLoadingImages()) {
+      _cacheInLocalStorage();
+    }
   }
 
   void addImagesFromNetwork() {
@@ -121,7 +130,7 @@ class ImageIndex {
   }
 
   bool imagesIndexed() {
-    return imageByName.length >= imageSources.length;
+    return imageByName.length >= IMAGE_SOURCES.length;
   }
 
   /**
@@ -137,9 +146,12 @@ class ImageIndex {
 
   loadImagesFromServer() {
     List<Future> imageFutures = [];
-    for (var imgName in imageSources) {
+    _indexImages();
+    _loadFromCacheInLocalStorage();
+    for (var imgName in IMAGE_SOURCES) {
       // Already loaded, skip.
-      if (loadedImages[imgName] == true) {
+      int index = imageByName[imgName];
+      if (loadedImages[index] == true) {
         continue;
       }
       imageFutures.add(addSingleImage(imgName));
@@ -148,6 +160,7 @@ class ImageIndex {
   }
 
   Future addSingleImage(String imgName, [String path = "./img/"]) {
+    assert(imagesIndexed());
     var element = this._imageFactory.create([path + imgName]);
     int index = imageByName[imgName];
     // Already indexed. Update existing item.
@@ -165,12 +178,20 @@ class ImageIndex {
   Future _imageLoadedFuture(var img, int index) {
     img.onLoad.first.then((e) {
       loadedImages[index] = true;
+      if (finishedLoadingImages()) {
+        _cacheInLocalStorage();
+      }
     });
     return img.onLoad.first;
   }
 
   loadImagesFromNetwork() {
-    for (var img in imageSources) {
+    _indexImages();
+    _loadFromCacheInLocalStorage();
+  }
+
+  void _indexImages() {
+    for (var img in IMAGE_SOURCES) {
       var element = this._imageFactory.create([]);
       images.add(element);
       imageByName[img] = images.length - 1;
@@ -195,5 +216,44 @@ class ImageIndex {
       return imageIsLoaded(id);
     }
     return false;
+  }
+
+  static final Duration CACHE_TIME = new Duration(days: 7);
+
+  void _loadFromCacheInLocalStorage() {
+    assert(imagesIndexed());
+    DateTime now = new DateTime.now();
+    for (String image in imageByName.keys) {
+      String key = "img$image";
+      if (_localStorage.containsKey(key) && _localStorage.containsKey("t$key")) {
+        DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(_localStorage["t$key"]);
+        if (cacheTime.add(CACHE_TIME).isAfter(now)) {
+          String data = _localStorage[key];
+          int imageIndex = imageByName[image];
+          addFromImageData(imageIndex, data);
+        }
+      }
+    }
+  }
+
+  void _cacheInLocalStorage() {
+    int size = 0;
+    for (String image in imageByName.keys) {
+      int imageId = imageByName[image];
+      // Never cache the world.
+      if (imageId <= WORLD_IMAGE_INDEX) {
+        continue;
+      }
+      if (size > MAX_LOCAL_STORAGE_SIZE) {
+        continue;
+      }
+      String imageData = getImageDataUrl(imageId);
+      size += imageData.length;
+      String key = "img$image";
+      if (!_localStorage.containsKey(key)) {
+        _localStorage[key] = imageData;
+        _localStorage["t$key"] = new DateTime.now().millisecondsSinceEpoch;
+      }
+    }
   }
 }

@@ -105,7 +105,16 @@ class FakeImageFactory extends DynamicFactory {
   FakeImageFactory() : super(null);
   List<FakeImage> createdImages = [];
   create(var args) {
-    FakeImage image = new FakeImage();
+    FakeImage image;
+    if (args.length == 2) {
+      image = new FakeImage.withHW(args[0], args[1]);
+    } else if (args.length == 1) {
+      image = new FakeImage.withSrc(args[0]);
+    } else if (args.length == 0) {
+      image = new FakeImage();
+    } else {
+      throw new ArgumentError("Can't handle arguments ${args}");
+    }
     createdImages.add(image);
     return image;
   }
@@ -121,6 +130,11 @@ class FakeImageFactory extends DynamicFactory {
 }
 
 class FakeImage {
+
+  FakeImage() {}
+  FakeImage.withSrc(this.src);
+  FakeImage.withHW(this.width, this.height);
+
   String src;
   int width = 100;
   int height = 100;

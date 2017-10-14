@@ -104,7 +104,7 @@ abstract class ConnectionFactory {
 class DynamicFactory {
   DynamicFactory(this._factory);
   dynamic _factory;
-  create(var args) {
+  create(List args) {
     return _factory(args);
   }
 }
