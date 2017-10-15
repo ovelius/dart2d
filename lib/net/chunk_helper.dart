@@ -164,7 +164,7 @@ class ChunkHelper {
   void requestNetworkData(
       Map<String, ConnectionWrapper> connections, double secondsDuration) {
     requestSpecificNetworkData(
-        connections, secondsDuration, _imageIndex.allImagesByName().values);
+        connections, secondsDuration, _imageIndex.orderedImageIds());
   }
 
   void requestSpecificNetworkData(Map<String, ConnectionWrapper> connections,

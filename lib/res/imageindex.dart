@@ -63,6 +63,7 @@ class ImageIndex {
   // Keep track of these types in a Set.
   Set<String> _playerImages = new Set<String>();
   Set<String> _worldImages = new Set<String>();
+  List<int> _orderedImageIds = [];
 
   Map _localStorage;
 
@@ -126,6 +127,7 @@ class ImageIndex {
 
   bool playerResourcesLoaded() => _playerImages.isEmpty;
   bool worldResourcesLoaded() => _worldImages.isEmpty;
+  List<int> orderedImageIds() => _orderedImageIds;
 
   String imagesLoadedString() {
     return "${loadedImages.length}/${IMAGE_SOURCES.length}";
@@ -229,7 +231,9 @@ class ImageIndex {
     for (String img in IMAGE_SOURCES) {
       var element = this._imageFactory.create([]);
       images.add(element);
-      imageByName[img] = images.length - 1;
+      int index = images.length - 1;
+      imageByName[img] = index;
+      _orderedImageIds.add(index);
       if (PLAYER_SOURCES.contains(img)) {
         _playerImages.add(img);
       }

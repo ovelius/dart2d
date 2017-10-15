@@ -130,13 +130,12 @@ void main() {
       int requestedIndex2 = 6;
       Map connections = {1: connection1};
 
-      Map map = {"image1.png": requestedIndex, "image2.png": requestedIndex2};
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       when(imageIndex.getImageDataUrl(requestedIndex2)).thenReturn(IMAGE_DATA);
       when(imageIndex2.imageIsLoaded(requestedIndex2)).thenReturn(true);
       when(imageIndex.imageIsLoaded(requestedIndex2)).thenReturn(true);
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
-      when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex, requestedIndex2]);
       when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex2.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
 
@@ -162,18 +161,10 @@ void main() {
     });
     test('Test retries', () {
       Map connections = {connection1.id: connection1};
-      Map map = {
-        "image1.png": 4,
-        "image2.png": 6,
-        "image3.png": 7,
-        "image5.png": 9,
-        "image9.png": 91,
-        "image99.png": 31
-      };
       when(imageIndex.getImageDataUrl(argThat(anything)))
           .thenReturn(IMAGE_DATA);
       when(imageIndex.imageIsLoaded(argThat(anything))).thenReturn(false);
-      when(imageIndex.allImagesByName()).thenReturn(map);
+      when(imageIndex.orderedImageIds()).thenReturn([4, 6, 7, 9, 91, 31]);
 
       helper.requestNetworkData(connections, 0.01);
       expect(connection1.sendCount, equals(3));
@@ -205,11 +196,10 @@ void main() {
       int requestedIndex = ImageIndex.WORLD_IMAGE_INDEX;
       Map connections = {1: connection1};
 
-      Map map = {"image2.png": requestedIndex};
       when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA);
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
-      when(imageIndex.allImagesByName()).thenReturn(map);
-      when(imageIndex2.allImagesByName()).thenReturn(map);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+      when(imageIndex2.orderedImageIds()).thenReturn([requestedIndex]);
       when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(false);
 
       helper.requestNetworkData(connections, 0.01);

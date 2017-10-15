@@ -130,14 +130,17 @@ class Loader {
     }
   }
 
+  void _tickImagesLoad(double duration) {
+    Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
+    _chunkHelper.requestNetworkData(connections, duration);
+  }
+
   void _loadImagesStage(double duration) {
     if (_currentState != LoaderState.LOADING_SERVER && _network.hasOpenConnection()) {
       if (!_imageIndex.imagesIndexed()) {
         _imageIndex.loadImagesFromNetwork();
       }
-      Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
-      assert(!connections.isEmpty);
-      _chunkHelper.requestNetworkData(connections, duration);
+      _tickImagesLoad(duration);
       if (_currentState != LoaderState.LOADING_OTHER_CLIENT) {
         _chunkHelper.bytesPerSecondSamples().listen((int sample) {
           if (sample < ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND) {
