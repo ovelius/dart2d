@@ -1,42 +1,44 @@
 library imageindex;
 
-import 'dart:math';
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
 
 const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
 
-List<String> IMAGE_SOURCES = [
-    "lion88.png", // Put here as first item for easier testing.
-    "fire.png",
-    "duck.png",
-    "dragon.png",
-    "cock.png",
-    "sheep98.png",
-    "sheep_black58.png",
-    "ele96.png",
-    "donkey98.png",
-    "goat93.png",
-    "cock77.png",
-    "dra98.png",
-    "health02.png",
-    "turtle96.png",
-    "donkey.png",
-    "world_map_mini.png",
-    "world_house_mini.png",
-    "world_cloud_mini.png",
-    "world_maze_mini.png",
-    "world_town_mini.png",
-    "cake.png",
-    "banana.png",
-    "shield.png",
-    "soda.png",
-    "shieldi02.png",
-    "zooka.png",
-    "box.png",
-    "gun.png",
+List<String> PLAYER_SOURCES = [
+  "lion88.png",
+  "sheep98.png",
+  "sheep_black58.png",
+  "ele96.png",
+  "donkey98.png",
+  "goat93.png",
+  "cock77.png",
+  "dra98.png",
+  "turtle96.png"
 ];
+
+List<String> WORLD_SOURCES = [
+  "world_map_mini.png",
+  "world_house_mini.png",
+  "world_cloud_mini.png",
+  "world_maze_mini.png",
+  "world_town_mini.png",
+];
+
+List<String> GAME_SOURCES = [
+  "cake.png",
+  "banana.png",
+  "shield.png",
+  "soda.png",
+  "shieldi02.png",
+  "health02.png",
+  "zooka.png",
+  "box.png",
+  "gun.png",
+];
+
+List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(WORLD_SOURCES)..addAll(GAME_SOURCES);
 
 const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
@@ -226,7 +228,8 @@ class ImageIndex {
     for (String image in imageByName.keys) {
       String key = "img$image";
       if (_localStorage.containsKey(key) && _localStorage.containsKey("t$key")) {
-        DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(_localStorage["t$key"]);
+        String millis = _localStorage["t$key"];
+        DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(int.parse(millis));
         if (cacheTime.add(CACHE_TIME).isAfter(now)) {
           String data = _localStorage[key];
           int imageIndex = imageByName[image];
@@ -252,7 +255,7 @@ class ImageIndex {
       String key = "img$image";
       if (!_localStorage.containsKey(key)) {
         _localStorage[key] = imageData;
-        _localStorage["t$key"] = new DateTime.now().millisecondsSinceEpoch;
+        _localStorage["t$key"] = (new DateTime.now().millisecondsSinceEpoch).toString();
       }
     }
   }

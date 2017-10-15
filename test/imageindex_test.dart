@@ -4,16 +4,16 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 
 void main() {
-  Map localStorage;
+  Map<String, String> localStorage;
   ImageIndex index;
   FakeImageFactory fakeImageFactory;
   _FakeCanvas _fakeCanvas;
 
   setUp(() {
-    localStorage = new Map();
+    localStorage = new Map<String, String>();
     fakeImageFactory = new FakeImageFactory();
     _fakeCanvas = new _FakeCanvas();
-    index = new ImageIndex(localStorage,  new DynamicFactory((args) => new _FakeCanvas()), fakeImageFactory);
+    index = new ImageIndex(localStorage,  new DynamicFactory((args) => _fakeCanvas), fakeImageFactory);
   });
 
   tearDown(() {
@@ -103,7 +103,7 @@ void main() {
   test("TestLoadFromCache", () {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
-      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch;
+      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch.toString();
     }
 
     index.loadImagesFromNetwork();
@@ -114,7 +114,7 @@ void main() {
   test("TestLoadFromCacheServer", () {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
-      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch;
+      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch.toString();
     }
 
     index.loadImagesFromServer();
@@ -126,7 +126,7 @@ void main() {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
       // Too old...
-      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch - new Duration(days: 14).inMilliseconds;
+      localStorage["timg$name"] = (new DateTime.now().millisecondsSinceEpoch - new Duration(days: 14).inMilliseconds).toString();
     }
 
     index.loadImagesFromNetwork();
