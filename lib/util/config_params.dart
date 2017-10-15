@@ -7,6 +7,7 @@ enum ConfigParam {
   BOT_ENABLED,
   INGRESS_BANDWIDTH,
   EGRESS_BANDWIDTH,
+  DISABLE_CACHE,
 }
 
 @Injectable()
@@ -19,6 +20,8 @@ class ConfigParams {
     ConfigParam.INGRESS_BANDWIDTH: "ingress",
     // Egress bandwidth in kB/s.
     ConfigParam.EGRESS_BANDWIDTH: "egress",
+    // Disabled explicit image caching.
+    ConfigParam.DISABLE_CACHE: "nocache",
   };
   static Map<ConfigParam, Object> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
@@ -26,9 +29,11 @@ class ConfigParams {
     ConfigParam.BOT_ENABLED: false,
     ConfigParam.INGRESS_BANDWIDTH: -1,
     ConfigParam.EGRESS_BANDWIDTH: -1,
+    ConfigParam.DISABLE_CACHE: false,
   };
 
   Map<String, List<String>> _uriParams;
+
   ConfigParams(@UriParameters() Map _uriParams) {
     this._uriParams = _uriParams;
   }

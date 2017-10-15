@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 
 void main() {
@@ -13,7 +14,8 @@ void main() {
     localStorage = new Map<String, String>();
     fakeImageFactory = new FakeImageFactory();
     _fakeCanvas = new _FakeCanvas();
-    index = new ImageIndex(localStorage,  new DynamicFactory((args) => _fakeCanvas), fakeImageFactory);
+    index = new ImageIndex(new ConfigParams({}), localStorage,
+        new DynamicFactory((args) => _fakeCanvas), fakeImageFactory);
   });
 
   tearDown(() {
@@ -99,7 +101,7 @@ void main() {
       if (id > 5) {
         break;
       }
-     }
+    }
 
     // Check caching.
     for (String name in index.allImagesByName().keys) {
@@ -112,7 +114,8 @@ void main() {
   test("TestLoadFromCache", () {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
-      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch.toString();
+      localStorage["timg$name"] =
+          new DateTime.now().millisecondsSinceEpoch.toString();
     }
 
     index.loadImagesFromNetwork();
@@ -123,7 +126,8 @@ void main() {
   test("TestLoadFromCacheServer", () {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
-      localStorage["timg$name"] = new DateTime.now().millisecondsSinceEpoch.toString();
+      localStorage["timg$name"] =
+          new DateTime.now().millisecondsSinceEpoch.toString();
     }
 
     index.loadImagesFromServer();
@@ -135,7 +139,9 @@ void main() {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data$name";
       // Too old...
-      localStorage["timg$name"] = (new DateTime.now().millisecondsSinceEpoch - new Duration(days: 14).inMilliseconds).toString();
+      localStorage["timg$name"] = (new DateTime.now().millisecondsSinceEpoch -
+              new Duration(days: 14).inMilliseconds)
+          .toString();
     }
 
     index.loadImagesFromNetwork();

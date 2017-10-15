@@ -2,6 +2,7 @@ library imageindex;
 
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/util/util.dart';
 import 'package:di/di.dart';
 
 const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
@@ -50,6 +51,7 @@ class ImageIndex {
   static const int WORLD_IMAGE_INDEX = 1;
   var _EMPTY_IMAGE;
   var _WORLD_IMAGE;
+  ConfigParams _configParams;
   DynamicFactory _canvasFactory;
   DynamicFactory _imageFactory;
   // Map ImageName -> ImageIndex.
@@ -65,6 +67,7 @@ class ImageIndex {
   Map _localStorage;
 
   ImageIndex(
+      this._configParams,
       @LocalStorage() Map localStorage,
       @CanvasFactory() DynamicFactory canvasFactory,
       @ImageFactory() DynamicFactory imageFactory) {
@@ -257,6 +260,9 @@ class ImageIndex {
   static final Duration CACHE_TIME = new Duration(days: 7);
 
   void _loadFromCacheInLocalStorage() {
+    if (_configParams.getBool(ConfigParam.DISABLE_CACHE)) {
+      return;
+    }
     assert(imagesIndexed());
     DateTime now = new DateTime.now();
     for (String image in imageByName.keys) {
