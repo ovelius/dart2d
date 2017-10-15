@@ -209,8 +209,10 @@ class ImageIndex {
       _cacheInLocalStorage();
     }
     String name = imageNameFromIndex(index);
-    _playerImages.remove(name);
-    _worldImages.remove(name);
+    if (name != null) {
+      _playerImages.remove(name);
+      _worldImages.remove(name);
+    }
   }
 
   String imageNameFromIndex(int index) {
@@ -220,7 +222,7 @@ class ImageIndex {
         return name;
       }
     }
-    throw new ArgumentError("Image not indexed $index");
+    return null;
   }
 
   void _indexImages() {
