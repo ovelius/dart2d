@@ -6,7 +6,8 @@ import 'package:di/di.dart';
 
 const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
 
-List<String> PLAYER_SOURCES = [
+// Required for selecting player.
+Set<String> PLAYER_SOURCES = new Set<String>.from([
   "lion88.png",
   "sheep98.png",
   "sheep_black58.png",
@@ -16,16 +17,18 @@ List<String> PLAYER_SOURCES = [
   "cock77.png",
   "dra98.png",
   "turtle96.png"
-];
+]);
 
-List<String> WORLD_SOURCES = [
+// Required for selecting world.
+Set<String> WORLD_SOURCES = new Set<String>.from([
   "world_map_mini.png",
   "world_house_mini.png",
   "world_cloud_mini.png",
   "world_maze_mini.png",
   "world_town_mini.png",
-];
+]);
 
+// Required for actually running game.
 List<String> GAME_SOURCES = [
   "cake.png",
   "banana.png",
@@ -54,6 +57,11 @@ class ImageIndex {
   // Map ImageName -> Loaded bool.
   Map<int, bool> loadedImages = new Map<int, bool>();
   List images = new List();
+
+  // Keep track of these types in a Set.
+  Set<String> _playerImages = new Set<String>();
+  Set<String> _worldImages = new Set<String>();
+
   Map _localStorage;
 
   ImageIndex(
@@ -108,9 +116,14 @@ class ImageIndex {
     assert(images[id] != null);
     return images[id];
   }
+
   bool finishedLoadingImages() {
     return loadedImages.length >= IMAGE_SOURCES.length;
   }
+
+  bool playerResourcesLoaded() => _playerImages.isEmpty;
+  bool worldResourcesLoaded() => _worldImages.isEmpty;
+
   String imagesLoadedString() {
     return "${loadedImages.length}/${IMAGE_SOURCES.length}";
   }
@@ -122,9 +135,7 @@ class ImageIndex {
   void addFromImageData(int index, String data) {
     images[index] = _imageFactory.create([data]);
     loadedImages[index] = true;
-    if (finishedLoadingImages()) {
-      _cacheInLocalStorage();
-    }
+    _imageComplete(index);
   }
 
   void addImagesFromNetwork() {
@@ -180,9 +191,7 @@ class ImageIndex {
   Future _imageLoadedFuture(var img, int index) {
     img.onLoad.first.then((e) {
       loadedImages[index] = true;
-      if (finishedLoadingImages()) {
-        _cacheInLocalStorage();
-      }
+      _imageComplete(index);
     });
     return img.onLoad.first;
   }
@@ -192,11 +201,36 @@ class ImageIndex {
     _loadFromCacheInLocalStorage();
   }
 
+  void _imageComplete(int index) {
+    if (finishedLoadingImages()) {
+      _cacheInLocalStorage();
+    }
+    String name = imageNameFromIndex(index);
+    _playerImages.remove(name);
+    _worldImages.remove(name);
+  }
+
+  String imageNameFromIndex(int index) {
+    assert(imagesIndexed());
+    for (String name in IMAGE_SOURCES) {
+      if (imageByName[name] == index) {
+        return name;
+      }
+    }
+    throw new ArgumentError("Image not indexed $index");
+  }
+
   void _indexImages() {
-    for (var img in IMAGE_SOURCES) {
+    for (String img in IMAGE_SOURCES) {
       var element = this._imageFactory.create([]);
       images.add(element);
       imageByName[img] = images.length - 1;
+      if (PLAYER_SOURCES.contains(img)) {
+        _playerImages.add(img);
+      }
+      if (WORLD_SOURCES.contains(img)) {
+        _worldImages.add(img);
+      }
     }
   }
 

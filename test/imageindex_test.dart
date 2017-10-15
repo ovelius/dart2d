@@ -43,8 +43,17 @@ void main() {
     expect(index.imagesIndexed(), isTrue);
 
     // Now add data for each image.
+    for (String name in PLAYER_SOURCES) {
+      int imageId = index.getImageIdByName(name);
+      index.addFromImageData(imageId, "testData$imageId");
+    }
+
+    expect(index.playerResourcesLoaded(), isTrue);
+    expect(index.finishedLoadingImages(), isFalse);
+
     for (int imageId in index.allImagesByName().values) {
       index.addFromImageData(imageId, "testData$imageId");
+      expect(index.imageIsLoaded(imageId), isTrue);
     }
 
     expect(index.finishedLoadingImages(), isTrue);
