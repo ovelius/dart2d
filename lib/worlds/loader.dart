@@ -81,14 +81,18 @@ class Loader {
   void loaderTick([double duration = 0.01]) {
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
+      // Start loading images while waiting for a name.
+      _tickImagesLoad(duration);
       return;
     }
     if (startedAt == null) {
       startedAt = new DateTime.now();
     }
-    if (_imageIndex.finishedLoadingImages() && !_localStorage.containsKey('playerSprite')) {
+    if (_imageIndex.playerResourcesLoaded() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
       _playerWorldSelector.frame(duration);
+      // Continue loading other resources while waiting for playerSelect.
+      _tickImagesLoad(duration);
       return;
     }
     if (_imageIndex.finishedLoadingImages()) {
@@ -130,16 +134,25 @@ class Loader {
     }
   }
 
+  /**
+   * Try fetching resources from other clients.
+   */
   void _tickImagesLoad(double duration) {
+    if (_imageIndex.finishedLoadingImages()) {
+      return;
+    }
     Map<String, ConnectionWrapper> connections = _network.safeActiveConnections();
+    if (connections.isEmpty) {
+      return;
+    }
+    if (!_imageIndex.imagesIndexed()) {
+      _imageIndex.loadImagesFromNetwork();
+    }
     _chunkHelper.requestNetworkData(connections, duration);
   }
 
   void _loadImagesStage(double duration) {
     if (_currentState != LoaderState.LOADING_SERVER && _network.hasOpenConnection()) {
-      if (!_imageIndex.imagesIndexed()) {
-        _imageIndex.loadImagesFromNetwork();
-      }
       _tickImagesLoad(duration);
       if (_currentState != LoaderState.LOADING_OTHER_CLIENT) {
         _chunkHelper.bytesPerSecondSamples().listen((int sample) {
@@ -157,6 +170,7 @@ class Loader {
         // Continue loading from other clients.
         return;
       } else {
+        // Fall through to load from Server.
         log.info("Slow download rate from clients, switching to server.");
       }
     }

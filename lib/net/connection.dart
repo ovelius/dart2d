@@ -214,7 +214,7 @@ class ConnectionWrapper {
   void receiveData(data) {
     if (_ingressLimit != null) {
       if (!_ingressLimit.removeTokens(data.length)) {
-        log.info("Dropping due to ingress bandswith limitation");
+        log.fine("Dropping due to ingress bandswith limitation");
         return;
       }
     }
@@ -365,7 +365,7 @@ class ConnectionWrapper {
 
     if (_egressLimit != null) {
       if (!_egressLimit.removeTokens(jsonData.length)) {
-        log.info("Dropping due to engress bandswith limitation");
+        log.fine("Dropping due to egress bandswith limitation");
         return;
       }
     }

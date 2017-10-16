@@ -322,6 +322,10 @@ class _DataCounter {
   }
 
   Stream<int> readSample() {
+    if (_streamController.hasListener) {
+      _streamController.close();
+      _streamController = new StreamController();
+    }
     return _streamController.stream;
   }
 }

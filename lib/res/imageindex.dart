@@ -20,15 +20,6 @@ Set<String> PLAYER_SOURCES = new Set<String>.from([
   "turtle96.png"
 ]);
 
-// Required for selecting world.
-Set<String> WORLD_SOURCES = new Set<String>.from([
-  "world_map_mini.png",
-  "world_house_mini.png",
-  "world_cloud_mini.png",
-  "world_maze_mini.png",
-  "world_town_mini.png",
-]);
-
 // Required for actually running game.
 List<String> GAME_SOURCES = [
   "cake.png",
@@ -42,7 +33,17 @@ List<String> GAME_SOURCES = [
   "gun.png",
 ];
 
-List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(WORLD_SOURCES)..addAll(GAME_SOURCES);
+// Required for selecting world.
+Set<String> WORLD_SOURCES = new Set<String>.from([
+  "world_map_mini.png",
+  "world_house_mini.png",
+  "world_cloud_mini.png",
+  "world_maze_mini.png",
+  "world_town_mini.png",
+]);
+
+// The resources with the highest priority are first in the list here.
+List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(GAME_SOURCES)..addAll(WORLD_SOURCES);
 
 const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
@@ -61,8 +62,9 @@ class ImageIndex {
   List images = new List();
 
   // Keep track of these types in a Set.
-  Set<String> _playerImages = new Set<String>();
-  Set<String> _worldImages = new Set<String>();
+  Set<String> _playerImages = new Set.from(PLAYER_SOURCES);
+  Set<String> _worldImages = new Set.from(WORLD_SOURCES);
+  Set<String> _gameImages = new Set.from(GAME_SOURCES);
   List<int> _orderedImageIds = [];
 
   Map _localStorage;
@@ -127,6 +129,7 @@ class ImageIndex {
 
   bool playerResourcesLoaded() => _playerImages.isEmpty;
   bool worldResourcesLoaded() => _worldImages.isEmpty;
+  bool gameResourcesLoaded() => _gameImages.isEmpty;
   List<int> orderedImageIds() => _orderedImageIds;
 
   String imagesLoadedString() {
@@ -214,6 +217,7 @@ class ImageIndex {
     if (name != null) {
       _playerImages.remove(name);
       _worldImages.remove(name);
+      _gameImages.remove(name);
     }
   }
 
@@ -234,12 +238,6 @@ class ImageIndex {
       int index = images.length - 1;
       imageByName[img] = index;
       _orderedImageIds.add(index);
-      if (PLAYER_SOURCES.contains(img)) {
-        _playerImages.add(img);
-      }
-      if (WORLD_SOURCES.contains(img)) {
-        _worldImages.add(img);
-      }
     }
   }
 

@@ -43,9 +43,11 @@ void main() {
     selector = new MockPlayerWorldSelector();
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
+    when(mockNetwork.safeActiveConnections()).thenReturn({});
     when(mockPeerWrapper.getId()).thenReturn('b');
     when(mockChunkHelper.bytesPerSecondSamples())
         .thenReturn(streamController.stream);
+    when(mockImageIndex.playerResourcesLoaded()).thenReturn(false);
     when(selector.worldSelectedAndLoaded()).thenReturn(false);
     loader = new Loader(localStorage, new FakeCanvas(), selector,
         mockImageIndex, mockNetwork, mockChunkHelper);
@@ -77,6 +79,7 @@ void main() {
       // Use server when connections exhausted.
       tickAndAssertState(LoaderState.LOADING_SERVER);
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
+      when(mockImageIndex.playerResourcesLoaded()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(1)).thenReturn(false);
       when(mockNetwork.findServer()).thenReturn(true);
 
