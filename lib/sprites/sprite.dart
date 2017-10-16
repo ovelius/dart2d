@@ -82,11 +82,10 @@ class Sprite {
     this.imageId = imageId;
     var image = _imageIndex.getImageById(imageId);
     if (frameWidth != null) {
-      frames = image.width ~/ frameWidth;
-      if (frames == 0) {
-        print("Sprite frames is zero! ${image.width} ~/ ${frameWidth}");
-        assert(frames !=0);
+      if (image.width == 0 && frameWidth == 0) {
+        throw new ArgumentError("Unable to determine framecount for $imageId");
       }
+      frames = image.width ~/ frameWidth;
     } else {
       frames = 1;
     }

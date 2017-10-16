@@ -208,6 +208,7 @@ class WeaponState {
     (changeTime - halfTime) / halfTime;
     double changeTimePercenLeftInverse = 1.0 - changeTimePercentLeft;
     context.save();
+    context.font = '16pt Calibri';
     var metrics = context.measureText(_longestWeaponName);
     double baseX = center.x - metrics.width / 2;
     double baseY = center.y - owner.size.y;
