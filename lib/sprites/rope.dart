@@ -105,10 +105,17 @@ class Rope extends MovingSprite {
     if (owner != null) {
       data.add(owner.networkId);
     }
+    if (lockedOnOther != null) {
+      data.add(lockedOnOther.networkId);
+    } else {
+      data.add(-1);
+    }
   }
    
   void parseExtraNetworkData(List<int> data, int startAt) {
     this.owner = world.spriteIndex[data[startAt]];
+    this.lockedOnOther = world.spriteIndex[data[startAt + 1]];
+    this.locked = lockedOnOther != null;
   }
   
   int extraSendFlags() {
