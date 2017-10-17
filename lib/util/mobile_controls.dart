@@ -17,7 +17,7 @@ class MobileControls {
   var _canvas = null;
   var _screen = null;
   List<Point<int>> _buttons = [];
-  Map<int, _fakeKeyCode> _buttonToKey = {};
+  Map<int, int> _buttonToKey = {};
   Map<int, int> _touchIdToButtonDown = {};
   Map<int, int> _buttonIdToTouchId = {};
   Map<int, Point<int>> _touchStartPoints = {};
@@ -49,19 +49,19 @@ class MobileControls {
 
     // TODO used named keys.
     _buttons.add(new Point(thirdX * 2, halfY - yDiff));
-    _buttonToKey[0] = new _fakeKeyCode(KeyCodeDart.W);
+    _buttonToKey[0] = KeyCodeDart.W;
 
     _buttons.add(new Point(thirdX * 2 + xDiff, halfY + yDiff));
-    _buttonToKey[1] = new _fakeKeyCode(KeyCodeDart.F);
+    _buttonToKey[1] = KeyCodeDart.F;
 
     _buttons.add(new Point(thirdX * 2 + xDiff + xDiff, halfY - yDiff));
-    _buttonToKey[2] = new _fakeKeyCode(KeyCodeDart.S);
+    _buttonToKey[2] = KeyCodeDart.S;
 
     _buttons.add(new Point(thirdX * 2, BUTTON_SIZE));
-    _buttonToKey[3] = new _fakeKeyCode(KeyCodeDart.E);
+    _buttonToKey[3] = KeyCodeDart.E;
 
     _buttons.add(new Point(thirdX * 2 + xDiff + xDiff, BUTTON_SIZE));
-    _buttonToKey[4] = new _fakeKeyCode(KeyCodeDart.Q);
+    _buttonToKey[4] = KeyCodeDart.Q;
   }
 
   draw(double duration) {
@@ -73,12 +73,15 @@ class MobileControls {
         return;
       }
       if (isPortrait()) {
-        _canvas.setFillColorRgb(200, 0, 0);
-        String text = "Please rotate your device!";
-        var metrics = _canvas.measureText(text);
-        _canvas.fillText(
-            text, _width / 2 - metrics.width / 2, _height / 2);
+        // Bring up game table.
+        if (!_localKeyState.keyIsDown(KeyCodeDart.SHIFT)) {
+          _localKeyState.onKeyDown(KeyCodeDart.SHIFT);
+        }
         return;
+      } else {
+        if (_localKeyState.keyIsDown(KeyCodeDart.SHIFT)) {
+          _localKeyState.onKeyUp(KeyCodeDart.SHIFT);
+        }
       }
       _canvas.save();
       for (int i = 0; i < _buttons.length; i++) {
@@ -164,9 +167,4 @@ class MobileControls {
   Duration lastUserInput() {
     return new DateTime.now().difference(_lastInput);
   }
-}
-
-class _fakeKeyCode {
-  int keyCode;
-  _fakeKeyCode(this.keyCode);
 }

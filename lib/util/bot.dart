@@ -46,15 +46,15 @@ class Bot {
       _aimAndWalkToTarget();
     }
     if (_currentTargetSprite != null) {
-      _localKeyState.onKeyDown(_key(KeyCodeDart.F));
+      _localKeyState.onKeyDown(KeyCodeDart.F);
     } else {
-      _localKeyState.onKeyUp(_key(KeyCodeDart.F));
+      _localKeyState.onKeyUp(KeyCodeDart.F);
     }
 
     _weaponChangeTime -= duration;
     if (_weaponChangeTime < 0.0) {
-      _localKeyState.onKeyDown(_key(KeyCodeDart.Q));
-      _localKeyState.onKeyUp(_key(KeyCodeDart.Q));
+      _localKeyState.onKeyDown(KeyCodeDart.Q);
+      _localKeyState.onKeyUp(KeyCodeDart.Q);
       _weaponChangeTime = WEAPON_CHANGE_TIME + _random.nextDouble() * WEAPON_CHANGE_SKEW;
     }
   }
@@ -78,11 +78,11 @@ class Bot {
       _stuckFrames++;
     } else {
       _stuckFrames = 0;
-      _localKeyState.onKeyUp(_key(KeyCodeDart.W));
+      _localKeyState.onKeyUp(KeyCodeDart.W);
     }
 
     if (_stuckFrames > 7) {
-      _localKeyState.onKeyDown(_key(KeyCodeDart.W));
+      _localKeyState.onKeyDown(KeyCodeDart.W);
     }
   }
 
@@ -126,35 +126,28 @@ class Bot {
     }
     if (_controlledSprite.angle < 0.002) {
       if (angle < gunAngle) {
-        _localKeyState.onKeyUp(_key(KeyCodeDart.DOWN));
-        _localKeyState.onKeyDown(_key(KeyCodeDart.UP));
+        _localKeyState.onKeyUp(KeyCodeDart.DOWN);
+        _localKeyState.onKeyDown(KeyCodeDart.UP);
       } else {
-        _localKeyState.onKeyUp(_key(KeyCodeDart.UP));
-        _localKeyState.onKeyDown(_key(KeyCodeDart.DOWN));
+        _localKeyState.onKeyUp(KeyCodeDart.UP);
+        _localKeyState.onKeyDown(KeyCodeDart.DOWN);
       }
     } else {
       if (angle > gunAngle) {
-        _localKeyState.onKeyUp(_key(KeyCodeDart.DOWN));
-        _localKeyState.onKeyDown(_key(KeyCodeDart.UP));
+        _localKeyState.onKeyUp(KeyCodeDart.DOWN);
+        _localKeyState.onKeyDown(KeyCodeDart.UP);
       } else {
-        _localKeyState.onKeyUp(_key(KeyCodeDart.UP));
-        _localKeyState.onKeyDown(_key(KeyCodeDart.DOWN));
+        _localKeyState.onKeyUp(KeyCodeDart.UP);
+        _localKeyState.onKeyDown(KeyCodeDart.DOWN);
       }
     }
 
     if (dir.x > 0) {
-      _localKeyState.onKeyUp(_key(KeyCodeDart.A));
-      _localKeyState.onKeyDown(_key(KeyCodeDart.D));
+      _localKeyState.onKeyUp(KeyCodeDart.A);
+      _localKeyState.onKeyDown(KeyCodeDart.D);
     } else {
-      _localKeyState.onKeyUp(_key(KeyCodeDart.D));
-      _localKeyState.onKeyDown(_key(KeyCodeDart.A));
+      _localKeyState.onKeyUp(KeyCodeDart.D);
+      _localKeyState.onKeyDown(KeyCodeDart.A);
     }
   }
-
-  _botKeyCode _key(int key) => new _botKeyCode(key);
-}
-
-class _botKeyCode {
-  int keyCode;
-  _botKeyCode(this.keyCode);
 }

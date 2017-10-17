@@ -255,19 +255,19 @@ void main() {
       expect(worldB.network().getGameState().playerInfoList(), isEmpty);
 
       KeyState stateA = injectorA.get(KeyState, LocalKeyState);
-      stateA.onKeyDown(new _fakeKeyCode(KeyCodeDart.SPACE));
+      stateA.onKeyDown(KeyCodeDart.SPACE);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       expect(loaderA.currentState(), equals(LoaderState.WORLD_SELECT));
 
       KeyState stateB = injectorB.get(KeyState, LocalKeyState);
-      stateB.onKeyDown(new _fakeKeyCode(KeyCodeDart.SPACE));
+      stateB.onKeyDown(KeyCodeDart.SPACE);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       expect(loaderB.currentState(), equals(LoaderState.WORLD_SELECT));
 
-      stateA.onKeyUp(new _fakeKeyCode(KeyCodeDart.SPACE));
-      stateB.onKeyUp(new _fakeKeyCode(KeyCodeDart.SPACE));
+      stateA.onKeyUp(KeyCodeDart.SPACE);
+      stateB.onKeyUp(KeyCodeDart.SPACE);
 
-      stateA.onKeyDown(new _fakeKeyCode(KeyCodeDart.SPACE));
+      stateA.onKeyDown(KeyCodeDart.SPACE);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
 
       for (int i = 0; i < 50; i++) {
@@ -299,9 +299,4 @@ void main() {
       expect(worldB, hasSpriteWithNetworkId(playerId(1)));
     });
   });
-}
-
-class _fakeKeyCode {
-  int keyCode;
-  _fakeKeyCode(this.keyCode);
 }

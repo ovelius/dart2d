@@ -505,7 +505,7 @@ void main() {
 
       // Aim up!
       int aimUp = bSelfSprite.getControls()['Aim up'];
-      worldB.localKeyState.onKeyDown(new _fakeKeyCode(aimUp));
+      worldB.localKeyState.onKeyDown(aimUp);
 
       LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)];
       // Place A very close to B.
@@ -519,7 +519,7 @@ void main() {
       }
 
       int fireKey = bSelfSprite.getControls()['Fire'];
-      worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
+      worldB.localKeyState.onKeyDown(fireKey);
       // This got send to worldA right away, since A decides when to fire.
       expect(recentSentDataTo("a"),
           new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
@@ -570,10 +570,10 @@ void main() {
       int nextWeaponKey = bSelfSprite.getControls()["Next weapon"];
       Weapon bananaWeapons = findBananaWeapons(bSelfSprite);
       while (bSelfSprite.weaponState.selectedWeaponName != bananaWeapons.name) {
-        worldB.localKeyState.onKeyDown(new _fakeKeyCode(nextWeaponKey));
+        worldB.localKeyState.onKeyDown(nextWeaponKey);
         expect(recentSentDataTo("a"),
             new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(nextWeaponKey.toString(), true)));
-        worldB.localKeyState.onKeyUp(new _fakeKeyCode(nextWeaponKey));
+        worldB.localKeyState.onKeyUp(nextWeaponKey);
       }
 
       // Propagate selected weapon to A.
@@ -583,13 +583,13 @@ void main() {
 
       // Aim up!
       int aimUp = bSelfSprite.getControls()['Aim up'];
-      worldB.localKeyState.onKeyDown(new _fakeKeyCode(aimUp));
+      worldB.localKeyState.onKeyDown(aimUp);
       worldB.frameDraw(1.0);
       worldB.frameDraw(1.0);
 
       // Now fire our weapon!
       int fireKey = bSelfSprite.getControls()['Fire'];
-      worldB.localKeyState.onKeyDown(new _fakeKeyCode(fireKey));
+      worldB.localKeyState.onKeyDown(fireKey);
 
       expect(worldA.spriteIndex.count(), equals(2));
       expect(worldB.spriteIndex.count(), equals(2));
@@ -632,11 +632,6 @@ Weapon findBananaWeapons(LocalPlayerSprite sprite) {
     }
   }
   throw new StateError("Didn't find banana weapons in ${sprite.weaponState.weapons}!");
-}
-
-class _fakeKeyCode {
-  int keyCode;
-  _fakeKeyCode(this.keyCode);
 }
 
 class _TestDamageProjectile extends WorldDamageProjectile {

@@ -145,11 +145,11 @@ void step() {
 }
 
 void setKeyListeners(WormWorld world, var canvasElement) {
-  document.window.addEventListener("keydown", world.localKeyState.onKeyDown);
-  document.window.addEventListener("keyup", world.localKeyState.onKeyUp);
+  document.window.addEventListener("keydown", (KeyEvent e) { world.localKeyState.onKeyDown(e.keyCode); });
+  document.window.addEventListener("keyup", (KeyEvent e) { world.localKeyState.onKeyUp(e.keyCode); });
 
-  canvasElement.addEventListener("keydown", world.localKeyState.onKeyDown);
-  canvasElement.addEventListener("keyup", world.localKeyState.onKeyUp);
+  canvasElement.addEventListener("keydown", (KeyEvent e) { world.localKeyState.onKeyDown(e.keyCode); });
+  canvasElement.addEventListener("keyup", (KeyEvent e) { world.localKeyState.onKeyUp(e.keyCode); });
 }
 
 class WebSocketServerChannel extends ServerChannel {

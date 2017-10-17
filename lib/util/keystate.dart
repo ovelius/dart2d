@@ -21,15 +21,15 @@ class KeyState {
 
   KeyState() {}
 
-  void onKeyDown(var /*KeyboardEvent*/ e, [double strength = MAX_KEY_TRIGGER]) {
+  void onKeyDown(int keyCode, [double strength = MAX_KEY_TRIGGER]) {
     if (!remoteState) {
-      if (e.keyCode == KeyCodeDart.F2) {
+      if (keyCode == KeyCodeDart.F2) {
         debug = !debug;
       }
-      if (e.keyCode == KeyCodeDart.F4) {
+      if (keyCode == KeyCodeDart.F4) {
         world.freeze = !world.freeze;
       }
-      if (e.keyCode == KeyCodeDart.F7) {
+      if (keyCode == KeyCodeDart.F7) {
         if (Logger.root.isLoggable(Level.ALL)) {
           log.info("Going to info logging");
           Logger.root.level = Level.INFO;
@@ -43,26 +43,26 @@ class KeyState {
       }
       _lastInput = new DateTime.now();
     }
-    bool newlyPressed = !keysDown.containsKey(e.keyCode);
-    keysDown[e.keyCode] = strength;
+    bool newlyPressed = !keysDown.containsKey(keyCode);
+    keysDown[keyCode] = strength;
     if (newlyPressed) {
       // If this a newly pushed key, send it to the network right away.
       if (world != null) {
         world.network().maybeSendLocalKeyStateUpdate();
       }
-      if (_listeners.containsKey(e.keyCode)) {
-        _listeners[e.keyCode].forEach((f) {
+      if (_listeners.containsKey(keyCode)) {
+        _listeners[keyCode].forEach((f) {
           f();
         });
       }
       _genericListeners.forEach((f) {
-        f(e.keyCode);
+        f(keyCode);
       });
     }
   }
 
-  void onKeyUp(var /*KeyboardEvent*/ e) {
-    keysDown.remove(e.keyCode);
+  void onKeyUp(int keyCode) {
+    keysDown.remove(keyCode);
   }
 
   bool keyIsDown(num key, [double strength = MAX_KEY_TRIGGER]) {
