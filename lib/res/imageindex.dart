@@ -143,6 +143,12 @@ class ImageIndex {
   }
 
   void addFromImageData(int index, String data) {
+    if (!data.startsWith("data:image/png;base64,")) {
+      String imageName = imageNameFromIndex(index);
+      log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
+      addSingleImage(imageName);
+      return;
+    }
     images[index] = _imageFactory.create([data]);
     loadedImages[index] = true;
     _imageComplete(index);
@@ -279,14 +285,9 @@ class ImageIndex {
         DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(int.parse(millis));
         if (cacheTime.add(CACHE_TIME).isAfter(now)) {
           String data = _localStorage[key];
-          if (data.startsWith("data:image/png;base64,")) {
-            int imageIndex = imageByName[image];
-            log.info("Added image from cache ${image}.");
-            addFromImageData(imageIndex, data);
-          } else {
-            log.warning("Dropping corrupted image data for ${image}.");
-            _localStorage.remove(key);
-          }
+          int imageIndex = imageByName[image];
+          log.info("Added image from cache ${image}.");
+          addFromImageData(imageIndex, data);
         }
       }
     }

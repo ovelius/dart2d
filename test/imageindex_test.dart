@@ -47,14 +47,14 @@ void main() {
     // Now add data for each image.
     for (String name in PLAYER_SOURCES) {
       int imageId = index.getImageIdByName(name);
-      index.addFromImageData(imageId, "testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
     }
 
     expect(index.playerResourcesLoaded(), isTrue);
     expect(index.finishedLoadingImages(), isFalse);
 
     for (int imageId in index.allImagesByName().values) {
-      index.addFromImageData(imageId, "testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
       expect(index.imageIsLoaded(imageId), isTrue);
     }
 
@@ -62,7 +62,7 @@ void main() {
 
     for (int imageId in index.allImagesByName().values) {
       FakeImage image = index.getImageById(imageId);
-      expect(image.src, equals("testData$imageId"));
+      expect(image.src, equals("data:image/png;base64,testData$imageId"));
     }
 
     // Check caching.
@@ -79,7 +79,7 @@ void main() {
     List<int> ids = new List.from(index.allImagesByName().values);
     ids.sort();
     for (int imageId in ids) {
-      index.addFromImageData(imageId, "testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
       expect(index.imageIsLoaded(imageId), isTrue);
       if (imageId > 5) {
         break;
@@ -97,7 +97,7 @@ void main() {
     // Some images got loaded from client.
     for (int id in ids) {
       FakeImage image = index.getImageById(id);
-      expect(image.src, equals("testData$id"));
+      expect(image.src, equals("data:image/png;base64,testData$id"));
       if (id > 5) {
         break;
       }
