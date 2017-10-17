@@ -113,7 +113,7 @@ void main() {
 
   test("TestLoadFromCache", () {
     for (String name in IMAGE_SOURCES) {
-      localStorage["img$name"] = "data$name";
+      localStorage["img$name"] = "data:image/png;base64,data$name";
       localStorage["timg$name"] =
           new DateTime.now().millisecondsSinceEpoch.toString();
     }
@@ -125,7 +125,7 @@ void main() {
 
   test("TestLoadFromCacheServer", () {
     for (String name in IMAGE_SOURCES) {
-      localStorage["img$name"] = "data$name";
+      localStorage["img$name"] = "data:image/png;base64,data$name";
       localStorage["timg$name"] =
           new DateTime.now().millisecondsSinceEpoch.toString();
     }

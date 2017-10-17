@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:di/di.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
 
@@ -49,6 +50,7 @@ const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANS
 
 @Injectable()
 class ImageIndex {
+  final Logger log = new Logger('ImageIndex');
   static const int WORLD_IMAGE_INDEX = 1;
   var _EMPTY_IMAGE;
   var _WORLD_IMAGE;
@@ -166,6 +168,7 @@ class ImageIndex {
   }
 
   loadImagesFromServer() {
+    log.info("Loading images from Server.");
     List<Future> imageFutures = [];
     _indexImages();
     _loadFromCacheInLocalStorage();
@@ -276,8 +279,14 @@ class ImageIndex {
         DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(int.parse(millis));
         if (cacheTime.add(CACHE_TIME).isAfter(now)) {
           String data = _localStorage[key];
-          int imageIndex = imageByName[image];
-          addFromImageData(imageIndex, data);
+          if (data.startsWith("data:image/png;base64,")) {
+            int imageIndex = imageByName[image];
+            log.info("Added image from cache ${image}.");
+            addFromImageData(imageIndex, data);
+          } else {
+            log.warning("Dropping corrupted image data for ${image}.");
+            _localStorage.remove(key);
+          }
         }
       }
     }
