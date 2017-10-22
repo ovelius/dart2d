@@ -17,6 +17,7 @@ void main() {
     expectWarningContaining('Duplicate handshake');
     expectWarningContaining('DO_NOT_CREATE');
     expectWarningContaining('would overwrite existing sprite');
+    expectWarningContaining('None positive latency');
     clearEnvironment();
     logConnectionData = false;
     Logger.root.level = Level.INFO;

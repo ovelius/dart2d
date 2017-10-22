@@ -95,7 +95,7 @@ class WorldListener {
     if (_gameState.isAtMaxPlayers()) {
       connection.sendData({
         SERVER_PLAYER_REJECT: 'Game full',
-        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
+        KEY_FRAME_KEY: connection.lastRemoteKeyFrame,
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
       // Mark as closed.
       connection.close("Game full");
@@ -104,7 +104,7 @@ class WorldListener {
     if (_gameState.hasWinner()) {
       connection.sendData({
         SERVER_PLAYER_REJECT: 'Game already completed',
-        KEY_FRAME_KEY: connection.lastKeyFrameFromPeer,
+        KEY_FRAME_KEY: connection.lastRemoteKeyFrame,
         IS_KEY_FRAME_KEY: _network.currentKeyFrame});
       // Mark as closed.
       connection.close("Game over");
@@ -113,7 +113,7 @@ class WorldListener {
     // Consider the client CLIENT_PLAYER_SPEC as the client having seen
     // the latest keyframe.
     // It will anyway get the keyframe from our response.
-    connection.lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
+    connection.lastDeliveredKeyFrame = _network.currentKeyFrame;
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
     int spriteIndex = data[1];
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
@@ -136,7 +136,7 @@ class WorldListener {
       GAME_STATE: _network.getGameState().toMap()};
     connection.sendData({
       SERVER_PLAYER_REPLY: serverData,
-      KEY_FRAME_KEY:connection.lastKeyFrameFromPeer,
+      KEY_FRAME_KEY:connection.lastRemoteKeyFrame,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame});
 
     connection.setHandshakeReceived();

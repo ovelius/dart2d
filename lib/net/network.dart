@@ -493,7 +493,7 @@ class Network {
       return debugStrings;
     }
     for (ConnectionWrapper connection in peer.connections.values) {
-      debugStrings.add("${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: rx/tx: ${formatBytes(connection.rxBytes)}/${formatBytes(connection.txBytes)} kf: ${connection.lastLocalPeerKeyFrameVerified}/${currentKeyFrame}");
+      debugStrings.add("${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: rx/tx: ${formatBytes(connection.rxBytes)}/${formatBytes(connection.txBytes)} kf: ${connection.lastDeliveredKeyFrame}/${currentKeyFrame}");
     }
     return debugStrings;
   }

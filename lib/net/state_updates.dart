@@ -6,7 +6,9 @@ import 'package:dart2d/sprites/worm_player.dart';
 import 'dart:math';
 
 String REMOVE_KEY = "_r";
+// Sent with each datagram to tell the latest keyframe we received.
 String KEY_FRAME_KEY = "_";
+// Sent to indicate the recipient should increment the KEY_FRAME_KEY sent to us.
 String IS_KEY_FRAME_KEY = "_k";
 String MESSAGE_KEY = "_s";
 String KEY_STATE_KEY = "-k";
@@ -24,6 +26,7 @@ String IMAGE_DATA_REQUEST = "_i";
 String IMAGE_DATA_RESPONSE = "-i";
 String PING = "-p";
 String PONG = "-o";
+String KEY_FRAME_DELAY = ".k";
 String TRANSFER_COMMAND = "tt";
 String DATA_RECEIPTS = ".";
 String CONTAINED_DATA_RECEIPTS = ";";
@@ -53,6 +56,7 @@ void remapKeyNamesForTest() {
   IMAGE_DATA_RESPONSE = "image_response";
   //
   PING = "ping";
+  KEY_FRAME_DELAY = "key_frame_delay";
   PONG = "pong";
 
   TRANSFER_COMMAND = "transfer_command";
@@ -92,6 +96,7 @@ Set<String> SPECIAL_KEYS = new Set.from([
   GAME_STATE,
   PING,
   PONG,
+  KEY_FRAME_DELAY,
   KEY_STATE_KEY,
   KEY_FRAME_KEY,
   IS_KEY_FRAME_KEY,

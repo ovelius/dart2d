@@ -9,6 +9,17 @@ import 'dart:core';
 
 @Injectable()
 class PacketListenerBindings {
+
+  static Set<String> _ignoreListeners = new Set.from([
+    IS_KEY_FRAME_KEY,
+    KEY_FRAME_KEY,
+    DATA_RECEIPTS,
+    CONTAINED_DATA_RECEIPTS,
+    PING,
+    PONG,
+    KEY_FRAME_DELAY,
+  ]);
+
   Map<String, List<dynamic>> _handlers = {};
 
   bindHandler(String key, dynamic handler) {
@@ -54,9 +65,11 @@ class ConnectionWrapper {
   bool _initialPongReceived = false;
   bool _handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
-  int lastKeyFrameFromPeer = 0;
+  int lastRemoteKeyFrame = 0;
+  DateTime _lastRemoteKeyFrameTime = null;
   // The last keyframe the peer said it received from us.
-  int lastLocalPeerKeyFrameVerified = 0;
+  int lastDeliveredKeyFrame = 0;
+  DateTime _keyFrameIncrementTime = null;
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
 
@@ -73,7 +86,7 @@ class ConnectionWrapper {
 
   // Keep track of how long connection has been open.
   Stopwatch _connectionTimer = new Stopwatch();
-  // When we time out.
+  // When we time out from being unable to open a connection.
   Duration _timeout;
   // The monitored latency of the connection.
   Duration _latency = DEFAULT_TIMEOUT;
@@ -100,16 +113,20 @@ class ConnectionWrapper {
 
   bool hasReceivedFirstKeyFrame(Map dataMap) {
     if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
-      lastKeyFrameFromPeer = dataMap[IS_KEY_FRAME_KEY];
+      if (dataMap[IS_KEY_FRAME_KEY] > lastRemoteKeyFrame) {
+        lastRemoteKeyFrame = dataMap[IS_KEY_FRAME_KEY];
+        _lastRemoteKeyFrameTime = new DateTime.now();
+      }
     }
     // The server does not need to wait for keyframes.
-    return lastKeyFrameFromPeer > 0 || _network.isCommander();
+    return lastRemoteKeyFrame > 0 || _network.isCommander();
   }
 
   void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
     int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
-    if (receivedKeyFrameAck > lastLocalPeerKeyFrameVerified) {
-      lastLocalPeerKeyFrameVerified = receivedKeyFrameAck;
+    if (receivedKeyFrameAck > lastDeliveredKeyFrame) {
+      lastDeliveredKeyFrame = receivedKeyFrameAck;
+
     }
   }
 
@@ -125,7 +142,7 @@ class ConnectionWrapper {
     _hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
-    lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
+    lastDeliveredKeyFrame = _network.currentKeyFrame;
     _opened = true;
     _connectionTimer.stop();
   }
@@ -135,7 +152,7 @@ class ConnectionWrapper {
     // the actual connection.
     Map playerData = {
       CLIENT_PLAYER_SPEC: [playerName, playerSpriteId],
-      KEY_FRAME_KEY: lastKeyFrameFromPeer,
+      KEY_FRAME_KEY: lastRemoteKeyFrame,
       IS_KEY_FRAME_KEY: _network.currentKeyFrame,
     };
     sendData(playerData);
@@ -192,22 +209,13 @@ class ConnectionWrapper {
    */
   void markAsClientToClientConnection() {
     setHandshakeReceived();
-    lastLocalPeerKeyFrameVerified = _network.currentKeyFrame;
+    lastDeliveredKeyFrame = _network.currentKeyFrame;
   }
 
   void error(error) {
     _hudMessages.display("Connection ${id}: ${error} closing!");
     closed = true;
   }
-
-  Set<String> _ignoreListeners = new Set.from([
-    IS_KEY_FRAME_KEY,
-    KEY_FRAME_KEY,
-    DATA_RECEIPTS,
-    CONTAINED_DATA_RECEIPTS,
-    PING,
-    PONG,
-  ]);
 
   Random r = new Random();
 
@@ -240,6 +248,14 @@ class ConnectionWrapper {
       sampleLatency(new Duration(milliseconds: latencyMillis));
       _initialPongReceived = true;
     }
+    if (_keyFrameIncrementTime != null && dataMap.containsKey(KEY_FRAME_DELAY)) {
+      DateTime now = new DateTime.now();
+      // How long time passed since we sent the keyframe?
+      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementTime.millisecondsSinceEpoch;
+      // How long time before the sender responded?
+      int waitMillis = dataMap[KEY_FRAME_DELAY];
+      sampleLatency(new Duration(milliseconds: (sinceSendTime - waitMillis)));
+    }
 
     if (dataMap.containsKey(DATA_RECEIPTS)) {
       for (int receipt in dataMap[DATA_RECEIPTS]) {
@@ -258,7 +274,7 @@ class ConnectionWrapper {
             handler(this, dataMap[key]);
           }
           // TODO remove special cases!
-        } else if (!_ignoreListeners.contains(key)) {
+        } else if (!PacketListenerBindings._ignoreListeners.contains(key)) {
           throw new ArgumentError("No bound network listener for ${key}");
         }
       }
@@ -326,20 +342,13 @@ class ConnectionWrapper {
   void checkIfShouldClose(int keyFrame) {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
-          "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastLocalPeerKeyFrameVerified}, dropping");
+          "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastDeliveredKeyFrame}, dropping");
       close("Not responding");
       return;
     }
   }
 
   void sendData(Map data) {
-    if (Logger.root.isLoggable(Level.FINE)) {
-      log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
-    }
-    if (!_reliableDataToVerify.isEmpty) {
-      data[DATA_RECEIPTS] = _reliableDataToVerify;
-      _reliableDataToVerify = [];
-    }
     if (_reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE &&
         !_initialPongReceived) {
       log.warning(
@@ -347,8 +356,23 @@ class ConnectionWrapper {
       close("Not responding");
       return;
     }
+    if (!_reliableDataToVerify.isEmpty) {
+      data[DATA_RECEIPTS] = _reliableDataToVerify;
+      _reliableDataToVerify = [];
+    }
+    if (_lastRemoteKeyFrameTime != null) {
+      DateTime now = new DateTime.now();
+      int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime.millisecondsSinceEpoch;
+      data[KEY_FRAME_DELAY] = millis;
+      _lastRemoteKeyFrameTime = null;
+    }
+    if (data.containsKey(IS_KEY_FRAME_KEY)) {
+      if (data[IS_KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
+        _keyFrameIncrementTime = new DateTime.now();
+      }
+    }
     assert(_dataChannel != null);
-    data[KEY_FRAME_KEY] = lastKeyFrameFromPeer;
+    data[KEY_FRAME_KEY] = lastRemoteKeyFrame;
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
@@ -371,6 +395,9 @@ class ConnectionWrapper {
     }
     txBytes += jsonData.length;
     try {
+      if (Logger.root.isLoggable(Level.FINE)) {
+        log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
+      }
       _dataChannel.sendString(jsonData);
     } catch (e, s) {
       log.severe("Failed to send to $id: $e, closing connection");
@@ -393,7 +420,7 @@ class ConnectionWrapper {
   }
 
   int keyFramesBehind(int expectedKeyFrame) {
-    return expectedKeyFrame - lastLocalPeerKeyFrameVerified;
+    return expectedKeyFrame - lastDeliveredKeyFrame;
   }
 
   Duration sinceCreated() {
