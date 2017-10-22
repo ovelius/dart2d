@@ -163,7 +163,7 @@ class PeerWrapper {
       if (dontSendTo != null && dontSendTo == connection.id) {
         continue;
       }
-      if (!connection.isValidConnection()) {
+      if (connection.isClosedConnection()) {
         closedConnections.add(key);
         continue;
       }
@@ -191,7 +191,7 @@ class PeerWrapper {
    */
   void healthCheckConnection(String id) {
     ConnectionWrapper wrapper = connections[id];
-    if (wrapper != null && !wrapper.isValidConnection()) {
+    if (wrapper != null && wrapper.isClosedConnection()) {
       removeClosedConnection(id);
     }
   }

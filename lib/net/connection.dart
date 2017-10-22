@@ -32,8 +32,7 @@ class ConnectionWrapper {
   // The last keyframe the peer said it received from us.
   int lastDeliveredKeyFrame = 0;
   DateTime _keyFrameIncrementTime = null;
-  // How many keyframes our remote part has not verified on time.
-  int droppedKeyFrames = 0;
+
   ConnectionStats _connectionStats;
   ReliableHelper _reliableHelper;
 
@@ -171,6 +170,8 @@ class ConnectionWrapper {
         return;
       }
     }
+    DateTime now = new DateTime.now();
+    _connectionStats.lastReceiveTime = now;
     _connectionStats.rxBytes += data.length;
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
@@ -188,13 +189,11 @@ class ConnectionWrapper {
       sendData(data);
     }
     if (dataMap.containsKey(PONG)) {
-      DateTime now = new DateTime.now();
       int latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
       sampleLatency(new Duration(milliseconds: latencyMillis));
       _initialPongReceived = true;
     }
     if (_keyFrameIncrementTime != null && dataMap.containsKey(KEY_FRAME_DELAY)) {
-      DateTime now = new DateTime.now();
       // How long time passed since we sent the keyframe?
       int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementTime.millisecondsSinceEpoch;
       // How long time before the sender responded?
@@ -254,10 +253,11 @@ class ConnectionWrapper {
       return;
     }
 
+    DateTime now = new DateTime.now();
+    _connectionStats.lastSendTime = now;
     _reliableHelper.updateWithDataReceipts(data);
 
     if (_lastRemoteKeyFrameTime != null) {
-      DateTime now = new DateTime.now();
       int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime.millisecondsSinceEpoch;
       data[KEY_FRAME_DELAY] = millis;
       _lastRemoteKeyFrameTime = null;
@@ -311,10 +311,6 @@ class ConnectionWrapper {
     _rtcConnection = rtcConnection;
   }
 
-  void registerDroppedKeyFrames(int expectedKeyFrame) {
-    droppedKeyFrames += keyFramesBehind(expectedKeyFrame);
-  }
-
   int keyFramesBehind(int expectedKeyFrame) {
     return expectedKeyFrame - lastDeliveredKeyFrame;
   }
@@ -325,20 +321,20 @@ class ConnectionWrapper {
 
   bool wasOpen() => _opened;
 
-  bool isValidConnection() {
+  bool isClosedConnection() {
     if (closed) {
-      return false;
+      return true;
     }
     // Timed out waiting to become open.
     if (!_opened && _connectionStats.OpenTimeout()) {
-      return false;
+      return true;
     }
 
-    return true;
+    return _connectionStats.ReceiveTimeout();
   }
 
   bool isValidGameConnection() {
-    return this.isValidConnection() && this._handshakeReceived;
+    return !isClosedConnection() && this._handshakeReceived;
   }
 
   void sampleLatency(Duration latency) {

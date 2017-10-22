@@ -40,6 +40,8 @@ class PacketListenerBindings {
 class ConnectionStats {
   // How long until connection attempt times out.
   static const Duration OPEN_TIMEOUT = const Duration(seconds: 6);
+  // How long we don't have a response before we close the connection.
+  static const Duration RESPONSE_TIMEOUT = const Duration(seconds: 12);
 
   int rxBytes = 0;
   int txBytes = 0;
@@ -47,6 +49,9 @@ class ConnectionStats {
   Stopwatch _connectionOpenTimer = new Stopwatch();
   // The monitored latency of the connection.
   Duration latency = OPEN_TIMEOUT;
+
+  DateTime lastSendTime = new DateTime.now();
+  DateTime lastReceiveTime = new DateTime.now();
 
   ConnectionStats() {
     _connectionOpenTimer.start();
@@ -58,6 +63,12 @@ class ConnectionStats {
 
   bool OpenTimeout() {
     return _connectionOpenTimer.elapsedMilliseconds > ConnectionStats.OPEN_TIMEOUT.inMilliseconds;
+  }
+
+  bool ReceiveTimeout() {
+    // How many millis have we sent data, but not received anything back?
+    int millis = lastSendTime.millisecondsSinceEpoch - lastReceiveTime.millisecondsSinceEpoch;
+    return millis > RESPONSE_TIMEOUT.inMilliseconds;
   }
 
   String stats() => "rx/tx: ${formatBytes(rxBytes)}/${formatBytes(txBytes)}";

@@ -245,9 +245,8 @@ class Network {
     return false;
   }
 
-  void registerDroppedFrames(var data) {
+  void registerDroppedFrames() {
     for (ConnectionWrapper connection in peer.connections.values) {
-      connection.registerDroppedKeyFrames(currentKeyFrame - 1);
       if (connection.id == gameState.actingCommanderId) {
         serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
       }
@@ -397,12 +396,11 @@ class Network {
         _pendingCommandTransfer = null;
       }
     }
-    // This doesnät make sense.
     bool keyFrame = checkForKeyFrame(duration);
     Map data = stateBundle(keyFrame);
     // A keyframe indicates that we are sending a complete state.
     if (keyFrame) {
-      registerDroppedFrames(data);
+      registerDroppedFrames();
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
       data[CONNECTIONS_LIST] = [];
       Map<String, ConnectionInfo> connections = {};
