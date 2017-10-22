@@ -40,14 +40,109 @@ class PacketListenerBindings {
   }
 }
 
+class ConnectionStats {
+  // How long until connection attempt times out.
+  static const Duration OPEN_TIMEOUT = const Duration(seconds: 6);
+
+  int rxBytes = 0;
+  int txBytes = 0;
+  // Keep track of how long connection has been open.
+  Stopwatch _connectionOpenTimer = new Stopwatch();
+  // The monitored latency of the connection.
+  Duration _latency = OPEN_TIMEOUT;
+
+  ConnectionStats() {
+    _connectionOpenTimer.start();
+  }
+
+  bool OpenTimeout() {
+    return _connectionOpenTimer.elapsedMilliseconds > ConnectionStats.OPEN_TIMEOUT.inMilliseconds;
+  }
+
+  String stats() => "rx/tx: ${formatBytes(rxBytes)}/${formatBytes(txBytes)}";
+}
+
+class ReliableHelper {
+  // How many items the reliable buffer can contain before we consider the connection dead.
+  static const int MAX_RELIABLE_BUFFER_SIZE = 80;
+  PacketListenerBindings _packetListenerBindings;
+  // Storage of our reliable key data.
+  Map reliableDataBuffer = {};
+  // Reliable verifications.
+  List<int> reliableDataToVerify = [];
+
+  ReliableHelper(this._packetListenerBindings) {
+    _packetListenerBindings.bindHandler(CONTAINED_DATA_RECEIPTS, (ConnectionWrapper c, List data) {
+      reliableDataToVerify.addAll(data);
+    });
+    _packetListenerBindings.bindHandler(DATA_RECEIPTS, (ConnectionWrapper c, List data) {
+      for (int receipt in data) {
+        reliableDataBuffer.remove(receipt);
+      }
+    });
+  }
+
+  bool reliableBufferOverFlow() => reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE;
+
+  /**
+   * Append any previously received data receipts before sending.
+   */
+  void updateWithDataReceipts(Map data) {
+    if (reliableDataToVerify.isNotEmpty) {
+      data[DATA_RECEIPTS] = reliableDataToVerify;
+      reliableDataToVerify = [];
+    }
+  }
+
+  /**
+   * Maybe add reliable data that needs to be resent.
+   */
+  void alsoSendWithStoredData(Map dataMap) {
+    storeAwayReliableData(dataMap);
+    for (int hash in new List.from(reliableDataBuffer.keys)) {
+      List tuple = reliableDataBuffer[hash];
+      String reliableKey = tuple[0];
+      // There is more data of the same type. Merge.
+      if (dataMap.containsKey(reliableKey)) {
+        // Merge data with previously saved data for this key.
+        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
+        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
+        _addContainedReceipt(dataMap, hash);
+      } else {
+        dataMap[reliableKey] = tuple[1];
+        _addContainedReceipt(dataMap, hash);
+      }
+    }
+  }
+
+  void _addContainedReceipt(Map dataMap, int receipt) {
+    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
+      dataMap[CONTAINED_DATA_RECEIPTS] = [];
+    }
+    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
+      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
+    }
+  }
+
+  /**
+   * Take data considered reliable and store away in case we need to resend.
+   */
+  void storeAwayReliableData(Map dataMap) {
+    for (String reliableKey in RELIABLE_KEYS.keys) {
+      if (dataMap.containsKey(reliableKey)) {
+        Object data = dataMap[reliableKey];
+        int jsonHash = JSON.encode(data).hashCode;
+        reliableDataBuffer[jsonHash] = [reliableKey, data];
+        _addContainedReceipt(dataMap, jsonHash);
+      }
+    }
+  }
+}
+
 class ConnectionWrapper {
   final Logger log = new Logger('Connection');
   // How many keyframes the connection can be behind before it is dropped.
   static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
-  // How many items the reliable buffer can contain before we consider the connection dead.
-  static const int MAX_RELIABLE_BUFFER_SIZE = 80;
-  // How long until connection attempt times out.
-  static const Duration DEFAULT_TIMEOUT = const Duration(seconds: 6);
 
   Network _network;
   ConfigParams _configParams;
@@ -72,32 +167,15 @@ class ConnectionWrapper {
   DateTime _keyFrameIncrementTime = null;
   // How many keyframes our remote part has not verified on time.
   int droppedKeyFrames = 0;
-
-  // Storage of our reliable key data.
-  Map _reliableDataBuffer = {};
-  // Reliable verifications.
-  List<int> _reliableDataToVerify = [];
-
-  Map get reliableDataBuffer => _reliableDataBuffer;
-  List get reliableDataToVerify => _reliableDataToVerify;
-
-  int rxBytes = 0;
-  int txBytes = 0;
-
-  // Keep track of how long connection has been open.
-  Stopwatch _connectionTimer = new Stopwatch();
-  // When we time out from being unable to open a connection.
-  Duration _timeout;
-  // The monitored latency of the connection.
-  Duration _latency = DEFAULT_TIMEOUT;
+  ConnectionStats _connectionStats;
+  ReliableHelper _reliableHelper;
 
   ConnectionWrapper(this._network, this._hudMessages, this.id,
-      this._packetListenerBindings, this._configParams,
-      [timeout = DEFAULT_TIMEOUT]) {
+      this._packetListenerBindings, this._configParams) {
     assert(id != null);
+    _connectionStats = new ConnectionStats();
+    _reliableHelper = new ReliableHelper(_packetListenerBindings);
     // Start the connection timer.
-    _connectionTimer.start();
-    _timeout = timeout;
     if (_configParams.getInt(ConfigParam.INGRESS_BANDWIDTH) > 0) {
       _ingressLimit = new LeakyBucket(
           _configParams.getInt(ConfigParam.INGRESS_BANDWIDTH));
@@ -144,7 +222,7 @@ class ConnectionWrapper {
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
     lastDeliveredKeyFrame = _network.currentKeyFrame;
     _opened = true;
-    _connectionTimer.stop();
+    _connectionStats._connectionOpenTimer.stop();
   }
 
   void connectToGame(String playerName, int playerSpriteId) {
@@ -226,7 +304,7 @@ class ConnectionWrapper {
         return;
       }
     }
-    rxBytes += data.length;
+    _connectionStats.rxBytes += data.length;
     Map dataMap = JSON.decode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     if (Logger.root.isLoggable(Level.FINE)) {
@@ -257,18 +335,9 @@ class ConnectionWrapper {
       sampleLatency(new Duration(milliseconds: (sinceSendTime - waitMillis)));
     }
 
-    if (dataMap.containsKey(DATA_RECEIPTS)) {
-      for (int receipt in dataMap[DATA_RECEIPTS]) {
-        _reliableDataBuffer.remove(receipt);
-      }
-    }
-
     // New path.
     for (String key in dataMap.keys) {
       if (SPECIAL_KEYS.contains(key)) {
-        if (key == CONTAINED_DATA_RECEIPTS) {
-          _reliableDataToVerify.addAll(dataMap[CONTAINED_DATA_RECEIPTS]);
-        }
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
             handler(this, dataMap[key]);
@@ -301,44 +370,6 @@ class ConnectionWrapper {
     _network.parseBundle(this, dataMap);
   }
 
-  void alsoSendWithStoredData(Map dataMap) {
-    storeAwayReliableData(dataMap);
-    for (int hash in new List.from(_reliableDataBuffer.keys)) {
-      List tuple = _reliableDataBuffer[hash];
-      String reliableKey = tuple[0];
-      if (dataMap.containsKey(reliableKey)) {
-        // Merge data with previously saved data for this key.
-        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
-        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
-        _addContainedReceipt(dataMap, hash);
-      } else {
-        dataMap[reliableKey] = tuple[1];
-        _addContainedReceipt(dataMap, hash);
-      }
-    }
-  }
-
-  void _addContainedReceipt(Map dataMap, int receipt) {
-    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
-      dataMap[CONTAINED_DATA_RECEIPTS] = [];
-    }
-    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
-      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
-    }
-  }
-
-  void storeAwayReliableData(Map dataMap) {
-    for (String reliableKey in RELIABLE_KEYS.keys) {
-      if (dataMap.containsKey(reliableKey)) {
-        Object data = dataMap[reliableKey];
-        int jsonHash = JSON.encode(data).hashCode;
-        _reliableDataBuffer[jsonHash] = [reliableKey, data];
-        _addContainedReceipt(dataMap, jsonHash);
-      }
-    }
-    ;
-  }
-
   void checkIfShouldClose(int keyFrame) {
     if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
@@ -349,17 +380,15 @@ class ConnectionWrapper {
   }
 
   void sendData(Map data) {
-    if (_reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE &&
-        !_initialPongReceived) {
+    if (_reliableHelper.reliableBufferOverFlow()) {
       log.warning(
-          "Connection to $id too many reliable packets behind ${_reliableDataBuffer.length}, dropping!");
+          "Connection to $id too many reliable packets behind ${_reliableHelper.reliableDataBuffer.length}, dropping!");
       close("Not responding");
       return;
     }
-    if (!_reliableDataToVerify.isEmpty) {
-      data[DATA_RECEIPTS] = _reliableDataToVerify;
-      _reliableDataToVerify = [];
-    }
+
+    _reliableHelper.updateWithDataReceipts(data);
+
     if (_lastRemoteKeyFrameTime != null) {
       DateTime now = new DateTime.now();
       int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime.millisecondsSinceEpoch;
@@ -380,10 +409,10 @@ class ConnectionWrapper {
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
       data = new Map.from(data);
-      alsoSendWithStoredData(data);
+      _reliableHelper.alsoSendWithStoredData(data);
     } else {
       // Store away any reliable data sent.
-      storeAwayReliableData(data);
+      _reliableHelper.storeAwayReliableData(data);
     }
     String jsonData = JSON.encode(data);
 
@@ -393,13 +422,13 @@ class ConnectionWrapper {
         return;
       }
     }
-    txBytes += jsonData.length;
+    _connectionStats.txBytes += jsonData.length;
     try {
       if (Logger.root.isLoggable(Level.FINE)) {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
       }
       _dataChannel.sendString(jsonData);
-    } catch (e, s) {
+    } catch (e, _) {
       log.severe("Failed to send to $id: $e, closing connection");
       close("Failed to send data");
     }
@@ -423,14 +452,6 @@ class ConnectionWrapper {
     return expectedKeyFrame - lastDeliveredKeyFrame;
   }
 
-  Duration sinceCreated() {
-    return new Duration(milliseconds: _connectionTimer.elapsedMilliseconds);
-  }
-
-  bool _timedOut() {
-    return sinceCreated().compareTo(_timeout) > 0;
-  }
-
   bool isActiveConnection() {
     return _opened && !closed && _dataChannel != null && _rtcConnection != null;
   }
@@ -442,7 +463,7 @@ class ConnectionWrapper {
       return false;
     }
     // Timed out waiting to become open.
-    if (!_opened && _timedOut()) {
+    if (!_opened && _connectionStats.OpenTimeout()) {
       return false;
     }
 
@@ -458,14 +479,18 @@ class ConnectionWrapper {
       log.warning("None positive latency of $latency ignored");
       return;
     }
-    this._latency = latency;
+    this._connectionStats._latency = latency;
   }
 
-  Duration expectedLatency() => _latency;
+  Duration expectedLatency() => _connectionStats._latency;
+
+  ReliableHelper reliableHelper() => _reliableHelper;
 
   dynamic rtcConnection() => _rtcConnection;
 
-  toString() => "Connection to ${id} latency ${_latency}";
+  toString() => "Connection to ${id} latency ${_connectionStats._latency}";
+
+  String stats() => _connectionStats.stats();
 }
 
 class LeakyBucket {

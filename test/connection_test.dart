@@ -49,7 +49,7 @@ void main() {
           KEY_FRAME_KEY: 0
         }));
     expect(
-        connection.reliableDataBuffer,
+        connection.reliableHelper().reliableDataBuffer,
         equals({
           743729159: [
             'remove_sprite',
@@ -63,7 +63,7 @@ void main() {
       DATA_RECEIPTS: [123456789, 743729159]
     }));
 
-    expect(connection.reliableDataBuffer, equals({}));
+    expect(connection.reliableHelper().reliableDataBuffer, equals({}));
   });
 
   test('TestReliableDataReSend', () {
@@ -95,7 +95,7 @@ void main() {
         }));
 
     expect(
-        connection.reliableDataBuffer,
+        connection.reliableHelper().reliableDataBuffer,
         equals({
           325444850: [
             REMOVE_KEY,
@@ -135,7 +135,7 @@ void main() {
     }));
 
     List expected = [123, 456];
-    expect(connection.reliableDataToVerify, equals(expected));
+    expect(connection.reliableHelper().reliableDataToVerify, equals(expected));
 
     connection.sendData({KEY_FRAME_KEY: 0});
 
