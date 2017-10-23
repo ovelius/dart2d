@@ -83,6 +83,8 @@ void main() {
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
 
       expect(loaderB.currentState(), equals(LoaderState.LOADING_ENTERING_GAME));
       worldA.frameDraw(KEY_FRAME_DEFAULT);

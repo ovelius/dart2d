@@ -40,6 +40,9 @@ Injector createWorldInjector(String id, [bool loadImages = true]) {
   TestServerChannel channel = new TestServerChannel(id);
   FakeCanvas fakeCanvas = new FakeCanvas();
   FakeImageFactory fakeImageFactory = new FakeImageFactory();
+  if (!loadImages) {
+    fakeImageFactory.completeImagesAsap = true;
+  }
   TestConnectionFactory connectionFactory = new TestConnectionFactory();
   FpsCounter frameCounter = new FpsCounter();
   frameCounter.setFpsForTest(45.0);

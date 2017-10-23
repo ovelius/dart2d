@@ -104,6 +104,9 @@ class _FakeGradient {
 class FakeImageFactory extends DynamicFactory {
   FakeImageFactory() : super(null);
   List<FakeImage> createdImages = [];
+  // Required to avoid deadlock in end2end tests.
+  bool completeImagesAsap = false;
+
   create(var args) {
     FakeImage image;
     if (args.length == 2) {
@@ -114,6 +117,9 @@ class FakeImageFactory extends DynamicFactory {
       image = new FakeImage();
     } else {
       throw new ArgumentError("Can't handle arguments ${args}");
+    }
+    if (completeImagesAsap) {
+      completeAllImages();
     }
     createdImages.add(image);
     return image;

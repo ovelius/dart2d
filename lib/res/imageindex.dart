@@ -142,21 +142,15 @@ class ImageIndex {
     loadImagesFromServer();
   }
 
-  void addFromImageData(int index, String data) {
+  Future addFromImageData(int index, String data) {
     String imageName = imageNameFromIndex(index);
     if (!data.startsWith("data:image/png;base64,")) {
       log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
       addSingleImage(imageName);
-      return;
+      return new Future.value();
     }
     images[index] = _imageFactory.create([data]);
-    if (images[index].width == 0 || images[index].height == 0) {
-      log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
-      addSingleImage(imageName);
-      return;
-    }
-    loadedImages[index] = true;
-    _imageComplete(index);
+    return _imageLoadedFuture(images[index], index);
   }
 
   void addImagesFromNetwork() {
@@ -212,8 +206,14 @@ class ImageIndex {
 
   Future _imageLoadedFuture(var img, int index) {
     img.onLoad.first.then((e) {
-      loadedImages[index] = true;
-      _imageComplete(index);
+      String imageName = imageNameFromIndex(index);
+      if (images[index].width == 0 || images[index].height == 0) {
+        log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
+        addSingleImage(imageName);
+      } else {
+        loadedImages[index] = true;
+        _imageComplete(index);
+      }
     });
     return img.onLoad.first;
   }

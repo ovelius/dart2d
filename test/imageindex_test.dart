@@ -49,6 +49,7 @@ void main() {
     for (String name in PLAYER_SOURCES) {
       int imageId = index.getImageIdByName(name);
       index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      fakeImageFactory.completeAllImages();
     }
 
     expect(index.playerResourcesLoaded(), isTrue);
@@ -56,6 +57,7 @@ void main() {
 
     for (int imageId in index.allImagesByName().values) {
       index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
     }
 
@@ -81,6 +83,7 @@ void main() {
     ids.sort();
     for (int imageId in ids) {
       index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
       if (imageId > 5) {
         break;
@@ -121,6 +124,8 @@ void main() {
 
     index.loadImagesFromNetwork();
 
+    fakeImageFactory.completeAllImages();
+
     expect(index.finishedLoadingImages(), isTrue);
   });
 
@@ -132,6 +137,8 @@ void main() {
     }
 
     index.loadImagesFromServer();
+
+    fakeImageFactory.completeAllImages();
 
     expect(index.finishedLoadingImages(), isTrue);
   });
