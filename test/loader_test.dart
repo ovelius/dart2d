@@ -143,6 +143,7 @@ void main() {
 
     test('Base state and load from other client', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      when(connection1.initialPongReceived()).thenReturn(false);
       Map connections = {
         'a': connection1,
       };

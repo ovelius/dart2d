@@ -37,6 +37,7 @@ const SAMPLES_BEFORE_FALLBACK = 3;
 @Injectable()
 class Loader {
   final Logger log = new Logger('Loader');
+  static final double RETRY_SERVER_CONNECTION = 1.5;
   final List<int> GAME_STATE_RESOURCES =
       new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
   Network _network;
@@ -53,6 +54,8 @@ class Loader {
   DateTime startedAt;
   // How many samples we have that indicates a slow data transfer.
   int _slowDownloadRateSamples = 0;
+  // When to retry data sent to a server connection.
+  double _nextServerConnectionRetry = RETRY_SERVER_CONNECTION;
 
   LoaderState _currentState = LoaderState.WEB_RTC_INIT;
   bool _completed = false;
@@ -195,20 +198,28 @@ class Loader {
 
   void _loaderGameStateTick([double duration = 0.01]) {
     if (!_network.findServer()) {
-      setState(LoaderState.FINDING_SERVER);
+      int connectionCount = 0;
+      int connectionPongCount = 0;
+      for (ConnectionWrapper connection in _network.safeActiveConnections().values) {
+        if (connection.initialPongReceived()) {
+          connectionPongCount++;
+        }
+        connectionCount++;
+      }
+      setState(LoaderState.FINDING_SERVER, "Finding game to join... $connectionPongCount/$connectionCount");
       return;
     }
     ConnectionWrapper serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
-      if (_playerWorldSelector.worldSelectedAndLoaded()) {
-        setState(LoaderState.LOADED_AS_SERVER);
-      } else if (_playerWorldSelector.selectedWorldName != null) {
-        setState(LoaderState.WORLD_LOADING);
-      } else {
-        _playerWorldSelector.frame(duration);
-        setState(LoaderState.WORLD_SELECT);
-      }
+      _tickWorldSelect(duration);
       return;
+    }
+
+    // Maybe trigger resend of reliable data.
+    _nextServerConnectionRetry -= duration;
+    if (_nextServerConnectionRetry < 0) {
+      serverConnection.sendData({IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+      _nextServerConnectionRetry = Loader.RETRY_SERVER_CONNECTION;
     }
 
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
@@ -216,6 +227,17 @@ class Loader {
       _enterGame(serverConnection);
     } else {
       _connectToGameAndLoadGameState(duration, serverConnection);
+    }
+  }
+
+  void _tickWorldSelect(double duration) {
+    if (_playerWorldSelector.worldSelectedAndLoaded()) {
+      setState(LoaderState.LOADED_AS_SERVER);
+    } else if (_playerWorldSelector.selectedWorldName != null) {
+      setState(LoaderState.WORLD_LOADING);
+    } else {
+      _playerWorldSelector.frame(duration);
+      setState(LoaderState.WORLD_SELECT);
     }
   }
 
@@ -244,7 +266,7 @@ class Loader {
           GAME_STATE_RESOURCES);
       // TODO figure out percentage of multiple items?
       int percentComplete = (_chunkHelper.getCompleteRatio(GAME_STATE_RESOURCES[0]) * 100).toInt();
-      setState(LoaderState.LOADING_GAMESTATE, "Loading gamestate... ${percentComplete}%");
+      setState(LoaderState.LOADING_GAMESTATE, "Loading gamestate... ${percentComplete}% ${_chunkHelper.getTransferSpeed()}");
     }
   }
 
@@ -296,7 +318,7 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.WORLD_SELECT: "",
   LoaderState.WORLD_LOADING: "Loading selected world...",
 
-  LoaderState.FINDING_SERVER: "Finding game to join..",
+  LoaderState.FINDING_SERVER: "Finding game to join...",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",
   LoaderState.LOADED_AS_SERVER: "Start as server!",
   LoaderState.LOADING_ENTERING_GAME: "Entering game...",
