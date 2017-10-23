@@ -143,13 +143,18 @@ class ImageIndex {
   }
 
   void addFromImageData(int index, String data) {
+    String imageName = imageNameFromIndex(index);
     if (!data.startsWith("data:image/png;base64,")) {
-      String imageName = imageNameFromIndex(index);
       log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
       addSingleImage(imageName);
       return;
     }
     images[index] = _imageFactory.create([data]);
+    if (images[index].width == 0 || images[index].height == 0) {
+      log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
+      addSingleImage(imageName);
+      return;
+    }
     loadedImages[index] = true;
     _imageComplete(index);
   }
@@ -200,8 +205,8 @@ class ImageIndex {
       // Not indexed add it.
       images.add(element);
       index = images.length - 1;
+      imageByName[imgName] = index;
     }
-    imageByName[imgName] = index;
     return _imageLoadedFuture(element, index);
   }
 

@@ -29,7 +29,7 @@ logOutputForTest() {
 
 assertNoLoggedWarnings() {
   if (_logged.containsKey(Level.WARNING)) {
-    throw new StateError("Logged warning when shouldn't! ${_logged[Level.WARNING]}!");
+    throw new StateError("Logged warning when shouldn't! ${_logged[Level.WARNING]}. Use expectWarningContaining() if expected!");
   }
   if (_logged.containsKey(Level.SEVERE)) {
     throw new StateError("Logged severe but no warning! ${_logged[Level.SEVERE]}!");

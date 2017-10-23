@@ -11,6 +11,7 @@ void main() {
   _FakeCanvas _fakeCanvas;
 
   setUp(() {
+    logOutputForTest();
     localStorage = new Map<String, String>();
     fakeImageFactory = new FakeImageFactory();
     _fakeCanvas = new _FakeCanvas();
@@ -145,6 +146,18 @@ void main() {
     }
 
     index.loadImagesFromNetwork();
+
+    expect(index.finishedLoadingImages(), isFalse);
+  });
+
+  test("TestAddCorruptImage", () {
+    expectWarningContaining("Dropping corrupted image data");
+    index.loadImagesFromNetwork();
+    index.addFromImageData(2, "Blergh");
+
+    expect(index.loadedImages[2], isNull);
+    fakeImageFactory.completeAllImages();
+    expect(index.loadedImages[2], isTrue);
 
     expect(index.finishedLoadingImages(), isFalse);
   });
