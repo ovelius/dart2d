@@ -41,7 +41,7 @@ class ConnectionStats {
   // How long until connection attempt times out.
   static const Duration OPEN_TIMEOUT = const Duration(seconds: 6);
   // How long we don't have a response before we close the connection.
-  static const Duration RESPONSE_TIMEOUT = const Duration(seconds: 8);
+  static const Duration RESPONSE_TIMEOUT = const Duration(seconds: 10);
 
   int rxBytes = 0;
   int txBytes = 0;

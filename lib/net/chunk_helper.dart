@@ -116,7 +116,7 @@ class ChunkHelper {
         // TODO do something smarter here, like load from server?
         _imageIndex.loadImagesFromServer();
         throw new StateError(
-            "Can not return data for $index, it's not loaded!");
+            "Can not return data for $index, it's not loaded! Loaded is: ${_imageIndex.loadedImages}");
       }
     }
     _dataUrlCache[index] = data;

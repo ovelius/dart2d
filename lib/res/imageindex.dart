@@ -209,6 +209,7 @@ class ImageIndex {
       String imageName = imageNameFromIndex(index);
       if (images[index].width == 0 || images[index].height == 0) {
         log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
+        loadedImages.remove(index);
         addSingleImage(imageName);
       } else {
         loadedImages[index] = true;
@@ -247,11 +248,14 @@ class ImageIndex {
 
   void _indexImages() {
     for (String img in IMAGE_SOURCES) {
-      var element = this._imageFactory.create([]);
-      images.add(element);
-      int index = images.length - 1;
-      imageByName[img] = index;
-      _orderedImageIds.add(index);
+      // Don't index again...
+      if (!imageByName.containsKey(img)) {
+        var element = this._imageFactory.create([]);
+        images.add(element);
+        int index = images.length - 1;
+        imageByName[img] = index;
+        _orderedImageIds.add(index);
+      }
     }
   }
 

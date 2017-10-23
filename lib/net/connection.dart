@@ -263,7 +263,7 @@ class ConnectionWrapper {
     if (_connectionStats.ReceiveTimeout()) {
       log.warning(
           "Connection to $id not responsive, dropping!");
-      close("Not responding");
+      close("Not responding receive timeout");
     }
 
     DateTime now = new DateTime.now();
