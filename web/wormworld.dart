@@ -15,11 +15,13 @@ import 'dart:convert';
 import 'dart:async';
 
 const bool USE_LOCAL_HOST_PEER = false;
-const Duration TIMEOUT = const Duration(milliseconds: 21);
+const int TIMEOUT_MILLIS = 21;
+const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
 final Logger log = new Logger('WormWorldMain');
 
 DateTime lastStep;
 WormWorld world;
+RealGaReporter realGaReporter;
 List iceServers = [
   {'url': 'stun:stun.l.google.com:19302'}
 ];
@@ -131,17 +133,30 @@ void startTimer() {
 
 void step() {
   DateTime startStep = new DateTime.now();
-
-  DateTime now = new DateTime.now();
-  int millis = now.millisecondsSinceEpoch - lastStep.millisecondsSinceEpoch;
+  int millis = startStep.millisecondsSinceEpoch - lastStep.millisecondsSinceEpoch;
   assert(millis >= 0);
   double secs = millis / 1000.0;
-  world.frameDraw(secs);
-  lastStep = now;
 
+  try {
+    world.frameDraw(secs);
+  } catch (e, s) {
+    log.severe("Main loop crash, reloading", e, s);
+    realGaReporter.reportEvent("crash", sanitizeStack(s));
+    if (!USE_LOCAL_HOST_PEER) {
+      new Timer(new Duration(seconds: 6), window.location.reload);
+    }
+    return;
+  }
+
+  lastStep = startStep;
   int frameTimeMillis = new DateTime.now().millisecondsSinceEpoch -
       startStep.millisecondsSinceEpoch;
-  new Timer(TIMEOUT - new Duration(milliseconds: frameTimeMillis), step);
+  new Timer(new Duration(milliseconds: TIMEOUT_MILLIS - frameTimeMillis), step);
+}
+
+String sanitizeStack(StackTrace s) {
+  String trace = s.toString();
+  return trace.replaceAll(new RegExp(":"), "_");
 }
 
 void setKeyListeners(WormWorld world, var canvasElement) {
@@ -357,7 +372,8 @@ WebSocketServerChannel _serverChannel;
 
 class HtmlDomBindingsModule extends Module {
   HtmlDomBindingsModule() {
-    bind(GaReporter, toImplementation: RealGaReporter);
+    realGaReporter = new RealGaReporter();
+    bind(GaReporter, toValue: realGaReporter);
     // Initialize server signalling channel.
     _serverChannel = new WebSocketServerChannel();
     bind(ServerChannel, toValue: _serverChannel);
