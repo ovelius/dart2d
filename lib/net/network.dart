@@ -304,12 +304,15 @@ class Network {
       /// TODO probe if game is full and close connection if it is.
       return true;
     }
+    int activityMillis = new DateTime.now().millisecondsSinceEpoch - 3000;
     for (ConnectionWrapper connection in connections.values) {
       if (connection.initialPongReceived()) {
         closeAbleNotServer.add(connection.id);
       }
       if (!connection.initialPingSent()) {
         connection.sendPing(true);
+      } else if (connection.lastReceiveActivityOlderThan(activityMillis) && connection.lastSendActivityOlderThan(activityMillis)) {
+        connection.sendPing();
       }
     }
     // We examined all connections and found no server. Time to take action.

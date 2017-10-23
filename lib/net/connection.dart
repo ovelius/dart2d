@@ -134,6 +134,14 @@ class ConnectionWrapper {
     });
   }
 
+  bool lastReceiveActivityOlderThan(int millis) {
+    return _connectionStats.lastReceiveTime.millisecondsSinceEpoch < millis;
+  }
+
+  bool lastSendActivityOlderThan(int millis) {
+    return _connectionStats.lastSendTime.millisecondsSinceEpoch < millis;
+  }
+
   bool initialPongReceived() => _initialPongReceived;
   bool initialPingSent() => _initialPingSent;
 
@@ -251,6 +259,11 @@ class ConnectionWrapper {
           "Connection to $id too many reliable packets behind ${_reliableHelper.reliableDataBuffer.length}, dropping!");
       close("Not responding");
       return;
+    }
+    if (_connectionStats.ReceiveTimeout()) {
+      log.warning(
+          "Connection to $id not responsive, dropping!");
+      close("Not responding");
     }
 
     DateTime now = new DateTime.now();
