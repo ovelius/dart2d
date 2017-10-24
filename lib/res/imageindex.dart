@@ -150,6 +150,8 @@ class ImageIndex {
       return new Future.value();
     }
     images[index] = _imageFactory.create([data]);
+    // Mark image as complete here.
+    loadedImages[index] = true;
     return _imageLoadedFuture(images[index], index);
   }
 

@@ -24,6 +24,7 @@ void main() {
   });
 
   test('TestLoadServer', () {
+    fakeImageFactory.allowDataImages = false;
     index.loadImagesFromServer();
     expect(index.finishedLoadingImages(), isFalse);
     expect(index.imagesIndexed(), isTrue);
@@ -40,6 +41,7 @@ void main() {
   });
 
   test("TestLoadClient", () {
+    fakeImageFactory.allowURLImages = false;
     index.loadImagesFromNetwork();
 
     expect(index.finishedLoadingImages(), isFalse);
@@ -116,6 +118,7 @@ void main() {
   });
 
   test("TestLoadFromCache", () {
+    fakeImageFactory.allowURLImages = false;
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data:image/png;base64,data$name";
       localStorage["timg$name"] =

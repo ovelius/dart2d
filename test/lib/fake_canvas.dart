@@ -106,12 +106,20 @@ class FakeImageFactory extends DynamicFactory {
   List<FakeImage> createdImages = [];
   // Required to avoid deadlock in end2end tests.
   bool completeImagesAsap = false;
+  bool allowDataImages = true;
+  bool allowURLImages = true;
 
   create(var args) {
     FakeImage image;
     if (args.length == 2) {
       image = new FakeImage.withHW(args[0], args[1]);
     } else if (args.length == 1) {
+      if (!allowDataImages && args[0].startsWith("data:")) {
+        throw new ArgumentError("Not allowed to create image from data ${args[0]}");
+      }
+      if (!allowURLImages && args[0].startsWith("./")) {
+        throw new ArgumentError("Not allowed to create image from URL ${args[0]}");
+      }
       image = new FakeImage.withSrc(args[0]);
     } else if (args.length == 0) {
       image = new FakeImage();

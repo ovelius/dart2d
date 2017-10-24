@@ -91,9 +91,11 @@ class Bot {
       return;
     }
     log.fine("Identify: ${_controlledSprite} target ${_currentTargetSprite}");
-    if (_currentTargetSprite != null && !_currentTargetSprite.inGame()) {
-      log.info("Target lost ${_currentTargetSprite}");
-      _currentTargetSprite = null;
+    if (_currentTargetSprite != null) {
+      if (!_currentTargetSprite.inGame() || _currentTargetSprite.remove) {
+        log.info("Target lost ${_currentTargetSprite}");
+        _currentTargetSprite = null;
+      }
     }
     if (_currentTargetSprite == null) {
       LocalPlayerSprite selectedSprite = null;
