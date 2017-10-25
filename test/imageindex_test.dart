@@ -158,6 +158,7 @@ void main() {
     index.loadImagesFromNetwork();
 
     expect(index.finishedLoadingImages(), isFalse);
+    expect(localStorage.length, 0);
   });
 
   test("TestAddCorruptImage", () {

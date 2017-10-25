@@ -299,6 +299,10 @@ class ImageIndex {
           int imageIndex = imageByName[image];
           log.info("Added image from cache ${image}.");
           addFromImageData(imageIndex, data);
+        } else {
+          // Clear cache.
+          _localStorage.remove(key);
+          _localStorage.remove("t$key");
         }
       }
     }
