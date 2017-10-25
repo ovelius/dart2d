@@ -38,7 +38,7 @@ class PeerWrapper {
   /**
    * Called to establish a connection to another peer.
    */
-  ConnectionWrapper connectTo(id) {
+  ConnectionWrapper connectTo(String id) {
     _gaReporter.reportEvent("connection_created", "Connection");
     assert(id != null);
     if (connections.containsKey(id)) {

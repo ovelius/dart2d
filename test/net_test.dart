@@ -645,5 +645,45 @@ void main() {
 
         expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
     });
+
+    test('TestMultipleCommanderConfusion', () {
+      logConnectionData = false;
+      WormWorld worldA = testWorld("a");
+      worldA.startAsServer("nameA");
+      WormWorld worldB = testWorld("b");
+      worldB.startAsServer("nameB");
+      
+      WormWorld worldC = testWorld("c");
+      worldC.network().peer.connectTo("a");
+      worldC.network().peer.connectTo("b");
+      
+      expect(worldA, hasSpecifiedConnections(['c']));
+      expect(worldB, hasSpecifiedConnections(['c']));
+      expect(worldC, hasSpecifiedConnections(['a', 'b']));
+
+      // Poor worldC is confused about who is in charge :(
+      expect(worldC, isGameStateOf({}));
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
+      expect(worldC, isGameStateOf({playerId(0): "nameA"}));
+      expect(worldC.network().getServerConnection().id, "a");
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.1);
+      expect(worldC.network().getServerConnection().id, "b");
+      expect(worldC, isGameStateOf({playerId(0): "nameB"}));
+
+      // Now connect.
+      logConnectionData = true;
+      worldC.network().getServerConnection().connectToGame("nameC", 2);
+      // We got gamestate and all.
+      expect(worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+
+      // Now A tries to update.
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
+      // We keep our gamestate.
+      expect(worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+      // And we even dropped connection to the other commander.
+      worldC.frameDraw();
+      expect(worldC, hasSpecifiedConnections(['b']).isValidGameConnections());
+    });
   }); 
 }

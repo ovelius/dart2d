@@ -26,7 +26,7 @@ WorldSpriteStateMatcher hasExactSprites(List<WorldSpriteMatcher> matchers) {
   return new WorldSpriteStateMatcher(matchers);
 }
 
-GameStateMatcher isGameStateOf(data) {
+GameStateMatcher isGameStateOf(Map<int, String>  data) {
   return new GameStateMatcher(data);
 }
 
@@ -517,7 +517,7 @@ class WorldConnectionMatcher extends Matcher {
           matchState[id] = "Expected but missing! No such key ${id} in ${connections}";
         }
         ConnectionWrapper c = connections[id];
-        if (_gameConnections != c.isValidGameConnection()) {
+        if (c != null && _gameConnections != c.isValidGameConnection()) {
           matchState[id] = "Expected game connection of ${_gameConnections} was ${c.isValidGameConnection()}";
         }
       }

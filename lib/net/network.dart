@@ -285,6 +285,17 @@ class Network {
           "Not parsing gamestate from ${connection.id} because we are commander!");
       return;
     }
+    if (gameState.playerInfoByConnectionId(peer.id) != null &&
+        !GameState.updateContainsPlayerWithId(data, peer.id)) {
+      // We are in the old GameState, but the new GameState does not have us :(
+      if (gameState.actingCommanderId != GameState.extractCommanderId(data) &&
+        GameState.extractCommanderId(data) == connection.id) {
+        // Also this GameState doesn't match out expected CommanderId.
+        // So we don't want to listen to this connection.
+        connection.close("multiple commander connections");
+        return;
+      }
+    }
     gameState.updateFromMap(data);
     world.connectToAllPeersInGameState();
     if (peer.connectedToServer() && gameState.isAtMaxPlayers()) {

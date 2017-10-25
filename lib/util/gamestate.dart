@@ -174,6 +174,18 @@ class GameState {
     startedAt = new DateTime.now();
   }
 
+  static bool updateContainsPlayerWithId(Map map, String id) {
+    List<Map> players = map["p"];
+    for (Map playerMap in players) {
+      if (playerMap['cid'] == id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static String extractCommanderId(Map map) => map['e'];
+
   updateFromMap(Map map) {
     List<Map> players = map["p"];
     List<PlayerInfo> newInfo = [];
@@ -191,7 +203,7 @@ class GameState {
     _playerInfo = newInfo;
     _playerInfoById = byId;
     mapName = map["m"];
-    actingCommanderId = map["e"];
+    actingCommanderId = extractCommanderId(map);
     winnerPlayerId = map["w"];
     startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
   }
