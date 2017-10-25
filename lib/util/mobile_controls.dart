@@ -1,6 +1,6 @@
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:di/di.dart';
-import 'package:dart2d/util/keystate.dart';
+import 'package:dart2d/util/util.dart';
 import 'dart:math';
 import 'util.dart';
 
@@ -11,7 +11,7 @@ class MobileControls {
   bool _isMobileBrowser;
   KeyState _localKeyState;
   Bot _bot;
-  bool _botEnabled;
+  String _botNameIfEnabled;
   ConfigParams _configParams;
   int _width, _height;
   var _canvas = null;
@@ -31,6 +31,7 @@ class MobileControls {
       this._configParams,
       this._bot,
       @HtmlScreen() Object screen,
+      @LocalStorage() Map localStorage,
       @LocalKeyState() KeyState localKeyState,
       @TouchControls() bool isMobileBrowser,
       @WorldCanvas() Object canvasElement) {
@@ -41,7 +42,7 @@ class MobileControls {
     this._screen = screen;
     this._width = canvasHack.width;
     this._height = canvasHack.height;
-    this._botEnabled = _configParams.getBool(ConfigParam.BOT_ENABLED);
+    this._botNameIfEnabled = _configParams.getString(ConfigParam.BOT_ENABLED);
     num thirdX = _width / 3;
     num halfY = _height / 2 + BUTTON_SIZE + BUTTON_SIZE;
     num yDiff = 50;
@@ -65,7 +66,7 @@ class MobileControls {
   }
 
   draw(double duration) {
-    if (_botEnabled) {
+    if (_botNameIfEnabled.isNotEmpty) {
       _bot.tick(duration);
     } else if (_isMobileBrowser) {
       PlayerInfo selfInfo = _selfPlayerInfoProvider.getSelfInfo();

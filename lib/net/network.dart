@@ -496,7 +496,7 @@ class Network {
   }
 
   int slowCommandingFrames() => _slowCommandingFrames;
-  bool isTooSlowForCommanding() => _slowCommandingFrames > 4;
+  bool isTooSlowForCommanding() => _slowCommandingFrames > 5;
 
   bool hasReadyConnection() {
     if (peer != null && peer.connections.length > 0) {
@@ -514,7 +514,7 @@ class Network {
 
   List<String> keyFrameDebugData() {
     List<String> debugStrings = [
-      "Connected to signal sever: ${peer.connectedToServer()}"
+      "Connected to signal server: ${peer.connectedToServer()}"
     ];
     if (!hasReadyConnection()) {
       return debugStrings;

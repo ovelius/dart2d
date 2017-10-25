@@ -31,7 +31,7 @@ class ConnectionWrapper {
   DateTime _lastRemoteKeyFrameTime = null;
   // The last keyframe the peer said it received from us.
   int lastDeliveredKeyFrame = 0;
-  DateTime _keyFrameIncrementTime = null;
+  DateTime _keyFrameIncrementLatencyTime = null;
 
   ConnectionStats _connectionStats;
   ReliableHelper _reliableHelper;
@@ -201,12 +201,13 @@ class ConnectionWrapper {
       sampleLatency(new Duration(milliseconds: latencyMillis));
       _initialPongReceived = true;
     }
-    if (_keyFrameIncrementTime != null && dataMap.containsKey(KEY_FRAME_DELAY)) {
+    if (_keyFrameIncrementLatencyTime != null && dataMap.containsKey(KEY_FRAME_DELAY)) {
       // How long time passed since we sent the keyframe?
-      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementTime.millisecondsSinceEpoch;
+      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementLatencyTime.millisecondsSinceEpoch;
       // How long time before the sender responded?
       int waitMillis = dataMap[KEY_FRAME_DELAY];
       sampleLatency(new Duration(milliseconds: (sinceSendTime - waitMillis)));
+      _keyFrameIncrementLatencyTime = null;
     }
 
     // New path.
@@ -277,7 +278,9 @@ class ConnectionWrapper {
     }
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
       if (data[IS_KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
-        _keyFrameIncrementTime = new DateTime.now();
+        if (_keyFrameIncrementLatencyTime == null) {
+          _keyFrameIncrementLatencyTime = new DateTime.now();
+        }
       }
     }
     assert(_dataChannel != null);

@@ -513,7 +513,7 @@ void main() {
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 5; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
 
@@ -588,7 +588,7 @@ void main() {
       worldA.drawFps().setFpsForTest(3.1);
 
       // Pas some time.
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 12; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01, true);
       }

@@ -26,7 +26,7 @@ class ConfigParams {
   static Map<ConfigParam, Object> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
     ConfigParam.EXPLICIT_PEERS: [],
-    ConfigParam.BOT_ENABLED: false,
+    ConfigParam.BOT_ENABLED: "",
     ConfigParam.INGRESS_BANDWIDTH: -1,
     ConfigParam.EGRESS_BANDWIDTH: -1,
     ConfigParam.DISABLE_CACHE: false,
@@ -42,6 +42,14 @@ class ConfigParams {
     List<String> data = _uriParams[_names[p]];
     if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return int.parse(data[0]);
+    }
+    return _defaults[p];
+  }
+
+  String getString(ConfigParam p) {
+    List<String> data = _uriParams[_names[p]];
+    if (data != null && data.length > 0 && data[0].isNotEmpty) {
+      return data[0];
     }
     return _defaults[p];
   }

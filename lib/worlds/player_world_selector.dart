@@ -61,6 +61,7 @@ class PlayerWorldSelector {
       this._mobileControls,
       this._imageIndex,
       this._gaReporter,
+      ConfigParams _configParams,
       @LocalStorage() Map storage,
       @LocalKeyState() KeyState localKeyState,
       @WorldCanvas() Object canvasElement) {
@@ -131,6 +132,13 @@ class PlayerWorldSelector {
     });
     // TODO Always remove, change this behavior.
     _localStorage.remove('playerSprite');
+
+    // Bot enabled, let's set things up right away.
+    String botName = _configParams.getString(ConfigParam.BOT_ENABLED);
+    if (botName.isNotEmpty) {
+      _localStorage['playerName'] = botName;
+      _localStorage['playerSprite'] = PLAYER_SPRITES[_selectedPlayerSprite];
+    }
   }
 
   bool _onPoint(Point<int> p, int x, int y, double scaledWidth) {
