@@ -30,14 +30,16 @@ void main() {
       worldB.frameDraw();
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
       // Locally controlled player.
-      expect(worldB, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-  
+      expect(
+          worldB,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
       worldA.connectTo("b", "nameC", true);
       // A framedraw twill start worldA as client.
       worldA.frameDraw();
@@ -53,56 +55,63 @@ void main() {
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
       // Make worldB add the player to the world.
       worldB.frameDraw(0.01);
-      
+
       // Simulate a keyframe from A and verify that it is received.
       expect(worldA.network().currentKeyFrame, equals(0));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldA.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("c"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
-      
+
       expect(worldB.network().currentKeyFrame, equals(0));
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
-  
+
       // Run frames again to make sure sprites are added to world.
       worldA.frameDraw(0.01);
       worldB.frameDraw(0.01);
-  
+
       expect(worldA, hasSpriteWithNetworkId(playerId(0)));
       expect(worldA, hasSpriteWithNetworkId(playerId(1)));
       expect(worldB, hasSpriteWithNetworkId(playerId(0)));
       expect(worldB, hasSpriteWithNetworkId(playerId(1)));
 
       // Assert server control.
-      expect(worldB, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldB,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
       // Comander takes control of weapon change and fire of weapon, and respawn
-      expect(worldB, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-
+      expect(
+          worldB,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
       // Assert client control.
-      expect(worldA, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          // Client also switches weapon.
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR));
+      expect(
+          worldA,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              // Client also switches weapon.
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR));
       // Client has no active methods for server.
       // But listens for weapon switch in case of command transfer.
-      expect(worldA, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldA,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
       // Both worlds are in the same gamestate.
       expect(worldB.network().gameState,
@@ -119,124 +128,203 @@ void main() {
 
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
-  
+
       // b connects to a.
       worldB.connectTo("a", "nameB");
       worldA.frameDraw(0.01);
-      expect(worldA, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.LOCAL));
-      expect(worldA, hasSpriteWithNetworkId(playerId(1)).andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(
+          worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       // After worldAs keyframe worldB has the entire state of the game.
       worldB.frameDraw(0.01);
-      expect(worldB, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.REMOTE));
-      expect(worldB, hasSpriteWithNetworkId(playerId(1)).andNetworkType(NetworkType.LOCAL));
-      expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
 
       logConnectionData = true;
       // now c connects to a.
       worldC.connectTo("a", "nameC");
       // run a frame in a to make sure the sprite is processed.
       worldA.frameDraw(0.01);
-      expect(worldA, hasSpriteWithNetworkId(playerId(0)).andNetworkType(NetworkType.LOCAL));
-      expect(worldA, hasSpriteWithNetworkId(playerId(1))
-          .andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, hasSpriteWithNetworkId(playerId(2))
-          .andNetworkType(NetworkType.REMOTE_FORWARD));
-      expect(worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
-      // Now C runs a keyframe. This will make a forward the local player sprite in c to b. 
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(
+          worldA,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }));
+      // Now C runs a keyframe. This will make a forward the local player sprite in c to b.
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(0.01);
-      expect(worldB, hasSpriteWithNetworkId(playerId(0))
-          .andNetworkType(NetworkType.REMOTE));
-      expect(worldB, hasSpriteWithNetworkId(playerId(1))
-          .andNetworkType(NetworkType.LOCAL));
-      expect(worldB, hasSpriteWithNetworkId(playerId(2))
-          .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.REMOTE));
       // Make server a run a keyframe to ensure gamestate if propagated.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+      expect(
+          worldB,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }));
       // This also sets up CLIENT_TO_CLIENT connections.
-      expect(worldB, hasSpecifiedConnections(['c','a']).isValidGameConnections());
-      expect(worldC, hasSpecifiedConnections(['b','a']).isValidGameConnections());
+      expect(
+          worldB, hasSpecifiedConnections(['c', 'a']).isValidGameConnections());
+      expect(
+          worldC, hasSpecifiedConnections(['b', 'a']).isValidGameConnections());
       // And of course the server to client connections from A.
-      expect(worldA, hasSpecifiedConnections(['b','c']).isValidGameConnections());
+      expect(
+          worldA, hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
       // Make sure a doesn't deliver things in sync to c from b.
       // Run a keyframe in B.
       // TODO(Erik): Make c be smart enough to determine the real source of the sprite.
       // c should disregard the sprite from a since a direct connection exists to b.
       testConnections["a"][0].buffer = true;
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldC.frameDraw(0.01); // This adds the sprite from the client to client connection.
-      expect(worldC, hasSpriteWithNetworkId(playerId(0))
-          .andNetworkType(NetworkType.REMOTE));
-      expect(worldC, hasSpriteWithNetworkId(playerId(1))
-          .andNetworkType(NetworkType.REMOTE));
-      expect(worldC, hasSpriteWithNetworkId(playerId(2))
-          .andNetworkType(NetworkType.LOCAL));
-      
+      worldC.frameDraw(
+          0.01); // This adds the sprite from the client to client connection.
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.LOCAL));
+
       testConnections["a"][0].buffer = false;
       testConnections["a"][0].flushBuffer();
-      
+
       worldA.frameDraw(0.01);
       worldB.frameDraw(0.01);
       worldC.frameDraw(0.01);
-       
+
       // Final GameState should be consitent.
-      expect(worldA,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
-              .withCommanderId('a'));
-      expect(worldB,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
-              .withCommanderId('a'));
-      expect(worldC,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"})
-              .withCommanderId('a'));
+      expect(
+          worldA,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }).withCommanderId('a'));
+      expect(
+          worldB,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }).withCommanderId('a'));
+      expect(
+          worldC,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }).withCommanderId('a'));
 
       // Assert sprite control.
-      expect(worldA, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldA, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldA, controlsMatching(playerId(2))
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldA,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldA,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldA,
+          controlsMatching(playerId(2))
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.SERVER_TO_OWNER_DATA)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldB, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldB, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldB, controlsMatching(playerId(2))
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldB,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldB,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldB,
+          controlsMatching(playerId(2))
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldC, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldC, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      expect(worldC, controlsMatching(playerId(2))
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldC,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldC,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldC,
+          controlsMatching(playerId(2))
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
     test('TestFourWorldsServerDies', () {
       /// TODO assert keyStates.
       int PLAYER_TWO_SPRITE_FRAMES = 4;
-      
+
       logConnectionData = false;
       WormWorld worldA = testWorld("a");
       worldA.startAsServer("nameA");
@@ -244,16 +332,16 @@ void main() {
       WormWorld worldB = testWorld("b");
       WormWorld worldC = testWorld("c");
       WormWorld worldD = testWorld("d");
-  
-      worldB.connectTo("a", "nameB");         
+
+      worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
-      worldD.connectTo("a", "nameD");              
-     
+      worldD.connectTo("a", "nameD");
+
       // Tick a few keyframes for the worlds.
       logConnectionData = true;
 
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);   
-      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);  
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
@@ -268,25 +356,36 @@ void main() {
       worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       logConnectionData = false;
 
-      expect(worldA, controlsMatching(playerId(0))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldA,
+          controlsMatching(playerId(0))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
-      expect(worldA, hasSpecifiedConnections(['b', 'c','d']).isValidGameConnections());
-      expect(worldB, hasSpecifiedConnections(['a', 'c','d']).isValidGameConnections());
-      expect(worldC, hasSpecifiedConnections(['a', 'b','d']).isValidGameConnections());
-      expect(worldD, hasSpecifiedConnections(['a', 'b','c']).isValidGameConnections());
+      expect(worldA,
+          hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
+      expect(worldB,
+          hasSpecifiedConnections(['a', 'c', 'd']).isValidGameConnections());
+      expect(worldC,
+          hasSpecifiedConnections(['a', 'b', 'd']).isValidGameConnections());
+      expect(worldD,
+          hasSpecifiedConnections(['a', 'b', 'c']).isValidGameConnections());
 
       expect(worldA.spriteIndex.count(), equals(4));
       expect(worldB.spriteIndex.count(), equals(4));
       expect(worldC.spriteIndex.count(), equals(4));
       expect(worldD.spriteIndex.count(), equals(4));
 
-      var gameState = {playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC", playerId(3): "nameD"};
+      var gameState = {
+        playerId(0): "nameA",
+        playerId(1): "nameB",
+        playerId(2): "nameC",
+        playerId(3): "nameD"
+      };
       expect(worldA, isGameStateOf(gameState).withCommanderId('a'));
       expect(worldB, isGameStateOf(gameState).withCommanderId('a'));
       expect(worldC, isGameStateOf(gameState).withCommanderId('a'));
@@ -298,9 +397,11 @@ void main() {
       expect(worldB, isConnectedToServer(false));
       expect(worldC, isConnectedToServer(false));
       expect(worldD, isConnectedToServer(false));
-      
+
       // Now make a drop away.
-      testConnections['a'].forEach((e) { e.signalClose(); });
+      testConnections['a'].forEach((e) {
+        e.signalClose();
+      });
 
       // TODO bring back!
       // expect(worldB.spriteIndex[playerId(1)].frames,
@@ -313,13 +414,15 @@ void main() {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
 
-      expect(worldB, controlsMatching(playerId(1))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldB,
+          controlsMatching(playerId(1))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
 
       gameState.remove(playerId(0));
       expect(worldB, isGameStateOf(gameState).withCommanderId('b'));
@@ -336,11 +439,13 @@ void main() {
 
       // TODO bring back!
       // expect(worldB.spriteIndex[playerId(1)].frames,
-         // equals(PLAYER_TWO_SPRITE_FRAMES));
+      // equals(PLAYER_TWO_SPRITE_FRAMES));
       // TODO: Check type of playerId(1).
-            
+
       // Now b is having issues.
-      testConnections['b'].forEach((e) { e..signalClose(); });
+      testConnections['b'].forEach((e) {
+        e..signalClose();
+      });
       for (int i = 0; i < 18; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -352,34 +457,40 @@ void main() {
       expect(worldC, isGameStateOf(gameState).withCommanderId('c'));
       expect(worldD, isGameStateOf(gameState).withCommanderId('c'));
 
-      expect(worldC, controlsMatching(playerId(2))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
-      
+      expect(
+          worldC,
+          controlsMatching(playerId(2))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+
       // Finally C is having issues.
-      testConnections['c'].forEach((e) { e.signalClose(); });
+      testConnections['c'].forEach((e) {
+        e.signalClose();
+      });
       for (int i = 0; i < 18; i++) {
         worldD.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // WorldD is all alone.
       expect(worldD, hasSpecifiedConnections([]));
-      // Make this pass by converting the REMOTE -> REMOTE_FOWARD. 
+      // Make this pass by converting the REMOTE -> REMOTE_FOWARD.
       expect(worldD.spriteIndex.count(), equals(1));
 
       gameState.remove(playerId(2));
       expect(worldD, isGameStateOf(gameState).withCommanderId('d'));
 
-      expect(worldD, controlsMatching(playerId(3))
-          .withActiveMethod(PlayerControlMethods.FIRE_KEY)
-          .withActiveMethod(PlayerControlMethods.RESPAWN)
-          .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
-          .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
-          .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
-          .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
+      expect(
+          worldD,
+          controlsMatching(playerId(3))
+              .withActiveMethod(PlayerControlMethods.FIRE_KEY)
+              .withActiveMethod(PlayerControlMethods.RESPAWN)
+              .withActiveMethod(PlayerControlMethods.CONTROL_KEYS)
+              .withActiveMethod(PlayerControlMethods.DRAW_HEALTH_BAR)
+              .withActiveMethod(PlayerControlMethods.DRAW_WEAPON_HELPER)
+              .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
     test('TestBadCommanderConnection', () {
@@ -393,8 +504,9 @@ void main() {
       }
 
       worldA.connectTo("b", "nameA");
-  
-      expect(worldB.network().gameState,
+
+      expect(
+          worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
 
@@ -404,7 +516,7 @@ void main() {
       for (int i = 0; i < 4; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      
+
       // B hasn't responded in a long time.
       expect(worldA.network().hasNetworkProblem(), equals(true));
 
@@ -414,7 +526,8 @@ void main() {
       // B now responded and we're back.
       expect(worldA.network().hasNetworkProblem(), equals(false));
 
-      expect(worldB.network().gameState,
+      expect(
+          worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
       expect(worldB.spriteIndex.count(), equals(2));
@@ -425,23 +538,27 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       expect(worldB.network().slowCommandingFrames(), equals(1));
 
-      while(worldB.network().slowCommandingFrames() > 0){
+      while (worldB.network().slowCommandingFrames() > 0) {
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
 
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
       // Commander is now a.
-      expect(worldB.network().gameState,
+      expect(
+          worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
-      expect(worldA.network().gameState,
+      expect(
+          worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
 
       // Because worldB is only doing 2 Fps!
-      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps, equals(2));
-      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps, equals(2));
+      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps,
+          equals(2));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps,
+          equals(2));
 
       worldB.drawFps().setFpsForTest(25.0);
 
@@ -452,16 +569,20 @@ void main() {
       }
 
       // Commander is still a.
-      expect(worldB.network().gameState,
+      expect(
+          worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
-      expect(worldA.network().gameState,
+      expect(
+          worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
 
       // And the FPS increased.
-      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
-      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps, equals(25));
+      expect(worldB.network().getGameState().playerInfoByConnectionId('b').fps,
+          equals(25));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('b').fps,
+          equals(25));
 
       // But no a is having trouble.
       worldA.drawFps().setFpsForTest(3.1);
@@ -473,21 +594,25 @@ void main() {
       }
 
       // Commander is now b.
-      expect(worldB.network().gameState,
+      expect(
+          worldB.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
-      expect(worldA.network().gameState,
+      expect(
+          worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
 
-      expect(worldB.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
-      expect(worldA.network().getGameState().playerInfoByConnectionId('a').fps, equals(3));
-
+      expect(worldB.network().getGameState().playerInfoByConnectionId('a').fps,
+          equals(3));
+      expect(worldA.network().getGameState().playerInfoByConnectionId('a').fps,
+          equals(3));
     });
 
     test('TestCommanderSpriteForward', () {
       Injector injectorA = createWorldInjector('a');
-      TestConnectionFactory connectionFactory = injectorA.get(TestConnectionFactory);
+      TestConnectionFactory connectionFactory =
+          injectorA.get(TestConnectionFactory);
 
       WormWorld worldA = initTestWorld(injectorA);
       WormWorld worldB = testWorld("b");
@@ -508,32 +633,38 @@ void main() {
         worldC.frameDraw(KEY_FRAME_DEFAULT);
       }
 
-      expect(worldB, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(0))
-            .andNetworkType(NetworkType.LOCAL),
-        hasSpriteWithNetworkId(playerId(1))
-            .andNetworkType(NetworkType.REMOTE_FORWARD),
-        hasSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.REMOTE_FORWARD),
-      ]));
+      expect(
+          worldB,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.LOCAL),
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.REMOTE_FORWARD),
+            hasSpriteWithNetworkId(playerId(2))
+                .andNetworkType(NetworkType.REMOTE_FORWARD),
+          ]));
 
-      expect(worldA, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(0))
-            .andNetworkType(NetworkType.REMOTE),
-        hasSpriteWithNetworkId(playerId(1))
-            .andNetworkType(NetworkType.LOCAL),
-        hasSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.REMOTE),
-      ]));
+      expect(
+          worldA,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.REMOTE),
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.LOCAL),
+            hasSpriteWithNetworkId(playerId(2))
+                .andNetworkType(NetworkType.REMOTE),
+          ]));
 
-      expect(worldC, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(0))
-            .andNetworkType(NetworkType.REMOTE),
-        hasSpriteWithNetworkId(playerId(1))
-            .andNetworkType(NetworkType.REMOTE),
-        hasSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.LOCAL),
-      ]));
+      expect(
+          worldC,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.REMOTE),
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.REMOTE),
+            hasSpriteWithNetworkId(playerId(2))
+                .andNetworkType(NetworkType.LOCAL),
+          ]));
 
       Sprite spriteA = worldA.spriteIndex[playerId(1)];
       Sprite spriteC = worldC.spriteIndex[playerId(1)];
@@ -546,7 +677,9 @@ void main() {
       expect(spriteA.position.x, equals(spriteC.position.x));
 
       // Now commander dies.
-      testConnections['b'].forEach((e) { e.signalClose(); });
+      testConnections['b'].forEach((e) {
+        e.signalClose();
+      });
 
       for (int i = 0; i < 8; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -556,16 +689,20 @@ void main() {
 
       // We ended up with two distinct commanders.
       expect(worldA.network().isCommander(), isTrue);
-      expect(worldA, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(1))
-            .andNetworkType(NetworkType.LOCAL),
-      ]));
+      expect(
+          worldA,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.LOCAL),
+          ]));
 
       expect(worldC.network().isCommander(), isTrue);
-      expect(worldC, hasExactSprites([
-        hasSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.LOCAL),
-      ]));
+      expect(
+          worldC,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(2))
+                .andNetworkType(NetworkType.LOCAL),
+          ]));
     });
 
     test('TestThreePlayerOneJoinsLater', () {
@@ -578,7 +715,7 @@ void main() {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
-      
+
       // 20 keyframes later another player joins.
       worldC.connectTo("a", "nameC");
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -586,14 +723,22 @@ void main() {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         expect(worldA.spriteIndex.count(), equals(3));
-        expect(worldA, hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
-        expect(worldB, hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
-        expect(worldC, hasSpecifiedConnections(['a', 'b']).isValidGameConnections());
+        expect(worldA,
+            hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
+        expect(worldB,
+            hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
+        expect(worldC,
+            hasSpecifiedConnections(['a', 'b']).isValidGameConnections());
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
       // Should work just fine.
-      expect(worldA.network().gameState,
-          isGameStateOf({playerId(0): "nameA", playerId(1): "nameB", playerId(2): "nameC"}));
+      expect(
+          worldA.network().gameState,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }));
 
       for (WormWorld w in [worldA, worldB, worldC]) {
         for (WormWorld w2 in [worldA, worldB, worldC]) {
@@ -610,40 +755,41 @@ void main() {
     });
 
     test('TestMaxPlayers', () {
-        logConnectionData = false;
-        WormWorld worldA = testWorld("a");
+      logConnectionData = false;
+      WormWorld worldA = testWorld("a");
 
-        worldA.startAsServer("nameA");
+      worldA.startAsServer("nameA");
 
-        WormWorld worldB = testWorld("b");
-        WormWorld worldC = testWorld("c");
-        WormWorld worldD = testWorld("d");
-        WormWorld worldE = testWorld("e");
-    
-        worldB.connectTo("a", "nameB");         
-        worldC.connectTo("a", "nameC");
-        worldD.connectTo("a", "nameD");
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
+      WormWorld worldD = testWorld("d");
+      WormWorld worldE = testWorld("e");
 
-        worldE.connectTo("a", "nameE", false);
-        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      worldD.connectTo("a", "nameD");
 
-        expect(worldE.network().gameState.playerInfoList(), hasLength(4));
-        expect(worldE.network().gameState.actingCommanderId, equals('a'));
-        expect(worldE.network().getServerConnection(), isNotNull);
+      worldE.connectTo("a", "nameE", false);
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-        worldE.network().getServerConnection().connectToGame('nameE', 2);
+      expect(worldE.network().gameState.playerInfoList(), hasLength(4));
+      expect(worldE.network().gameState.actingCommanderId, equals('a'));
+      expect(worldE.network().getServerConnection(), isNotNull);
 
-        expect(recentSentDataTo("e"),
-            new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
+      worldE.network().getServerConnection().connectToGame('nameE', 2);
 
-        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-        worldE.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      expect(recentSentDataTo("e"),
+          new MapKeyMatcher.containsKey(SERVER_PLAYER_REJECT));
 
-        // Gamestate got reset.
-        expect(worldE.network().gameState.playerInfoList(), hasLength(0));
-        expect(worldE.network().gameState.actingCommanderId, isNull);
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      worldE.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-        expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
+      // Gamestate got reset.
+      expect(worldE.network().gameState.playerInfoList(), hasLength(0));
+      expect(worldE.network().gameState.actingCommanderId, isNull);
+
+      expect(worldA,
+          hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
     });
 
     test('TestMultipleCommanderConfusion', () {
@@ -652,11 +798,11 @@ void main() {
       worldA.startAsServer("nameA");
       WormWorld worldB = testWorld("b");
       worldB.startAsServer("nameB");
-      
+
       WormWorld worldC = testWorld("c");
       worldC.network().peer.connectTo("a");
       worldC.network().peer.connectTo("b");
-      
+
       expect(worldA, hasSpecifiedConnections(['c']));
       expect(worldB, hasSpecifiedConnections(['c']));
       expect(worldC, hasSpecifiedConnections(['a', 'b']));
@@ -671,19 +817,41 @@ void main() {
       expect(worldC, isGameStateOf({playerId(0): "nameB"}));
 
       // Now connect.
-      logConnectionData = true;
       worldC.network().getServerConnection().connectToGame("nameC", 2);
       // We got gamestate and all.
-      expect(worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+      expect(
+          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
 
       // Now A tries to update.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
       // We keep our gamestate.
-      expect(worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+      expect(
+          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
       // And we even dropped connection to the other commander.
       worldC.frameDraw();
       expect(worldC, hasSpecifiedConnections(['b']).isValidGameConnections());
     });
-  }); 
+
+    test('TestCloseCommanderToCommanderConnection', () {
+      logConnectionData = false;
+      WormWorld worldA = testWorld("a");
+      worldA.startAsServer("nameA");
+      WormWorld worldB = testWorld("b");
+      worldB.startAsServer("nameB");
+
+      worldA.network().peer.connectTo('b');
+      expect(worldA, hasSpecifiedConnections(['b']));
+      expect(worldB, hasSpecifiedConnections(['a']));
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
+
+      worldA.frameDraw();
+      worldB.frameDraw();
+
+      // The connection didn't make sense, so we closed it.
+      expect(worldA, hasSpecifiedConnections([]));
+      expect(worldB, hasSpecifiedConnections([]));
+    });
+  });
 }

@@ -50,8 +50,8 @@ class Network {
     this._spriteIndex = spriteIndex;
     this._drawFps = serverFrameCounter;
     this._localKeyState = localKeyState;
-    peer = new PeerWrapper(
-        _connectionFactory, this, hudMessages, configParams, serverChannel, _packetListenerBindings, _gaReporter);
+    peer = new PeerWrapper(_connectionFactory, this, hudMessages, configParams,
+        serverChannel, _packetListenerBindings, _gaReporter);
 
     _packetListenerBindings.bindHandler(GAME_STATE, _handleGameState);
     _packetListenerBindings.bindHandler(FPS,
@@ -67,7 +67,7 @@ class Network {
       /// Update the list of connections for this player.
       PlayerInfo info = gameState.playerInfoByConnectionId(connection.id);
       if (info != null) {
-        Map<String,ConnectionInfo> connectionMap = {};
+        Map<String, ConnectionInfo> connectionMap = {};
         for (List item in connections) {
           connectionMap[item[0]] = new ConnectionInfo(item[0], item[1]);
         }
@@ -91,7 +91,8 @@ class Network {
       // Server wants us to take command.
       log.info("Coverting self ${peer.id} to commander");
       this.convertToCommander(this.safeActiveConnections(), null);
-      _gaReporter.reportEvent("convert_self_to_commander_on_request", "Commander");
+      _gaReporter.reportEvent(
+          "convert_self_to_commander_on_request", "Commander");
     });
   }
 
@@ -184,7 +185,8 @@ class Network {
   /**
    * Set this peer as the commander.
    */
-  void convertToCommander(Map connections, PlayerInfo previousCommanderPlayerInfo) {
+  void convertToCommander(
+      Map connections, PlayerInfo previousCommanderPlayerInfo) {
     _hudMessages.display("Commander role tranferred to you :)");
     String oldCommanderId = gameState.actingCommanderId;
     gameState.convertToServer(world, this.peer.id);
@@ -204,11 +206,11 @@ class Network {
       }
       // Remove any projectiles without owner.
       if (previousCommanderPlayerInfo != null) {
-        if (sprite is WorldDamageProjectile && sprite.owner != null
-            && sprite.owner.networkId == previousCommanderPlayerInfo.spriteId) {
+        if (sprite is WorldDamageProjectile &&
+            sprite.owner != null &&
+            sprite.owner.networkId == previousCommanderPlayerInfo.spriteId) {
           sprite.remove = true;
           sprite.collision = false;
-
         }
       }
     }
@@ -283,16 +285,26 @@ class Network {
     if (isCommander() && pendingCommandTransfer() == null) {
       log.warning(
           "Not parsing gamestate from ${connection.id} because we are commander!");
+      if (!GameState.updateContainsPlayerWithId(data, peer.id)) {
+        // We are not even in the received GameState..grr..
+        if (GameState.extractCommanderId(data) == connection.id) {
+          connection.close("two commanders talking to eachother");
+          _gaReporter.reportEvent(
+              "network", "two_commander_connection");
+        }
+      }
       return;
     }
     if (gameState.playerInfoByConnectionId(peer.id) != null &&
         !GameState.updateContainsPlayerWithId(data, peer.id)) {
       // We are in the old GameState, but the new GameState does not have us :(
       if (gameState.actingCommanderId != GameState.extractCommanderId(data) &&
-        GameState.extractCommanderId(data) == connection.id) {
+          GameState.extractCommanderId(data) == connection.id) {
         // Also this GameState doesn't match out expected CommanderId.
         // So we don't want to listen to this connection.
         connection.close("multiple commander connections");
+        _gaReporter.reportEvent(
+            "network", "multiple_commanders_connection_closed");
         return;
       }
     }
@@ -322,7 +334,8 @@ class Network {
       }
       if (!connection.initialPingSent()) {
         connection.sendPing(true);
-      } else if (connection.lastReceiveActivityOlderThan(activityMillis) && connection.lastSendActivityOlderThan(activityMillis)) {
+      } else if (connection.lastReceiveActivityOlderThan(activityMillis) &&
+          connection.lastSendActivityOlderThan(activityMillis)) {
         connection.sendPing();
       }
     }
@@ -419,8 +432,8 @@ class Network {
       data[CONNECTIONS_LIST] = [];
       Map<String, ConnectionInfo> connections = {};
       for (ConnectionWrapper wrapper in safeActiveConnections().values) {
-        ConnectionInfo info =
-           new ConnectionInfo(wrapper.id, wrapper.expectedLatency().inMilliseconds);
+        ConnectionInfo info = new ConnectionInfo(
+            wrapper.id, wrapper.expectedLatency().inMilliseconds);
         data[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
         connections[info.to] = info;
       }
@@ -500,12 +513,15 @@ class Network {
   }
 
   List<String> keyFrameDebugData() {
-    List<String> debugStrings = ["Connected to signal sever: ${peer.connectedToServer()}"];
+    List<String> debugStrings = [
+      "Connected to signal sever: ${peer.connectedToServer()}"
+    ];
     if (!hasReadyConnection()) {
       return debugStrings;
     }
     for (ConnectionWrapper connection in peer.connections.values) {
-      debugStrings.add("${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${currentKeyFrame}");
+      debugStrings.add(
+          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${currentKeyFrame}");
     }
     return debugStrings;
   }
@@ -553,7 +569,8 @@ class Network {
           intListToSpriteProperties(bundle[networkId], sprite);
           // Forward sprite to others.
           if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-            for (ConnectionWrapper receipientConnection in  safeActiveConnections().values) {
+            for (ConnectionWrapper receipientConnection
+                in safeActiveConnections().values) {
               if (connection.id == receipientConnection.id) {
                 // Don't send back from where it came.
                 continue;
@@ -561,9 +578,11 @@ class Network {
               // Don't forward if we know there is a direct connection between these
               // two peers already.
               // TODO: Forward if latency is better this path?
-              if (!gameState.isConnected(connection.id, receipientConnection.id)) {
+              if (!gameState.isConnected(
+                  connection.id, receipientConnection.id)) {
                 Map data = {networkId: bundle[networkId]};
-                peer.sendDataWithKeyFramesToAll(data, null, receipientConnection.id);
+                peer.sendDataWithKeyFramesToAll(
+                    data, null, receipientConnection.id);
               }
             }
           }
