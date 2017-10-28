@@ -199,6 +199,9 @@ class LocalPlayerSprite extends MovingSprite {
     context.save();
     gun.draw(context, debug);
     context.restore();
+    context.save();
+    drawHealthBar(context);
+    context.restore();
     if (_shieldSec > 0) {
       context.save();
       super.draw(context, debug);
@@ -209,29 +212,30 @@ class LocalPlayerSprite extends MovingSprite {
     } else {
       super.draw(context, debug);
     }
-    drawHealthBar(context);
   }
 
   bool drawHealthBar(var context) {
     if (!_ownedByThisWorld()) {
       return false;
     }
-    double healthFactor = health / MAX_HEALTH;
-    context.resetTransform();
-    var grad = context.createLinearGradient(
-        0, 0, 2 * world.width() * healthFactor, 10);
-    grad.addColorStop(0, "#00ff00");
-    grad.addColorStop(1, "#FF0000");
+    if (shieldPoints <=0 && health == MAX_HEALTH) {
+      // Don't draw if max health.
+      return true;
+    }
+    int height = 5;
+    int x = position.x.toInt();
+    int y = (position.y  + size.y + size.y /3).toInt();
+    int width = (size.x * health / MAX_HEALTH).toInt();
     context.globalAlpha = 0.5;
-    context.fillStyle = grad;
-    int size = 20;
-    context.fillRect(
-        0, world.height() - size, world.width() * healthFactor, size);
+    context.fillStyle = "#FF0000";
+    context.fillRect(x, y, size.x.toInt() , height);
+    context.fillStyle = "#00FF00";
+    context.fillRect(x, y, width, height);
     if (_shieldPoints > 0) {
-      double shieldFactor = _shieldPoints / MAX_SHIELD;
+      int shieldWidth = (size.x * _shieldPoints / MAX_SHIELD).toInt();
       context.fillStyle = "#0000ff";
       context.fillRect(
-          0, world.height() - size, world.width() * shieldFactor, size);
+          x, y, shieldWidth, height);
     }
     context.globalAlpha = 1.0;
     return true;

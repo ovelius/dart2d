@@ -274,13 +274,14 @@ class Loader {
     if (y == null) {
       y = _height ~/ 2;
     }
+    _context.save();
     _context.clearRect(0, 0, _width, _height);
     _context.setFillColorRgb(-0, 0, 0);
     _context.font = "${size}px Arial";
     var metrics = _context.measureText(text);
     _context.fillText(
         text, _width / 2 - metrics.width / 2, y);
-    _context.save();
+    _context.restore();
   }
 
   void markCompleted() {
