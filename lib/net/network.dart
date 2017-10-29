@@ -434,14 +434,13 @@ class Network {
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;
     }
-    if (!isCommander()) {
-      data[KEY_STATE_KEY] = _localKeyState.getEnabledState();
-      if (keyFrame) {
-        data[FPS] = _drawFps.fps().toInt();
+    if (isCommander()) {
+      if (keyFrame || gameState.retrieveAndResetUrgentData()) {
+        gameState
+            .playerInfoByConnectionId(peer.id)
+            .fps = _drawFps.fps().toInt();
+        data[GAME_STATE] = gameState.toMap();
       }
-    } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
-      gameState.playerInfoByConnectionId(peer.id).fps = _drawFps.fps().toInt();
-      data[GAME_STATE] = gameState.toMap();
     }
     if (data.length > 0) {
       peer.sendDataWithKeyFramesToAll(data);
@@ -590,6 +589,12 @@ class Network {
         List dataAsList = [Sprite.FLAG_COMMANDER_DATA];
         sprite.addServerToOwnerData(dataAsList);
         allData[sprite.networkId.toString()] = dataAsList;
+      }
+    }
+    if (!isCommander()) {
+      allData[KEY_STATE_KEY] = _localKeyState.getEnabledState();
+      if (keyFrame) {
+        allData[FPS] = _drawFps.fps().toInt();
       }
     }
     if (keyFrame) {
