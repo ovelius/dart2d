@@ -289,8 +289,7 @@ class Network {
         // We are not even in the received GameState..grr..
         if (GameState.extractCommanderId(data) == connection.id) {
           connection.close("two commanders talking to eachother");
-          _gaReporter.reportEvent(
-              "network", "two_commander_connection");
+          _gaReporter.reportEvent("network", "two_commander_connection");
         }
       }
       return;
@@ -425,22 +424,11 @@ class Network {
     }
     bool keyFrame = checkForKeyFrame(duration);
     Map data = {};
-    stateBundle(keyFrame, data);
+    stateBundle(keyFrame, data, removals);
     // A keyframe indicates that we are sending a complete state.
     if (keyFrame) {
       registerDroppedFrames();
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
-    }
-    if (removals.length > 0) {
-      data[REMOVE_KEY] = removals;
-    }
-    if (isCommander()) {
-      if (keyFrame || gameState.retrieveAndResetUrgentData()) {
-        gameState
-            .playerInfoByConnectionId(peer.id)
-            .fps = _drawFps.fps().toInt();
-        data[GAME_STATE] = gameState.toMap();
-      }
     }
     if (data.length > 0) {
       peer.sendDataWithKeyFramesToAll(data);
@@ -579,7 +567,7 @@ class Network {
     }
   }
 
-  void stateBundle(bool keyFrame, Map allData) {
+  void stateBundle(bool keyFrame, Map allData, List<int> removals) {
     for (int networkId in _spriteIndex.spriteIds()) {
       Sprite sprite = _spriteIndex[networkId];
       if (sprite.networkType == NetworkType.LOCAL) {
@@ -591,20 +579,26 @@ class Network {
         allData[sprite.networkId.toString()] = dataAsList;
       }
     }
+    if (removals.length > 0) {
+      allData[REMOVE_KEY] = removals;
+    }
     if (!isCommander()) {
+      // For none commanders, send keystate.
       allData[KEY_STATE_KEY] = _localKeyState.getEnabledState();
       if (keyFrame) {
         allData[FPS] = _drawFps.fps().toInt();
       }
+    } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
+      // For commander, send GameState.
+      gameState.playerInfoByConnectionId(peer.id).fps = _drawFps.fps().toInt();
+      allData[GAME_STATE] = gameState.toMap();
     }
     if (keyFrame) {
       allData[CONNECTIONS_LIST] = [];
       Map<String, ConnectionInfo> connections = {};
       for (ConnectionWrapper wrapper in safeActiveConnections().values) {
         ConnectionInfo info = new ConnectionInfo(
-            wrapper.id, wrapper
-            .expectedLatency()
-            .inMilliseconds);
+            wrapper.id, wrapper.expectedLatency().inMilliseconds);
         allData[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
         connections[info.to] = info;
       }

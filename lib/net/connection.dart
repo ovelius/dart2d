@@ -37,6 +37,9 @@ class ConnectionWrapper {
   ReliableHelper _reliableHelper;
   ConnectionFrameHandler _connectionFrameHandler;
 
+  // Buffered sprite removals.
+  List<int> _removals;
+
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
       this._connectionFrameHandler) {
@@ -259,8 +262,9 @@ class ConnectionWrapper {
   /**
    * Advance connection time. Maybe send data. Maybe send keyframe.
    */
-  void tick(double duration, Map frameData, Map keyFrameData) {
+  void tick(double duration, Map frameData, Map keyFrameData, List<int> removals) {
     Map data = frameData;
+    _removals.addAll(removals);
     if (!_connectionFrameHandler.tick(duration)) {
       // Don't send any data this tick.
       return;
@@ -269,13 +273,15 @@ class ConnectionWrapper {
       // Send keyframe data.
       data = keyFrameData;
       if (data.isEmpty) {
-        _network.stateBundle(true, data);
+        _network.stateBundle(true, data, _removals);
       }
       data[IS_KEY_FRAME_KEY] = _connectionFrameHandler.currentKeyFrame();
     } else  if(data.isEmpty) {
       // Send regular data.
-      _network.stateBundle(false, data);
+      _network.stateBundle(false, data, _removals);
     }
+    // Reset removals buffer.
+    _removals = [];
     sendData(data);
   }
 
