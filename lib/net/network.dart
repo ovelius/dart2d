@@ -424,23 +424,12 @@ class Network {
       }
     }
     bool keyFrame = checkForKeyFrame(duration);
-    Map data = stateBundle(keyFrame);
+    Map data = {};
+    stateBundle(keyFrame, data);
     // A keyframe indicates that we are sending a complete state.
     if (keyFrame) {
       registerDroppedFrames();
       data[IS_KEY_FRAME_KEY] = currentKeyFrame;
-      data[CONNECTIONS_LIST] = [];
-      Map<String, ConnectionInfo> connections = {};
-      for (ConnectionWrapper wrapper in safeActiveConnections().values) {
-        ConnectionInfo info = new ConnectionInfo(
-            wrapper.id, wrapper.expectedLatency().inMilliseconds);
-        data[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
-        connections[info.to] = info;
-      }
-      PlayerInfo info = gameState.playerInfoByConnectionId(peer.id);
-      if (info != null) {
-        info.connections = connections;
-      }
     }
     if (removals.length > 0) {
       data[REMOVE_KEY] = removals;
@@ -591,8 +580,7 @@ class Network {
     }
   }
 
-  Map<String, List<int>> stateBundle(bool keyFrame) {
-    Map<String, List<int>> allData = {};
+  void stateBundle(bool keyFrame, Map allData) {
     for (int networkId in _spriteIndex.spriteIds()) {
       Sprite sprite = _spriteIndex[networkId];
       if (sprite.networkType == NetworkType.LOCAL) {
@@ -604,7 +592,22 @@ class Network {
         allData[sprite.networkId.toString()] = dataAsList;
       }
     }
-    return allData;
+    if (keyFrame) {
+      allData[CONNECTIONS_LIST] = [];
+      Map<String, ConnectionInfo> connections = {};
+      for (ConnectionWrapper wrapper in safeActiveConnections().values) {
+        ConnectionInfo info = new ConnectionInfo(
+            wrapper.id, wrapper
+            .expectedLatency()
+            .inMilliseconds);
+        allData[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
+        connections[info.to] = info;
+      }
+      PlayerInfo info = gameState.playerInfoByConnectionId(peer.id);
+      if (info != null) {
+        info.connections = connections;
+      }
+    }
   }
 }
 

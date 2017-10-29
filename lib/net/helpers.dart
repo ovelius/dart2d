@@ -151,6 +151,46 @@ class ReliableHelper {
   }
 }
 
+class ConnectionFrameHandler {
+  // Our base framerate for how often we send to network.
+  static const double BASE_FRAMERATE_INTERVAL = 1.0 / 15;
+  // How often to trigger keyframes.
+  static const double BASE_KEY_FRAME_RATE_INTERVAL = 1.0 / 2;
+
+  double _nextFrame = BASE_FRAMERATE_INTERVAL;
+  double _nextKeyFrame = BASE_KEY_FRAME_RATE_INTERVAL;
+
+  double _currentFrameDelay = BASE_FRAMERATE_INTERVAL;
+  double _currentKeyFrameDelay = BASE_KEY_FRAME_RATE_INTERVAL;
+
+  int _currentFrame = 0;
+  int _currentKeyFrame = 0;
+
+  /**
+   * Tick the connection lifetime. Return true if data should be sent.
+   */
+  bool tick(double duration) {
+    if (_nextFrame < 0) {
+      _currentFrame++;
+      _nextFrame += _currentFrameDelay;
+    }
+    if (_nextKeyFrame < 0) {
+      _currentKeyFrame++;
+      _nextKeyFrame += _currentKeyFrameDelay;
+    }
+    _nextFrame -= duration;
+    _nextKeyFrame -= duration;
+    return _nextFrame < 0;
+  }
+
+  bool keyFrame() {
+    return _nextKeyFrame < 0;
+  }
+
+  int currentKeyFrame() => _currentKeyFrame;
+  int currentFrame() => _currentFrame;
+}
+
 class LeakyBucket {
   int _fillRatePerMillis;
   int _tokenBuffer;

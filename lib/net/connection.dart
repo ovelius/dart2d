@@ -35,9 +35,11 @@ class ConnectionWrapper {
 
   ConnectionStats _connectionStats;
   ReliableHelper _reliableHelper;
+  ConnectionFrameHandler _connectionFrameHandler;
 
   ConnectionWrapper(this._network, this._hudMessages, this.id,
-      this._packetListenerBindings, this._configParams) {
+      this._packetListenerBindings, this._configParams,
+      this._connectionFrameHandler) {
     assert(id != null);
     _connectionStats = new ConnectionStats();
     _reliableHelper = new ReliableHelper(_packetListenerBindings);
@@ -252,6 +254,29 @@ class ConnectionWrapper {
       close("Not responding");
       return;
     }
+  }
+
+  /**
+   * Advance connection time. Maybe send data. Maybe send keyframe.
+   */
+  void tick(double duration, Map frameData, Map keyFrameData) {
+    Map data = frameData;
+    if (!_connectionFrameHandler.tick(duration)) {
+      // Don't send any data this tick.
+      return;
+    }
+    if (_connectionFrameHandler.keyFrame()) {
+      // Send keyframe data.
+      data = keyFrameData;
+      if (data.isEmpty) {
+        _network.stateBundle(true, data);
+      }
+      data[IS_KEY_FRAME_KEY] = _connectionFrameHandler.currentKeyFrame();
+    } else  if(data.isEmpty) {
+      // Send regular data.
+      _network.stateBundle(false, data);
+    }
+    sendData(data);
   }
 
   void sendData(Map data) {

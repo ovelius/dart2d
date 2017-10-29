@@ -27,7 +27,7 @@ void main() {
     testConnection.buffer = true;
     connection = new ConnectionWrapper(
         mockNetwork, mockHudMessages, "a", packetListenerBindings,
-        testConfigParams);
+        testConfigParams, new ConnectionFrameHandler());
     connection.setRtcConnection(testConnection);
     connection.readyDataChannel(testConnection);
   });
