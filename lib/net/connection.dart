@@ -398,7 +398,7 @@ class ConnectionWrapper {
 
   dynamic rtcConnection() => _rtcConnection;
 
-  toString() => "Connection to ${id} latency ${_connectionStats.latency}";
+  toString() => "Connection to ${id} latency ${_connectionStats.latency} GC: ${isValidGameConnection()} Pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 }

@@ -257,12 +257,16 @@ void main() {
 
       KeyState stateA = injectorA.get(KeyState, LocalKeyState);
       stateA.onKeyDown(KeyCodeDart.SPACE);
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      for (int i = 0; i < 2; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+      }
       expect(loaderA.currentState(), equals(LoaderState.WORLD_SELECT));
 
       KeyState stateB = injectorB.get(KeyState, LocalKeyState);
       stateB.onKeyDown(KeyCodeDart.SPACE);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      for (int i = 0; i < 2; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
       expect(loaderB.currentState(), equals(LoaderState.WORLD_SELECT));
 
       stateA.onKeyUp(KeyCodeDart.SPACE);

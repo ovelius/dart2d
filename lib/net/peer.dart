@@ -171,13 +171,6 @@ class PeerWrapper {
         continue;
       }
       connection.sendData(data);
-      if (data.containsKey(IS_KEY_FRAME_KEY)) {
-        int keyFrame = data[IS_KEY_FRAME_KEY];
-        // Send a ping every 6th keyframe to determine connection latency.
-        if ((connection.id.hashCode + keyFrame) % 6 == 0) {
-          connection.sendPing();
-        }
-      }
     }
     if (closedConnections.length > 0) {
       for (String id in closedConnections) {

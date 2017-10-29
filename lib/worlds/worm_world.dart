@@ -238,6 +238,7 @@ class WormWorld extends World {
        particles.add(sprite.toNetworkUpdate());
      }
      if (particles.isNotEmpty) {
+       // TODO: Make part of main network loop instead.
        _network.peer.sendDataWithKeyFramesToAll({WORLD_PARTICLE: particles});
      }
     }
