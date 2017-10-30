@@ -315,13 +315,12 @@ class WormWorld extends World {
     spriteIndex.removePending();
 
     // Only send to network if server frames has passed.
-    if (frames > 0) {
-      _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
-      _checkDormantPlayer();
-      if (_network.isCommander()) {
-        _powerupManager.frame(duration);
-      }
+    _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
+    _checkDormantPlayer();
+    if (_network.isCommander()) {
+      _powerupManager.frame(duration);
     }
+
     // 1 since we count how many times this method is called.
     drawFpsCounters();
     hudMessages.render(this, _canvas, duration);
@@ -344,7 +343,7 @@ class WormWorld extends World {
   }
 
   void _checkDormantPlayer() {
-    if (network().currentKeyFrame % 10 == 0) {
+    if (untilNextFrame < 0.01) {
       Duration lastMobileInput = _mobileControls.lastUserInput();
       Duration lastInput = localKeyState.lastUserInput();
       if (lastMobileInput > RELOAD_TIMEOUT && lastInput > RELOAD_TIMEOUT) {

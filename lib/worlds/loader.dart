@@ -37,7 +37,6 @@ const SAMPLES_BEFORE_FALLBACK = 3;
 @Injectable()
 class Loader {
   final Logger log = new Logger('Loader');
-  static final double RETRY_SERVER_CONNECTION = 1.5;
   final List<int> GAME_STATE_RESOURCES =
       new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
   Network _network;
@@ -54,8 +53,6 @@ class Loader {
   DateTime startedAt;
   // How many samples we have that indicates a slow data transfer.
   int _slowDownloadRateSamples = 0;
-  // When to retry data sent to a server connection.
-  double _nextServerConnectionRetry = RETRY_SERVER_CONNECTION;
 
   LoaderState _currentState = LoaderState.WEB_RTC_INIT;
   bool _completed = false;
@@ -216,11 +213,7 @@ class Loader {
     }
 
     // Maybe trigger resend of reliable data.
-    _nextServerConnectionRetry -= duration;
-    if (_nextServerConnectionRetry < 0) {
-      serverConnection.sendData({IS_KEY_FRAME_KEY: _network.currentKeyFrame});
-      _nextServerConnectionRetry = Loader.RETRY_SERVER_CONNECTION;
-    }
+    serverConnection.tick(duration, {}, {}, []);
 
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
       // World loaded, enter game.

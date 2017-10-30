@@ -31,6 +31,7 @@ void main() {
   group('End2End', () {
     test('Resource loading tests p2p', () {
       expectWarningContaining("unable to add commander data");
+      expectWarningContaining("Received KeyState for Player that doesn't exist");
       logConnectionData = false;
       Injector injectorA = createWorldInjector("a", false);
       setPlayerName(injectorA);
@@ -190,6 +191,7 @@ void main() {
 
     test('Test full game flow', () {
       expectWarningContaining("unable to add commander data");
+      expectWarningContaining("Received KeyState for Player that doesn't exist");
       logConnectionData = false;
       Injector injectorA = createWorldInjector("a", false);
       Map uriParameters = injectorA.get(Map, UriParameters);

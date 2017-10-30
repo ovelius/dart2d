@@ -602,7 +602,7 @@ void main() {
       expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw();
+      worldB.frameDraw(0.1);
       expect(worldA.spriteIndex.count(), equals(3));
       expect(worldB.spriteIndex.count(), equals(3));
 

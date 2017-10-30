@@ -157,8 +157,8 @@ class ConnectionFrameHandler {
   // How often to trigger keyframes.
   static const double BASE_KEY_FRAME_RATE_INTERVAL = 1.0 / 2;
 
-  double _nextFrame = BASE_FRAMERATE_INTERVAL;
-  double _nextKeyFrame = BASE_KEY_FRAME_RATE_INTERVAL;
+  double _nextFrame = 0.0;
+  double _nextKeyFrame = 0.0;
 
   double _currentFrameDelay = BASE_FRAMERATE_INTERVAL;
   double _currentKeyFrameDelay = BASE_KEY_FRAME_RATE_INTERVAL;
@@ -180,7 +180,8 @@ class ConnectionFrameHandler {
     }
     _nextFrame -= duration;
     _nextKeyFrame -= duration;
-    return _nextFrame < 0;
+    // Consider frame if keyframe or regular frame.
+    return _nextFrame < 0 || _nextKeyFrame < 0;
   }
 
   bool keyFrame() {

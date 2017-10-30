@@ -154,10 +154,33 @@ class PeerWrapper {
     return wrapper;
   }
 
+  void tickConnections(double duration, List<int> removals) {
+    List<String> closedConnections = [];
+    Map frameData = {};
+    Map keyFrameData = {};
+    for (String key in connections.keys) {
+      ConnectionWrapper connection = connections[key];
+      assert(connection != null);
+      if (connection.isClosedConnection()) {
+        closedConnections.add(key);
+        continue;
+      }
+      if (!connection.isActiveConnection()) {
+        continue;
+      }
+      connection.tick(duration, frameData, keyFrameData, removals);
+    }
+    if (closedConnections.length > 0) {
+      for (String id in closedConnections) {
+        removeClosedConnection(id);
+      }
+    }
+  }
+
   void sendDataWithKeyFramesToAll(Map data,
       [String dontSendTo, String onlySendTo]) {
     List<String> closedConnections = [];
-    for (var key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
+    for (String key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
       ConnectionWrapper connection = connections[key];
       assert(connection != null);
       if (dontSendTo != null && dontSendTo == connection.id) {

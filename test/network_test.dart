@@ -108,14 +108,14 @@ void main() {
 
     frame();
     expect(connectionBtoC.decodedRecentDataRecevied(),
-        equals({KEY_STATE_KEY: FAKE_ENABLED_KEYS, KEY_FRAME_KEY: 0}));
+        equals({KEY_STATE_KEY: FAKE_ENABLED_KEYS, KEY_FRAME_KEY: 0, FPS: 15, IS_KEY_FRAME_KEY: 0, CONNECTIONS_LIST: [['b', 6000]]}));
 
     _TestSprite sprite = new _TestSprite.withVecPosition(1000, new Vec2(9, 9));
     sprite.color = "rgba(1, 2, 3, 1.0)";
     when(mockSpriteIndex.spriteIds()).thenReturn(new List.filled(1, 1000));
     when(mockSpriteIndex[1000]).thenReturn(sprite);
 
-    frame();
+    frame(KEY_FRAME_DEFAULT + 0.01);
 
     // Full state sent over network.
     expect(
@@ -321,6 +321,7 @@ void main() {
     network.peer.connectTo('d');
 
     network.gameState.actingCommanderId = 'c';
+    gameState.addPlayerInfo(new PlayerInfo("testC", "c", 1));
     expect(network.isCommander(), isTrue);
 
     for (ConnectionWrapper connection
@@ -379,7 +380,7 @@ void main() {
     expect(recentSentDataTo("d"),
         new MapKeyMatcher.containsKey(sprite.networkId.toString()));
 
-    frame();
+    frame(0.1);
 
     gameState.addPlayerInfo(new PlayerInfo("testB", "b", sprite.networkId));
     PlayerInfo bInfo = gameState.playerInfoByConnectionId('b');

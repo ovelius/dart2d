@@ -143,10 +143,51 @@ void main() {
         equals({DATA_RECEIPTS: expected, KEY_FRAME_KEY: 0}));
   });
 
+  test('TestTickConnect', () {
+    connection.setHandshakeReceived();
+    connection.tick(0.01, {}, {}, []);
+
+    expect(testConnection.nativeBufferedDataAt(0), equals({IS_KEY_FRAME_KEY: 0, KEY_FRAME_KEY: 0}));
+
+    connection.tick(KEY_FRAME_DEFAULT + 0.1, {}, {}, []);
+
+    expect(testConnection.dataBuffer.length, 2);
+    expect(testConnection.nativeBufferedDataAt(1), equals({IS_KEY_FRAME_KEY: 1, KEY_FRAME_KEY: 0}));
+  });
+
+  test('TestKeyFrameAck', () {
+    connection.setHandshakeReceived();
+    connection.receiveData(JSON.encode({KEY_FRAME_KEY: 10, IS_KEY_FRAME_KEY: 99}));
+    expect(connection.lastRemoteKeyFrame, equals(99));
+    expect(connection.lastDeliveredKeyFrame, equals(10));
+    connection.sendData({});
+
+    Map receivedData = testConnection.nativeBufferedDataAt(0);
+    receivedData.remove(KEY_FRAME_DELAY);
+    expect(receivedData, equals({KEY_FRAME_KEY: 99}));
+  });
+
   test('TestLeakyBucket', () {
     LeakyBucket leakyBucket = new LeakyBucket(1);
     expect(leakyBucket.removeTokens(1), isTrue);
     sleep(new Duration(milliseconds: 10));
     expect(leakyBucket.removeTokens(10), isTrue);
+  });
+
+  test('TestConnectionFrameHandler', () {
+    ConnectionFrameHandler handler = new ConnectionFrameHandler();
+    expect(handler.tick(0.00001), isTrue);
+    expect(handler.keyFrame(), isTrue);
+    expect(handler.currentKeyFrame(), 0);
+
+    expect(handler.tick(0.00001), isFalse);
+    expect(handler.keyFrame(), isFalse);
+
+    expect(handler.tick(0.1), isTrue);
+    expect(handler.keyFrame(), isFalse);
+
+    expect(handler.tick(ConnectionFrameHandler.BASE_KEY_FRAME_RATE_INTERVAL), isTrue);
+    expect(handler.keyFrame(), isTrue);
+    expect(handler.currentKeyFrame(), 1);
   });
 }

@@ -25,8 +25,6 @@ class Network {
   PeerWrapper peer;
   PacketListenerBindings _packetListenerBindings;
   FpsCounter _drawFps;
-  double untilNextKeyFrame = KEY_FRAME_DEFAULT;
-  int currentKeyFrame = 0;
   // If we are client, this indicates that the server
   // is unable to ack our data.
   int serverFramesBehind = 0;
@@ -233,28 +231,6 @@ class Network {
   PeerWrapper getPeer() => peer;
   GameState getGameState() => gameState;
 
-  bool checkForKeyFrame(double duration) {
-    untilNextKeyFrame -= duration;
-    if (untilNextKeyFrame < 0) {
-      currentKeyFrame++;
-      untilNextKeyFrame += KEY_FRAME_DEFAULT;
-      // In case last frame was incredibly slow.
-      if (untilNextKeyFrame < 0) {
-        untilNextKeyFrame = KEY_FRAME_DEFAULT;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  void registerDroppedFrames() {
-    for (ConnectionWrapper connection in peer.connections.values) {
-      if (connection.id == gameState.actingCommanderId) {
-        serverFramesBehind = connection.keyFramesBehind(currentKeyFrame - 1);
-      }
-    }
-  }
-
   /**
    * Return a map of connections garantueed to be active.
    */
@@ -384,7 +360,6 @@ class Network {
   void sendMessage(String message, [String dontSendTo]) {
     Map data = {
       MESSAGE_KEY: [message],
-      IS_KEY_FRAME_KEY: currentKeyFrame
     };
     peer.sendDataWithKeyFramesToAll(data, dontSendTo);
   }
@@ -422,16 +397,13 @@ class Network {
         _pendingCommandTransfer = null;
       }
     }
-    bool keyFrame = checkForKeyFrame(duration);
-    Map data = {};
-    stateBundle(keyFrame, data, removals);
-    // A keyframe indicates that we are sending a complete state.
-    if (keyFrame) {
-      registerDroppedFrames();
-      data[IS_KEY_FRAME_KEY] = currentKeyFrame;
-    }
-    if (data.length > 0) {
-      peer.sendDataWithKeyFramesToAll(data);
+    peer.tickConnections(duration, removals);
+
+    if (!isCommander()) {
+      ConnectionWrapper serverConnection = getServerConnection();
+      if (serverConnection != null) {
+        serverFramesBehind = serverConnection.keyFramesBehind() - 1;
+      }
     }
 
     // Transfer our commanding role to someone else!
@@ -497,7 +469,7 @@ class Network {
     }
     for (ConnectionWrapper connection in peer.connections.values) {
       debugStrings.add(
-          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${currentKeyFrame}");
+          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${connection.currentKeyFrame()}");
     }
     return debugStrings;
   }
@@ -590,6 +562,7 @@ class Network {
       }
     } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
       // For commander, send GameState.
+      assert(gameState.playerInfoByConnectionId(peer.id) != null);
       gameState.playerInfoByConnectionId(peer.id).fps = _drawFps.fps().toInt();
       allData[GAME_STATE] = gameState.toMap();
     }

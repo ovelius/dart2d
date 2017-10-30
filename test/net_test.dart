@@ -54,18 +54,14 @@ void main() {
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(SERVER_PLAYER_REPLY));
       // Make worldB add the player to the world.
-      worldB.frameDraw(0.01);
+      worldB.frameDraw(0.1);
 
       // Simulate a keyframe from A and verify that it is received.
-      expect(worldA.network().currentKeyFrame, equals(0));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldA.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("c"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
 
-      expect(worldB.network().currentKeyFrame, equals(0));
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      expect(worldB.network().currentKeyFrame, equals(1));
       expect(recentReceviedDataFrom("b"),
           new MapKeyMatcher.containsKey(IS_KEY_FRAME_KEY));
 
@@ -131,7 +127,7 @@ void main() {
 
       // b connects to a.
       worldB.connectTo("a", "nameB");
-      worldA.frameDraw(0.01);
+      worldA.frameDraw(0.1);
       expect(
           worldA,
           hasSpriteWithNetworkId(playerId(0))
@@ -144,7 +140,7 @@ void main() {
           worldA, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       // After worldAs keyframe worldB has the entire state of the game.
-      worldB.frameDraw(0.01);
+      worldB.frameDraw(0.1);
       expect(
           worldB,
           hasSpriteWithNetworkId(playerId(0))
@@ -156,11 +152,11 @@ void main() {
       expect(
           worldB, isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}));
 
-      logConnectionData = true;
       // now c connects to a.
       worldC.connectTo("a", "nameC");
       // run a frame in a to make sure the sprite is processed.
-      worldA.frameDraw(0.01);
+      worldA.frameDraw(0.1);
+      worldA.frameDraw(0.1);
       expect(
           worldA,
           hasSpriteWithNetworkId(playerId(0))
@@ -181,8 +177,10 @@ void main() {
             playerId(2): "nameC"
           }));
       // Now C runs a keyframe. This will make a forward the local player sprite in c to b.
+      logConnectionData = true;
       worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-      worldB.frameDraw(0.01);
+      worldC.frameDraw(0.1);
+      worldB.frameDraw(0.1);
       expect(
           worldB,
           hasSpriteWithNetworkId(playerId(0))
@@ -219,7 +217,7 @@ void main() {
       testConnections["a"][0].buffer = true;
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldC.frameDraw(
-          0.01); // This adds the sprite from the client to client connection.
+          0.1); // This adds the sprite from the client to client connection.
       expect(
           worldC,
           hasSpriteWithNetworkId(playerId(0))

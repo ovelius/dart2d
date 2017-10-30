@@ -38,7 +38,7 @@ class ConnectionWrapper {
   ConnectionFrameHandler _connectionFrameHandler;
 
   // Buffered sprite removals.
-  List<int> _removals;
+  List<int> _removals = [];
 
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
@@ -60,6 +60,8 @@ class ConnectionWrapper {
     log.fine("Opened connection to $id");
   }
 
+  int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();
+
   bool hasReceivedFirstKeyFrame(Map dataMap) {
     if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
       if (dataMap[IS_KEY_FRAME_KEY] > lastRemoteKeyFrame) {
@@ -75,7 +77,6 @@ class ConnectionWrapper {
     int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
     if (receivedKeyFrameAck > lastDeliveredKeyFrame) {
       lastDeliveredKeyFrame = receivedKeyFrameAck;
-
     }
   }
 
@@ -91,7 +92,6 @@ class ConnectionWrapper {
     _hudMessages.display("Connection to ${id} open :)");
     // Set the connection to current keyframe.
     // A faulty connection will be dropped quite fast if it lags behind in keyframes.
-    lastDeliveredKeyFrame = _network.currentKeyFrame;
     _opened = true;
     _connectionStats.open();
   }
@@ -102,7 +102,7 @@ class ConnectionWrapper {
     Map playerData = {
       CLIENT_PLAYER_SPEC: [playerName, playerSpriteId],
       KEY_FRAME_KEY: lastRemoteKeyFrame,
-      IS_KEY_FRAME_KEY: _network.currentKeyFrame,
+      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
     };
     sendData(playerData);
   }
@@ -113,7 +113,7 @@ class ConnectionWrapper {
   void sendClientEnter() {
     sendData({
       CLIENT_PLAYER_ENTER: new DateTime.now().millisecondsSinceEpoch,
-      IS_KEY_FRAME_KEY: _network.currentKeyFrame
+      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
     });
   }
 
@@ -122,7 +122,7 @@ class ConnectionWrapper {
     */
   void sendCommandTransfer() {
     sendData(
-        {TRANSFER_COMMAND: 'y', IS_KEY_FRAME_KEY: _network.currentKeyFrame});
+        {TRANSFER_COMMAND: 'y', IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame()});
   }
 
   /**
@@ -135,7 +135,7 @@ class ConnectionWrapper {
     }
     sendData({
       PING: new DateTime.now().millisecondsSinceEpoch,
-      IS_KEY_FRAME_KEY: _network.currentKeyFrame
+      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
     });
   }
 
@@ -166,7 +166,7 @@ class ConnectionWrapper {
    */
   void markAsClientToClientConnection() {
     setHandshakeReceived();
-    lastDeliveredKeyFrame = _network.currentKeyFrame;
+    lastDeliveredKeyFrame = _connectionFrameHandler.currentKeyFrame();
   }
 
   void error(error) {
@@ -251,7 +251,7 @@ class ConnectionWrapper {
   }
 
   void checkIfShouldClose(int keyFrame) {
-    if (keyFramesBehind(keyFrame) > ALLOWED_KEYFRAMES_BEHIND) {
+    if (keyFramesBehind() > ALLOWED_KEYFRAMES_BEHIND) {
       log.warning(
           "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastDeliveredKeyFrame}, dropping");
       close("Not responding");
@@ -308,6 +308,7 @@ class ConnectionWrapper {
       _lastRemoteKeyFrameTime = null;
     }
     if (data.containsKey(IS_KEY_FRAME_KEY)) {
+      // The keyframe is incremented.
       if (data[IS_KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
         if (_keyFrameIncrementLatencyTime == null) {
           _keyFrameIncrementLatencyTime = new DateTime.now();
@@ -358,8 +359,8 @@ class ConnectionWrapper {
     _rtcConnection = rtcConnection;
   }
 
-  int keyFramesBehind(int expectedKeyFrame) {
-    return expectedKeyFrame - lastDeliveredKeyFrame;
+  int keyFramesBehind() {
+    return _connectionFrameHandler.currentKeyFrame() - lastDeliveredKeyFrame;
   }
 
   bool isActiveConnection() {
