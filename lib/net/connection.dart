@@ -281,6 +281,9 @@ class ConnectionWrapper {
         _network.stateBundle(true, data, _removals);
       }
       data[IS_KEY_FRAME_KEY] = _connectionFrameHandler.currentKeyFrame();
+      // Maybe adjust connection framerate.
+      _connectionFrameHandler.reportConnectionMetrics(keyFramesBehind(),
+          _connectionStats.latency.inMilliseconds);
     } else if(data.isEmpty) {
       // Send regular data.
       _network.stateBundle(false, data, _removals);
@@ -409,7 +412,9 @@ class ConnectionWrapper {
 
   dynamic rtcConnection() => _rtcConnection;
 
-  toString() => "Connection to ${id} latency ${_connectionStats.latency} GC: ${isValidGameConnection()} Pi/Po ${_initialPingSent}/${_initialPongReceived}";
+  int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
+
+  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_connectionStats.latency}  GC: ${isValidGameConnection()} Pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 }

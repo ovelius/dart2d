@@ -160,7 +160,10 @@ class PeerWrapper {
     Map keyFrameData = {};
     for (String key in connections.keys) {
       ConnectionWrapper connection = connections[key];
-      assert(connection != null);
+      if (connection == null) {
+        // Can actually happen! How fun.
+        continue;
+      }
       if (connection.isClosedConnection()) {
         closedConnections.add(key);
         continue;
@@ -238,7 +241,6 @@ class PeerWrapper {
         } else {
           PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
           // Start treating the other peer as server.
-          ConnectionWrapper connection = connections[commanderId];
           _network.gameState.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
           _hudMessages.display("Elected new commander ${info.name}");
@@ -252,7 +254,7 @@ class PeerWrapper {
       reconnect();
     }
     // Connection was never open, blacklist the id.
-    if (!wrapper.wasOpen()) {
+    if (wrapper != null && !wrapper.wasOpen()) {
       _blackListedIds.add(id);
       _closedConnectionPeers.add(id);
       _gaReporter.reportEvent("closed_never_open", "Connection");

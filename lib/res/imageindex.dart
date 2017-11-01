@@ -3,6 +3,7 @@ library imageindex;
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:dart2d/worlds/world_data.dart';
 import 'package:di/di.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -310,10 +311,11 @@ class ImageIndex {
 
   void _cacheInLocalStorage() {
     int size = 0;
+    Set<String> dontCache = new Set.from(WORLDS.values);
     for (String image in imageByName.keys) {
       int imageId = imageByName[image];
       // Never cache the world.
-      if (imageId <= WORLD_IMAGE_INDEX) {
+      if (imageId <= WORLD_IMAGE_INDEX || dontCache.contains(image)) {
         continue;
       }
       if (size > MAX_LOCAL_STORAGE_SIZE) {

@@ -190,4 +190,24 @@ void main() {
     expect(handler.keyFrame(), isTrue);
     expect(handler.currentKeyFrame(), 1);
   });
+
+  test('TestConnectionFrameHandlerAdjustFrameRate', () {
+    ConnectionFrameHandler handler =
+        new ConnectionFrameHandler(new ConfigParams({}));
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE);
+    handler.reportConnectionMetrics(1, 1);
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE);
+    handler.reportConnectionMetrics(2, 1);
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 2);
+    handler.reportConnectionMetrics(3, 1);
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 5);
+
+    // Now pretend we are stable.
+    for (int i = 0; i < ConnectionFrameHandler.STABLE_FRAME_RATE_TUNING_INTERVAL; i++) {
+      handler.reportConnectionMetrics(1, 0);
+    }
+    handler.reportConnectionMetrics(1, 0);
+    // We increased the framerate again.
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 4);
+  });
 }

@@ -469,7 +469,7 @@ class Network {
     }
     for (ConnectionWrapper connection in peer.connections.values) {
       debugStrings.add(
-          "${connection.id} ${connection.expectedLatency().inMilliseconds}ms bytes: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${connection.currentKeyFrame()}");
+          "${connection.id} FR:${connection.currentFrameRate()} ms:${connection.expectedLatency().inMilliseconds} by: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${connection.currentKeyFrame()}");
     }
     return debugStrings;
   }

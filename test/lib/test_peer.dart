@@ -2,6 +2,7 @@ library test_peer;
 
 import 'test_connection.dart';
 import 'package:dart2d/worlds/worlds.dart';
+import 'package:dart2d/net/net.dart';
 import 'test_env.dart';
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
@@ -23,6 +24,7 @@ WormWorld initTestWorld(Injector injector) {
   loader.markCompleted();
   selector.setMapForTest("lion88.png");
   world.initByteWorld("lion88.png");
+  ConnectionFrameHandler.DISABLE_AUTO_ADJUST_FOR_TEST = true;
   return world;
 }
 

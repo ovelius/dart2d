@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:convert';
 import 'package:di/di.dart';
 import 'dart:core';
@@ -161,12 +162,17 @@ class ReliableHelper {
 }
 
 class ConnectionFrameHandler {
+  static bool DISABLE_AUTO_ADJUST_FOR_TEST = false;
+  final Logger log = new Logger('ConnectionFrameHandler');
+
   static const int MIN_FRAMERATE = 6;
-  static const double BASE_FRAMERATE = 15.0;
+  static const int MAX_FRAMERATE = 15;
   // Our base framerate for how often we send to network.
-  static const double BASE_FRAMERATE_INTERVAL = 1.0 / BASE_FRAMERATE;
+  static const double BASE_FRAMERATE_INTERVAL = 1.0 / MAX_FRAMERATE * 1.0;
   // How often to trigger keyframes. Base value is (1.0 / 15.0) * 7.5 = 0.5
   static const double BASE_KEY_FRAME_RATE_INTERVAL = BASE_FRAMERATE_INTERVAL * 7.5;
+
+  static const int STABLE_FRAME_RATE_TUNING_INTERVAL = 6;
 
   double _nextFrame = 0.0;
   double _nextKeyFrame = 0.0;
@@ -174,9 +180,12 @@ class ConnectionFrameHandler {
   double _currentFrameDelay = BASE_FRAMERATE_INTERVAL;
   double _currentKeyFrameDelay = BASE_KEY_FRAME_RATE_INTERVAL;
 
-  int _currentFrameRate = BASE_FRAMERATE.toInt();
+  int _currentFrameRate = MAX_FRAMERATE.toInt();
   int _currentFrame = 0;
   int _currentKeyFrame = 0;
+
+  // How many frames in a row we've considered the connection to be stable.
+  int _stableFrames = 0;
 
   ConnectionFrameHandler(ConfigParams params) {
     int frameRate = params.getInt(ConfigParam.MAX_NETWORK_FRAMERATE);
@@ -185,15 +194,38 @@ class ConnectionFrameHandler {
     }
   }
 
-  reportKeyFramesBehind(int framesBehind) {
+  /**
+   * Maybe adjust connection framerate.
+   */
+  reportConnectionMetrics(int framesBehind, int latencyMillis) {
+    // Being 0 or 1 keyframes behind is quite normal.
+    if (framesBehind <= 1) {
+      _stableFrames++;
+      if (_stableFrames > STABLE_FRAME_RATE_TUNING_INTERVAL) {
+        // Try to increase framerate again.
+        _setFrameRate(_currentFrameRate + 1);
+        _stableFrames = 0;
+      }
+    }
+    // Being more than 1 keyframe behind shouldn't really happen.
+    // Reduce framerate.
     if (framesBehind > 1) {
-      _setFrameRate(_currentFrame - framesBehind);
+      _stableFrames = 0;
+      // Reduce framerate.
+      _setFrameRate(_currentFrameRate - min(framesBehind, 5));
     }
   }
 
   _setFrameRate(int rate) {
+    if (rate > MAX_FRAMERATE) {
+      rate = MAX_FRAMERATE;
+    }
     if (rate < MIN_FRAMERATE) {
       rate = MIN_FRAMERATE;
+    }
+    if (DISABLE_AUTO_ADJUST_FOR_TEST) {
+      log.info("TEST ONLY: Want to set new connection framerate to ${rate}");
+      return;
     }
     _currentFrameRate = rate;
     _currentFrameDelay = 1.0 / _currentFrameRate;
@@ -224,6 +256,7 @@ class ConnectionFrameHandler {
 
   int currentKeyFrame() => _currentKeyFrame;
   int currentFrame() => _currentFrame;
+  int currentFrameRate() => _currentFrameRate;
 }
 
 class LeakyBucket {
