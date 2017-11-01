@@ -8,6 +8,7 @@ enum ConfigParam {
   INGRESS_BANDWIDTH,
   EGRESS_BANDWIDTH,
   DISABLE_CACHE,
+  MAX_NETWORK_FRAMERATE,
 }
 
 @Injectable()
@@ -22,6 +23,8 @@ class ConfigParams {
     ConfigParam.EGRESS_BANDWIDTH: "egress",
     // Disabled explicit image caching.
     ConfigParam.DISABLE_CACHE: "nocache",
+    // How often to send data to network.
+    ConfigParam.MAX_NETWORK_FRAMERATE: "max_net_frame",
   };
   static Map<ConfigParam, Object> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
@@ -30,6 +33,7 @@ class ConfigParams {
     ConfigParam.INGRESS_BANDWIDTH: -1,
     ConfigParam.EGRESS_BANDWIDTH: -1,
     ConfigParam.DISABLE_CACHE: false,
+    ConfigParam.MAX_NETWORK_FRAMERATE: -1,
   };
 
   Map<String, List<String>> _uriParams;

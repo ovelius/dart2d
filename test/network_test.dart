@@ -103,6 +103,7 @@ void main() {
 
     network.peer.connectTo('b');
     expect(network.peer.connections.keys, contains('b'));
+    network.peer.connections['b'].setHandshakeReceived();
     TestConnection connectionBtoC =
         fakeConnectionFactory.connections['c']['b'].getOtherEnd();
 

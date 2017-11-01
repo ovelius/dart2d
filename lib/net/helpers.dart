@@ -57,6 +57,8 @@ class ConnectionStats {
     _connectionOpenTimer.start();
   }
 
+  bool keepAlive() => receiveSentDiffMillis() > (RESPONSE_TIMEOUT.inMilliseconds / 3);
+
   void open() {
     _connectionOpenTimer.stop();
   }
@@ -67,8 +69,15 @@ class ConnectionStats {
 
   bool ReceiveTimeout() {
     // How many millis have we sent data, but not received anything back?
-    int millis = lastSendTime.millisecondsSinceEpoch - lastReceiveTime.millisecondsSinceEpoch;
-    return millis > RESPONSE_TIMEOUT.inMilliseconds;
+    return sentReceivedDiffMillis() > RESPONSE_TIMEOUT.inMilliseconds;
+  }
+
+  int sentReceivedDiffMillis() {
+    return lastSendTime.millisecondsSinceEpoch - lastReceiveTime.millisecondsSinceEpoch;
+  }
+
+  int receiveSentDiffMillis() {
+    return lastReceiveTime.millisecondsSinceEpoch - lastSendTime.millisecondsSinceEpoch;
   }
 
   String stats() => "rx/tx: ${formatBytes(rxBytes)}/${formatBytes(txBytes)}";
@@ -152,10 +161,12 @@ class ReliableHelper {
 }
 
 class ConnectionFrameHandler {
+  static const int MIN_FRAMERATE = 6;
+  static const double BASE_FRAMERATE = 15.0;
   // Our base framerate for how often we send to network.
-  static const double BASE_FRAMERATE_INTERVAL = 1.0 / 15;
-  // How often to trigger keyframes.
-  static const double BASE_KEY_FRAME_RATE_INTERVAL = 1.0 / 2;
+  static const double BASE_FRAMERATE_INTERVAL = 1.0 / BASE_FRAMERATE;
+  // How often to trigger keyframes. Base value is (1.0 / 15.0) * 7.5 = 0.5
+  static const double BASE_KEY_FRAME_RATE_INTERVAL = BASE_FRAMERATE_INTERVAL * 7.5;
 
   double _nextFrame = 0.0;
   double _nextKeyFrame = 0.0;
@@ -163,8 +174,31 @@ class ConnectionFrameHandler {
   double _currentFrameDelay = BASE_FRAMERATE_INTERVAL;
   double _currentKeyFrameDelay = BASE_KEY_FRAME_RATE_INTERVAL;
 
+  int _currentFrameRate = BASE_FRAMERATE.toInt();
   int _currentFrame = 0;
   int _currentKeyFrame = 0;
+
+  ConnectionFrameHandler(ConfigParams params) {
+    int frameRate = params.getInt(ConfigParam.MAX_NETWORK_FRAMERATE);
+    if (frameRate > 0) {
+      _setFrameRate(frameRate);
+    }
+  }
+
+  reportKeyFramesBehind(int framesBehind) {
+    if (framesBehind > 1) {
+      _setFrameRate(_currentFrame - framesBehind);
+    }
+  }
+
+  _setFrameRate(int rate) {
+    if (rate < MIN_FRAMERATE) {
+      rate = MIN_FRAMERATE;
+    }
+    _currentFrameRate = rate;
+    _currentFrameDelay = 1.0 / _currentFrameRate;
+    _currentKeyFrameDelay = _currentFrameDelay * 7.5;
+  }
 
   /**
    * Tick the connection lifetime. Return true if data should be sent.

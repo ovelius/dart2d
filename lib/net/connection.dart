@@ -193,6 +193,11 @@ class ConnectionWrapper {
     }
     verifyLastKeyFrameHasBeenReceived(dataMap);
 
+    // Tickle connection with some data in case it's about to go cold.
+    if (_connectionStats.keepAlive()) {
+      sendPing();
+    }
+
     // Fast return PING messages.
     if (dataMap.containsKey(PING)) {
       Map data = {PONG: dataMap[PING]};
@@ -276,9 +281,14 @@ class ConnectionWrapper {
         _network.stateBundle(true, data, _removals);
       }
       data[IS_KEY_FRAME_KEY] = _connectionFrameHandler.currentKeyFrame();
-    } else  if(data.isEmpty) {
+    } else if(data.isEmpty) {
       // Send regular data.
       _network.stateBundle(false, data, _removals);
+    }
+
+    if (!_handshakeReceived && !_connectionFrameHandler.keyFrame()) {
+      // Don't send delta updates if not a valid game connection.
+      return;
     }
     // Reset removals buffer.
     _removals = [];

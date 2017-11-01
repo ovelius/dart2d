@@ -27,7 +27,7 @@ void main() {
     testConnection.buffer = true;
     connection = new ConnectionWrapper(
         mockNetwork, mockHudMessages, "a", packetListenerBindings,
-        testConfigParams, new ConnectionFrameHandler());
+        testConfigParams, new ConnectionFrameHandler(new ConfigParams({})));
     connection.setRtcConnection(testConnection);
     connection.readyDataChannel(testConnection);
   });
@@ -175,7 +175,7 @@ void main() {
   });
 
   test('TestConnectionFrameHandler', () {
-    ConnectionFrameHandler handler = new ConnectionFrameHandler();
+    ConnectionFrameHandler handler = new ConnectionFrameHandler(new ConfigParams({}));
     expect(handler.tick(0.00001), isTrue);
     expect(handler.keyFrame(), isTrue);
     expect(handler.currentKeyFrame(), 0);

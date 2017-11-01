@@ -47,7 +47,7 @@ class PeerWrapper {
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
-        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler());
+        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams));
     _connectionFactory.connectTo(connectionWrapper, this.id, id);
     connections[id] = connectionWrapper;
     return connectionWrapper;
@@ -146,7 +146,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${otherPeerId}!");
     }
     ConnectionWrapper wrapper = new ConnectionWrapper(_network, _hudMessages,
-        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler());
+        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams));
     if (!_network.isCommander()
         && _network.gameState.playerInfoByConnectionId(otherPeerId) != null) {
       wrapper.markAsClientToClientConnection();
