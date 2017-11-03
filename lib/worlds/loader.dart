@@ -268,8 +268,10 @@ class Loader {
       y = _height ~/ 2;
     }
     _context.save();
+    _context.globalAlpha = 1.0;
     _context.clearRect(0, 0, _width, _height);
-    _context.setFillColorRgb(-0, 0, 0);
+    _context.setFillColorRgb(0, 0, 0);
+    _context.setStrokeColorRgb(0, 0, 0);
     _context.font = "${size}px Arial";
     var metrics = _context.measureText(text);
     _context.fillText(

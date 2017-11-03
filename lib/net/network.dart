@@ -485,7 +485,7 @@ class Network {
           // parse as commander data update.
           MovingSprite sprite = world.spriteIndex[parsedNetworkId];
           if (sprite == null) {
-            log.warning(
+            log.fine(
                 "Not creating sprite from update ${networkId}, unable to add commander data.");
             continue;
           }

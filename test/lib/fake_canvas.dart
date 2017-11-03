@@ -28,6 +28,7 @@ class FakeContext2D {
 
   void clearRect(num one, two, three, four) {}
   void setFillColorRgb(num one, two, three, [four]) {}
+  void setStrokeColorRgb(num one, two, three) {}
   void fillRect(num one, two, three, four) {}
 
   void save() {}

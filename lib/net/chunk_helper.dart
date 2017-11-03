@@ -12,7 +12,8 @@ class ChunkHelper {
   final Logger log = new Logger('ChunkHelper');
   static const int DEFAULT_CHUNK_SIZE = 1400;
   static const int MAX_CHUNK_SIZE = 65000;
-  static const int MIN_CHUNK_SIZE = 100;
+  // To fit nice inside your typical MTU.
+  static const int MIN_CHUNK_SIZE = 1300;
   // TODO: Lower with ping time?
   static const Duration IMAGE_RETRY_DURATION =
       const Duration(milliseconds: 1500);
