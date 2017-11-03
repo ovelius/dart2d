@@ -14,9 +14,7 @@ class ChunkHelper {
   static const int MAX_CHUNK_SIZE = 65000;
   // To fit nice inside your typical MTU.
   static const int MIN_CHUNK_SIZE = 1300;
-  // TODO: Lower with ping time?
-  static const Duration IMAGE_RETRY_DURATION =
-      const Duration(milliseconds: 1500);
+  static const int IMAGE_RETRY_DURATION_MILLIS = 1500;
 
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
@@ -24,7 +22,9 @@ class ChunkHelper {
 
   _DataCounter counter = new _DataCounter(3);
   int _chunkSize = DEFAULT_CHUNK_SIZE;
-  Map<int, DateTime> _lastImageRequest = new Map();
+  double _chunkSizeIncrementFactor = 1.25;
+  double _chunkDecrementFactor = 0.3;
+  Map<int, double> _retryTimer = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
   // Connection we requested image from.
@@ -34,7 +34,6 @@ class ChunkHelper {
   Map<int, String> _imageBuffer = new Map();
   Map<int, int> _imageSizes = new Map();
   DateTime _created;
-  double _timePassed = 0.0;
 
   // Our local cache.
   Map<int, String> _dataUrlCache = new Map();
@@ -144,10 +143,6 @@ class ChunkHelper {
     }
     if (start == _imageBuffer[index].length) {
       _imageBuffer[index] = _imageBuffer[index] + data;
-      if (_lastImageRequest.containsKey(index)) {
-        Duration latency = _lastImageRequest[index].difference(_now());
-        connection.sampleLatency(latency);
-      }
       _imageToConnection.remove(index);
     } else {
       log.warning("Dropping data for ${index}, out of order??");
@@ -170,34 +165,36 @@ class ChunkHelper {
 
   void requestSpecificNetworkData(Map<String, ConnectionWrapper> connections,
       double secondsDuration, Iterable<int> IdsToFetch) {
-    _timePassed += secondsDuration;
     int requestedImages = 0;
     for (int index in IdsToFetch) {
+      if (_retryTimer.containsKey(index)) {
+        _retryTimer[index] -= secondsDuration;
+      }
       // Don't request more than 3 images at a time.
       if (requestedImages > 2) {
         continue;
       }
       if (!_imageIndex.imageIsLoaded(index)) {
-        if (_maybeRequestImageLoad(index, connections)) {
+        if (_maybeRequestImageLoad(index, connections, secondsDuration)) {
           requestedImages++;
         }
       }
     }
   }
 
-  DateTime _now() {
-    return _created
-        .add(new Duration(milliseconds: (_timePassed * 1000).toInt()));
-  }
-
   bool _maybeRequestImageLoad(
-      int index, Map<String, ConnectionWrapper> connections) {
+      int index, Map<String, ConnectionWrapper> connections, double duration) {
     List<ConnectionWrapper> connectionList = new List.from(connections.values);
-    DateTime lastRequest = _lastImageRequest[index];
     String connectionId = _imageToConnection[index];
     if (connectionId == null) {
       // Request larger chunk.
-      this._chunkSize = min(MAX_CHUNK_SIZE, (this._chunkSize * 1.25).toInt());
+      if (_chunkSize == MIN_CHUNK_SIZE) {
+        _chunkSizeIncrementFactor = 1.05;
+      }
+      if (_chunkSize == MAX_CHUNK_SIZE) {
+        _chunkDecrementFactor = 0.7;
+      }
+      this._chunkSize = min(MAX_CHUNK_SIZE, (_chunkSize * _chunkSizeIncrementFactor).toInt());
       return _requestImageData(index, connectionList);
     }
     // Look if we should retry.
@@ -207,25 +204,16 @@ class ChunkHelper {
       _imageToConnection.remove(index);
       return false;
     }
-    Duration latency = _now().difference(lastRequest);
-    if (latency.inMilliseconds > _connectionLatencyMillis(connection)) {
+    double lastRequestTimeout = _retryTimer[index];
+    if (lastRequestTimeout == null || lastRequestTimeout < 0) {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
       connection.sendPing();
-      this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * 0.3).toInt());
+      this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * _chunkDecrementFactor).toInt());
       return _requestImageData(index, connectionList);
     }
     // return true if image is not loaded. False otherwise.
     return !_imageIndex.imageIsLoaded(index);
-  }
-
-  int _connectionLatencyMillis(var wrapper) {
-    if (wrapper == null) {
-      return IMAGE_RETRY_DURATION.inMilliseconds;
-    }
-    Duration connectionLatency = wrapper.expectedLatency();
-    return min(connectionLatency.inMilliseconds * 2,
-        IMAGE_RETRY_DURATION.inMilliseconds);
   }
 
   void _trackFailingConnection(int index) {
@@ -261,7 +249,10 @@ class ChunkHelper {
     if (connections.length > 0) {
       var connection = connections[r.nextInt(connections.length)];
       connection.sendData({IMAGE_DATA_REQUEST: buildImageChunkRequest(index)});
-      _lastImageRequest[index] = new DateTime.now();
+      Duration connectionLatency = connection.expectedLatency();
+      int millis = min(IMAGE_RETRY_DURATION_MILLIS,
+          connectionLatency.inMilliseconds * 2);
+      _retryTimer[index] = millis / 1000.0;
       _imageToConnection[index] = connection.id;
       return true;
     }

@@ -284,6 +284,14 @@ class Network {
       }
     }
     gameState.updateFromMap(data);
+
+    // Command transfer successful.
+    if (_pendingCommandTransfer != null &&
+      gameState.actingCommanderId == _pendingCommandTransfer) {
+      log.info("Succcesfully transfered command to ${gameState.actingCommanderId}");
+      _pendingCommandTransfer = null;
+    }
+
     world.connectToAllPeersInGameState();
     if (peer.connectedToServer() && gameState.isAtMaxPlayers()) {
       peer.disconnect();
@@ -388,14 +396,6 @@ class Network {
       } else {
         _slowCommandingFrames = 0;
       }
-    } else {
-      // Command transfer successful.
-      if (_pendingCommandTransfer != null &&
-          gameState.actingCommanderId == _pendingCommandTransfer) {
-        log.info(
-            "Succcesfully transfered command to ${gameState.actingCommanderId}");
-        _pendingCommandTransfer = null;
-      }
     }
     peer.tickConnections(duration, removals);
 
@@ -422,6 +422,9 @@ class Network {
   }
 
   String pendingCommandTransfer() => _pendingCommandTransfer;
+  void setPendingCommandTransferForTest(String pendingCommandTransfer) {
+    _pendingCommandTransfer = pendingCommandTransfer;
+  }
 
   bool isCommander() {
     return gameState.actingCommanderId == this.peer.id;
