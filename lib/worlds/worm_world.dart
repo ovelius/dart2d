@@ -410,11 +410,13 @@ class WormWorld extends World {
   }
 
   void _adjustPlayerSprite() {
-    String spriteName = _localStorage['playerSprite'];
-    int playerSpriteId = _imageIndex.getImageIdByName(spriteName);
-    var img = _imageIndex.getImageByName(spriteName);
+    adjustPlayerSprite(this.playerSprite, _imageIndex.getImageIdByName(_localStorage['playerSprite']));
+  }
+
+  void adjustPlayerSprite(LocalPlayerSprite playerSprite, int playerSpriteId) {
+    var img = _imageIndex.getImageById(playerSpriteId);
     int height = img.height;
-    int width = PlayerWorldSelector.playerSpriteWidth(spriteName);
+    int width = PlayerWorldSelector.playerSpriteWidth(_imageIndex.imageNameFromIndex(playerSpriteId));
     double ratio = height / width;
     playerSprite.size = new Vec2.copy(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
     playerSprite.setImage(playerSpriteId, width);

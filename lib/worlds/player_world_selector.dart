@@ -38,6 +38,7 @@ class PlayerWorldSelector {
   ImageIndex _imageIndex;
   Network _network;
   GaReporter _gaReporter;
+  String _botName;
   PacketListenerBindings _packetListenerBindings;
   int _width;
   int _height;
@@ -134,9 +135,9 @@ class PlayerWorldSelector {
     _localStorage.remove('playerSprite');
 
     // Bot enabled, let's set things up right away.
-    String botName = _configParams.getString(ConfigParam.BOT_ENABLED);
-    if (botName.isNotEmpty) {
-      _localStorage['playerName'] = botName;
+    _botName = _configParams.getString(ConfigParam.BOT_ENABLED);
+    if (_botName.isNotEmpty) {
+      _localStorage['playerName'] = _botName;
       _localStorage['playerSprite'] = PLAYER_SPRITES[_selectedPlayerSprite];
     }
   }
@@ -173,7 +174,9 @@ class PlayerWorldSelector {
   }
 
   void reset() {
-    _localStorage.remove("playerSprite");
+    if (_botName.isEmpty) {
+      _localStorage.remove("playerSprite");
+    }
     _selectedWorldName = null;
   }
 

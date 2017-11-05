@@ -20,6 +20,7 @@ class ConnectionWrapper {
   final String id;
   var _dataChannel;
   var _rtcConnection;
+  int _sendFailures = 0;
   // True if connection was successfully opened.
   bool _opened = false;
   bool closed = false;
@@ -356,9 +357,12 @@ class ConnectionWrapper {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
       }
       _dataChannel.sendString(jsonData);
+      _sendFailures = 0;
     } catch (e, _) {
-      log.severe("Failed to send to $id: $e, closing connection");
-      close("Failed to send data");
+      if (++_sendFailures > 2) {
+        log.severe("Failed to send to $id: $e, closing connection");
+        close("Failed to send data");
+      }
     }
   }
 

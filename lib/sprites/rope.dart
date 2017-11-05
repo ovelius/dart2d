@@ -2,8 +2,7 @@
 import 'movingsprite.dart';
 import 'sprite.dart';
 import 'dart:math';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/sprites/sprite_index.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
@@ -12,7 +11,7 @@ class Rope extends MovingSprite {
   WormWorld world;
   bool locked = false;
   bool invisibleOutsideCanvas = false;
-  MovingSprite owner;
+  LocalPlayerSprite owner;
   MovingSprite lockedOnOther = null;
 
   Rope.createEmpty(WormWorld world)
@@ -59,7 +58,7 @@ class Rope extends MovingSprite {
   }
   
   frame(double duration, int frames, [Vec2 gravity]) {
-    if (owner != null && owner.remove) {
+    if (owner != null && !owner.inGame()) {
       this.remove = true;
     }
     if (locked && owner != null) {

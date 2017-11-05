@@ -113,7 +113,6 @@ class WorldListener {
     // Consider the client CLIENT_PLAYER_SPEC as the client having seen
     // the latest keyframe.
     // It will anyway get the keyframe from our response.
-    // connection.lastDeliveredKeyFrame = _network.currentKeyFrame;
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
     int spriteIndex = data[1];
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
@@ -123,8 +122,9 @@ class WorldListener {
     Vec2 position = _byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
 
     LocalPlayerSprite sprite = new LocalPlayerSprite(_world, _world.imageIndex(), _mobileControls, info, position, spriteIndex);
+    _world.adjustPlayerSprite(sprite, spriteIndex);
 
-    sprite.networkType =  NetworkType.REMOTE_FORWARD;
+    sprite.networkType = NetworkType.REMOTE_FORWARD;
     sprite.networkId = spriteId;
     sprite.ownerId = connection.id;
     _world.addSprite(sprite);

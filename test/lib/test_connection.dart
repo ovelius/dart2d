@@ -74,7 +74,9 @@ class TestConnection {
 
   void signalClose() {
     _internalWrapper.close("Test");
-    _otherEnd._internalWrapper.close("TestOtherEnd");
+    if (_otherEnd != null) {
+      _otherEnd._internalWrapper.close("TestOtherEnd");
+    }
   }
 
   void close() {

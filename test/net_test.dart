@@ -678,6 +678,12 @@ void main() {
       testConnections['b'].forEach((e) {
         e.signalClose();
       });
+      testConnections['a'].forEach((e) {
+        e.signalClose();
+      });
+      testConnections['c'].forEach((e) {
+        e.signalClose();
+      });
 
       for (int i = 0; i < 8; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -687,6 +693,7 @@ void main() {
 
       // We ended up with two distinct commanders.
       expect(worldA.network().isCommander(), isTrue);
+      expect(worldA, hasSpecifiedConnections([]));
       expect(
           worldA,
           hasExactSprites([
@@ -695,6 +702,7 @@ void main() {
           ]));
 
       expect(worldC.network().isCommander(), isTrue);
+      expect(worldC, hasSpecifiedConnections([]));
       expect(
           worldC,
           hasExactSprites([
@@ -788,6 +796,34 @@ void main() {
 
       expect(worldA,
           hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
+    });
+
+    test('TestDoubleDrop', () {
+      logConnectionData = false;
+      WormWorld worldA = testWorld("a");
+      worldA.startAsServer("nameA");
+      WormWorld worldB = testWorld("b");
+      WormWorld worldC = testWorld("c");
+      WormWorld worldD = testWorld("d");
+
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      worldD.connectTo("a", "nameD");
+
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldC.frameDraw(KEY_FRAME_DEFAULT);
+      worldD.frameDraw(KEY_FRAME_DEFAULT);
+
+      for (int i = 0; i < 100; i++) {
+        worldC.frameDraw(0.1);
+        worldD.frameDraw(0.1);
+      }
+
+      expect(worldC, isGameStateOf(
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
+      expect(worldD, isGameStateOf(
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
     });
 
     test('TestMultipleCommanderConfusion', () {
