@@ -507,9 +507,9 @@ class Network {
             constructor = SpriteConstructor.values[data[6]];
           }
           MovingSprite sprite = _spriteIndex[parsedNetworkId];
-          if (sprite == null) {
+          if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
             sprite = _spriteIndex.CreateSpriteFromNetwork(
-                world, parsedNetworkId, constructor, connection);
+                world, parsedNetworkId, constructor, connection, data);
             if (sprite == null) {
               log.fine(
                   "Not creating sprite from update ${networkId}, constructor is ${constructor}");

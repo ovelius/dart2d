@@ -58,7 +58,7 @@ class ConnectionStats {
     _connectionOpenTimer.start();
   }
 
-  bool keepAlive() => receiveSentDiffMillis() > (RESPONSE_TIMEOUT.inMilliseconds / 3);
+  bool keepAlive() => receiveSentDiffMillis() > (RESPONSE_TIMEOUT.inMilliseconds / 4);
 
   void open() {
     _connectionOpenTimer.stop();
@@ -86,7 +86,7 @@ class ConnectionStats {
 
 class ReliableHelper {
   // How many items the reliable buffer can contain before we consider the connection dead.
-  static const int MAX_RELIABLE_BUFFER_SIZE = 80;
+  static const int MAX_RELIABLE_BUFFER_SIZE = 160;
   PacketListenerBindings _packetListenerBindings;
   // Storage of our reliable key data.
   Map reliableDataBuffer = {};

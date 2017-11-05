@@ -74,13 +74,6 @@ class ConnectionWrapper {
     return lastRemoteKeyFrame > 0 || _network.isCommander();
   }
 
-  void verifyLastKeyFrameHasBeenReceived(Map dataMap) {
-    int receivedKeyFrameAck = dataMap[KEY_FRAME_KEY];
-    if (receivedKeyFrameAck > lastDeliveredKeyFrame) {
-      lastDeliveredKeyFrame = receivedKeyFrameAck;
-    }
-  }
-
   void close(String reason) {
     if (!closed) {
       _hudMessages.display("Connection to ${id} closed: $reason");
@@ -192,11 +185,16 @@ class ConnectionWrapper {
     if (Logger.root.isLoggable(Level.FINE)) {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
     }
-    verifyLastKeyFrameHasBeenReceived(dataMap);
-
     // Tickle connection with some data in case it's about to go cold.
     if (_connectionStats.keepAlive()) {
       sendPing();
+    }
+
+    bool oldData = false;
+    if (dataMap[KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
+      lastDeliveredKeyFrame = dataMap[KEY_FRAME_KEY];
+    } else if (dataMap[KEY_FRAME_KEY] < lastDeliveredKeyFrame) {
+      oldData = true;
     }
 
     // Fast return PING messages.
@@ -253,7 +251,10 @@ class ConnectionWrapper {
         return;
       }
     }
-    _network.parseBundle(this, dataMap);
+
+    if (!oldData) {
+      _network.parseBundle(this, dataMap);
+    }
   }
 
   void checkIfShouldClose(int keyFrame) {
@@ -303,7 +304,7 @@ class ConnectionWrapper {
     if (_reliableHelper.reliableBufferOverFlow()) {
       log.warning(
           "Connection to $id too many reliable packets behind ${_reliableHelper.reliableDataBuffer.length}, dropping!");
-      close("Not responding");
+      close("Reliable overflow");
       return;
     }
     if (_connectionStats.ReceiveTimeout()) {
