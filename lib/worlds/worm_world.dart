@@ -645,7 +645,6 @@ class WormWorld extends World {
       _canvas.fillStyle = "#ff0000";
       _canvas.font = '16pt Calibri';
       _canvas.fillText("DrawFps: $_drawFps", 0, 20);
-      _canvas.fillText("NetworkFps: $networkFps", 0, 40);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);
       int i = 0;
       for (String connectionDebug in _network.keyFrameDebugData()) {

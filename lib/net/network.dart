@@ -478,7 +478,6 @@ class Network {
   }
 
   void parseBundle(ConnectionWrapper connection, Map<String, dynamic> bundle) {
-    dataReceived();
     for (String networkId in bundle.keys) {
       if (!SPECIAL_KEYS.contains(networkId)) {
         int parsedNetworkId = int.parse(networkId);
@@ -584,15 +583,4 @@ class Network {
       }
     }
   }
-}
-
-DateTime lastNetworkFrameReceived = new DateTime.now();
-FpsCounter networkFps = new FpsCounter();
-
-void dataReceived() {
-  DateTime now = new DateTime.now();
-  int millis = now.millisecondsSinceEpoch -
-      lastNetworkFrameReceived.millisecondsSinceEpoch;
-  networkFps.timeWithFrames(millis / 1000.0, 1);
-  lastNetworkFrameReceived = now;
 }
