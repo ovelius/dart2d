@@ -21,7 +21,7 @@ logOutputForTest() {
       if (!_logged.containsKey(rec.level)) {
         _logged[rec.level] = [];
       }
-      _logged[rec.level].add(msg);
+      _logged[rec.level]!.add(msg);
     }
     print(msg);
   });

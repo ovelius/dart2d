@@ -1,8 +1,8 @@
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'package:di/di.dart';
 import 'player_world_selector.dart';
 import 'package:dart2d/util/gamestate.dart';
 
@@ -11,6 +11,7 @@ enum LoaderState {
   WEB_RTC_INIT,
   WAITING_FOR_PEER_DATA,
   CONNECTING_TO_PEER,
+  // Loading images from server..
   LOADING_SERVER,
   LOADING_OTHER_CLIENT,
 
@@ -34,23 +35,23 @@ const ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND = 1024*70;
 // How many of slow samples we accept before loading from server instead.
 const SAMPLES_BEFORE_FALLBACK = 3;
 
-@Injectable()
+@Singleton(scope: 'world')
 class Loader {
   final Logger log = new Logger('Loader');
   final List<int> GAME_STATE_RESOURCES =
       new List.filled(1, ImageIndex.WORLD_IMAGE_INDEX);
-  Network _network;
-  PeerWrapper _peerWrapper;
-  ImageIndex _imageIndex;
-  Map _localStorage;
-  ChunkHelper _chunkHelper;
-  PlayerWorldSelector _playerWorldSelector;
+  late Network _network;
+  late PeerWrapper _peerWrapper;
+  late ImageIndex _imageIndex;
+  late LocalStorage _localStorage;
+  late ChunkHelper _chunkHelper;
+  late PlayerWorldSelector _playerWorldSelector;
   var _context;
-  int _width;
-  int _height;
+  late int _width;
+  late int _height;
 
   // When we started loading data.
-  DateTime startedAt;
+  DateTime? startedAt;
   // How many samples we have that indicates a slow data transfer.
   int _slowDownloadRateSamples = 0;
 
@@ -59,8 +60,8 @@ class Loader {
 
   String _currentMessage = "";
 
-  Loader(@LocalStorage() Map storage,
-         @WorldCanvas() Object canvasElement,
+  Loader(LocalStorage storage,
+         WorldCanvas canvasElement,
          PlayerWorldSelector playerWorldSelector,
          ImageIndex imageIndex,
          Network network,
@@ -70,11 +71,9 @@ class Loader {
     this._network = network;
     this._peerWrapper = network.getPeer();
     this._chunkHelper = chunkHelper;
-    // Hack the typesystem.
-    var canvas = canvasElement;
-    _context = canvas.context2D;
-    _width = canvas.width;
-    _height = canvas.height;
+    _context = canvasElement.context2D;
+    _width = canvasElement.width;
+    _height = canvasElement.height;
     this._imageIndex = imageIndex;
   }
 
@@ -206,7 +205,7 @@ class Loader {
       setState(LoaderState.FINDING_SERVER, "Finding game to join... $connectionPongCount/$connectionCount");
       return;
     }
-    ConnectionWrapper serverConnection = _network.getServerConnection();
+    ConnectionWrapper? serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
       _tickWorldSelect(duration);
       return;
@@ -235,7 +234,7 @@ class Loader {
   }
 
   void _enterGame(ConnectionWrapper serverConnection) {
-    PlayerInfo ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+    PlayerInfo? ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
     if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
       if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
         serverConnection.sendClientEnter();
@@ -263,7 +262,7 @@ class Loader {
     }
   }
 
-  void drawCenteredText(String text, [int y, int size = 20]) {
+  void drawCenteredText(String text, [int? y, int size = 20]) {
     if (y == null) {
       y = _height ~/ 2;
     }
@@ -285,19 +284,16 @@ class Loader {
 
   bool completed() => _completed;
 
-  setState(LoaderState state, [String message = null]) {
+  setState(LoaderState state, [String? message = null]) {
     this._currentState = state;
     if (message == null) {
-      this._currentMessage = _STATE_DESCRIPTIONS[state];
+      this._currentMessage = _STATE_DESCRIPTIONS[state]!;
     } else {
       this._currentMessage = message;
     }
-    if (_currentMessage == null) {
-      throw new StateError("Missing message for ${state}");
-    }
   }
 
-  String selectedWorldName() => _playerWorldSelector.selectedWorldName;
+  String? selectedWorldName() => _playerWorldSelector.selectedWorldName;
 }
 
 Map<LoaderState, String> _STATE_DESCRIPTIONS = {

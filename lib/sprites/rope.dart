@@ -8,11 +8,11 @@ import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class Rope extends MovingSprite {
-  WormWorld world;
+  late WormWorld world;
   bool locked = false;
   bool invisibleOutsideCanvas = false;
-  LocalPlayerSprite owner;
-  MovingSprite lockedOnOther = null;
+  LocalPlayerSprite? owner;
+  MovingSprite? lockedOnOther = null;
 
   Rope.createEmpty(WormWorld world)
         : super.empty(world.imageIndex()) {
@@ -24,20 +24,20 @@ class Rope extends MovingSprite {
   Rope.createWithOwner(WormWorld world, this.owner, double angle, double velocity)
        : super(new Vec2(), new Vec2(5.0, 5.0), SpriteType.RECT) {
       this.owner = owner;
-      Vec2 ownerCenter = owner.centerPoint();
+      Vec2 ownerCenter = owner!.centerPoint();
       this.position.x = ownerCenter.x - size.x / 2;
       this.position.y = ownerCenter.y - size.y / 2;
-      this.angle = owner.angle;
+      this.angle = owner!.angle;
       this.velocity.x = cos(angle);
       this.velocity.y = sin(angle);
       this.invisibleOutsideCanvas = false;
       this.velocity = this.velocity.multiply(velocity);
-      this.velocity = owner.velocity + this.velocity;
+      this.velocity = owner!.velocity + this.velocity;
   }
     
-  collide(MovingSprite other, ByteWorld world, int direction) {
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (other != null) {
-      if (other.networkId == owner.networkId || other is Rope) {
+      if (other.networkId == owner?.networkId || other is Rope) {
         return;
       }
       if (networkType != NetworkType.LOCAL) {
@@ -52,20 +52,20 @@ class Rope extends MovingSprite {
   }
   
   dragOwner(double duration) {
-    Vec2 delta = position - owner.position;
+    Vec2 delta = position - owner!.position;
     delta = delta.multiply(duration * 5.0);
-    owner.velocity += delta;
+    owner!.velocity += delta;
   }
   
-  frame(double duration, int frames, [Vec2 gravity]) {
-    if (owner != null && !owner.inGame()) {
+  frame(double duration, int frames, [Vec2? gravity]) {
+    if (owner != null && !owner!.inGame()) {
       this.remove = true;
     }
     if (locked && owner != null) {
       // When locked we have no gravity.
       if (lockedOnOther != null) {
-        this.setCenter(lockedOnOther.centerPoint());
-        if (lockedOnOther.remove) {
+        this.setCenter(lockedOnOther!.centerPoint());
+        if (lockedOnOther!.remove) {
           locked = false;
           lockedOnOther = null;
         }
@@ -85,7 +85,7 @@ class Rope extends MovingSprite {
     if (owner == null) {
       return;
     }
-    Vec2 ownerCenter = owner.centerPoint();
+    Vec2 ownerCenter = owner!.centerPoint();
     context.lineWidth = 2;
     var grad= context.createLinearGradient(ownerCenter.x, ownerCenter.y, position.x, position.y);
     grad.addColorStop(0, "red");
@@ -100,20 +100,20 @@ class Rope extends MovingSprite {
     super.draw(context, debug);
   }
   
-  void addExtraNetworkData(List<int> data) {
+  void addExtraNetworkData(List<dynamic> data) {
     if (owner != null) {
-      data.add(owner.networkId);
+      data.add(owner!.networkId);
     }
     if (lockedOnOther != null) {
-      data.add(lockedOnOther.networkId);
+      data.add(lockedOnOther!.networkId);
     } else {
       data.add(-1);
     }
   }
    
-  void parseExtraNetworkData(List<int> data, int startAt) {
-    this.owner = world.spriteIndex[data[startAt]];
-    this.lockedOnOther = world.spriteIndex[data[startAt + 1]];
+  void parseExtraNetworkData(List<dynamic> data, int startAt) {
+    this.owner = world.spriteIndex[data[startAt]] as LocalPlayerSprite?;
+    this.lockedOnOther = world.spriteIndex[data[startAt + 1]] as MovingSprite?;
     this.locked = lockedOnOther != null;
   }
   

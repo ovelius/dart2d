@@ -2,11 +2,14 @@ library gamestate;
 
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/net.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:di/di.dart';
 import 'package:dart2d/util/keystate.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:dart2d/net/helpers.dart';
+
+import '../net/connection.dart';
+import '../net/state_updates.dart';
 
 class ConnectionInfo {
   final String to;
@@ -15,13 +18,13 @@ class ConnectionInfo {
 }
 
 class PlayerInfo {
-  String name;
-  String connectionId;
-  int spriteId;
+  late String name;
+  late String connectionId;
+  late int spriteId;
   int score = 0;
   int deaths = 0;
   bool inGame = false;
-  int addedToGameAtMillis;
+  late int addedToGameAtMillis;
   // How many frames per second this client has.
   int fps = 45;
   // What conenctions this player has.
@@ -84,7 +87,7 @@ class PlayerInfo {
       "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
 }
 
-@Injectable()
+@Singleton(scope: 'world')
 class GameState {
   static const MAX_PLAYERS = 4;
   final Logger log = new Logger('GameState');
@@ -94,16 +97,26 @@ class GameState {
   PacketListenerBindings _packetListenerBindings;
   SpriteIndex _spriteIndex;
 
-  DateTime startedAt;
+  late DateTime startedAt;
   List<PlayerInfo> _playerInfo = [];
   Map<String, PlayerInfo> _playerInfoById = {};
-  String mapName = null;
+  String? mapName = null;
   // Who has the bridge.
-  String actingCommanderId = null;
+  String? actingCommanderId = null;
   // True if we have urgent data for the network.
   bool _urgentData = false;
   // If we have a winner, this will be set.
-  String winnerPlayerId = null;
+  String? winnerPlayerId = null;
+
+  GameState(this._packetListenerBindings, this._spriteIndex) {
+    _packetListenerBindings.bindHandler(KEY_STATE_KEY,
+            (ConnectionWrapper connection, Map<dynamic, dynamic> data) {
+          Map<String, bool> keyState = Map.from(data);
+          PlayerInfo? info = playerInfoByConnectionId(connection.id);
+          info?._remoteKeyState.setEnabledKeys(keyState);
+        });
+    startedAt = new DateTime.now();
+  }
 
   bool retrieveAndResetUrgentData() {
     bool tUrgentData = _urgentData;
@@ -115,7 +128,7 @@ class GameState {
     this._urgentData = true;
   }
 
-  bool isConnected(String a, String b) =>  _playerInfoById.containsKey(a) ? _playerInfoById[a].isConnectedTo(b) : false;
+  bool isConnected(String a, String b) =>  _playerInfoById.containsKey(a) ? _playerInfoById[a]!.isConnectedTo(b) : false;
 
   void reset() {
     actingCommanderId = null;
@@ -146,7 +159,6 @@ class GameState {
   List<PlayerInfo> playerInfoList() => new List.from(_playerInfo);
 
   void addPlayerInfo(PlayerInfo info) {
-    assert(info.connectionId != null);
     if (_playerInfoById.containsKey(info.connectionId)) {
       log.severe("Attempt to add playerInfo already in GameState! Not adding ${info}");
       return;
@@ -157,25 +169,9 @@ class GameState {
     _urgentData = true;
   }
 
-  GameState(this._packetListenerBindings, this._spriteIndex) {
-    _packetListenerBindings.bindHandler(KEY_STATE_KEY,
-        (ConnectionWrapper connection, Map keyState) {
-      PlayerInfo info = playerInfoByConnectionId(connection.id);
-      if (info == null) {
-        if (actingCommanderId != null) {
-          log.warning(
-              "Received KeyState for Player that doesn't exist? ${connection
-                  .id}");
-        }
-        return;
-      }
-      info._remoteKeyState.setEnabledKeys(keyState);
-    });
-    startedAt = new DateTime.now();
-  }
 
   static bool updateContainsPlayerWithId(Map map, String id) {
-    List<Map> players = map["p"];
+    List<Map> players = List<Map>.from(map["p"]);
     for (Map playerMap in players) {
       if (playerMap['cid'] == id) {
         return true;
@@ -186,12 +182,13 @@ class GameState {
 
   static String extractCommanderId(Map map) => map['e'];
 
-  updateFromMap(Map map) {
-    List<Map> players = map["p"];
+  updateFromMap(Map<dynamic, dynamic> map) {
+    List<Map> players = List<Map>.from(map["p"]);
     List<PlayerInfo> newInfo = [];
     Map<String, PlayerInfo> byId = {};
     for (Map playerMap in players) {
-      PlayerInfo info = playerInfoByConnectionId(playerMap["cid"]);
+      String connectionId = playerMap["cid"];
+      PlayerInfo? info = playerInfoByConnectionId(connectionId);
       if (info == null) {
         info = new PlayerInfo.fromMap(playerMap);
       } else {
@@ -222,7 +219,7 @@ class GameState {
     return map;
   }
 
-  PlayerInfo removeByConnectionId(WormWorld world, String id) {
+  PlayerInfo? removeByConnectionId(WormWorld world, String id) {
     for (int i = _playerInfo.length - 1; i >= 0; i--) {
       PlayerInfo info = _playerInfo[i];
       if (info.connectionId == id) {
@@ -231,17 +228,15 @@ class GameState {
         world.network().sendMessage("${info.name} disconnected :/", id);
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
-        Sprite sprite = _spriteIndex[info.spriteId];
-        if (sprite != null) {
-          // The game engine will not remove things if the REMOTE NetworkType.
-          // So make the old servers sprite REMOTE_FORWARD.
-          sprite.networkType = NetworkType.REMOTE_FORWARD;
-        }
+        Sprite? sprite = _spriteIndex[info.spriteId];
+        // The game engine will not remove things if the REMOTE NetworkType.
+        // So make the old servers sprite REMOTE_FORWARD.
+        sprite?.networkType = NetworkType.REMOTE_FORWARD;
         world.removeSprite(info.spriteId);
         return info;
       }
     }
-    // throw new ArgumentError("Invalid id ${id}");
+    log.info("Connection $id not in GameState, nothing to remove.");
     return null;
   }
 
@@ -255,7 +250,7 @@ class GameState {
       // Convert self info to server.
       if (info.connectionId != selfConnectionId) {
         // Convert other players.
-        ConnectionWrapper connection =
+        ConnectionWrapper? connection =
             world.network().peer.connections[info.connectionId];
         if (connection == null) {
           // Connection isn't there :( Not much we can do but kill the playerinfo.
@@ -265,7 +260,7 @@ class GameState {
     }
   }
 
-  PlayerInfo playerInfoByConnectionId(var id) {
+  PlayerInfo? playerInfoByConnectionId(String id) {
     return _playerInfoById[id];
   }
 
@@ -275,6 +270,7 @@ class GameState {
         return info;
       }
     }
+    throw "Can't find player for sprite $id";
   }
 
   int getNextUsablePlayerSpriteId(WormWorld world) {

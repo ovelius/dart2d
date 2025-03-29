@@ -9,7 +9,7 @@ import 'package:dart2d/res/imageindex.dart';
  */
 class StickySprite extends MovingSprite {
  
-  Sprite stickTo;
+  late Sprite stickTo;
 
   StickySprite(Sprite stickTo, int imageId, ImageIndex imageIndex, int lifeTime) :
       super.imageBasedSprite(stickTo.position, imageId, imageIndex) {
@@ -18,7 +18,7 @@ class StickySprite extends MovingSprite {
     this.lifeTime = lifeTime;
   }
 
-  frame(double duration, int frames, [Vec2 gravity]) {
+  frame(double duration, int frames, [Vec2? gravity]) {
     setCenter(stickTo.centerPoint());
     super.frame(duration, frames);
   }

@@ -2,30 +2,30 @@ library test_connection;
 
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/util/config_params.dart';
+import 'package:injectable/injectable.dart';
+import 'test_env.dart';
+import 'test_mocks.mocks.dart';
 import 'test_peer.dart';
 import 'dart:convert';
 
 recentSentDataTo(id) {
-  return testConnections[id][0].recentDataSent;
+  return testConnections[id]![0].recentDataSent;
 }
 
 recentReceviedDataFrom(id, [int index = 0]) {
-  return testConnections[id][index].recentDataRecevied;
+  return testConnections[id]![index].recentDataRecevied;
 }
 
-// Map of connections from id.
-Map<String, List<TestConnection>> testConnections = {};
-
-bool logConnectionData = true;
 
 class TestConnection {
   int dropPacketsAfter = 900000000;
-  TestConnection _otherEnd;
+  late TestConnection _otherEnd;
   String id;
-  ConnectionWrapper _internalWrapper;
+  ConnectionWrapper? _internalWrapper;
   bool closed = false;
 
-  String recentDataSent = null;
+  String? recentDataSent = null;
   int dataReceivedCount = 0;
   var recentDataRecevied = null;
 
@@ -33,7 +33,7 @@ class TestConnection {
     if (recentDataRecevied == null) {
       throw new StateError("No recent data received on ${toString()}");
     }
-    return JSON.decode(recentDataRecevied);
+    return jsonDecode(recentDataRecevied);
   }
 
   bool buffer = false;
@@ -42,16 +42,16 @@ class TestConnection {
   bool signalOpen = true;
 
   TestConnection(this.id, this._internalWrapper) {
+    if (this._internalWrapper is MockConnectionWrapper) {
+      throw ArgumentError("Only allows real ConnectionWrapper! Got: ${this._internalWrapper}!");
+    }
     if (!testConnections.containsKey(id)) {
       testConnections[id] = [];
     }
-    testConnections[id].add(this);
+    testConnections[id]!.add(this);
   }
 
   setOtherEnd(TestConnection otherEnd) {
-    if (otherEnd == null) {
-      throw new ArgumentError("otherEnd can not be null!");
-    }
     this._otherEnd = otherEnd;
   }
 
@@ -65,19 +65,20 @@ class TestConnection {
   }
 
   sendAndReceivByOtherPeerNativeObject(Map object) {
-    sendString(JSON.encode(object));
+    send(jsonEncode(object));
   }
 
   nativeBufferedDataAt(int pos) {
-    return JSON.decode(dataBuffer[pos]);
+    return jsonDecode(dataBuffer[pos]);
   }
 
   void signalClose() {
-    _internalWrapper.close("Test");
-    if (_otherEnd != null) {
-      _otherEnd._internalWrapper.close("TestOtherEnd");
+    if (_internalWrapper == null) {
+      throw "No internal wrapper to signal close to!";
     }
-  }
+    _internalWrapper?.close("Test");
+    _otherEnd._internalWrapper?.close("TestOtherEnd");
+    }
 
   void close() {
     closed = true;
@@ -87,27 +88,23 @@ class TestConnection {
     if (closed) {
       throw new StateError("TestConnection is closed, can't send!");
     }
-    if (_otherEnd == null) {
-      throw new StateError('_otherEnd is null: ${this.id}');
-    }
     bool drop = dropPacketsAfter <=0;
     dropPacketsAfter--;
     if (logConnectionData) {
       print("Data ${drop ? "DROPPED" : ""} ${_otherEnd.id} -> ${id}: ${jsonString}");
     }
+    if (_otherEnd._internalWrapper == null) {
+      throw "No connection wrapper at other end, can't send data!";
+    }
     if (!drop) {
       recentDataSent = jsonString;
       _otherEnd.recentDataRecevied = jsonString;
       _otherEnd.dataReceivedCount++;
-      if (_otherEnd._internalWrapper == null) {
-        throw new StateError(
-            "Can't send data on ${this}, receipient missing receive endpoint!");
-      }
-      _otherEnd._internalWrapper.receiveData(jsonString);
+      _otherEnd._internalWrapper?.receiveData(jsonString);
     }
   }
 
-  sendString(String string) {
+  send(String string) {
     if (buffer) {
       dataBuffer.add(string);
     } else {
@@ -118,20 +115,21 @@ class TestConnection {
   toString() => "TestConnection $id -> ${_otherEnd == null ? 'NULL' : _otherEnd.id}";
 }
 
-class TestConnectionWrapper {
+class TestConnectionWrapper extends ConnectionWrapper {
 
   final String id;
   int sendCount = 0;
-  Map lastDataSent = null;
+  Map? lastDataSent = null;
   List<Map> dataSent = [];
 
-  TestConnectionWrapper(this.id);
+  TestConnectionWrapper(this.id) : super(MockNetwork(), MockHudMessages(), id,
+      MockPacketListenerBindings(), ConfigParams({}), ConnectionFrameHandler(ConfigParams({})));
 
   void sampleLatency(Duration latency) {
     print("Got latency data of $latency");
   }
 
-  sendPing() {
+  sendPing([bool gameStatePing = false]) {
     print("pinged connection ${id}");
   }
 
@@ -144,6 +142,8 @@ class TestConnectionWrapper {
   }
 }
 
+
+@Singleton(as: ConnectionFactory)
 class TestConnectionFactory extends ConnectionFactory {
   Map<String, Map<String, TestConnection>> connections = {};
   Map<String, List<String>> failConnectionsTo = {};
@@ -152,47 +152,41 @@ class TestConnectionFactory extends ConnectionFactory {
     if (!failConnectionsTo.containsKey(from)) {
       failConnectionsTo[from] = [];
     }
-    failConnectionsTo[from].add(to);
+    failConnectionsTo[from]?.add(to);
     return this;
   }
 
   void signalErrorAllConnections(String to) {
-    connections[to].values.forEach((c) {
-      c._internalWrapper.error("Test error");
+    connections[to]?.values.forEach((c) {
+      c._internalWrapper?.error("Test error");
     });
   }
 
   void signalCloseOnAllConnections(String to) {
-    connections[to].values.forEach((c) {
-      c._internalWrapper.close("Test");
+    connections[to]?.values.forEach((c) {
+      c._internalWrapper?.close("Test");
     });
   }
   /**
    * Us trying to connect to someone.
    */
-  connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
+  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId) {
     print("Create outbound connection from ${ourPeerId} to ${otherPeerId}");
     TestConnection c = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
       connections[ourPeerId] = {};
     }
-    connections[ourPeerId][otherPeerId] = c;
+    connections[ourPeerId]![otherPeerId] = c;
     wrapper.setRtcConnection(c);
     wrapper.readyDataChannel(c);
-    TestServerChannel ourChannel = testPeers[ourPeerId];
-    if (ourChannel == null) {
-      throw new ArgumentError("No peer with id ${ourPeerId}");
-    }
+    TestServerChannel ourChannel = testPeers[ourPeerId]!;
     ourChannel.connections.add(c);
-    if (failConnectionsTo.containsKey(ourPeerId) && failConnectionsTo[ourPeerId].contains(otherPeerId)) {
-      print("DROPPING connection $ourPeerId -> $otherPeerId, configured to fail!");
+    if (failConnectionsTo.containsKey(ourPeerId) && failConnectionsTo[ourPeerId]!.contains(otherPeerId)) {
+      print("DROPpiNG connection $ourPeerId -> $otherPeerId, configured to fail!");
       return;
     }
     // Signal open connection right away.
-    TestServerChannel otherChannel = testPeers[otherPeerId];
-    if (otherChannel == null) {
-      throw new ArgumentError("No peer with id ${otherPeerId}");
-    }
+    TestServerChannel otherChannel = testPeers[otherPeerId]!;
     otherChannel.fakeIncomingConnection(ourPeerId);
     for (TestConnection otherEndConnection in otherChannel.connections) {
       if (otherEndConnection.id == ourPeerId) {
@@ -201,26 +195,19 @@ class TestConnectionFactory extends ConnectionFactory {
       }
     }
     wrapper.open();
-    if (c._otherEnd == null) {
-      throw new StateError(
-          "Expected otherEnd to be set, missing among ${otherChannel.connections}");
-    }
   }
   /**
    * Callback for someone trying to connection to us.
    */
-  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
+  createInboundConnection(dynamic wrapper, dynamic sdp,
       String otherPeerId, String ourPeerId) {
     print("Create inbound connection from ${otherPeerId} to ${ourPeerId}");
-    TestServerChannel ourChannel = testPeers[ourPeerId];
-    if (ourChannel == null) {
-      throw new ArgumentError("No peer with id ${ourPeerId}");
-    }
+    TestServerChannel ourChannel = testPeers[ourPeerId]!;
     TestConnection c = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
       connections[ourPeerId] = {};
     }
-    connections[ourPeerId][otherPeerId] = c;
+    connections[ourPeerId]![otherPeerId] = c;
     wrapper.setRtcConnection(c);
     wrapper.readyDataChannel(c);
     wrapper.open();
@@ -229,7 +216,7 @@ class TestConnectionFactory extends ConnectionFactory {
   /**
    * Create and answer for our inbound connection.
    */
-  handleCreateAnswer(ConnectionWrapper connection, String src, String dst) {
+  handleCreateAnswer(dynamic connection, String src, String dst) {
 
   }
   /**

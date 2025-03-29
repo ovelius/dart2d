@@ -2,30 +2,30 @@ import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:di/di.dart';
+import 'package:injectable/injectable.dart';
 
-@Injectable()
 /**
  * Represents the destructable world.
  */
+@Singleton(scope: 'world')
 class ByteWorld {
   // Needs to create canvas.
-  DynamicFactory _canvasFactory;
+  late CanvasFactory _canvasFactory;
   // Needs to create imageData.
-  DynamicFactory _imageDataFactory;
+  late ImageDataFactory _imageDataFactory;
   // Needs to create images.
-  DynamicFactory _imageFactory;
-  int _width;
-  int _height;
-  Point<int> viewSize;
-  var canvas;
-  var _bedrockImage;
+  late ImageFactory _imageFactory;
+  late int _width;
+  late int _height;
+  late Point<int> viewSize;
+  late var canvas;
+  late var _bedrockImage;
 
   ByteWorld(
-      @ImageFactory() DynamicFactory imageFactory,
-      @WorldWidth() int width, @WorldHeight() int height,
-      @ImageDataFactory() DynamicFactory imageDataFactory,
-      @CanvasFactory() DynamicFactory canvasFactory) {
+      ImageFactory imageFactory,
+      @Named(WORLD_WIDTH) int width, @Named(WORLD_HEIGHT) int height,
+      ImageDataFactory imageDataFactory,
+      CanvasFactory canvasFactory) {
     this.viewSize = new Point(width, height);
     this._canvasFactory = canvasFactory;
     this._imageDataFactory = imageDataFactory;
@@ -36,14 +36,14 @@ class ByteWorld {
    * Initialize the world image.
    */
   void setWorldImage(var image) {
-    canvas = _canvasFactory.create([image.width, image.height]);
+    canvas = _canvasFactory.createCanvas(image.width, image.height);
     _width = canvas.width;
     _height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, _width, _height);
-    var bedrocksCanvas = _canvasFactory.create([_width, _height]);
+    var bedrocksCanvas = _canvasFactory.createCanvas(_width, _height);
     _computeBedrock(bedrocksCanvas);
     // Store bedrock result in image.
-    _bedrockImage = _imageFactory.create([_width, _height]);
+    _bedrockImage = _imageFactory.createWithSize(_width, _height);
     _bedrockImage.src = bedrocksCanvas.toDataUrl();
   }
 
@@ -69,7 +69,7 @@ class ByteWorld {
    */
   void _computeBedrockSegment(int startX, int computeWidth, var bedrockCanvas) {
     List data = canvas.context2D.getImageData(startX, 0, computeWidth, _height).data;
-    var newData = _imageDataFactory.create([computeWidth, _height]);
+    var newData = _imageDataFactory.createWithSize(computeWidth, _height);
     for (int i = 0; i < (data.length ~/ 4); i++) {
       int p = i * 4;
       if (data[p] == 59 && data[p + 1] == 46 && data[p + 2] == 1) {
@@ -143,8 +143,8 @@ class ByteWorld {
   /**
    * Check if any pixel inside area is solid.
    */
-  bool isCanvasCollide(num x, num y, [num width = 1, num height = 1]) {
-    List<int> data = canvas.context2D.getImageData(x, y, width, height).data;
+  bool isCanvasCollide(int x, int y, [int width = 1, int height = 1]) {
+    List<dynamic> data = canvas.context2D.getImageData(x, y, width, height).data;
     for (int i = 0; i < data.length / 4; i++) {
       // If transparency data is present, we are solid.
       if (data[i*4 + 3] > 0) {
@@ -180,7 +180,7 @@ class ByteWorld {
     canvas.context2D
         ..save()
         ..beginPath()
-        ..arc(pos.x, pos.y, radius, 0, 2 * PI, false)
+        ..arc(pos.x, pos.y, radius, 0, 2 * pi, false)
         ..clip()
         ..clearRect(restoreRect.x, restoreRect.y, restoreSize, restoreSize)
         ..restore();
@@ -190,16 +190,16 @@ class ByteWorld {
 
   Vec2 randomNotSolidPoint(Vec2 sizeOffset) {
     assert(initialized());
-    Vec2 point = null;
-    for (int i = 0; i < 30; i++) {
+    Vec2? point = null;
+    for (int i = 0; i < 50; i++) {
       point = new Vec2(
           new Random().nextInt(_width - sizeOffset.x.toInt()).toDouble(),
           new Random().nextInt(_height - sizeOffset.y.toInt()).toDouble());
-      if (!isCanvasCollide(point.x, point.y)) {
+      if (!isCanvasCollide(point.x.toInt(), point.y.toInt())) {
         return point;
       }
     }
-    return point;
+    throw "Unable to find random not solid location!";
   }
 
   int get width => _width;

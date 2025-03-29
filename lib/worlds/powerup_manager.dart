@@ -1,11 +1,11 @@
-import 'package:di/di.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'byteworld.dart';
 import 'dart:math';
 
-@Injectable()
+@Singleton(scope: 'world')
 class PowerupManager {
   final Logger log = new Logger('PowerupManager');
   static int MAX_POWERUPS = 4;
@@ -16,14 +16,16 @@ class PowerupManager {
   ByteWorld _byteWorld;
   List<Powerup> activePowerups = [];
 
-  double _nextPowerupIn = POWERUP_SPAWN_TIME / 2;
+  double _nextPowerupin = POWERUP_SPAWN_TIME / 2;
 
-  PowerupManager(this._spriteIndex, this._imageIndex, this._byteWorld);
+  PowerupManager(this._spriteIndex, this._imageIndex, this._byteWorld) {
+    log.info("Created PowerupManager spawning every ${POWERUP_SPAWN_TIME} seconds");
+  }
 
   void frame(double duration) {
-    _nextPowerupIn -= duration;
-    if (_nextPowerupIn < 0) {
-      _nextPowerupIn = POWERUP_SPAWN_TIME;
+    _nextPowerupin -= duration;
+    if (_nextPowerupin < 0) {
+      _nextPowerupin = POWERUP_SPAWN_TIME;
       List<Powerup> filtered = [];
       for (Powerup p in activePowerups) {
         if (!p.remove) {
@@ -49,6 +51,6 @@ class PowerupManager {
   }
 
   setNextPowerForTest(double time) {
-    _nextPowerupIn = time;
+    _nextPowerupin = time;
   }
 }

@@ -1,19 +1,18 @@
-import 'package:di/di.dart';
-import 'package:dart2d/net/net.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/util/hud_messages.dart';
 import 'package:dart2d/util/mobile_controls.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/util/gamestate.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 @Injectable()
 class WorldListener {
   final Logger log = new Logger('WorldListener');
-  WormWorld _world;
+  late WormWorld _world;
   ByteWorld _byteWorld;
   GameState _gameState;
   PacketListenerBindings _packetListenerBindings;
@@ -31,10 +30,10 @@ class WorldListener {
         }
       }
     });
-    _packetListenerBindings.bindHandler(WORLD_DESTRUCTION, (ConnectionWrapper c, List data) {
+    _packetListenerBindings.bindHandler(WORLD_DESTRUCTION, (ConnectionWrapper c, List<dynamic> data) {
       if (c.isValidGameConnection()) {
         if (_world.byteWorld.initialized()) {
-          _world.clearFromNetworkUpdate(data);
+          _world.clearFromNetworkUpdate(List<int>.from(data));
         } else {
           log.warning("TODO buffer byteworld data sent when world is loading!");
         }
@@ -49,20 +48,17 @@ class WorldListener {
         }
       }
     });
-    _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List data) {
+    _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List<dynamic> data) {
       if (c.isValidGameConnection()) {
-        for (List particleData in data) {
-          _world.addParticlesFromNetworkData(particleData);
+        for (List<dynamic> particleData in data) {
+          _world.addParticlesFromNetworkData(List<int>.from(particleData));
         }
       }
     });
     _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
       assert(_network.isCommander());
       GameState game = _gameState;
-      PlayerInfo info = game.playerInfoByConnectionId(c.id);
-      if (info == null) {
-        throw new StateError("Client for ${c.id} can't enter game, missing from GameState?");
-      }
+      PlayerInfo info = game.playerInfoByConnectionId(c.id)!;
       info.inGame = true;
       game.markAsUrgent();
     });
@@ -117,7 +113,6 @@ class WorldListener {
     int spriteIndex = data[1];
     PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
     _network.gameState.addPlayerInfo(info);
-    assert(info.connectionId != null);
 
     Vec2 position = _byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
 

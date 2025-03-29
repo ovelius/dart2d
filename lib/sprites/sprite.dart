@@ -14,8 +14,12 @@ enum SpriteType {
 enum NetworkType {
   // Network should never touch this sprite.
   LOCAL_ONLY,
+  // Local we sent to network.
   LOCAL,
+  // A sprite controlled by remote entity.
   REMOTE,
+  // A sprite controlled by remote party that we attempt to forward
+  // to others we are connected to.
   REMOTE_FORWARD
 }
 
@@ -29,9 +33,9 @@ class Sprite {
   // Position, size, image and rendered angle.
   Vec2 position = new Vec2();
   // Access via getRadius()
-  double _radius;
+  double? _radius;
   Vec2 size = new Vec2(1.0, 1.0);
-  int imageId;
+  late int imageId;
   double angle = 0.0;
   SpriteType spriteType = SpriteType.RECT;
   // Color
@@ -45,17 +49,17 @@ class Sprite {
 
   int lifeTime = UNLIMITED_LIFETIME;
 
-  int networkId;
+  int? networkId;
   NetworkType networkType = NetworkType.LOCAL;
   // The connection that originally created this sprite.
   // If the local world is owner, can be left null.
-  String ownerId;
+  String? ownerId;
   // Send a couple of frames of full data for newly added sprites.
   int fullFramesOverNetwork = 3;
   // Will be removed by the engine.
   bool remove = false;
 
-  ImageIndex _imageIndex;
+  late ImageIndex _imageIndex;
 
   Sprite.empty(ImageIndex imageIndex) { this._imageIndex = imageIndex; }
 
@@ -78,7 +82,7 @@ class Sprite {
     assert(size.y > 0);
   }
 
-  void setImage(int imageId, [int frameWidth]) {
+  void setImage(int imageId, [int? frameWidth]) {
     this.imageId = imageId;
     var image = _imageIndex.getImageById(imageId);
     if (frameWidth != null) {
@@ -100,7 +104,7 @@ class Sprite {
     if (_radius == null) {
       _radius = size.sum() / 2;
     }
-    return _radius;
+    return _radius!;
   }
   
   void setRadius(double radius) {
@@ -113,7 +117,7 @@ class Sprite {
         position.y + size.y / 2);
   }
 
-  frame(double duration, int frameStep, [Vec2 gravity]) {
+  frame(double duration, int frameStep, [Vec2? gravity]) {
     if (frameStep > 0 && frames > 1) {
       frameIndex = (frameIndex +  frameStep) % frames;
     }
@@ -130,7 +134,7 @@ class Sprite {
     if (debug) {
       context.fillStyle = "#ffffff";
       context.beginPath();
-      context.arc(0, 0, getRadius(), 0, 2 * PI, false);
+      context.arc(0, 0, getRadius(), 0, 2 * pi, false);
       context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
       context.lineWidth = 1;
       context.strokeStyle = '#ffffff';
@@ -142,7 +146,7 @@ class Sprite {
       assert(_imageIndex != null);
       var image = _imageIndex.getImageById(imageId);
       num frameWidth = (image.width / frames); 
-      if (this.angle > PI * 2) {
+      if (this.angle > pi * 2) {
         context.scale(-1, 1);
       }
       context.rotate(angle);
@@ -184,7 +188,7 @@ class Sprite {
         size.x / 2,
         size.y / 2,
         size.sum(),
-        0, PI*2);
+        0, pi*2);
     context.closePath();
     context.fill();
   }
@@ -200,20 +204,20 @@ class Sprite {
   }
 
   // TODO: Make methods below abstract?
-  void takeDamage(int damage, Sprite inflictor, Mod mod) {
+  void takeDamage(int damage, LocalPlayerSprite inflictor, Mod mod) {
 
   }
 
   /**
    * Extra data to be sent to clients.
    */
-  void addExtraNetworkData(List<int> data) {
+  void addExtraNetworkData(List<dynamic> data) {
   }
 
   /**
    * Parsing of above extra data.
    */
-  void parseExtraNetworkData(List<int> data, int startAt) {
+  void parseExtraNetworkData(List<dynamic> data, int startAt) {
   }
 
   /**
@@ -239,5 +243,5 @@ class Sprite {
     return 0;
   }
 
-  toString() => "Sprite[${this.networkType}] p:$position";
+  toString() => "Sprite[${networkId} = ${this.networkType}] p:$position";
 }

@@ -70,8 +70,7 @@
     </div>
 
 
-    <script type="application/dart" src="wormworld.dart"></script>
-    <script src="packages/browser/dart.js"></script>
+    <script src="wormworld.dart.js"></script>
     <script type="text/javascript">
       $(function() {
         var ua = navigator.userAgent.toLowerCase();
@@ -166,6 +165,16 @@
         $("#name-dialog").dialog("close");
       }
 
+      function createImageData(w, h) {
+        return new ImageData(w,h);
+      }
+
+      function isTouchDevice() {
+        return (('ontouchstart' in window) ||
+           (navigator.maxTouchPoints > 0) ||
+           (navigator.msMaxTouchPoints > 0));
+      }
+
       function signOut() {
         var auth2 = gapi.auth2.getAuthInstance();
         auth2.signOut();
@@ -176,7 +185,7 @@
       <p>Hello! We require a name to continue.</p>
       <div class="g-signin2" data-onsuccess="onSignIn"></div>
       <p><b>OR</b></p>
-      <p>Manually enter a name</p> <input id="name" value="foo"/>
+      <p>Enter a name</p> <input id="name" value="foo"/>
     </div>
   </body>
 </html>

@@ -1,63 +1,53 @@
 import 'dart:async';
 
-class WorldWidth {
-  const WorldWidth();
+
+const WORLD_WIDTH = "world_width";
+const WORLD_HEIGHT= "world_height";
+const SERVER_FPS_COUNTER = "server_fps_counter";
+const RELOAD_FUNCTION = "reload_function";
+const URI_PARAMS_MAP = 'uri_params_map';
+const TOUCH_SUPPORTED = 'touch_supported';
+
+abstract class WorldCanvas {
+  dynamic get context2D;
+  int get width;
+  int get height;
 }
 
-class WorldHeight {
-  const WorldHeight();
+abstract class LocalStorage {
+  void setItem(String key, String value);
+  String? getItem(String key);
+  void remove(String key);
+  bool containsKey(String key) {
+    return getItem(key) != null;
+  }
+  operator [](String key) => getItem(key);
+  operator []=(String key, String value) => setItem(key, value);
 }
 
-class WorldCanvas {
-  const WorldCanvas();
+abstract class ByteWorldCanvas implements WorldCanvas {
 }
 
-class LocalStorage {
-  const LocalStorage();
+abstract class HtmlScreen {
+  dynamic get orientation;
 }
 
-class UriParameters {
-  const UriParameters();
-}
-
-class HtmlScreen {
-  const HtmlScreen();
-}
-
-class TouchControls {
-  const TouchControls();
-}
-
-class ServerFrameCounter {
-  const ServerFrameCounter();
-}
-
-class LocalKeyState {
-  const LocalKeyState();
-}
-
-class CanvasFactory {
-  const CanvasFactory();
-}
-
-class ReloadFactory {
-  const ReloadFactory();
+abstract class CanvasFactory {
+  dynamic createCanvas(int width, height);
 }
 
 class RtcPeerConnectionFactory {
   const RtcPeerConnectionFactory();
 }
 
-class ImageDataFactory {
-  const ImageDataFactory();
+abstract class ImageDataFactory {
+  dynamic createWithSize(int x,y);
 }
 
-class ImageFactory {
-  const ImageFactory();
-}
-
-class ByteWorldCanvas {
-  const ByteWorldCanvas();
+abstract class ImageFactory {
+  dynamic create();
+  dynamic createWithSrc(String src);
+  dynamic createWithSize(int x,y);
 }
 
 abstract class GaReporter {
@@ -97,14 +87,3 @@ abstract class ConnectionFactory {
   handleIceCandidateReceived(dynamic connection, dynamic iceCandidate);
 }
 
-/**
- * A generic factory object.
- * We use this to create fake HTML elements in testing.
- */
-class DynamicFactory {
-  DynamicFactory(this._factory);
-  dynamic _factory;
-  create(List args) {
-    return _factory(args);
-  }
-}

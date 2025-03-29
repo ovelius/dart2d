@@ -4,7 +4,8 @@ import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/world_data.dart';
-import 'package:di/di.dart';
+import 'package:injectable/injectable.dart';
+import 'package:mockito/annotations.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
@@ -49,20 +50,20 @@ List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(GAME_SOURCES)
 
 const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
-@Injectable()
+@Singleton(scope: 'world')
 class ImageIndex {
   final Logger log = new Logger('ImageIndex');
   static const int WORLD_IMAGE_INDEX = 1;
   var _EMPTY_IMAGE;
   var _WORLD_IMAGE;
   ConfigParams _configParams;
-  DynamicFactory _canvasFactory;
-  DynamicFactory _imageFactory;
+  late CanvasFactory _canvasFactory;
+  late ImageFactory _imageFactory;
   // Map ImageName -> ImageIndex.
   Map<String, int> imageByName = new Map<String, int>();
   // Map ImageName -> Loaded bool.
   Map<int, bool> loadedImages = new Map<int, bool>();
-  List images = new List();
+  List<dynamic> images = [];
 
   // Keep track of these types in a Set.
   Set<String> _playerImages = new Set.from(PLAYER_SOURCES);
@@ -70,13 +71,13 @@ class ImageIndex {
   Set<String> _gameImages = new Set.from(GAME_SOURCES);
   List<int> _orderedImageIds = [];
 
-  Map _localStorage;
+  late LocalStorage _localStorage;
 
   ImageIndex(
       this._configParams,
-      @LocalStorage() Map localStorage,
-      @CanvasFactory() DynamicFactory canvasFactory,
-      @ImageFactory() DynamicFactory imageFactory) {
+      LocalStorage localStorage,
+      CanvasFactory canvasFactory,
+      ImageFactory imageFactory) {
     this._localStorage = localStorage;
     this._imageFactory = imageFactory;
     this._canvasFactory = canvasFactory;
@@ -87,9 +88,9 @@ class ImageIndex {
   }
 
   void _createBaseImages() {
-    _EMPTY_IMAGE = _imageFactory.create([100, 100]);
+    _EMPTY_IMAGE = _imageFactory.createWithSize(100, 100);
     _EMPTY_IMAGE.src = _EMPTY_IMAGE_DATA_STRING;
-    _WORLD_IMAGE = _imageFactory.create([1, 1]);
+    _WORLD_IMAGE = _imageFactory.createWithSize(1, 1);
     images.add(_EMPTY_IMAGE);
     images.add(_WORLD_IMAGE);
   }
@@ -108,20 +109,20 @@ class ImageIndex {
     int index = images.length - 1;
     imageByName[name] = index;
     loadedImages[index] = true;
+    _imageComplete(index);
   }
 
-  getImageByName(String name) {
-    return images[imageByName[name]];
+  dynamic getImageByName(String name) {
+    assert(imagesIndexed(), "ImageIndex not yet indexed...");
+    return images[imageByName[name]!];
   }
 
   int getImageIdByName(String name) {
-    assert (name != null);
     assert(imageByName[name] != null);
-    return imageByName[name];
+    return imageByName[name]!;
   }
 
-  getImageById(int id) {
-    assert(id != null);
+  dynamic getImageById(int id) {
     assert(images[id] != null);
     return images[id];
   }
@@ -144,13 +145,13 @@ class ImageIndex {
   }
 
   Future addFromImageData(int index, String data) {
-    String imageName = imageNameFromIndex(index);
     if (!data.startsWith("data:image/png;base64,")) {
+      String imageName = imageNameFromIndex(index);
       log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
       addSingleImage(imageName);
       return new Future.value();
     }
-    images[index] = _imageFactory.create([data]);
+    images[index] = _imageFactory.createWithSrc(data);
     // Mark image as complete here.
     loadedImages[index] = true;
     return _imageLoadedFuture(images[index], index);
@@ -169,7 +170,7 @@ class ImageIndex {
    */
   String getImageDataUrl(int index) {
     var image = images[index];
-    var canvas = _canvasFactory.create([image.width, image.height]);
+    var canvas = _canvasFactory.createCanvas(image.width, image.height);
     canvas.context2D.drawImage(image, 0, 0);
     String data = canvas.toDataUrl("image/png");
     return data;
@@ -182,7 +183,7 @@ class ImageIndex {
     _loadFromCacheInLocalStorage();
     for (var imgName in IMAGE_SOURCES) {
       // Already loaded, skip.
-      int index = imageByName[imgName];
+      int index = imageByName[imgName]!;
       if (loadedImages[index] == true) {
         continue;
       }
@@ -193,8 +194,8 @@ class ImageIndex {
 
   Future addSingleImage(String imgName, [String path = "./img/"]) {
     assert(imagesIndexed());
-    var element = this._imageFactory.create([path + imgName]);
-    int index = imageByName[imgName];
+    var element = this._imageFactory.createWithSrc(path + imgName);
+    int? index = imageByName[imgName];
     // Already indexed. Update existing item.
     if (index != null) {
       images[index] = element;
@@ -232,28 +233,25 @@ class ImageIndex {
       _cacheInLocalStorage();
     }
     String name = imageNameFromIndex(index);
-    if (name != null) {
-      _playerImages.remove(name);
-      _worldImages.remove(name);
-      _gameImages.remove(name);
+    _playerImages.remove(name);
+    _worldImages.remove(name);
+    _gameImages.remove(name);
     }
-  }
 
   String imageNameFromIndex(int index) {
-    assert(imagesIndexed());
-    for (String name in IMAGE_SOURCES) {
+    for (String name in imageByName.keys) {
       if (imageByName[name] == index) {
         return name;
       }
     }
-    return null;
+    throw "Missing image with index $index";
   }
 
   void _indexImages() {
     for (String img in IMAGE_SOURCES) {
       // Don't index again...
       if (!imageByName.containsKey(img)) {
-        var element = this._imageFactory.create([]);
+        var element = this._imageFactory.create();
         images.add(element);
         int index = images.length - 1;
         imageByName[img] = index;
@@ -275,11 +273,8 @@ class ImageIndex {
   }
 
   bool imageNameIsLoaded(String name) {
-    int id = imageByName[name];
-    if (id != null) {
-      return imageIsLoaded(id);
-    }
-    return false;
+    int id = imageByName[name]!;
+    return imageIsLoaded(id);
   }
 
   static final Duration CACHE_TIME = new Duration(days: 7);
@@ -292,12 +287,12 @@ class ImageIndex {
     DateTime now = new DateTime.now();
     for (String image in imageByName.keys) {
       String key = "img$image";
-      if (_localStorage.containsKey(key) && _localStorage.containsKey("t$key")) {
+      if (_localStorage.containsKey(key) &&  _localStorage.containsKey("t$key")) {
         String millis = _localStorage["t$key"];
         DateTime cacheTime = new DateTime.fromMillisecondsSinceEpoch(int.parse(millis));
         if (cacheTime.add(CACHE_TIME).isAfter(now)) {
           String data = _localStorage[key];
-          int imageIndex = imageByName[image];
+          int imageIndex = imageByName[image]!;
           log.info("Added image from cache ${image}.");
           addFromImageData(imageIndex, data);
         } else {
@@ -313,7 +308,7 @@ class ImageIndex {
     int size = 0;
     Set<String> dontCache = new Set.from(WORLDS.values);
     for (String image in imageByName.keys) {
-      int imageId = imageByName[image];
+      int imageId = imageByName[image]!;
       // Never cache the world.
       if (imageId <= WORLD_IMAGE_INDEX || dontCache.contains(image)) {
         continue;

@@ -1,56 +1,63 @@
-import 'package:dart2d/worlds/worlds.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/worlds/powerup_manager.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:dart2d/worlds/world.dart';
+import 'package:dart2d/worlds/world_listener.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'package:dart2d/net/net.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:di/di.dart';
+import 'package:dart2d/net/chunk_helper.dart';
+import 'package:dart2d/net/network.dart';
+import 'package:dart2d/net/helpers.dart';
+import 'package:dart2d/net/state_updates.dart';
+import 'byteworld.dart';
+import 'loader.dart';
 import 'world_util.dart';
 import 'dart:math';
 import 'player_world_selector.dart';
 
-@Injectable()
+@Singleton(scope: 'world')
 class WormWorld extends World {
   // If the player gives no input for this amount of time we reload the page.
   // We don't want idle players! And players idle att the title screen will
   // actually serve as resource hosts :D
   static final Duration RELOAD_TIMEOUT = new Duration(minutes: 8);
   final Logger log = new Logger('WormWorld');
-  Loader loader;
-  SpriteIndex spriteIndex;
-  ImageIndex _imageIndex;
-  DynamicFactory _reloadFactory;
-  MobileControls _mobileControls;
-  FpsCounter _drawFps;
-  Network _network;
-  ConfigParams _configParams;
-  Map _localStorage;
-  GaReporter _gaReporter;
-  PowerupManager _powerupManager;
-  KeyState localKeyState;
-  HudMessages hudMessages;
-  PacketListenerBindings _packetListenerBindings;
-  var _canvas = null;
-  var _canvasElement = null;
+  late Loader loader;
+  late SpriteIndex spriteIndex;
+  late ImageIndex _imageIndex;
+  late Function _reloadFunction;
+  late MobileControls _mobileControls;
+  late FpsCounter _drawFps;
+  late Network _network;
+  late ConfigParams _configParams;
+  late LocalStorage _localStorage;
+  late GaReporter _gaReporter;
+  late PowerupManager _powerupManager;
+  late KeyState localKeyState;
+  late HudMessages hudMessages;
+  late PacketListenerBindings _packetListenerBindings;
+  dynamic _canvas = null;
   Vec2 viewPoint = new Vec2();
-  Vec2 halfWorld;
+  Vec2 halfWorld = new Vec2();
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
 
-  int _width, _height;
+  late int _width, _height;
   double explosionFlash = 0.0;
 
   WormWorld(
-      Network network,
-      Loader loader,
-      @ReloadFactory() DynamicFactory reloadFactory,
-      @LocalKeyState() KeyState localKeyState,
-      @WorldCanvas() Object canvasElement,
-      @LocalStorage() Map storage,
-      @ServerFrameCounter() FpsCounter serverFrameCounter,
+      this._network,
+      this.loader,
+      @Named(RELOAD_FUNCTION) Function reloadFunction,
+      KeyState localKeyState,
+      WorldCanvas canvasElement,
+      LocalStorage storage,
+      FpsCounter serverFrameCounter,
       SpriteIndex spriteIndex,
       this._imageIndex,
       this._configParams,
@@ -62,20 +69,19 @@ class WormWorld extends World {
       WorldListener worldListener,
       this._mobileControls,
       PacketListenerBindings packetListenerBindings) {
-    this._reloadFactory = reloadFactory;
+    this._reloadFunction = reloadFunction;
     this._localStorage = storage;
     this._drawFps = serverFrameCounter;
-    this._canvasElement = canvasElement;
-    this._width = _canvasElement.width;
-    this._height = _canvasElement.height;
-    this._canvas = _canvasElement.context2D;
+    this._width = canvasElement.width;
+    this._height = canvasElement.height;
+    this._canvas = canvasElement.context2D;
     halfWorld = new Vec2(this.width() / 2, this.height() / 2 );
     this.spriteIndex = spriteIndex;
     this._packetListenerBindings = packetListenerBindings;
     this.localKeyState = localKeyState;
     localKeyState.world = this;
     localKeyState.registerGenericListener((e) {
-      if (playerSprite != null && !playerSprite.isMappedKey(e)) {
+      if (playerSprite?.isMappedKey(e) == false) {
         invalidKeysPressed++;
         if (invalidKeysPressed > 2) {
           controlHelperTime = 4.0;
@@ -85,14 +91,12 @@ class WormWorld extends World {
       }
     });
     this.hudMessages = hudMessages;
-    this._network = network;
-    network.world = this;
-    this.loader = loader;
+    this._network.world = this;
     worldListener.setWorld(this);
   }
   
   void collisionCheck(int networkId, duration) {
-    Sprite sprite = spriteIndex[networkId];
+    Sprite? sprite = spriteIndex[networkId];
     
     if(sprite is MovingSprite) {
       if (sprite.collision) {
@@ -170,27 +174,32 @@ class WormWorld extends World {
     return collisionAngles;
   }
 
-  void connectTo(var id, [String name = null, bool startGame = true]) {
+  void connectTo(var id, [String? name = null, bool startGame = true]) {
     hudMessages.display("Connecting to ${id}");
     _network.peer.connectTo(id);
     _network.gameState.actingCommanderId = null;
     if (startGame) {
       _network.findServer();
-      if (_network.getServerConnection() == null) {
+      ConnectionWrapper? serverConnection = _network.getServerConnection();
+      if (serverConnection == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
       }
 
       int playerSpriteId = _imageIndex.getImageIdByName(_localStorage['playerSprite']);
-      _network.getServerConnection().connectToGame(
-          name == null ? _localStorage['playerName'] : name, playerSpriteId);
+      serverConnection.connectToGame(
+            name == null ? _localStorage['playerName'] : name, playerSpriteId);
     }
   }
 
   /**
    * Display a message in the world and send it to the network for remote display.
    */
-  void displayHudMessageAndSendToNetwork(String message, [double period]) {
-    hudMessages.display(message, period);
+  void displayHudMessageAndSendToNetwork(String message, [double? period]) {
+    if (period == null) {
+      hudMessages.display(message);
+    } else {
+      hudMessages.display(message, period);
+    }
     _network.sendMessage(message);
   }
 
@@ -249,8 +258,9 @@ class WormWorld extends World {
       ..fillRect(0, 0, _width, _height)
       ..save();
 
+
     if (playerSprite != null) {
-      Vec2 playerCenter = playerSprite.centerPoint();
+      Vec2 playerCenter = playerSprite!.centerPoint();
       viewPoint.x = playerCenter.x - halfWorld.x;
       viewPoint.y = playerCenter.y - halfWorld.y;
       if (viewPoint.y > byteWorld.height - _height) {
@@ -266,12 +276,12 @@ class WormWorld extends World {
         viewPoint.y = 0.0;
       }
     }
-
+  
    byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
     _canvas.restore();
 
     for (int networkId in spriteIndex.spriteIds()) {
-      var sprite = spriteIndex[networkId];
+      MovingSprite sprite = spriteIndex[networkId] as MovingSprite;
       _canvas.save();
       _canvas.translate(-viewPoint.x, -viewPoint.y);
       if (!freeze && !_network.hasNetworkProblem()) {
@@ -281,7 +291,7 @@ class WormWorld extends World {
         sprite.draw(_canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
-        spriteIndex.removeSprite(sprite.networkId);
+        spriteIndex.removeSprite(sprite.networkId!);
       }
       _canvas.restore();
     }
@@ -292,24 +302,41 @@ class WormWorld extends World {
       explosionFlash -= duration * 5;
     }
 
-    if (controlHelperTime > 0) {
-      drawControlHelper(_canvas, controlHelperTime, playerSprite, _width, _height);
-      controlHelperTime -= duration;
-    }
-
-    if (network().getGameState().hasWinner()) {
-      drawWinView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
-      _winTime -= duration;
-      if (_winTime < 0) {
-        spriteIndex.clear();
-        _winTime = 10.0;
-        network().getGameState().reset();
-        network().resetGameConnections();
-        _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
-        loader.resetToPlayerSelect();
+    if (playerSprite != null) {
+      if (controlHelperTime > 0) {
+        drawControlHelper(
+            _canvas, controlHelperTime, playerSprite!, _width, _height);
+        controlHelperTime -= duration;
       }
-    } else {
-      drawKilledView(_canvas, this, _width, _height, playerSprite, spriteIndex, _imageIndex);
+
+      if (network().getGameState().hasWinner()) {
+        drawWinView(
+            _canvas,
+            this,
+            _width,
+            _height,
+            playerSprite!,
+            spriteIndex,
+            _imageIndex);
+        _winTime -= duration;
+        if (_winTime < 0) {
+          spriteIndex.clear();
+          _winTime = 10.0;
+          network().getGameState().reset();
+          network().resetGameConnections();
+          _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
+          loader.resetToPlayerSelect();
+        }
+      } else {
+        drawKilledView(
+            _canvas,
+            this,
+            _width,
+            _height,
+            playerSprite!,
+            spriteIndex,
+            _imageIndex);
+      }
     }
 
     spriteIndex.removePending();
@@ -348,7 +375,7 @@ class WormWorld extends World {
       Duration lastInput = localKeyState.lastUserInput();
       if (lastMobileInput > RELOAD_TIMEOUT && lastInput > RELOAD_TIMEOUT) {
         _gaReporter.reportEvent("dormant_player_reload");
-        _reloadFactory.create([]);
+        _reloadFunction();
       }
     }
   }
@@ -381,9 +408,9 @@ class WormWorld extends World {
 
   void createLocalClient(int spriteId,  Vec2 position) {
     spriteIndex.spriteNetworkId = spriteId;
-    PlayerInfo info = _network.getGameState().playerInfoByConnectionId(network().peer.id);
+    PlayerInfo? info = _network.getGameState().playerInfoByConnectionId(network().peer.id!);
     if (info == null) {
-      throw new StateError("Cannot create local client as it is missing from GameState! Was ${_network.getGameState()}");
+      throw "Self gamestate data is missing!";
     }
     info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
@@ -391,26 +418,26 @@ class WormWorld extends World {
         position,
         0);
     _adjustPlayerSprite();
-    addSprite(playerSprite);
+    addSprite(playerSprite!);
   }
   
   addLocalPlayerSprite(String name) {
     int id = _network.gameState.getNextUsablePlayerSpriteId(this);
-    PlayerInfo info = new PlayerInfo(name, _network.peer.id, id);
+    PlayerInfo info = new PlayerInfo(name, _network.peer.id!, id);
     info.updateWithLocalKeyState(localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE),
         0);
-    playerSprite.networkId = id;
-    playerSprite.spawnIn = 1.0;
+    playerSprite!.networkId = id;
+    playerSprite!.spawnIn = 1.0;
     _adjustPlayerSprite();
     _network.gameState.addPlayerInfo(info);
-    addSprite(playerSprite);
+    addSprite(playerSprite!);
   }
 
   void _adjustPlayerSprite() {
-    adjustPlayerSprite(this.playerSprite, _imageIndex.getImageIdByName(_localStorage['playerSprite']));
+    adjustPlayerSprite(this.playerSprite!, _imageIndex.getImageIdByName(_localStorage['playerSprite']));
   }
 
   void adjustPlayerSprite(LocalPlayerSprite playerSprite, int playerSpriteId) {
@@ -428,26 +455,26 @@ class WormWorld extends World {
   }
   
   void explosionAt({
-        Vec2 location,
-        Vec2 velocity = null,
+        required Vec2 location,
+        Vec2? velocity,
         bool addParticles = false,
-        int damage,
-        double radius,
-        Sprite damagerDoer = null,
+        required int damage,
+        required double radius,
+        LocalPlayerSprite? damagerDoer,
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(location, radius);
     if (addParticles) {
       checkNotNull(velocity);
     }
-    if (velocity != null && addParticles) {
+    if (addParticles) {
       int particleCount = _particleCountFromFps();
       if (particleCount > 0) {
         addSprite(new Particles(
             this,
             null,
             location,
-            velocity,
+            velocity == null ? Vec2.ZERO : velocity,
             null,
             radius,
             particleCount));
@@ -455,7 +482,7 @@ class WormWorld extends World {
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
     if (!fromNetwork) {
-      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity, radius, damage)};
+      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity == null ? Vec2.ZERO : velocity, radius, damage)};
       _network.peer.sendDataWithKeyFramesToAll(data);
     }
   }
@@ -493,12 +520,12 @@ class WormWorld extends World {
   }
 
   void explosionAtSprite({
-        Sprite sprite,
-        Vec2 velocity = null,
+        required Sprite sprite,
+        required Vec2 velocity,
         bool addpParticles = false,
-        int damage,
-        double radius,
-        Sprite damageDoer,
+        required int damage,
+        required double radius,
+        required LocalPlayerSprite damageDoer,
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(sprite.centerPoint(), radius);
@@ -527,8 +554,8 @@ class WormWorld extends World {
    */
   void connectToAllPeersInGameState() {
     for (PlayerInfo info in _network.gameState.playerInfoList()) {
-      LocalPlayerSprite sprite = spriteIndex[info.spriteId];
-      if (sprite != null) {
+      Sprite? sprite = spriteIndex[info.spriteId];
+      if (sprite is LocalPlayerSprite) {
         // Make sure the ownerId is consistent with the connectionId.
         sprite.ownerId = info.connectionId;
         sprite.info = info;
@@ -537,7 +564,7 @@ class WormWorld extends World {
       }
       if (!_network.peer.hasConnectionTo(info.connectionId) && !_network.peer.hasHadConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
-        if (_network.peer.id.compareTo(info.connectionId) < 0) {
+        if (_network.peer.id!.compareTo(info.connectionId) < 0) {
           hudMessages.display(
               "Creating neighbour connection to ${info.name}");
           _network.peer.connectTo(info.connectionId).markAsClientToClientConnection();
@@ -550,12 +577,12 @@ class WormWorld extends World {
     Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
     double radius = data[2] / DOUBLE_INT_CONVERSION;
     int damage = data[3];
-    Vec2 velocity = null;
+    Vec2? velocity = null;
     if (data.length > 4) {
       velocity = new Vec2(data[4] / DOUBLE_INT_CONVERSION, data[5] / DOUBLE_INT_CONVERSION);
     }
     explosionAt(
-        location:pos, velocity:velocity,
+        location:pos, velocity:velocity!,
         addParticles:velocity != null, damage:damage,
         radius:radius, fromNetwork:true);
   }
@@ -566,12 +593,10 @@ class WormWorld extends World {
       (pos.y * DOUBLE_INT_CONVERSION).toInt(),      
       (radius * DOUBLE_INT_CONVERSION).toInt(),
       damage];
-    if (velocity != null) {
-     base.addAll([
-         (velocity.x * DOUBLE_INT_CONVERSION).toInt(), 
-         (velocity.y * DOUBLE_INT_CONVERSION).toInt()]);
-    }
-    return base;
+   base.addAll([
+       (velocity.x * DOUBLE_INT_CONVERSION).toInt(), 
+       (velocity.y * DOUBLE_INT_CONVERSION).toInt()]);
+      return base;
   }
 
   drawFromNetworkUpdate(List data) {
@@ -589,31 +614,35 @@ class WormWorld extends World {
     colorString];
   }
   
-  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, Sprite damageDoer, Mod mod) {
+  void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, LocalPlayerSprite? damageDoer, Mod mod) {
     for (int networkId in spriteIndex.spriteIds()) {
-      Sprite sprite = spriteIndex[networkId];
+      Sprite? sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage);
         if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
-          sprite.takeDamage(damageTaken.toInt(), damageDoer, mod);
-          if (sprite == this.playerSprite) {
-            Random r = new Random();
-            this.explosionFlash += r.nextDouble() * 1.5;
+          if (damageDoer == null) {
+            log.warning("Can't take damager $damageTaken - not inflicted by player!");
+          } else {
+            sprite.takeDamage(damageTaken.toInt(), damageDoer, mod);
+            if (sprite == this.playerSprite) {
+              Random r = new Random();
+              this.explosionFlash += r.nextDouble() * 1.5;
+            }
           }
         }
       }
     }
   }
 
-  startAsServer([String name]) {
+  startAsServer([String? name]) {
     assert(network().peer.connectedToServer());
     assert(network().peer.id != null);
     assert(loader.selectedWorldName() != null);
-    initByteWorld(loader.selectedWorldName());
-    assert(imageIndex != null);
-    addLocalPlayerSprite(_localStorage['playerName']);
+    initByteWorld(loader.selectedWorldName()!);
+    addLocalPlayerSprite(name == null ? _localStorage['playerName'] : name);
     _network.setAsActingCommander();
   }
+
 
   void initByteWorld([String map = 'world_town.png']) {
     if (map.isNotEmpty) {
@@ -663,6 +692,7 @@ class WormWorld extends World {
   ImageIndex imageIndex() => _imageIndex;
   FpsCounter drawFps() => _drawFps;
   gaReporter() => _gaReporter;
+  bool isCommander() => _network.isCommander();
 
   toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
 }

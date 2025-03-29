@@ -3,31 +3,29 @@ library hud;
 import 'dart:math';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world_util.dart';
-import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/keystate.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/sprites/sprites.dart';
-import 'package:di/di.dart';
-import 'package:dart2d/util/gamestate.dart';
+import 'package:dart2d/net/helpers.dart';
+import 'package:injectable/injectable.dart';
+import 'package:dart2d/net/state_updates.dart';
 
-class _HudMessage {
+class HudMessage {
   final String message;
   double remainingTime;
-  _HudMessage(this.message, this.remainingTime);
+  HudMessage(this.message, this.remainingTime);
   double getAlpha() {
     return min(remainingTime, 1.0);
   }
 }
 
-@Injectable()
+@Singleton(scope: 'world')
 class HudMessages {
   static const DEFAULT_DURATION = 4.0;
-  KeyState _localKeyState;
-  List<_HudMessage> messages = [];
+  late KeyState _localKeyState;
+  List<HudMessage> messages = [];
 
   HudMessages(
-      @LocalKeyState() KeyState localKeyState,
+      KeyState localKeyState,
       PacketListenerBindings packetListenerBindings) {
    this._localKeyState = localKeyState;
    packetListenerBindings.bindHandler(MESSAGE_KEY, (c, List data) {
@@ -37,9 +35,8 @@ class HudMessages {
    });
   }
 
-  void display(String message, [double period]) {
-    messages.add(new _HudMessage(
-        message, period == null ? DEFAULT_DURATION : period));   
+  void display(String message, [double period = DEFAULT_DURATION]) {
+    messages.add(new HudMessage(message, period));
   }
 
   bool shouldDrawTable() {
@@ -58,7 +55,7 @@ class HudMessages {
         context.setFillColorRgb(0, 0, 0, 0.7);
         context.fillRect(0, 0, world.width(), world.height());
       }
-      drawPlayerStats(context, world, world.width(), world.height(), world.spriteIndex, world.imageIndex(), netIssue);
+      drawPlayerStats(context, world, world.width().toInt(), world.height().toInt(), world.spriteIndex, world.imageIndex(), netIssue);
       context.restore();
     }
   }
@@ -68,7 +65,7 @@ class HudMessages {
     context.resetTransform();
     showGameTable(world, context);
     for (int i = 0; i < messages.length; i++) {
-      _HudMessage m = messages[i];
+      HudMessage m = messages[i];
       m.remainingTime -= timeSpent;
       if (m.remainingTime < 0) {
         messages.removeAt(i);

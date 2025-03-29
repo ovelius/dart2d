@@ -1,8 +1,8 @@
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
+import 'package:dart2d/worlds/byteworld.dart';
 
 enum PowerUpType {
   SHIELD,
@@ -48,11 +48,11 @@ class Powerup extends MovingSprite {
     },
   };
 
-  PowerUpType _type;
+  late PowerUpType _type;
   double _blink = BLINK_TIME;
 
   Powerup(Vec2 position, PowerUpType type, ImageIndex imageIndex) :
-        super.imageBasedSprite(position, imageIndex.getImageIdByName(_IMAGES[type]), imageIndex) {
+        super.imageBasedSprite(position, imageIndex.getImageIdByName(_IMAGES[type]!), imageIndex) {
     this._type = type;
     lifeTime = LIFETIME;
     Random r = new Random();
@@ -66,24 +66,24 @@ class Powerup extends MovingSprite {
       : super.empty(index) {
   }
 
-  collide(MovingSprite other, ByteWorld world, int direction) {
-    if (other != null && other is LocalPlayerSprite) {
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
+    if (other is LocalPlayerSprite) {
       dynamic action = _ACTIONS[_type];
       action(this, other);
     }
-    if (world != null) {
+    if (direction != null) {
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         if (velocity.y > 0) {
           velocity.y = -velocity.y * BOUNCHE;
         }
         // Make the "above" check exclusive, as a hacky way of preferring objects to
         // go upwards.
-      } else if(direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
+      } else if (direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * BOUNCHE;
         }
       }
-      if(direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
+      if (direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
         if (velocity.x < 0) {
           if (velocity.x < -2.0) {
             rotationVelocity = velocity.x / 2;
@@ -93,7 +93,7 @@ class Powerup extends MovingSprite {
           velocity.x = -velocity.x * BOUNCHE;
         }
       }
-      if(direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
+      if (direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
         if (velocity.x > 0) {
           if (velocity.x > 2.0) {
             rotationVelocity = velocity.x / 2;
@@ -110,11 +110,11 @@ class Powerup extends MovingSprite {
     return SpriteConstructor.POWERUP;
   }
 
-  void addExtraNetworkData(List<int> data) {
+  void addExtraNetworkData(List<dynamic> data) {
     data.add(_type.index);
   }
 
-  void parseExtraNetworkData(List<int> data, int startAt) {
+  void parseExtraNetworkData(List<dynamic> data, int startAt) {
     _type = PowerUpType.values[data[startAt]];
   }
 }

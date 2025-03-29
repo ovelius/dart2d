@@ -3,7 +3,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:di/di.dart';
+import 'package:injectable/injectable.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
@@ -20,7 +20,7 @@ enum SpriteConstructor {
 /**
  * Contains the world sprite data, indexed by id.
  */
-@Injectable()
+@Singleton(scope: 'world')
 class SpriteIndex {
   static final Logger log = new Logger('SpriteIndex');
 
@@ -30,7 +30,7 @@ class SpriteIndex {
         new MovingSprite.imageBasedSprite(new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE:
         (WormWorld world, int spriteId, String connectionId) {
-      PlayerInfo info =
+      PlayerInfo? info =
           world.network().getGameState().playerInfoByConnectionId(connectionId);
       if (info == null) {
         log.warning(
@@ -70,12 +70,12 @@ class SpriteIndex {
    * Creates a sprite we got to know over the network.
    */
   MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
-      SpriteConstructor constructor, ConnectionWrapper wrapper, List<int> data) {
+      SpriteConstructor constructor, ConnectionWrapper wrapper, List<dynamic> data) {
     MovingSprite sprite =
         SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
     if (sprite != null) {
       if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
-        world.adjustPlayerSprite(sprite, data[8]);
+        world.adjustPlayerSprite(sprite as LocalPlayerSprite, data[8]);
       }
       sprite.networkType = NetworkType.REMOTE;
       sprite.networkId = networkId;
@@ -108,8 +108,6 @@ class SpriteIndex {
    * will get a networkId when added.
    */
   void addSprite(Sprite sprite) {
-    assert(sprite.position != null);
-    assert(sprite.size != null);
     if (sprite.networkId != null) {
       if (_sprites.containsKey(sprite.networkId)) {
         throw new StateError(
@@ -137,7 +135,7 @@ class SpriteIndex {
                 "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
         continue;
       }
-      _sprites[newSprite.networkId] = newSprite;
+      _sprites[newSprite.networkId!] = newSprite;
       added.add(newSprite);
     }
     _replacePending();
@@ -156,7 +154,7 @@ class SpriteIndex {
    */
   void _replacePending() {
     for (int id in new List.from(_replaceSprite.keys)) {
-      _sprites[id] = _replaceSprite.remove(id);
+      _sprites[id] = _replaceSprite.remove(id)!;
     }
   }
 
@@ -174,7 +172,7 @@ class SpriteIndex {
   void removePending() {
     while (_removeSprites.length > 0) {
       int id = _removeSprites.removeAt(0);
-      Sprite sprite = _sprites[id];
+      Sprite? sprite = _sprites[id];
       _sprites.remove(id);
       log.fine("Removing sprite ${id} from world");
       if (sprite != null) {
@@ -215,7 +213,7 @@ class SpriteIndex {
   }
 
   int count() => _sprites.length;
-  operator [](index) => _sprites[index];
+  Sprite? operator [](index) => _sprites[index];
   operator []=(int i, Sprite value) => _sprites[i] = value;
   bool hasSprite(int id) => _sprites.containsKey(id);
 

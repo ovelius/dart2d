@@ -1,4 +1,3 @@
-import 'dart:math';
 
 final Map<String, String> WORLDS = {
   "world_map_mini.png": "world_map.png",

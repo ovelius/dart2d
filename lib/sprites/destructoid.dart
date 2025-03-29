@@ -8,7 +8,7 @@ import 'package:dart2d/phys/vec2.dart';
 class Destructoid extends MovingSprite {
   double bounche = 0.1;
   var canvas;
-  Vec2 centerView;
+  Vec2 centerView = new Vec2();
 
   Destructoid(ByteWorld world, Vec2 centerView, int x, int y, int x2, int y2) :
         super(new Vec2(x.toDouble(), y.toDouble()),  new Vec2((x2 - x).toDouble(), (y2 - y).toDouble()), SpriteType.CUSTOM) {
@@ -40,10 +40,10 @@ class Destructoid extends MovingSprite {
  //    context.drawImage(,  position.x + centerView.x, position.y + centerView.y);
   }
   
-  collide(MovingSprite other, ByteWorld world, int direction) {       
-      if (world != null && other == null) {
-        handleWorldCollide(world, direction);
-      }
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
+    if (world != null && direction != null) {
+      handleWorldCollide(world, direction);
+    }
   }
  
   handleWorldCollide(ByteWorld world, int direction) {

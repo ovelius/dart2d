@@ -1,11 +1,11 @@
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'dart:async';
-import 'package:di/di.dart';
 
 @Injectable()
 class ChunkHelper {
@@ -20,7 +20,7 @@ class ChunkHelper {
   ByteWorld _byteWorld;
   PacketListenerBindings _packetListenerBindings;
 
-  _DataCounter counter = new _DataCounter(3);
+  DataCounter counter = new DataCounter(3);
   int _chunkSize = DEFAULT_CHUNK_SIZE;
   double _chunkSizeIncrementFactor = 1.25;
   double _chunkDecrementFactor = 0.3;
@@ -33,7 +33,6 @@ class ChunkHelper {
   // Buffer partially completed images in this map.
   Map<int, String> _imageBuffer = new Map();
   Map<int, int> _imageSizes = new Map();
-  DateTime _created;
 
   // Our local cache.
   Map<int, String> _dataUrlCache = new Map();
@@ -42,7 +41,6 @@ class ChunkHelper {
   Map<String, String> _byteWorldDataUrlCache = new Map();
 
   ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings) {
-    _created = new DateTime.now();
     _packetListenerBindings.bindHandler(IMAGE_DATA_REQUEST,
         (ConnectionWrapper connection, Map dataMap) {
       replyWithImageData(dataMap, connection);
@@ -82,28 +80,30 @@ class ChunkHelper {
           "Got request ${imageDataRequest} for data of ${data.length} calculated end $end");
     }
     String chunk = data.substring(start, end);
-    connection.sendData({
+    connection.sendData(
+      Map<String, dynamic>.from(
+        {
       IMAGE_DATA_RESPONSE: {
         'index': index,
         'data': chunk,
         'start': start,
         'size': data.length
       }
-    });
+    }));
   }
 
   String _getData(int index, var connection) {
     // Cached in byteworld cache.
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
       if (_byteWorldDataUrlCache.containsKey(connection.id)) {
-        return _byteWorldDataUrlCache[connection.id];
+        return _byteWorldDataUrlCache[connection.id]!;
       }
     }
     // Cached in regular cache? (Immutable)
     if (this._dataUrlCache.containsKey(index)) {
-      return _dataUrlCache[index];
+      return _dataUrlCache[index]!;
     }
-    String data = null;
+    String? data = null;
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
       // Special case the mutable byteworld.
       data = _byteWorld.asDataUrl();
@@ -141,16 +141,16 @@ class ChunkHelper {
           "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
-    if (start == _imageBuffer[index].length) {
-      _imageBuffer[index] = _imageBuffer[index] + data;
+    if (start == _imageBuffer[index]!.length) {
+      _imageBuffer[index] = _imageBuffer[index]! + data;
       _imageToConnection.remove(index);
     } else {
       log.warning("Dropping data for ${index}, out of order??");
     }
 
     // Image complete.
-    if (_imageBuffer[index].length == size) {
-      _imageIndex.addFromImageData(index, _imageBuffer[index]);
+    if (_imageBuffer[index]!.length == size) {
+      _imageIndex.addFromImageData(index, _imageBuffer[index]!);
       _imageBuffer.remove(index);
       _imageSizes.remove(index);
       log.info("Image complete ${index} :)");
@@ -168,7 +168,7 @@ class ChunkHelper {
     int requestedImages = 0;
     for (int index in IdsToFetch) {
       if (_retryTimer.containsKey(index)) {
-        _retryTimer[index] -= secondsDuration;
+        _retryTimer[index] = _retryTimer[index]! - secondsDuration;
       }
       // Don't request more than 3 images at a time.
       if (requestedImages > 2) {
@@ -185,7 +185,7 @@ class ChunkHelper {
   bool _maybeRequestImageLoad(
       int index, Map<String, ConnectionWrapper> connections, double duration) {
     List<ConnectionWrapper> connectionList = new List.from(connections.values);
-    String connectionId = _imageToConnection[index];
+    String? connectionId = _imageToConnection[index];
     if (connectionId == null) {
       // Request larger chunk.
       if (_chunkSize == MIN_CHUNK_SIZE) {
@@ -198,13 +198,13 @@ class ChunkHelper {
       return _requestImageData(index, connectionList);
     }
     // Look if we should retry.
-    var connection = connections[connectionId];
+    ConnectionWrapper? connection = connections[connectionId];
     if (connection == null) {
       // Connection removed?
       _imageToConnection.remove(index);
       return false;
     }
-    double lastRequestTimeout = _retryTimer[index];
+    double? lastRequestTimeout = _retryTimer[index];
     if (lastRequestTimeout == null || lastRequestTimeout < 0) {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
@@ -217,10 +217,10 @@ class ChunkHelper {
   }
 
   void _trackFailingConnection(int index) {
-    String failingConnection = _imageToConnection[index];
+    String? failingConnection = _imageToConnection[index];
     if (failingConnection != null) {
       if (_failures.containsKey(failingConnection)) {
-        _failures[failingConnection] = _failures[failingConnection] + 1;
+        _failures[failingConnection] = _failures[failingConnection]! + 1;
       } else {
         _failures[failingConnection] = 1;
       }
@@ -231,7 +231,7 @@ class ChunkHelper {
     if (!_imageBuffer.containsKey(index)) {
       _imageBuffer[index] = "";
     }
-    String currentData = _imageBuffer[index];
+    String currentData = _imageBuffer[index]!;
     return {
       'index': index,
       'start': currentData.length,
@@ -248,7 +248,9 @@ class ChunkHelper {
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
       var connection = connections[r.nextInt(connections.length)];
-      connection.sendData({IMAGE_DATA_REQUEST: buildImageChunkRequest(index)});
+      connection.sendData(
+        Map<String, dynamic>.from(
+          {IMAGE_DATA_REQUEST: buildImageChunkRequest(index)}));
       Duration connectionLatency = connection.expectedLatency();
       int millis = min(IMAGE_RETRY_DURATION_MILLIS,
           connectionLatency.inMilliseconds * 2);
@@ -267,7 +269,7 @@ class ChunkHelper {
         return 0.0;
       }
     }
-    return _imageBuffer[index].length / _imageSizes[index];
+    return _imageBuffer[index]!.length / _imageSizes[index]!;
   }
 
   String getTransferSpeed() {
@@ -283,8 +285,8 @@ class ChunkHelper {
   }
 }
 
-class _DataCounter {
-  _DataCounter(this.secondsInterval) {
+class DataCounter {
+  DataCounter(this.secondsInterval) {
     _streamController = new StreamController();
   }
 
@@ -294,7 +296,7 @@ class _DataCounter {
   int bytesSinceLast = 0;
   DateTime lastCheck = new DateTime.now();
 
-  StreamController<int> _streamController;
+  late StreamController<int> _streamController;
 
   collect(int bytes) {
     bytesSinceLast += bytes;

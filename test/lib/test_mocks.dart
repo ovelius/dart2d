@@ -1,4 +1,6 @@
+import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -7,30 +9,27 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
 
-class MockHudMessages extends Mock implements HudMessages {}
+@GenerateNiceMocks([MockSpec<ImageIndex>()])
+@GenerateNiceMocks([MockSpec<Network>()])
+@GenerateNiceMocks([MockSpec<HudMessages>()])
+@GenerateNiceMocks([MockSpec<PacketListenerBindings>()])
+@GenerateNiceMocks([MockSpec<ConnectionFrameHandler>()])
+@GenerateNiceMocks([MockSpec<ByteWorld>()])
+@GenerateNiceMocks([MockSpec<PeerWrapper>()])
+@GenerateNiceMocks([MockSpec<FpsCounter>()])
+@GenerateNiceMocks([MockSpec<WormWorld>()])
+@GenerateNiceMocks([MockSpec<ConnectionFactory>()])
+@GenerateNiceMocks([MockSpec<ConnectionWrapper>()])
+@GenerateNiceMocks([MockSpec<KeyState>()])
+@GenerateNiceMocks([MockSpec<GameState>()])
+@GenerateNiceMocks([MockSpec<SpriteIndex>()])
+@GenerateNiceMocks([MockSpec<ChunkHelper>()])
+@GenerateNiceMocks([MockSpec<LocalPlayerSprite>()])
+@GenerateNiceMocks([MockSpec<PlayerWorldSelector>()])
 
-class MockSpriteIndex extends Mock implements SpriteIndex {}
 
-class MockImageIndex extends Mock implements ImageIndex {}
-
-class MockWormWorld extends Mock implements WormWorld {}
-
-class MockFpsCounter extends Mock implements FpsCounter {}
-
-class MockNetwork extends Mock implements Network {}
+// class MockImageIndex extends Mock implements ImageIndex {}
 
 class MockConfigParams extends Mock implements ConfigParams { }
 
-class MockChunkHelper extends Mock implements ChunkHelper {}
 
-class MockGameState extends Mock implements GameState {}
-
-class MockByteWorld extends Mock implements ByteWorld {}
-
-class MockPeerWrapper extends Mock implements PeerWrapper {}
-
-class MockKeyState extends Mock implements KeyState {}
-
-class MockConnectionFactory extends Mock implements ConnectionFactory { }
-
-class MockConnectionWrapper extends Mock implements ConnectionWrapper { }

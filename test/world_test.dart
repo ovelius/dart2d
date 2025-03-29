@@ -1,13 +1,18 @@
 import 'package:test/test.dart';
+import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/phys/vec2.dart';
 
-ByteWorld byteWorld;
+late ByteWorld byteWorld;
 
 void main() {
+  setUpAll(() {
+    configureDependencies();
+  });
+
   setUp(() {
     logOutputForTest();
     testConnections.clear();
@@ -25,7 +30,7 @@ void main() {
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
       worldA.frameDraw();
-      worldA.spriteIndex[playerId(0)].position = new Vec2();
+      worldA.spriteIndex[playerId(0)]!.position = new Vec2();
       
       _TestSprite sprite = new _TestSprite.withVecPosition(new Vec2());
       
@@ -53,7 +58,7 @@ void main() {
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
       worldA.frameDraw();
-      LocalPlayerSprite player = worldA.spriteIndex[playerId(0)];
+      LocalPlayerSprite player = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       player.position = new Vec2();
       player.velocity = new Vec2();
 
@@ -93,7 +98,7 @@ class _TestSprite extends Sprite {
         : super(position, new Vec2(1.0, 1.0), SpriteType.RECT);
   
   @override
-  frame(double duration, int frameStep, [Vec2 gravity]) {
+  frame(double duration, int frameStep, [Vec2? gravity]) {
     frameCalls++;
   }
   

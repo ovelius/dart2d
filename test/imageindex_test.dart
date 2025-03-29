@@ -1,22 +1,27 @@
 import 'package:test/test.dart';
+import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 
 void main() {
-  Map<String, String> localStorage;
-  ImageIndex index;
-  FakeImageFactory fakeImageFactory;
-  _FakeCanvas _fakeCanvas;
+  late TestLocalStorage localStorage;
+  late ImageIndex index;
+  late FakeImageFactory fakeImageFactory;
+  late FakeCanvasFactory fakeCanvasFactory;
+
+  setUpAll((){
+    configureDependencies();
+  });
 
   setUp(() {
     logOutputForTest();
-    localStorage = new Map<String, String>();
+    localStorage =  new TestLocalStorage();
     fakeImageFactory = new FakeImageFactory();
-    _fakeCanvas = new _FakeCanvas();
+    fakeCanvasFactory = new FakeCanvasFactory();
     index = new ImageIndex(new ConfigParams({}), localStorage,
-        new DynamicFactory((args) => _fakeCanvas), fakeImageFactory);
+        fakeCanvasFactory, fakeImageFactory);
   });
 
   tearDown(() {
@@ -36,7 +41,7 @@ void main() {
     // Check caching.
     for (String name in index.allImagesByName().keys) {
       FakeImage img = index.getImageByName(name);
-      expect(img.src, localStorage["img$name"]);
+      expect(localStorage["img$name"], TEST_DATA_URL);
     }
   });
 
@@ -73,7 +78,7 @@ void main() {
     // Check caching.
     for (String name in index.allImagesByName().keys) {
       FakeImage img = index.getImageByName(name);
-      expect(img.src, localStorage["img$name"]);
+      expect(localStorage["img$name"], TEST_DATA_URL);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
   });
@@ -112,7 +117,7 @@ void main() {
     // Check caching.
     for (String name in index.allImagesByName().keys) {
       FakeImage img = index.getImageByName(name);
-      expect(img.src, localStorage["img$name"]);
+      expect(localStorage["img$name"], TEST_DATA_URL);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
   });
@@ -172,25 +177,4 @@ void main() {
 
     expect(index.finishedLoadingImages(), isFalse);
   });
-}
-
-class _FakeCanvas {
-  FakeImage image;
-
-  _FakeCanvas context2D;
-
-  _FakeCanvas() {
-    this.context2D = this;
-  }
-
-  void drawImage(image, int a, int b) {
-    this.image = image;
-  }
-
-  String toDataUrl([String format = ""]) {
-    if (image == null) {
-      throw new StateError("No image drawn!");
-    }
-    return image.src;
-  }
 }

@@ -1,23 +1,26 @@
+import 'package:mockito/annotations.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'lib/test_lib.dart';
+import 'lib/test_mocks.mocks.dart';
+
 
 void main() {
   const String IMAGE_DATA =
       "12345678901234567890123456789012345678901234567890";
   const String BYTE_WORLD_IMAGE_DATA = "abcdefghijklmonpqrstuv";
   const String BYTE_WORLD_IMAGE_DATA2 = "aaaaaaaaaaaaaaaaaaa";
-  TestConnectionWrapper connection1;
-  TestConnectionWrapper connection2;
-  PacketListenerBindings packetListenerBindings;
-  ChunkHelper helper;
-  ChunkHelper helper2;
-  ImageIndex imageIndex;
-  ImageIndex imageIndex2;
-  ByteWorld byteWorld;
+  late TestConnectionWrapper connection1;
+  late TestConnectionWrapper connection2;
+  late PacketListenerBindings packetListenerBindings;
+  late ChunkHelper helper;
+  late ChunkHelper helper2;
+  late MockImageIndex imageIndex;
+  late MockImageIndex imageIndex2;
+  late ByteWorld byteWorld;
   setUp(() {
     logOutputForTest();
     connection1 = new TestConnectionWrapper("a");
@@ -88,12 +91,13 @@ void main() {
       when(imageIndex2.addFromImageData(requestedIndex, IMAGE_DATA))
           .thenAnswer((i) {
         when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
+        return Future.value();
       });
 
       Map request = helper2.buildImageChunkRequest(requestedIndex);
       helper.replyWithImageData(request, connection1);
       helper2.parseImageChunkResponse(
-          connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
+          connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
 
       String fullData = IMAGE_DATA;
       String expectedData = fullData.substring(0, 4);
@@ -104,7 +108,7 @@ void main() {
         Map request = helper2.buildImageChunkRequest(requestedIndex);
         helper.replyWithImageData(request, connection1);
         helper2.parseImageChunkResponse(
-            connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
+            connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
       }
 
       expect(IMAGE_DATA, equals(fullData));
@@ -118,7 +122,7 @@ void main() {
       try {
         helper.replyWithImageData(request, connection1);
         fail("Should throw!");
-      } catch (e, stack) {
+      } catch (e) {
         expect(e, isStateError);
       }
       // We triggered the fallback to load from server.
@@ -128,7 +132,7 @@ void main() {
     test('Test end-2-end', () {
       int requestedIndex = 9;
       int requestedIndex2 = 6;
-      Map connections = {1: connection1};
+      Map<String, ConnectionWrapper> connections = {"1": connection1};
 
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       when(imageIndex.getImageDataUrl(requestedIndex2)).thenReturn(IMAGE_DATA);
@@ -143,6 +147,7 @@ void main() {
       when(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA))
           .thenAnswer((i) {
         when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+        return Future.value();
       });
 
       // Loop until completed.
@@ -152,15 +157,15 @@ void main() {
         }
         helper.requestNetworkData(connections, 0.1);
         helper2.replyWithImageData(
-            connection1.lastDataSent[IMAGE_DATA_REQUEST], connection1);
+            connection1.lastDataSent![IMAGE_DATA_REQUEST], connection1);
         helper.parseImageChunkResponse(
-            connection1.lastDataSent[IMAGE_DATA_RESPONSE], connection1);
+            connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
       }
       // Fully loaded.
       expect(imageIndex.imageIsLoaded(requestedIndex), isTrue);
     });
     test('Test retries', () {
-      Map connections = {connection1.id: connection1};
+      Map<String, ConnectionWrapper> connections = {connection1.id: connection1};
       when(imageIndex.getImageDataUrl(argThat(anything)))
           .thenReturn(IMAGE_DATA);
       when(imageIndex.imageIsLoaded(argThat(anything))).thenReturn(false);
@@ -194,7 +199,7 @@ void main() {
     });
     test('Test with byteworld state', () {
       int requestedIndex = ImageIndex.WORLD_IMAGE_INDEX;
-      Map connections = {1: connection1};
+      Map<String, ConnectionWrapper> connections = {"1": connection1};
 
       when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA);
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
@@ -204,7 +209,7 @@ void main() {
 
       helper.requestNetworkData(connections, 0.01);
       helper.replyWithImageData(
-          connection1.lastDataSent[IMAGE_DATA_REQUEST], connection1);
+          connection1.lastDataSent![IMAGE_DATA_REQUEST], connection1);
       expect(
           connection1.lastDataSent,
           equals({
@@ -221,10 +226,10 @@ void main() {
       // Another connection comes along.
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
       when(byteWorld.asDataUrl()).thenReturn(BYTE_WORLD_IMAGE_DATA2);
-      Map connections2 = {2: connection2};
+      Map<String, ConnectionWrapper> connections2 = {"2": connection2};
       helper2.requestNetworkData(connections2, 0.01);
       helper.replyWithImageData(
-          connection2.lastDataSent[IMAGE_DATA_REQUEST], connection2);
+          connection2.lastDataSent![IMAGE_DATA_REQUEST], connection2);
       // Gets Byteworld 2 data.
       expect(
           connection2.lastDataSent,

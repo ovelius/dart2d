@@ -1,7 +1,7 @@
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:dart2d/net/net.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:dart2d/net/connection.dart';
 import 'worm_world.dart';
 import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
@@ -17,7 +17,7 @@ Map<int, String> _KEY_TO_NAME = {
 
 String toKey(int code) {
   if (_KEY_TO_NAME.containsKey(code)) {
-    return _KEY_TO_NAME[code];
+    return _KEY_TO_NAME[code]!;
   }
   return new String.fromCharCode(code);
 }
@@ -35,7 +35,7 @@ void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelp
     for (String key in playerSprite.getControls().keys) {
       int x = height ~/ 3;
       int y = 70 + i * 30;
-      String current = toKey(playerSprite.getControls()[key]);
+      String current = toKey(playerSprite.getControls()[key]!);
       context.fillText("${key}: ${current}", x, y);
       i--;
     }
@@ -66,14 +66,14 @@ void drawPlayerStats(
 
   for (int i = 0; i < infoList.length; i++) {
     PlayerInfo info = infoList[i];
-    LocalPlayerSprite sprite = spriteIndex[info.spriteId];
+    Sprite? sprite = spriteIndex[info.spriteId];
     // Can happen when starting a game...
     if (sprite == null) {
       log.warning("Not drawing ${info}, sprite is missing");
       continue;
     }
     var img = imageIndex.getImageById(sprite.imageId);
-    int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId].expectedLatency().inMilliseconds : 0;
+    int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId]!.expectedLatency().inMilliseconds : 0;
     String text;
     if (netIssue && gameState.actingCommanderId == info.connectionId) {
       Random r = new Random();
@@ -103,19 +103,15 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
 
-  if (player == null || player.inGame()) {
+  if (player.inGame()) {
     return;
   }
   context.setFillColorRgb(0, 0, 0, 0.5);
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
   GameState gameState = world.network().getGameState();
-  PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId);
-  assert (winner != null);
-  LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId];
-  if (killerSprite == null) {
-    return;
-  }
+  PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId!)!;
+  LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
   var img = imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
   String text = "${winner.name} you're winner!";
@@ -146,20 +142,17 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
 
-  if (player == null || player.inGame()) {
+  if (player.inGame()) {
     return;
   }
   context.setFillColorRgb(0, 0, 0, 0.5);
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
-  PlayerInfo killer = player.killer;
+  PlayerInfo? killer = player.killer;
   if (killer == null || killer == player.info) {
     return;
   }
-  LocalPlayerSprite killerSprite = spriteIndex[killer.spriteId];
-  if (killerSprite == null) {
-    return;
-  }
+  LocalPlayerSprite killerSprite = spriteIndex[killer.spriteId] as LocalPlayerSprite;
   var img = imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
   String text = "You were killed by ${killer.name}";

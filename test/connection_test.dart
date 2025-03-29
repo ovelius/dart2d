@@ -5,20 +5,21 @@ import 'package:dart2d/util/util.dart';
 import 'package:mockito/mockito.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'lib/test_mocks.mocks.dart';
 
 void main() {
-  MockNetwork mockNetwork;
-  ConfigParams testConfigParams;
-  MockHudMessages mockHudMessages;
-  PacketListenerBindings packetListenerBindings;
-  ConnectionWrapper connection;
-  TestConnection testConnection;
+  late MockNetwork mockNetwork;
+  late ConfigParams testConfigParams;
+  late MockHudMessages mockHudMessages;
+  late PacketListenerBindings packetListenerBindings;
+  late ConnectionWrapper connection;
+  late TestConnection testConnection;
 
   setUp(() {
     logOutputForTest();
     remapKeyNamesForTest();
     mockNetwork = new MockNetwork();
-    when(mockNetwork.getPeer()).thenReturn(new Mock());
+    when(mockNetwork.getPeer()).thenReturn(MockPeerWrapper());
     when(mockNetwork.isCommander()).thenReturn(false);
     mockHudMessages = new MockHudMessages();
     testConfigParams = new ConfigParams({});
@@ -58,7 +59,7 @@ void main() {
         }));
 
     expectWarningContaining("Data receipt 123456789");
-    connection.receiveData(JSON.encode({
+    connection.receiveData(jsonEncode({
       KEY_FRAME_KEY: 1,
       DATA_RECEIPTS: [123456789, 743729159]
     }));
@@ -128,7 +129,7 @@ void main() {
     String reliableKey = RELIABLE_KEYS.keys.first;
     packetListenerBindings.bindHandler(
         reliableKey, (ConnectionWrapper c, Object o) {});
-    connection.receiveData(JSON.encode({
+    connection.receiveData(jsonEncode({
       KEY_FRAME_KEY: 0,
       reliableKey: "test",
       CONTAINED_DATA_RECEIPTS: [123, 456]
@@ -157,7 +158,7 @@ void main() {
 
   test('TestKeyFrameAck', () {
     connection.setHandshakeReceived();
-    connection.receiveData(JSON.encode({KEY_FRAME_KEY: 10, IS_KEY_FRAME_KEY: 99}));
+    connection.receiveData(jsonEncode({KEY_FRAME_KEY: 10, IS_KEY_FRAME_KEY: 99}));
     expect(connection.lastRemoteKeyFrame, equals(99));
     expect(connection.lastDeliveredKeyFrame, equals(10));
     connection.sendData({});

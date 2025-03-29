@@ -5,14 +5,16 @@ import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/util/util.dart';
 
+import 'lib/test_mocks.mocks.dart';
+
 void main() {
-  MockWormWorld mockWormWorld;
-  MockWormWorld mockCommanderWormWorld;
-  MockImageIndex mockImageIndex;
-  MockNetwork mockNetwork;
-  MockNetwork mockCommanderNetwork;
-  LocalPlayerSprite commanderSprite;
-  LocalPlayerSprite otherSprite;
+  late MockWormWorld mockWormWorld;
+  late MockWormWorld mockCommanderWormWorld;
+  late MockImageIndex mockImageIndex;
+  late MockNetwork mockNetwork;
+  late MockNetwork mockCommanderNetwork;
+  late LocalPlayerSprite commanderSprite;
+  late LocalPlayerSprite otherSprite;
   setUp(() {
     logOutputForTest();
     mockNetwork = new MockNetwork();

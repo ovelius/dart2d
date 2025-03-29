@@ -42,30 +42,30 @@ class LocalPlayerSprite extends MovingSprite {
     return _mappedControls.contains(code);
   }
 
-  WormWorld world;
+  late WormWorld world;
   int health = MAX_HEALTH;
   int _shieldPoints = 0;
   double _jetPackSec = 0.0;
-  Particles _jetParticles = null;
+  Particles? _jetParticles = null;
 
-  PlayerInfo info;
-  PlayerInfo _killer = null;
-  Rope rope;
-  MobileControls _mobileControls;
-  double _gunAngleTouchLock = null;
-  WeaponState weaponState;
+  late PlayerInfo info;
+  PlayerInfo? _killer = null;
+  Rope? rope = null;
+  MobileControls? _mobileControls;
+  double? _gunAngleTouchLock = null;
+  WeaponState? weaponState = null;
 
   bool onGround = false;
 
   // Don't spawn player when created.
   double spawnIn = 10000000000.0;
 
-  MovingSprite gun;
+  late MovingSprite gun;
 
   double _shieldSec = -1.0;
-  StickySprite _shield;
+  late StickySprite _shield;
 
-  PlayerInfo get killer => _killer;
+  PlayerInfo? get killer => _killer;
 
   /**
    * Server constructor.
@@ -73,7 +73,7 @@ class LocalPlayerSprite extends MovingSprite {
   LocalPlayerSprite(
       WormWorld world,
       ImageIndex imageIndex,
-      MobileControls mobileControls,
+      MobileControls? mobileControls,
       PlayerInfo info,
       Vec2 position,
       int imageId)
@@ -87,22 +87,22 @@ class LocalPlayerSprite extends MovingSprite {
     this.weaponState =
         new WeaponState(world, info.remoteKeyState(), this, this.gun);
     this.listenFor("Next weapon", () {
-      weaponState.nextWeapon();
+      weaponState?.nextWeapon();
     });
     this.listenFor("Prev weapon", () {
-      weaponState.prevWeapon();
+      weaponState?.prevWeapon();
     });
   }
 
   StickySprite _createGun(ImageIndex index) {
-    Sprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"),
+    StickySprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"),
         index, Sprite.UNLIMITED_LIFETIME);
     sprite.size = new Vec2(30, 7).multiply(1.5);
     return sprite;
   }
 
   StickySprite _createShield(ImageIndex index) {
-    MovingSprite shield = new StickySprite(this, index.getImageIdByName("shield.png"),
+    StickySprite shield = new StickySprite(this, index.getImageIdByName("shield.png"),
         index, Sprite.UNLIMITED_LIFETIME);
     shield.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE.multiply(1.5);
     shield.rotationVelocity = 200.0;
@@ -121,12 +121,12 @@ class LocalPlayerSprite extends MovingSprite {
     data.add(spawnIn * DOUBLE_INT_CONVERSION);
     data.add(_shieldPoints);
     if (_killer != null) {
-      data.add(_killer.connectionId);
+      data.add(_killer!.connectionId);
     } else {
       data.add("");
     }
     if (weaponState != null) {
-      data.add(weaponState.addServerToOwnerData(data));
+      data.add(weaponState!.addServerToOwnerData(data));
     }
   }
 
@@ -138,13 +138,13 @@ class LocalPlayerSprite extends MovingSprite {
     String killerId = data[startAt + 4];
     _killer = world.network().gameState.playerInfoByConnectionId(killerId);
     if (data.length > 6) {
-      this.weaponState.parseServerToOwnerData(data, startAt + 5);
+      this.weaponState?.parseServerToOwnerData(data, startAt + 5);
     }
     return true;
   }
 
-  collide(MovingSprite other, ByteWorld world, int direction) {
-    if (world != null) {
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
+    if (world != null && direction != null) {
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         onGround = true;
         if (velocity.y > 0.5) {
@@ -154,7 +154,7 @@ class LocalPlayerSprite extends MovingSprite {
         }
         // Check one more time, but y -1.
         while (world.isCanvasCollide(
-            position.x + 1, position.y + size.y - 1.0, size.x - 1, 1)) {
+            (position.x + 1).toInt(), (position.y + size.y - 1.0).toInt(), (size.x - 1).toInt(), 1)) {
           position.y--;
         }
       }
@@ -180,7 +180,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool inGame() {
-    return info != null && info.inGame;
+    return info.inGame == true;
   }
 
   draw(var context, bool debug) {
@@ -188,14 +188,12 @@ class LocalPlayerSprite extends MovingSprite {
       this.velocity.x = 0.0;
       this.velocity.y = 0.0;
       if (rope != null) {
-        rope.remove = true;
+        rope!.remove = true;
         rope = null;
       }
       return;
     }
-    if (weaponState != null) {
-      weaponState.draw(context);
-    }
+    weaponState?.draw(context);
     context.save();
     gun.draw(context, debug);
     context.restore();
@@ -280,7 +278,7 @@ class LocalPlayerSprite extends MovingSprite {
     return true;
   }
 
-  frame(double duration, int frames, [Vec2 gravity]) {
+  frame(double duration, int frames, [Vec2? gravity]) {
     maybeRespawn(duration);
     checkControlKeys(duration);
     checkShouldFire();
@@ -289,9 +287,7 @@ class LocalPlayerSprite extends MovingSprite {
     _shield.frame(duration, frames, gravity);
     _shieldSec -= duration;
     _jetPackSec -= duration;
-    if (weaponState != null) {
-      weaponState.think(duration);
-    }
+    weaponState?.think(duration);
     if (velocity.x.abs() < 10.0) {
       this.frameIndex = 0;
     }
@@ -307,21 +303,21 @@ class LocalPlayerSprite extends MovingSprite {
     if (!inGame()) {
       return true;
     }
-    double left = keyIsDownStrength("Left");
-    double right = keyIsDownStrength("Right");
-    double aimUp = keyIsDownStrength("Aim up");
-    double aimDown = keyIsDownStrength("Aim down");
+    double? left = keyIsDownStrength("Left");
+    double? right = keyIsDownStrength("Right");
+    double? aimUp = keyIsDownStrength("Aim up");
+    double? aimDown = keyIsDownStrength("Aim down");
 
     _applyVel(right, left);
 
     if (keyIsDown("Jump") && rope != null) {
-      world.removeSprite(rope.networkId);
+      world.removeSprite(rope!.networkId!);
       rope = null;
     }
 
     if (_jetPackSec <= 0 || !keyIsDown("Jump")) {
       if (_jetParticles != null) {
-        _jetParticles.remove = true;
+        _jetParticles!.remove = true;
         _jetParticles = null;
       }
     }
@@ -329,15 +325,15 @@ class LocalPlayerSprite extends MovingSprite {
     if (keyIsDown("Jump")) {
       if (_jetPackSec > 0) {
         velocity.y -= 700 * duration;
-        if (_jetParticles != null && _jetParticles.remove) {
+        if (_jetParticles != null && _jetParticles!.remove) {
           _jetParticles = null;
         }
         if (_jetParticles == null) {
-          _jetParticles = new Particles(weaponState.world,
+          _jetParticles = new Particles(weaponState!.world,
               this, new Vec2.copy(this.position), new Vec2(0, velocity.y + 50),
               new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, Particles.SODA);
-          _jetParticles.sendToNetwork = true;
-          world.addSprite(_jetParticles);
+          _jetParticles!.sendToNetwork = true;
+          world.addSprite(_jetParticles!);
         }
       } else if (onGround) {
         velocity.y -= 200.0;
@@ -356,8 +352,8 @@ class LocalPlayerSprite extends MovingSprite {
     }
 
     assert(_mobileControls != null);
-    Point<int> delta = _mobileControls.getTouchDeltaForButton();
-    if (_mobileControls.buttonIsDown()) {
+    Point<int>? delta = _mobileControls!.getTouchDeltaForButton();
+    if (_mobileControls!.buttonIsDown()) {
       if (_gunAngleTouchLock == null) {
         _gunAngleTouchLock = gun.angle;
       }
@@ -374,7 +370,7 @@ class LocalPlayerSprite extends MovingSprite {
    return 0;
   }
 
-  void _applyVel(double right, double left) {
+  void _applyVel(double? right, double? left) {
     if (left != null) {
       if (velocity.x > -100) {
         velocity.x -= 20.0 * left;
@@ -385,13 +381,13 @@ class LocalPlayerSprite extends MovingSprite {
       if (velocity.x < -100) {
         velocity.x = -100.0;
       }
-      if (angle < PI * 2) {
-        gun.angle -= (gun.angle + PI / 2) * 2;
+      if (angle < pi * 2) {
+        gun.angle -= (gun.angle + pi / 2) * 2;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;
+          _gunAngleTouchLock = _gunAngleTouchLock! - (_gunAngleTouchLock! + pi / 2) * 2;
           ;
         }
-        angle = PI * 2 + 0.01;
+        angle = pi * 2 + 0.01;
       }
     } else if (right != null) {
       if (velocity.x < 100 * right) {
@@ -405,10 +401,10 @@ class LocalPlayerSprite extends MovingSprite {
       }
       if (angle != 0.0) {
         angle = 0.0;
-        gun.angle -= (gun.angle + PI / 2) * 2;
+        gun.angle -= (gun.angle + pi / 2) * 2;
         ;
         if (_gunAngleTouchLock != null) {
-          _gunAngleTouchLock -= (_gunAngleTouchLock + PI / 2) * 2;
+          _gunAngleTouchLock = _gunAngleTouchLock! - (_gunAngleTouchLock! + pi / 2) * 2;
           ;
         }
       }
@@ -419,20 +415,20 @@ class LocalPlayerSprite extends MovingSprite {
 
   bool checkMobileControls(int xD, yD) {
     if (angle != 0.0) {
-      gun.angle = _gunAngleTouchLock + (yD * 0.02);
-      if (gun.angle > -PI / 2) {
-        gun.angle = -PI / 2;
+      gun.angle = _gunAngleTouchLock! + (yD * 0.02);
+      if (gun.angle > -pi / 2) {
+        gun.angle = -pi / 2;
       }
-      if (gun.angle < -(PI + PI / 3)) {
-        gun.angle = -(PI + PI / 3);
+      if (gun.angle < -(pi + pi / 3)) {
+        gun.angle = -(pi + pi / 3);
       }
     } else {
-      gun.angle = _gunAngleTouchLock - (yD * 0.02);
-      if (gun.angle > PI / 3) {
-        gun.angle = PI / 3;
+      gun.angle = _gunAngleTouchLock! - (yD * 0.02);
+      if (gun.angle > pi / 3) {
+        gun.angle = pi / 3;
       }
-      if (gun.angle < -PI / 2) {
-        gun.angle = -PI / 2;
+      if (gun.angle < -pi / 2) {
+        gun.angle = -pi / 2;
       }
     }
 
@@ -448,8 +444,8 @@ class LocalPlayerSprite extends MovingSprite {
     if (!world.network().isCommander()) {
       return false;
     }
-    if (keyIsDown("Fire") && inGame() && weaponState != null) {
-      weaponState.fire();
+    if (keyIsDown("Fire") && inGame()) {
+      weaponState?.fire();
     }
     return true;
   }
@@ -457,13 +453,13 @@ class LocalPlayerSprite extends MovingSprite {
   void _gunDown(double duration) {
     if (angle != 0.0) {
       gun.angle -= duration * 4.0;
-      if (gun.angle < -(PI + PI / 3)) {
-        gun.angle = -(PI + PI / 3);
+      if (gun.angle < -(pi + pi / 3)) {
+        gun.angle = -(pi + pi / 3);
       }
     } else {
       gun.angle += duration * 4.0;
-      if (gun.angle > PI / 3) {
-        gun.angle = PI / 3;
+      if (gun.angle > pi / 3) {
+        gun.angle = pi / 3;
       }
     }
   }
@@ -472,23 +468,23 @@ class LocalPlayerSprite extends MovingSprite {
     // Diffent if facing left or right.
     if (angle != 0.0) {
       gun.angle += duration * 4.0;
-      if (gun.angle > -PI / 2) {
-        gun.angle = -PI / 2;
+      if (gun.angle > -pi / 2) {
+        gun.angle = -pi / 2;
       }
     } else {
       gun.angle -= duration * 4.0;
-      if (gun.angle < -PI / 2) {
-        gun.angle = -PI / 2;
+      if (gun.angle < -pi / 2) {
+        gun.angle = -pi / 2;
       }
     }
   }
 
   void _fireRope() {
     if (rope != null) {
-      world.removeSprite(rope.networkId);
+      world.removeSprite(rope!.networkId!);
     }
     rope = new Rope.createWithOwner(this.world, this, this.gun.angle, 600.0);
-    world.addSprite(rope);
+    world.addSprite(rope!);
   }
 
   bool takesDamage() {
@@ -521,12 +517,12 @@ class LocalPlayerSprite extends MovingSprite {
             ? world
             .network()
             .gameState
-            .playerInfoBySpriteId(inflictor.networkId)
+            .playerInfoBySpriteId(inflictor.networkId!)
             : null;
         if (_killer != null && _killer != info) {
-          _killer.score++;
+          _killer!.score++;
           world.gaReporter().reportEvent("player_frags", "Frags");
-          world.checkWinner(killer);
+          world.checkWinner(killer!);
         }
         spawnIn = RESPAWN_TIME;
         _deathMessage(mod);
@@ -540,7 +536,7 @@ class LocalPlayerSprite extends MovingSprite {
         world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
         world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
-        String message = killedMessage(info.name, killer.name, mod);
+        String message = killedMessage(info.name, killer!.name, mod);
         world.displayHudMessageAndSendToNetwork(message);
       }
     } else {
@@ -550,23 +546,23 @@ class LocalPlayerSprite extends MovingSprite {
 
   bool listenFor(String key, dynamic f) {
     assert(getControls().containsKey(key));
-    info.remoteKeyState().registerListener(getControls()[key], f);
+    info.remoteKeyState().registerListener(getControls()[key]!, f);
     return true;
   }
 
   bool keyIsDown(String key) {
     assert(getControls().containsKey(key));
-    return info.remoteKeyState().keyIsDown(getControls()[key]);
+    return info.remoteKeyState().keyIsDown(getControls()[key]!);
   }
 
-  double keyIsDownStrength(String key) {
+  double? keyIsDownStrength(String key) {
     assert(getControls().containsKey(key));
-    return info.remoteKeyState().keyIsDownStrength(getControls()[key]);
+    return info.remoteKeyState().keyIsDownStrength(getControls()[key]!);
   }
 
   void addExtraNetworkData(List data) {
     data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
-    data.add(weaponState.selectedWeaponIndex);
+    data.add(weaponState!.selectedWeaponIndex);
     if (world.network().isCommander()) {
       data.add(health);
       data.add(_shieldPoints);
@@ -578,7 +574,7 @@ class LocalPlayerSprite extends MovingSprite {
     gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
     if (weaponState != null) {
       if (!_ownedByThisWorld()) {
-        weaponState.selectedWeaponIndex = data[startAt + 1];
+        weaponState!.selectedWeaponIndex = data[startAt + 1];
       }
     }
     if (data.length > startAt + 2) {

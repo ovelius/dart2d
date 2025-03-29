@@ -1,37 +1,53 @@
 library spaceworld;
 
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'dart:math';
-import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
-import 'dart:js';
-import 'package:di/di.dart';
-import 'package:dart2d/res/imageindex.dart';
+import 'dart:js_interop';
+import 'package:web/web.dart';
+import 'injector.dart';
+import 'injector.config.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'dart:html';
-import 'dart:convert';
 import 'dart:async';
 
-const bool USE_LOCAL_HOST_PEER = false;
+const bool RELOAD_ON_ERROR = false;
 const int TIMEOUT_MILLIS = 21;
 const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
 final Logger log = new Logger('WormWorldMain');
 
-DateTime lastStep;
-WormWorld world;
-RealGaReporter realGaReporter;
+late DateTime lastStep;
+late WormWorld world;
+late GaReporter gaReporter;
+late ServerChannel _serverChannel;
+
 List iceServers = [
-  {'url': 'stun:stun.l.google.com:19302'}
+  {'url': 'stun:turn.goog'}
 ];
 
+JSArray<RTCIceServer> getIceServers() {
+  JSArray<RTCIceServer> servers = JSArray<RTCIceServer>();
+  iceServers.forEach((string) {
+    servers.add(RTCIceServer(urls: string));
+  });
+  return servers;
+}
+
+RTCConfiguration getRtcConfiguration() {
+  return RTCConfiguration(iceServers:  getIceServers());
+}
+
 void main() {
+  configureDependencies();
   String url = "";
   if (url.isEmpty) {
     init();
     return;
   }
+  /*
   HttpRequest request = new HttpRequest();
   request.open("POST", url, async: true);
   request.onReadyStateChange.listen((_) {
@@ -47,45 +63,20 @@ void main() {
       }
     }
   });
-  request.send("{}");
+  request.send("{}"); */
 }
 
 void init() {
-  CanvasElement canvasElement = (querySelector("#canvas") as CanvasElement);
-  //TODO should we really to this?
+  HTMLCanvasElement canvasElement = (document.querySelector("#canvas") as HTMLCanvasElement);
   canvasElement.width =
       min(canvasElement.width, max(window.screen.width, window.screen.height));
   canvasElement.height =
       min(canvasElement.height, min(window.screen.width, window.screen.height));
 
-  var injector = new ModuleInjector([
-    new Module()
-      ..bind(int,
-          withAnnotation: const WorldWidth(), toValue: canvasElement.width)
-      ..bind(int,
-          withAnnotation: const WorldHeight(), toValue: canvasElement.height)
-      ..bind(bool,
-          withAnnotation: const TouchControls(), toValue: TouchEvent.supported)
-      ..bind(Map,
-          withAnnotation: const LocalStorage(), toValue: window.localStorage)
-      ..bind(Map,
-          withAnnotation: const UriParameters(),
-          toValue: Uri.base.queryParametersAll)
-      ..bind(Object,
-          withAnnotation: const WorldCanvas(), toValue: canvasElement)
-      ..bind(Object, withAnnotation: const HtmlScreen(), toValue: window.screen)
-      ..install(new HtmlDomBindingsModule())
-      ..install(new UtilModule())
-      ..install(new NetModule())
-      ..install(new WorldModule())
-      ..bind(KeyState,
-          withAnnotation: const LocalKeyState(), toValue: new KeyState())
-      ..bind(FpsCounter,
-          withAnnotation: const ServerFrameCounter(), toInstanceOf: FpsCounter)
-      ..bind(ImageIndex)
-      ..bind(SpriteIndex)
-  ]);
-  world = injector.get(WormWorld);
+  getIt.initWorldScope();
+  world = getIt<WormWorld>();
+  gaReporter = getIt<GaReporter>();
+  _serverChannel = getIt<ServerChannel>();
 
   setKeyListeners(world, canvasElement);
 
@@ -96,30 +87,30 @@ void init() {
     print(msg);
   });
 
-  querySelector("#sendMsg").onClick.listen((e) {
-    var message = (querySelector("#chatMsg") as InputElement).value;
+  document.querySelector("#sendMsg")!.onClick.listen((e) {
+    var message = (document.querySelector("#chatMsg") as HTMLInputElement).value;
     world.displayHudMessageAndSendToNetwork(
-        "${window.localStorage['playerName']}: ${message}");
+        "${window.localStorage.getItem('playerName')}: ${message}");
   });
 
   // TODO register using named keys instead.
-  MobileControls controls = injector.get(MobileControls);
+  MobileControls controls = getIt<MobileControls>();
   canvasElement.onTouchStart.listen((TouchEvent e) {
     e.preventDefault();
-    e.changedTouches.forEach((Touch t) {
-      controls.touchDown(t.identifier, t.page.x, t.page.y);
+    e.changedTouches.toList().forEach((Touch t) {
+      controls.touchDown(t.identifier, t.pageX.toInt(), t.pageY.toInt());
     });
   });
   canvasElement.onTouchEnd.listen((TouchEvent e) {
     e.preventDefault();
-    e.changedTouches.forEach((Touch t) {
+    e.changedTouches.toList().forEach((Touch t) {
       controls.touchUp(t.identifier);
     });
   });
   canvasElement.onTouchMove.listen((TouchEvent e) {
     e.preventDefault();
-    e.changedTouches.forEach((Touch t) {
-      controls.touchMove(t.identifier, t.page.x, t.page.y);
+    e.changedTouches.toList().forEach((Touch t) {
+      controls.touchMove(t.identifier, t.pageX.toInt(), t.pageY.toInt());
     });
   });
 
@@ -137,16 +128,17 @@ void step() {
   assert(millis >= 0);
   double secs = millis / 1000.0;
 
-  try {
+  //try {
     world.frameDraw(secs);
+  /*
   } catch (e, s) {
     log.severe("Main loop crash, reloading", e, s);
-    realGaReporter.reportEvent("crash", sanitizeStack(s));
-    if (!USE_LOCAL_HOST_PEER) {
-      new Timer(new Duration(seconds: 6), window.location.reload);
+    gaReporter.reportEvent("crash", sanitizeStack(s));
+    if (RELOAD_ON_ERROR) {
+      new Timer(new Duration(seconds: 6), () { window.location.reload(); });
     }
     return;
-  }
+  }*/
 
   lastStep = startStep;
   int frameTimeMillis = new DateTime.now().millisecondsSinceEpoch -
@@ -160,94 +152,45 @@ String sanitizeStack(StackTrace s) {
 }
 
 void setKeyListeners(WormWorld world, var canvasElement) {
-  document.window.addEventListener("keydown", (KeyEvent e) { world.localKeyState.onKeyDown(e.keyCode); });
-  document.window.addEventListener("keyup", (KeyEvent e) { world.localKeyState.onKeyUp(e.keyCode); });
-
-  canvasElement.addEventListener("keydown", (KeyEvent e) { world.localKeyState.onKeyDown(e.keyCode); });
-  canvasElement.addEventListener("keyup", (KeyEvent e) { world.localKeyState.onKeyUp(e.keyCode); });
+  window.onkeydown = (KeyboardEvent e) {
+    world.localKeyState.onKeyDown(e.keyCode);
+  }.toJS;
+  window.onkeyup = (KeyboardEvent e) {
+    world.localKeyState.onKeyUp(e.keyCode);
+  }.toJS;
 }
 
-class WebSocketServerChannel extends ServerChannel {
-  WebSocket _socket;
-  bool _ready;
-
-  WebSocketServerChannel() {
-    _socket = new WebSocket(_socketUrl());
-    _socket.onOpen.listen((_) => _ready = true);
-    _socket.onClose.listen((_) => _ready = false);
-  }
-
-  sendData(Map<dynamic, dynamic> data) {
-    if (!_ready) {
-      throw new StateError("Socket not read! State is ${_socket.readyState}");
-    }
-    _socket.send(JSON.encoder.convert(data));
-  }
-
-  Stream<dynamic> dataStream() {
-    return _socket.onMessage.map((MessageEvent e) => JSON.decode(e.data));
-  }
-
-  void disconnect() {
-    _socket.close();
-  }
-
-  Stream<dynamic> reconnect(String id) {
-    if (_socket.readyState == 1) {
-      throw new StateError("Socket still open!");
-    }
-    _socket = new WebSocket(_socketUrl(id));
-    _socket.onOpen.listen((_) => _ready = true);
-    _socket.onClose.listen((_) => _ready = false);
-    return dataStream();
-  }
-
-  String _socketUrl([String id = null]) {
-    if (id != null) {
-      return USE_LOCAL_HOST_PEER
-          ? 'ws://127.0.0.1:8089/peerjs?id=$id'
-          : 'ws://anka.locutus.se:8089/peerjs?id=$id';
-    } else {
-      return USE_LOCAL_HOST_PEER
-          ? 'ws://127.0.0.1:8089/peerjs'
-          : 'ws://anka.locutus.se:8089/peerjs';
-    }
-  }
-
-  bool ready() => _ready;
-}
 
 /**
  * This is where the WebRTC magic happens.
  */
-@Injectable()
+@Injectable(as: ConnectionFactory)
 class RtcConnectionFactory extends ConnectionFactory {
   /**
    * Try to connect to a remote peer.
    */
-  connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
-    Map config = {'iceServers': iceServers};
-    RtcPeerConnection connection = new RtcPeerConnection(config);
+  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId) {
+    RTCPeerConnection connection = new RTCPeerConnection(getRtcConfiguration());
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
-    RtcDataChannel channel = connection
-        .createDataChannel('dart2d', {'ordered': false, 'maxRetransmits': 0});
+    RTCDataChannelInit init = RTCDataChannelInit(ordered: false, maxRetransmits: 0);
+    RTCDataChannel channel = connection.createDataChannel('dart2d', init);
     log.info(
         "Created DataChannel ${ourPeerId} <-> ${otherPeerId} maxRetransmits: ${channel.maxRetransmits} Ordered: ${channel.ordered}");
-    channel.onOpen.listen((_) {
+    channel.onopen = (Event event) {
       wrapper.readyDataChannel(channel);
       log.info("Outbound datachannel to ${otherPeerId} ready.");
-    });
-    channel.onMessage.listen((MessageEvent e) {
+    }.toJS;
+    channel.onmessage = (MessageEvent e) {
       if (!wrapper.hasReadyDataChannel()) {
         log.warning(
             "Receiving data on channel not marked as open, forcing open!");
         wrapper.readyDataChannel(channel);
       }
       wrapper.receiveData(e.data);
-    });
-    connection.createOffer().then((RtcSessionDescription desc) {
-      connection.setLocalDescription(desc).then((_) {
+    }.toJS;
+    connection.createOffer().toDart.then((dynamic desc) {
+      connection.setLocalDescription(desc).toDart.then((_) {
         _serverChannel.sendData({
           'type': 'OFFER',
           'payload': {
@@ -264,39 +207,41 @@ class RtcConnectionFactory extends ConnectionFactory {
   /**
    * Someone sent us an offer and wants to connect.
    */
-  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
+  createInboundConnection(dynamic wrapper, dynamic sdp,
       String otherPeerId, String ourPeerId) {
-    Map config = {'iceServers': iceServers};
+
     // Create a local peer object.
-    RtcPeerConnection connection = new RtcPeerConnection(config);
+    RTCPeerConnection connection = new RTCPeerConnection(getRtcConfiguration());
     // Make sure ICE candidates are sent to our remote peer.
     _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     // We expect there to be a datachannel available here eventually.
-    connection.onDataChannel.listen((RtcDataChannelEvent e) {
-      e.channel.onOpen.listen((_) {
+    connection.ondatachannel = (RTCDataChannelEvent e) {
+      e.channel.onopen = (Event openEvent) {
         wrapper.readyDataChannel(e.channel);
         log.info("Inbound datachannel to ${otherPeerId} ready.");
-      });
-      e.channel.onMessage.listen((MessageEvent messageEvent) {
+      }.toJS;
+      e.channel.onmessage = (MessageEvent messageEvent) {
         if (!wrapper.hasReadyDataChannel()) {
           log.warning(
               "Receiving data on channel not marked as open, forcing open!");
           wrapper.readyDataChannel(e.channel);
         }
         wrapper.receiveData(messageEvent.data);
-      });
-    });
+      }.toJS;
+    }.toJS;
     // Set our local peers remote description, what type of data thus the other
     // peer want us to receive?
-    connection.setRemoteDescription(new RtcSessionDescription(sdp));
+    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: sdp['type'], sdp: sdp['sdp']);
+    connection.setRemoteDescription(init);
     return connection;
   }
 
   _addConnectionListeners(
-      ConnectionWrapper wrapper, RtcPeerConnection connection) {
+      ConnectionWrapper wrapper, RTCPeerConnection connection) {
     wrapper.setRtcConnection(connection);
-    connection.onIceConnectionStateChange.listen((Event e) {
+
+    connection.oniceconnectionstatechange = (Event _) {
       if (connection.iceConnectionState == "checking") {
         // Do nothing...
       } else if (connection.iceConnectionState == "connected") {
@@ -313,42 +258,42 @@ class RtcConnectionFactory extends ConnectionFactory {
       }
       log.info(
           "ICE connection to ${wrapper.id} state ${connection.iceConnectionState}");
-    });
+    }.toJS;
   }
 
   _listenForAndSendIceCandidatesToPeer(
-      RtcPeerConnection connection, String ourPeerId, String otherPeerId) {
-    connection.onIceCandidate.listen((RtcIceCandidateEvent e) {
+      RTCPeerConnection connection, String ourPeerId, String otherPeerId) {
+
+    connection.onicecandidate = (RTCPeerConnectionIceEvent e) {
       if (e.candidate == null) {
-        log.warning("Received null ICE candidate :/");
+        log.warning("Received null ICE candidate - END OF CANDIDATES");
         return;
       }
       _serverChannel.sendData({
         'type': 'CANDIDATE',
         'payload': {
           'candidate': {
-            'candidate': e.candidate.candidate,
-            'sdpMLineIndex': e.candidate.sdpMLineIndex,
-            'sdpMid': e.candidate.sdpMid,
+            'candidate': e.candidate!.candidate,
           },
           'type': 'data',
         },
         'src': ourPeerId,
         'dst': otherPeerId
       });
-    });
+    }.toJS;
   }
 
   handleIceCandidateReceived(
-      RtcPeerConnection connection, dynamic iceCandidate) {
-    assert(connection != null, "Connection is null!");
-    RtcIceCandidate candidate = new RtcIceCandidate(iceCandidate);
-    connection.addIceCandidate(candidate);
+      dynamic connection, dynamic iceCandidate) {
+    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
+    RTCIceCandidateInit init = new RTCIceCandidateInit(candidate:iceCandidate['candidate'], sdpMLineIndex:0);
+    rtcPeerConnection.addIceCandidate(init);
   }
 
-  handleCreateAnswer(RtcPeerConnection connection, String src, String dst) {
-    connection.createAnswer().then((RtcSessionDescription desc) {
-      connection.setLocalDescription(desc).then((_) {
+  handleCreateAnswer(dynamic connection, String src, String dst) {
+    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
+    rtcPeerConnection.createAnswer().toDart.then((dynamic desc) {
+      rtcPeerConnection.setLocalDescription(desc).toDart.then((_) {
         _serverChannel.sendData({
           'type': 'ANSWER',
           'payload': {
@@ -363,57 +308,11 @@ class RtcConnectionFactory extends ConnectionFactory {
     });
   }
 
-  handleGotAnswer(RtcPeerConnection connection, dynamic sdp) {
-    connection.setRemoteDescription(new RtcSessionDescription(sdp));
+  handleGotAnswer(dynamic connection, dynamic sdp) {
+    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
+    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: sdp['type'], sdp:sdp['sdp']);
+    rtcPeerConnection.setRemoteDescription(init).toDart;
   }
 }
 
-WebSocketServerChannel _serverChannel;
 
-class HtmlDomBindingsModule extends Module {
-  HtmlDomBindingsModule() {
-    realGaReporter = new RealGaReporter();
-    bind(GaReporter, toValue: realGaReporter);
-    // Initialize server signalling channel.
-    _serverChannel = new WebSocketServerChannel();
-    bind(ServerChannel, toValue: _serverChannel);
-    bind(ConnectionFactory, toImplementation: RtcConnectionFactory);
-    bind(DynamicFactory,
-        withAnnotation: const ReloadFactory(),
-        toValue: new DynamicFactory((args) => window.location.reload()));
-    bind(DynamicFactory,
-        withAnnotation: const CanvasFactory(),
-        toValue: new DynamicFactory(
-            (args) => new CanvasElement(width: args[0], height: args[1])));
-    bind(DynamicFactory,
-        withAnnotation: const ImageDataFactory(),
-        toValue: new DynamicFactory((args) => new ImageData(args[0], args[1])));
-    bind(DynamicFactory, withAnnotation: const ImageFactory(),
-        toValue: new DynamicFactory((args) {
-      if (args.length == 0) {
-        return new ImageElement();
-      } else if (args.length == 1) {
-        return new ImageElement(src: args[0]);
-      } else {
-        return new ImageElement(width: args[0], height: args[1]);
-      }
-    }));
-  }
-}
-
-@Injectable()
-class RealGaReporter extends GaReporter {
-  reportEvent(String action, [String category, int count, String label]) {
-    Map data = {'eventAction': action, 'hitType': 'event'};
-    if (category != null) {
-      data['eventCategory'] = category;
-    }
-    if (count != null) {
-      data['eventValue'] = count;
-    }
-    if (label != null) {
-      data['eventLabel'] = label;
-    }
-    context.callMethod('ga', ['send', new JsObject.jsify(data)]);
-  }
-}

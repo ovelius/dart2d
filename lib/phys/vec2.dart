@@ -19,10 +19,10 @@ class Vec2 {
     return new Point(x.toInt(), y.toInt());
   }
 
-  double x;
-  double y;
+  double x = 0.0;
+  double y = 0.0;
   
-  Vec2([num x, y]) {
+  Vec2([num? x, y]) {
     this.x = x == null ? 0.0 : x.toDouble();
     this.y = y == null ? 0.0 : y.toDouble();
   }
@@ -37,14 +37,12 @@ class Vec2 {
     y = new Random().nextDouble() * ymax;
   }
 
-  Vec2.fromAngle(double rad, [double scale]) {
+  Vec2.fromAngle(double rad, [double scale = 1.0]) {
     x = cos(rad);
     y = sin(rad);
-    if (scale != null) {
-      x *= scale;
-      y *= scale;
+    x *= scale;
+    y *= scale;
     }
-  }
 
   operator +(Vec2 other) => new Vec2(x + other.x, y + other.y);
   operator -(Vec2 other) => new Vec2(x - other.x, y - other.y);

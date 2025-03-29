@@ -1,8 +1,8 @@
 library fps_counter;
 
-import 'package:di/di.dart';
+import 'package:injectable/injectable.dart';
 
-@Injectable()
+@Singleton(scope: 'world')
 class FpsCounter extends _FrameTrigger {
   FpsCounter() : super(1.0);
 }
@@ -10,7 +10,7 @@ class FpsCounter extends _FrameTrigger {
 class _FrameTrigger {
   double _period = 1.0;
   double _fps = 0.0;
-  double _fpsForTest = null;
+  double? _fpsForTest = null;
 
   double _nextTriggerIn = 1.0;
   int frames = 0;
@@ -36,7 +36,7 @@ class _FrameTrigger {
     return _fps.toStringAsFixed(2);
   }
 
-  double fps() => _fpsForTest == null ? _fps : _fpsForTest;
+  double fps() => _fpsForTest == null ? _fps : _fpsForTest!;
 
   setFpsForTest(double fps) {
     _fpsForTest = fps;

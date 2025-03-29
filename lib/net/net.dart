@@ -1,6 +1,5 @@
 library net;
 
-import 'package:di/di.dart';
 import "net.dart";
 
 export 'network.dart';
@@ -10,6 +9,7 @@ export 'state_updates.dart';
 export 'chunk_helper.dart';
 export 'helpers.dart';
 
+/*
 class NetModule extends Module {
  NetModule() {
    bind(Network);
@@ -17,3 +17,4 @@ class NetModule extends Module {
    bind(PacketListenerBindings);
  }
 }
+*/

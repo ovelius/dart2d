@@ -1,54 +1,57 @@
-import 'package:di/di.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:dart2d/util/hud_messages.dart';
+import 'package:injectable/injectable.dart';
 import 'dart:convert';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-@Injectable() // TODO: Make Injectable.
 class PeerWrapper {
   final Logger log = new Logger('Peer');
   static const MAX_AUTO_CONNECTIONS = 5;
   static const MAX_CONNECTION = 8;
   Network _network;
   ConnectionFactory _connectionFactory;
-  ServerChannel _serverChannel;
+  ServerChannel serverChannel;
   GaReporter _gaReporter;
   HudMessages _hudMessages;
   ConfigParams _configParams;
   PacketListenerBindings _packetListenerBindings;
-  String id = null;
+  String? id = null;
   bool _connectedToServer = false;
   Map<String, ConnectionWrapper> connections = {};
   var _error;
 
   // Store active ids from the server to connect to.
-  List<String> _activeIds = null;
-  // Peers we've never been able to connect to.
+  List<String>? _activeIds = null;
+  List<String>? get activeIds =>
+      _activeIds;
+
   Set<String> _blackListedIds = new Set();
   // Peers which we have has a connection to, but is now closed.
   Set<String> _closedConnectionPeers = new Set();
 
-  PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._configParams, this._serverChannel, this._packetListenerBindings, this._gaReporter) {
-    assert(_serverChannel != null);
-    _serverChannel.dataStream().listen((dynamic data) => _onServerMessage(data));
+  PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._configParams, this.serverChannel, this._packetListenerBindings, this._gaReporter) {
+    serverChannel.dataStream().listen((dynamic data) => _onServerMessage(data));
   }
 
   /**
    * Called to establish a connection to another peer.
    */
   ConnectionWrapper connectTo(String id) {
+    log.info("Creating connection to '${id}'");
+    if (this.id == null) {
+      throw "Can't create connection until ID is assigned!";
+    }
     _gaReporter.reportEvent("connection_created", "Connection");
-    assert(id != null);
-    if (connections.containsKey(id)) {
+    ConnectionWrapper? existingConnection = connections[id];
+    if (existingConnection != null) {
       log.warning("Already a connection to ${id}!");
-      return connections[id];
+      return existingConnection;
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
         id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams));
-    _connectionFactory.connectTo(connectionWrapper, this.id, id);
+    _connectionFactory.connectTo(connectionWrapper, this.id!, id);
     connections[id] = connectionWrapper;
     return connectionWrapper;
   }
@@ -58,14 +61,14 @@ class PeerWrapper {
    */
   void disconnect() {
     _connectedToServer = false;
-    _serverChannel.disconnect();
+    serverChannel.disconnect();
   }
 
   /**
    * Re-connect this peer to the server.
    */
   void reconnect() {
-    _serverChannel.reconnect(id)
+    serverChannel.reconnect(id!)
         .listen((dynamic data) => _onServerMessage(data));
     _connectedToServer = true;
   }
@@ -92,12 +95,11 @@ class PeerWrapper {
       ids.remove(this.id);
       log.info("Received active peers of $ids");
       _activeIds = ids;
-      autoConnectToPeers();
     } else {
       log.info("Using peersIds from URL parameters $configIds");
       _activeIds = configIds;
-      autoConnectToPeers();
     }
+    autoConnectToPeers();
   }
 
   bool hasMaxAutoConnections() => connections.length >= MAX_AUTO_CONNECTIONS;
@@ -106,8 +108,12 @@ class PeerWrapper {
    * Connect to peers. Maintain connectios.
    */
   bool autoConnectToPeers() {
+    List<String>? peerIds = _activeIds;
+    if (peerIds == null) {
+      throw "Can't execute autoconnect without PeerIds set";
+    }
     bool addedConnection = false;
-    for (String id in _activeIds) {
+    for (String id in peerIds) {
       // Don't connect to too many peers...
       if (connections.length >= MAX_AUTO_CONNECTIONS) {
         return addedConnection;
@@ -159,7 +165,7 @@ class PeerWrapper {
     Map frameData = {};
     Map keyFrameData = {};
     for (String key in connections.keys) {
-      ConnectionWrapper connection = connections[key];
+      ConnectionWrapper? connection = connections[key];
       if (connection == null) {
         // Can actually happen! How fun.
         continue;
@@ -181,15 +187,15 @@ class PeerWrapper {
   }
 
   void sendDataWithKeyFramesToAll(Map data,
-      [String dontSendTo, String onlySendTo]) {
+      [String? dontSendTo, String? onlySendTo]) {
     List<String> closedConnections = [];
     for (String key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
-      ConnectionWrapper connection = connections[key];
+      ConnectionWrapper? connection = connections[key];
       assert(connection != null);
-      if (dontSendTo != null && dontSendTo == connection.id) {
+      if (dontSendTo != null && dontSendTo == connection!.id) {
         continue;
       }
-      if (connection.isClosedConnection()) {
+      if (connection!.isClosedConnection()) {
         closedConnections.add(key);
         continue;
       }
@@ -209,7 +215,7 @@ class PeerWrapper {
    * See if connection with this ID is healthy.
    */
   void healthCheckConnection(String id) {
-    ConnectionWrapper wrapper = connections[id];
+    ConnectionWrapper? wrapper = connections[id];
     if (wrapper != null && wrapper.isClosedConnection()) {
       removeClosedConnection(id);
     }
@@ -220,8 +226,8 @@ class PeerWrapper {
    */
   void removeClosedConnection(String id) {
     // Start with a copy.
-    Map connectionsCopy = new Map.from(this.connections);
-    ConnectionWrapper wrapper = connectionsCopy[id];
+    Map<String, ConnectionWrapper> connectionsCopy = new Map.from(this.connections);
+    ConnectionWrapper? wrapper = connectionsCopy[id];
     log.info("Removing connection for ${id}");
     connectionsCopy.remove(id);
     if (_network.isCommander()) {
@@ -229,17 +235,18 @@ class PeerWrapper {
       _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.
     } else {
-      String commanderId = _network.findNewCommander(connectionsCopy);
+      String? commanderId = _network.findNewCommander(connectionsCopy);
       if (commanderId != null) {
         // We got elected the new server, first task is to remove the old.
         if (commanderId == this.id) {
           log.info("Server ${this.id}: Removing GameState for ${id}");
-          PlayerInfo info = _network.gameState.removeByConnectionId(_network.world, id);
-          log.info("Info is ${info} i am ${this.id}");
-          _network.convertToCommander(connectionsCopy, info);
-          _network.gameState.markAsUrgent();
+          PlayerInfo? info = _network.gameState.removeByConnectionId(_network.world, id);
+          if (info != null) {
+            _network.convertToCommander(connectionsCopy, info);
+            _network.gameState.markAsUrgent();
+          }
         } else {
-          PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId);
+          PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId)!;
           // Start treating the other peer as server.
           _network.gameState.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
@@ -264,7 +271,7 @@ class PeerWrapper {
     }
     // Close the underlying WebRTC connection.
     try {
-      wrapper.rtcConnection().close();
+      wrapper?.rtcConnection().close();
     } catch (e, s) {
       log.warning("Failed to close RTCConnection ${e}");
     }
@@ -280,13 +287,13 @@ class PeerWrapper {
     if (_activeIds == null) {
       return false;
     }
-    return _closedConnectionPeers.containsAll(_activeIds);
+    return _closedConnectionPeers.containsAll(_activeIds!);
   }
 
   bool noMoreConnectionsAvailable() {
     Set<String> activeAndClosedConnections = new Set.from(_closedConnectionPeers)
         ..addAll(connections.keys);
-    return activeAndClosedConnections.containsAll(_activeIds);
+    return activeAndClosedConnections.containsAll(_activeIds!);
   }
 
   /**
@@ -303,19 +310,19 @@ class PeerWrapper {
     log.fine("Got ServerChannel data ${json}");
     String type = json['type'];
     dynamic payload = json['payload'];
-    String src = json['src'];
-    String dst = json['dst'];
+    String? src = json['src'];
+    String? dst = json['dst'];
 
     switch (type) {
       case 'ACTIVE_IDS':
         _openPeer(json['id']);
-        _receivePeers(json['ids']);
+        _receivePeers(List<String>.from(json['ids']));
         break;
       case 'ERROR':
         log.severe("Got error from server ${payload}");
         break;
       case 'CANDIDATE':
-        ConnectionWrapper connection = connections[src];
+        ConnectionWrapper? connection = connections[src];
         if (connection == null) {
           log.warning(
               "Missing connection for candidate data ${payload}");
@@ -332,7 +339,11 @@ class PeerWrapper {
         log.warning("Could not connect to peer ${src}");
         break;
       case 'OFFER':
-        ConnectionWrapper connection = connections[src];
+        if (src == null || dst == null) {
+          log.severe("Received malformed message of type $type, missing src or dst");
+          return;
+        }
+        ConnectionWrapper? connection = connections[src];
         if (connection != null) {
           log.warning(
               "Received offer from peer that has connection? ${src} Existing connection: ${connection}");
@@ -346,9 +357,18 @@ class PeerWrapper {
         }
         break;
       case 'ANSWER':
+        if (src == null || dst == null) {
+          log.severe("Received malformed message of type $type, missing src or dst");
+          return;
+        }
         log.info("Handling answer from ${src} offer: ${payload}");
-        ConnectionWrapper connection = connections[src];
-        _connectionFactory.handleGotAnswer(connection.rtcConnection(), payload['sdp']);
+        ConnectionWrapper? connection = connections[src];
+        if (connection == null) {
+          log.warning("Received answer from unknown connection '$src'!");
+        } else {
+          _connectionFactory.handleGotAnswer(
+              connection.rtcConnection(), payload['sdp']);
+        }
         break;
 
       default:

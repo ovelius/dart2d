@@ -1,57 +1,47 @@
 library test_peer;
 
+import 'package:injectable/injectable.dart';
+
 import 'test_connection.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/net/net.dart';
 import 'test_env.dart';
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:di/di.dart';
+import 'test_injector.dart';
 
-WormWorld testWorld(String id) {
-  return initTestWorld(createWorldInjector(id));
-}
-
-WormWorld initTestWorld(Injector injector) {
-  WormWorld world = injector.get(WormWorld);
-  Loader loader = injector.get(Loader);
-  // Ensure world is contructed before running this.
-  injector.get(TestServerChannel).sendOpenMessage();
-  PlayerWorldSelector selector = injector.get(PlayerWorldSelector);
-  Map storage = injector.get(Map, LocalStorage);
-  storage['playerName'] = "name${world.network().peer.getId().toString().toUpperCase()}";
-  storage['playerSprite'] = "lion88.png";
-  loader.markCompleted();
-  selector.setMapForTest("lion88.png");
-  world.initByteWorld("lion88.png");
-  ConnectionFrameHandler.DISABLE_AUTO_ADJUST_FOR_TEST = true;
-  return world;
-}
-
+String serverChannelPeerId = "";
+// Existing world peers.
 Map<String, TestServerChannel> testPeers = {};
 
+@Injectable(as: ServerChannel)
 class TestServerChannel extends ServerChannel {
-  String id;
+  late String id;
   List<TestConnection> connections = [];
   bool connectedToServer = false;
 
-  StreamController<Map> _streamController;
+  late StreamController<Map> _streamController;
 
-  TestServerChannel(this.id) {
-    assert(!testPeers.containsKey(id));
+  TestServerChannel() {
+    if (testPeers.containsKey(serverChannelPeerId)) {
+      throw "TestPeer $serverChannelPeerId already exists!";
+    }
+    this.id = serverChannelPeerId;
+    if (testPeers.containsKey(id)) {
+      throw "A TestPeer with id $id already exists in ${testPeers.keys}";
+    }
     testPeers[id] = this;
     _streamController = new StreamController<Map>(sync: true);
   }
 
   sendData(Map<dynamic, dynamic> data) {
-    assert(data.containsKey('dst'), "Missing destination in servermessage?");
-    TestServerChannel otherChannel = testPeers[data['dst']];
-    assert(otherChannel != null, "No peer with id ${data['dst']}");
+    assert(data.containsKey('dst'), "Missing destination in server message?");
+    assert(data.containsKey('src'), "Missing destination in server message?");
+    TestServerChannel otherChannel = testPeers[data['dst']]!;
     otherChannel._streamController.add(data);
   }
 
   Stream<dynamic> dataStream() {
-    assert(_streamController.stream != null);
     return _streamController.stream;
   }
 
@@ -86,4 +76,3 @@ class TestServerChannel extends ServerChannel {
 
   String toString() => "TestServerChannel(${id}) ${connections}";
 }
-

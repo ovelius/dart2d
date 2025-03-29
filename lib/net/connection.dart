@@ -1,12 +1,14 @@
 import 'package:dart2d/net/network.dart';
+import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'package:dart2d/net/net.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:core';
+import 'helpers.dart';
 
 class ConnectionWrapper {
+  static bool THROW_SEND_ERRORS_FOR_TEST = false;
   final Logger log = new Logger('Connection');
   // How many keyframes the connection can be behind before it is dropped.
   static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
@@ -14,8 +16,8 @@ class ConnectionWrapper {
   Network _network;
   ConfigParams _configParams;
   HudMessages _hudMessages;
-  LeakyBucket _ingressLimit;
-  LeakyBucket _egressLimit;
+  LeakyBucket? _ingressLimit = null;
+  LeakyBucket? _egressLimit = null;
   PacketListenerBindings _packetListenerBindings;
   final String id;
   var _dataChannel;
@@ -29,13 +31,13 @@ class ConnectionWrapper {
   bool _handshakeReceived = false;
   // The last keyframe we successfully received from our peer.
   int lastRemoteKeyFrame = 0;
-  DateTime _lastRemoteKeyFrameTime = null;
+  DateTime? _lastRemoteKeyFrameTime = null;
   // The last keyframe the peer said it received from us.
   int lastDeliveredKeyFrame = 0;
-  DateTime _keyFrameIncrementLatencyTime = null;
+  DateTime? _keyFrameIncrementLatencyTime = null;
 
-  ConnectionStats _connectionStats;
-  ReliableHelper _reliableHelper;
+  late ConnectionStats _connectionStats;
+  late ReliableHelper _reliableHelper;
   ConnectionFrameHandler _connectionFrameHandler;
 
   // Buffered sprite removals.
@@ -44,7 +46,6 @@ class ConnectionWrapper {
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
       this._connectionFrameHandler) {
-    assert(id != null);
     _connectionStats = new ConnectionStats();
     _reliableHelper = new ReliableHelper(_packetListenerBindings);
     // Start the connection timer.
@@ -171,16 +172,14 @@ class ConnectionWrapper {
   Random r = new Random();
 
   void receiveData(data) {
-    if (_ingressLimit != null) {
-      if (!_ingressLimit.removeTokens(data.length)) {
-        log.fine("Dropping due to ingress bandswith limitation");
-        return;
-      }
+    if (_ingressLimit?.removeTokens(data.length) == true) {
+      log.fine("Dropping due to ingress bandwidth limitation");
+      return;
     }
-    DateTime now = new DateTime.now();
+      DateTime now = new DateTime.now();
     _connectionStats.lastReceiveTime = now;
-    _connectionStats.rxBytes += data.length;
-    Map dataMap = JSON.decode(data);
+    _connectionStats.rxBytes += data.length as int;
+    Map<String, dynamic> dataMap = jsonDecode(data);
     assert(dataMap.containsKey(KEY_FRAME_KEY));
     if (Logger.root.isLoggable(Level.FINE)) {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
@@ -197,7 +196,7 @@ class ConnectionWrapper {
       oldData = true;
     }
 
-    // Fast return PING messages.
+    // Fast return piNG messages.
     if (dataMap.containsKey(PING)) {
       Map data = {PONG: dataMap[PING]};
       if (_network.isCommander()) {
@@ -206,13 +205,13 @@ class ConnectionWrapper {
       sendData(data);
     }
     if (dataMap.containsKey(PONG)) {
-      int latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
-      sampleLatency(new Duration(milliseconds: latencyMillis));
+      num latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
+      sampleLatency(new Duration(milliseconds: latencyMillis.toInt()));
       _initialPongReceived = true;
     }
-    if (_keyFrameIncrementLatencyTime != null && dataMap.containsKey(KEY_FRAME_DELAY)) {
+    if (_keyFrameIncrementLatencyTime != null  && dataMap.containsKey(KEY_FRAME_DELAY)) {
       // How long time passed since we sent the keyframe?
-      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementLatencyTime.millisecondsSinceEpoch;
+      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementLatencyTime!.millisecondsSinceEpoch;
       // How long time before the sender responded?
       int waitMillis = dataMap[KEY_FRAME_DELAY];
       sampleLatency(new Duration(milliseconds: (sinceSendTime - waitMillis)));
@@ -224,7 +223,11 @@ class ConnectionWrapper {
       if (SPECIAL_KEYS.contains(key)) {
         if (_packetListenerBindings.hasHandler(key)) {
           for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
-            handler(this, dataMap[key]);
+            try {
+              handler(this, dataMap[key]);
+            } catch (e) {
+              log.severe("Error handling data for key ${key} error: $e");
+            }
           }
           // TODO remove special cases!
         } else if (!PacketListenerBindings.IgnoreListeners.contains(key)) {
@@ -240,8 +243,7 @@ class ConnectionWrapper {
     // Don't continue handling data if handshake is not finished.
     if (!_handshakeReceived) {
       log.fine("not handling data ${dataMap}, handshake not received.");
-      if (_network.getGameState().isInGame(_network.peer.id) &&
-          _network.getGameState().playerInfoByConnectionId(this.id) != null &&
+      if (_network.getGameState().isInGame(_network.peer.id!) &&
           !_network.isCommander()) {
         // TODO figure out why this hack is needed...
         log.warning(
@@ -299,7 +301,6 @@ class ConnectionWrapper {
     _removals = [];
     sendData(data);
   }
-
   void sendData(Map data) {
     if (_reliableHelper.reliableBufferOverFlow()) {
       log.warning(
@@ -318,7 +319,7 @@ class ConnectionWrapper {
     _reliableHelper.updateWithDataReceipts(data);
 
     if (_lastRemoteKeyFrameTime != null) {
-      int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime.millisecondsSinceEpoch;
+      int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime!.millisecondsSinceEpoch;
       data[KEY_FRAME_DELAY] = millis;
       _lastRemoteKeyFrameTime = null;
     }
@@ -344,22 +345,24 @@ class ConnectionWrapper {
       // Store away any reliable data sent.
       _reliableHelper.storeAwayReliableData(data);
     }
-    String jsonData = JSON.encode(data);
+    String jsonData = jsonEncode(data);
 
-    if (_egressLimit != null) {
-      if (!_egressLimit.removeTokens(jsonData.length)) {
-        log.fine("Dropping due to egress bandswith limitation");
-        return;
-      }
+
+    if (_egressLimit?.removeTokens(jsonData.length) == true) {
+      log.fine("Dropping due to egress bandswith limitation");
+      return;
     }
     _connectionStats.txBytes += jsonData.length;
     try {
       if (Logger.root.isLoggable(Level.FINE)) {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
       }
-      _dataChannel.sendString(jsonData);
+      _dataChannel.send(jsonData);
       _sendFailures = 0;
     } catch (e, _) {
+      if (THROW_SEND_ERRORS_FOR_TEST) {
+        throw "Failed to send data ${this._network.peer.id} -> ${this.id} $jsonData \nerror: $e";
+      }
       if (++_sendFailures > 2) {
         log.severe("Failed to send to $id: $e, closing connection");
         close("Failed to send data");
@@ -419,7 +422,7 @@ class ConnectionWrapper {
 
   int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
 
-  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_connectionStats.latency}  GC: ${isValidGameConnection()} Pi/Po ${_initialPingSent}/${_initialPongReceived}";
+  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_connectionStats.latency}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 }

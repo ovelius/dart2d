@@ -1,19 +1,21 @@
 library keystate;
 
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+@Singleton(scope: 'world')
 class KeyState {
   final Logger log = new Logger('KeyState');
   static const double MAX_KEY_TRIGGER = 0.999;
-  WormWorld world;
+  late WormWorld world;
   bool debug = false;
   bool remoteState = false;
   DateTime _lastInput = new DateTime.now();
 
   Map<int, double> keysDown = new Map<int, double>();
   Map<int, List<dynamic>> _listeners = new Map<int, List<dynamic>>();
-  List<dynamic> _genericListeners = new List();
+  List<dynamic> _genericListeners = [];
 
   KeyState.remote() {
     remoteState = true;
@@ -47,11 +49,9 @@ class KeyState {
     keysDown[keyCode] = strength;
     if (newlyPressed) {
       // If this a newly pushed key, send it to the network right away.
-      if (world != null) {
-        world.network().maybeSendLocalKeyStateUpdate();
-      }
+      world.network().maybeSendLocalKeyStateUpdate();
       if (_listeners.containsKey(keyCode)) {
-        _listeners[keyCode].forEach((f) {
+        _listeners[keyCode]!.forEach((f) {
           f();
         });
       }
@@ -66,10 +66,10 @@ class KeyState {
   }
 
   bool keyIsDown(num key, [double strength = MAX_KEY_TRIGGER]) {
-    return keysDown.containsKey(key) && keysDown[key] >= MAX_KEY_TRIGGER;
+    return keysDown.containsKey(key) && keysDown[key]! >= MAX_KEY_TRIGGER;
   }
 
-  double keyIsDownStrength(num key) {
+  double? keyIsDownStrength(num key) {
     return keysDown[key];
   }
 
@@ -83,7 +83,7 @@ class KeyState {
   Map<String, bool> getEnabledState() {
     Map<String, bool> keys = {};
     for (int key in keysDown.keys) {
-      if (keysDown[key] >= MAX_KEY_TRIGGER) {
+      if (keysDown[key]! >= MAX_KEY_TRIGGER) {
         keys[key.toString()] = true;
       }
     }
@@ -92,9 +92,9 @@ class KeyState {
 
   registerListener(int key, dynamic f) {
     if (!_listeners.containsKey(key)) {
-      _listeners[key] = new List<dynamic>();
+      _listeners[key] = [];
     }
-    List<dynamic> listeners = _listeners[key];
+    List listeners = _listeners[key]!;
     listeners.add(f);
   }
 

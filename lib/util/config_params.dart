@@ -1,5 +1,5 @@
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:di/di.dart';
+import 'package:injectable/injectable.dart';
 
 enum ConfigParam {
   MAX_FRAGS,
@@ -11,7 +11,7 @@ enum ConfigParam {
   MAX_NETWORK_FRAMERATE,
 }
 
-@Injectable()
+@Singleton(scope: 'world')
 class ConfigParams {
   static Map<ConfigParam, String> _names = {
     ConfigParam.MAX_FRAGS: "maxFrags",
@@ -26,7 +26,7 @@ class ConfigParams {
     // How often to send data to network.
     ConfigParam.MAX_NETWORK_FRAMERATE: "max_net_frame",
   };
-  static Map<ConfigParam, Object> _defaults = {
+  static Map<ConfigParam, dynamic> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
     ConfigParam.EXPLICIT_PEERS: [],
     ConfigParam.BOT_ENABLED: "",
@@ -36,22 +36,22 @@ class ConfigParams {
     ConfigParam.MAX_NETWORK_FRAMERATE: -1,
   };
 
-  Map<String, List<String>> _uriParams;
+  late Map<String, List<String>> _uriParams;
 
-  ConfigParams(@UriParameters() Map _uriParams) {
+  ConfigParams(@Named(URI_PARAMS_MAP) Map<String, List<String>> _uriParams) {
     this._uriParams = _uriParams;
   }
 
   int getInt(ConfigParam p) {
-    List<String> data = _uriParams[_names[p]];
+    List<String>? data = _uriParams[_names[p]];
     if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return int.parse(data[0]);
     }
-    return _defaults[p];
+    return _defaults[p]!;
   }
 
   String getString(ConfigParam p) {
-    List<String> data = _uriParams[_names[p]];
+    List<String>? data = _uriParams[_names[p]];
     if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return data[0];
     }
@@ -59,15 +59,15 @@ class ConfigParams {
   }
 
   List<String> getStringList(ConfigParam p) {
-    List<String> data = _uriParams[_names[p]];
+    List<String>? data = _uriParams[_names[p]];
     if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return data;
     }
-    return _defaults[p];
+    return List<String>.from(_defaults[p]);
   }
 
   bool getBool(ConfigParam p) {
-    List<String> data = _uriParams[_names[p]];
+    List<String>? data = _uriParams[_names[p]];
     if (data != null && data.length > 0 && data[0].isNotEmpty) {
       return true;
     }

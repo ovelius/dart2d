@@ -111,7 +111,7 @@ Set<String> SPECIAL_KEYS = new Set.from([
   IMAGE_DATA_RESPONSE
 ]);
 
-List mergeUniqueList(List list1, List list2) {
+List? mergeUniqueList(List? list1, List? list2) {
   Set merged = new Set();
   if (list1 != null) {
     merged.addAll(list1);
@@ -131,9 +131,9 @@ Set<SpriteType> _colorSpriteTypes =
     new Set.from([SpriteType.RECT, SpriteType.CIRCLE, SpriteType.CUSTOM]);
 
 // Store all the properties of the sprite as a list of ints.
-List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
+List<dynamic> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
   keyFrame = keyFrame || sprite.fullFramesOverNetwork-- > 0;
-  List data = [
+  List<dynamic> data = [
     sprite.extraSendFlags() | (keyFrame ? Sprite.FLAG_FULL_FRAME : 0),
     sprite.position.x.toInt(),
     sprite.position.y.toInt(),
@@ -159,7 +159,7 @@ List<int> propertiesToIntList(MovingSprite sprite, bool keyFrame) {
 }
 
 // Set all the properties to the sprite availble in the list.
-void intListToSpriteProperties(List<int> data, MovingSprite sprite) {
+void intListToSpriteProperties(List<dynamic> data, MovingSprite sprite) {
   sprite.flags = data[0];
   sprite.position.x = data[1].toDouble();
   sprite.position.y = data[2].toDouble();

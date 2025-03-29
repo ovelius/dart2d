@@ -1,5 +1,6 @@
+import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/connection.dart';
 import 'package:test/test.dart';
-import 'package:dart2d/net/net.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -7,25 +8,20 @@ import 'package:mockito/mockito.dart';
 import 'dart:async';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
-
-class MockConnectionWrapper extends Mock implements ConnectionWrapper {}
-
-class MockPlayerWorldSelector extends Mock implements PlayerWorldSelector {
-  String selectedWorldName = null;
-}
+import 'lib/test_mocks.mocks.dart';
 
 const double TICK_TIME = 0.01;
 
 void main() {
-  Loader loader;
-  MockImageIndex mockImageIndex;
-  MockNetwork mockNetwork;
-  MockPeerWrapper mockPeerWrapper;
-  MockChunkHelper mockChunkHelper;
-  MockGameState mockGameState;
-  MockPlayerWorldSelector selector;
-  Map localStorage;
-  StreamController<int> streamController;
+  late Loader loader;
+  late MockImageIndex mockImageIndex;
+  late MockNetwork mockNetwork;
+  late MockPeerWrapper mockPeerWrapper;
+  late MockChunkHelper mockChunkHelper;
+  late MockGameState mockGameState;
+  late MockPlayerWorldSelector selector;
+  late LocalStorage localStorage;
+  late StreamController<int> streamController;
   void tickAndAssertState(LoaderState state) {
     loader.loaderTick(TICK_TIME);
     expect(loader.currentState(), equals(state));
@@ -33,7 +29,7 @@ void main() {
 
   setUp(() {
     logOutputForTest();
-    localStorage = {};
+    localStorage = new TestLocalStorage();
     streamController = new StreamController(sync: true);
     mockImageIndex = new MockImageIndex();
     mockNetwork = new MockNetwork();
@@ -46,7 +42,7 @@ void main() {
     when(mockNetwork.safeActiveConnections()).thenReturn({});
     when(mockPeerWrapper.getId()).thenReturn('b');
     when(mockChunkHelper.bytesPerSecondSamples())
-        .thenReturn(streamController.stream);
+        .thenAnswer((_) => streamController.stream);
     when(mockImageIndex.playerResourcesLoaded()).thenReturn(false);
     when(selector.worldSelectedAndLoaded()).thenReturn(false);
     loader = new Loader(localStorage, new FakeCanvas(), selector,
@@ -84,7 +80,7 @@ void main() {
       when(mockNetwork.findServer()).thenReturn(true);
 
       tickAndAssertState(LoaderState.WORLD_SELECT);
-      selector.selectedWorldName = "something";
+      when(selector.selectedWorldName).thenReturn("something");
       tickAndAssertState(LoaderState.WORLD_LOADING);
       when(selector.worldSelectedAndLoaded()).thenReturn(true);
       // Loaded from server, assert we'll start as server.
@@ -94,7 +90,7 @@ void main() {
 
     test('Start loading from client, fallback server', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
-      Map connections = {
+      Map<String, ConnectionWrapper> connections = {
         'a': connection1,
       };
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
@@ -119,7 +115,7 @@ void main() {
 
     test('Start loading from client too slow so, fallback to server', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
-      Map connections = {
+      Map<String, ConnectionWrapper> connections = {
         'a': connection1,
       };
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
@@ -144,7 +140,7 @@ void main() {
     test('Base state and load from other client', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
       when(connection1.initialPongReceived()).thenReturn(false);
-      Map connections = {
+      Map<String, ConnectionWrapper> connections = {
         'a': connection1,
       };
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
@@ -184,7 +180,7 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
       verify(connection1.sendClientEnter());
 
-      PlayerInfo info = new PlayerInfo(null, null, null);
+      PlayerInfo info = new PlayerInfo("", "", 0);
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
 
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
@@ -198,7 +194,7 @@ void main() {
 
     test('server disconnect start as server', () {
       MockConnectionWrapper connection1 = new MockConnectionWrapper();
-      Map connections = {
+      Map<String, ConnectionWrapper> connections = {
         'a': connection1,
       };
       tickAndAssertState(LoaderState.WAITING_FOR_NAME);
@@ -216,7 +212,7 @@ void main() {
       when(connection1.isValidGameConnection()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
           .thenReturn(true);
-      PlayerInfo info = new PlayerInfo(null, null, null);
+      PlayerInfo info = new PlayerInfo("", "", 0);
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
       // Last phase of entering a game.
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);

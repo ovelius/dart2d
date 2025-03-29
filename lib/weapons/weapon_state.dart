@@ -39,7 +39,7 @@ class WeaponState {
     data.add(w.shotsLeft);
   }
 
-  bool parseServerToOwnerData(List data, int startAt) {
+  void parseServerToOwnerData(List<dynamic> data, int startAt) {
     Weapon w = weapons[selectedWeaponIndex];
     w.untilReload = (data[startAt] / DOUBLE_INT_CONVERSION);
     w.untilNextFire = (data[startAt + 1] / DOUBLE_INT_CONVERSION);
@@ -48,14 +48,14 @@ class WeaponState {
 
   List<Weapon> weapons = [
     new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world, weaponState.gun, 50);
+      WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world,  weaponState.owner, 50, weaponState.owner.gun);
       sprite.explodeAfter = 4.0;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.gun, 2);
+      WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.owner, 2, weaponState.owner.gun);
       sprite.mod = Mod.BRICK;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
@@ -63,7 +63,7 @@ class WeaponState {
     }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       for (int i = 0; i < 8; i++) {
-        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 7);
+        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, weaponState.owner.gun);
         sprite.mod = Mod.SHOTGUN;
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
@@ -81,7 +81,7 @@ class WeaponState {
       }
     }),
     new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
       sprite.mod = Mod.DARTGUN;
       sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
@@ -94,7 +94,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 8);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
       sprite.mod = Mod.TV;
       sprite.spriteType = SpriteType.CIRCLE;
       double a = random.nextDouble() + 0.2;
@@ -130,7 +130,7 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 100);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
       sprite.mod = Mod.LITTER;
       sprite.radius = 150.0;
       sprite.owner = weaponState.owner;
@@ -155,7 +155,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }), */
     new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 40);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, weaponState.owner.gun);
       sprite.mod = Mod.ZOOKA;
       sprite.radius = 40.0;
       sprite.owner = weaponState.owner;
@@ -169,7 +169,7 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     new Weapon("Neon Blaster", 5, 2.5, 1.20, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.gun, 30);
+      WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30);
       sprite.radius = 25.0;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;
@@ -267,7 +267,7 @@ class WeaponState {
       }
       if (reloading()) {
         double percentInverse = (100 - reloadPercent()) / 100.0;
-        double circle = PI * 2 * percentInverse - PI/2;
+        double circle = pi * 2 * percentInverse - pi/2;
 
         context.save();
         if (changeTime <= 0) {
@@ -279,9 +279,9 @@ class WeaponState {
         context.fillStyle = "#009900";
         context.globalAlpha = 0.5;
         context.arc(center.x, center.y, radius + 5,
-            - PI/2, circle, false);
+            - pi/2, circle, false);
         context.arc(center.x, center.y, radius,
-            circle, PI*2 - PI/2, true);
+            circle, pi*2 - pi/2, true);
         context.fill();
         context.restore();
       }

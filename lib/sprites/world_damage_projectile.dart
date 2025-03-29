@@ -1,4 +1,6 @@
 
+import 'package:dart2d/weapons/weapon_state.dart';
+
 import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -12,7 +14,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 final Logger log = new Logger('DamageProjectile');
 
 class BananaCake extends WorldDamageProjectile {
-  BananaCake.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+  BananaCake.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, MovingSprite positionBase)
        : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
       this.world = world;
       this.owner = owner;
@@ -22,9 +24,8 @@ class BananaCake extends WorldDamageProjectile {
       this.position.x = ownerCenter.x - size.x / 2;
       this.position.y = ownerCenter.y - size.y / 2;
       this.spriteType = SpriteType.IMAGE;
-      this.velocity.x = cos(owner.angle);
-     // this.angle = owner.angle;
-      this.velocity.y = sin(owner.angle);
+      this.velocity.x = cos(positionBase.angle);
+      this.velocity.y = sin(positionBase.angle);
       this.outOfBoundsMovesRemaining = 2;
       this.velocity = this.velocity.multiply(200.0);
       this.velocity = owner.velocity + this.velocity;
@@ -36,13 +37,14 @@ class BananaCake extends WorldDamageProjectile {
         addpParticles: particlesOnExplode,
         damage: damage, radius: radius, damageDoer: owner, mod:Mod.BANANA);
     for (int i = 0; i < 9; i++) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world, this.owner, 30, this);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world,
+          this.owner, 30, this);
       sprite.mod = Mod.BANANA;
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
-      sprite.velocity.x = -PI * 2; 
-      sprite.velocity.y = -PI * 2; 
-      sprite.velocity.x += WorldDamageProjectile.random.nextDouble() * PI * 4;
-      sprite.velocity.y += WorldDamageProjectile.random.nextDouble() * PI * 4;
+      sprite.velocity.x = -pi * 2; 
+      sprite.velocity.y = -pi * 2; 
+      sprite.velocity.x += WorldDamageProjectile.random.nextDouble() * pi * 4;
+      sprite.velocity.y += WorldDamageProjectile.random.nextDouble() * pi * 4;
       sprite.velocity = sprite.velocity.normalize().multiply(500.0);
       sprite.velocity = velocity + sprite.velocity;
       sprite.rotationVelocity = WorldDamageProjectile.random.nextDouble() * 200.1;
@@ -64,7 +66,7 @@ class Hyper extends WorldDamageProjectile {
   Hyper(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
       : super(world, x, y, imageId, imageIndex);
 
-  Hyper.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+  Hyper.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, [double homingFactor = 0.0])
       : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
@@ -86,9 +88,9 @@ class Hyper extends WorldDamageProjectile {
   void _collectDamageSprites() {
     List<LocalPlayerSprite> spritesInDamageArea = [];
     for (PlayerInfo inf in world.network().gameState.playerInfoList()) {
-      if (owner != null && inf.spriteId != owner.networkId) {
-        LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId];
-        if (sprite != null && sprite.inGame() && sprite.takesDamage()) {
+      if (inf.spriteId != owner.networkId) {
+        LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite;
+        if (sprite.inGame() && sprite.takesDamage()) {
           double dst = distanceTo(sprite);
           if (dst < EFFECTIVE_DISTANCE) {
             spritesInDamageArea.add(sprite);
@@ -99,7 +101,7 @@ class Hyper extends WorldDamageProjectile {
     _spritesInDamageArea = spritesInDamageArea;
   }
 
-  frame(double duration, int frameStep, [Vec2 gravity]) {
+  frame(double duration, int frameStep, [Vec2? gravity]) {
     _time += duration;
     int damage = (_time * DPS_BEAM).toInt();
     _time -= (damage / DPS_BEAM);
@@ -134,7 +136,7 @@ class Hyper extends WorldDamageProjectile {
     context.globalCompositeOperation = "lighter";
     context.lineWidth = 2;
     for (var i = 0; i < _quality; i++) {
-      var theta = 2 * PI * WorldDamageProjectile.random.nextDouble();
+      var theta = 2 * pi * WorldDamageProjectile.random.nextDouble();
       var x = r + (r * cos(theta) / 2);
       var y = r + (r * sin(theta) / 2);
       drawSeed(context, x, y, r);
@@ -164,16 +166,14 @@ class Hyper extends WorldDamageProjectile {
     ctx.stroke();
   }
 
-  collide(MovingSprite other, ByteWorld world, int direction) {
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    assert(owner != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
       other.takeDamage(damage, owner, Mod.HYPER);
       remove = true;
     }
-
     if (world != null && other == null) {
       remove = true;
     }
@@ -189,7 +189,7 @@ class BrickBuilder extends WorldDamageProjectile {
   static const int COLOR_R = 170;
   static const int COLOR_G = 51;
   static const int COLOR_B = 17;
-  BrickBuilder.createWithOwner(WormWorld world, MovingSprite owner, int damage, [double homingFactor])
+  BrickBuilder.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, MovingSprite positionBase)
       : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
@@ -200,8 +200,8 @@ class BrickBuilder extends WorldDamageProjectile {
     this.position.y = ownerCenter.y - size.y / 2;
     this.spriteType = SpriteType.CIRCLE;
     this.color = COLOR;
-    this.velocity.x = cos(owner.angle);
-    this.velocity.y = sin(owner.angle);
+    this.velocity.x = cos(positionBase.angle);
+    this.velocity.y = sin(positionBase.angle);
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);
     this.velocity = owner.velocity + this.velocity;
@@ -243,15 +243,15 @@ class WorldDamageProjectile extends MovingSprite {
   // Visible for testing.
   static Random random = new Random();
 
-  WormWorld world;
-  MovingSprite owner;
+  late WormWorld world;
+  late LocalPlayerSprite owner;
   int damage = 1;
 
   double bounche = 0.5;
   
   double radius = 15.0;
 
-  double explodeAfter = null;
+  double? explodeAfter = null;
 
   bool showCounter = true;
 
@@ -264,22 +264,19 @@ class WorldDamageProjectile extends MovingSprite {
     this.world = world;
   }
 
-  collide(MovingSprite other, ByteWorld world, int direction) {
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    assert(owner != null);
-    assert(damage != null);
     if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
       other.takeDamage(damage, owner, mod);
       explode();
     }
-     
-    if (world != null && other == null) {
+    if (world != null && direction != null) {
       handleWorldCollide(world, direction);
     }
   }
-  
+
   handleWorldCollide(ByteWorld world, int direction) {
     if (explodeAfter == null) {
       explode();
@@ -307,7 +304,6 @@ class WorldDamageProjectile extends MovingSprite {
       }
     }
   }
-
   explode() {
     if (radius > 0.0) {
       world.explosionAtSprite(
@@ -318,11 +314,11 @@ class WorldDamageProjectile extends MovingSprite {
     this.remove = true;
   }
   
-  frame(double duration, int frameStep, [Vec2 gravity]) {
+  frame(double duration, int frameStep, [Vec2? gravity]) {
     if (networkType != NetworkType.REMOTE) {
       if (explodeAfter != null) {
-        explodeAfter -= duration;
-        if (explodeAfter < 0) {
+        explodeAfter = explodeAfter! - duration;
+        if (explodeAfter! < 0) {
           explode();
         }
       }
@@ -334,7 +330,7 @@ class WorldDamageProjectile extends MovingSprite {
     if (explodeAfter != null && showCounter) {
       context.fillStyle = "#ffffff";
       context.fillText(
-        explodeAfter.toInt().toString(), position.x, position.y - size.y);
+        explodeAfter!.toInt().toString(), position.x, position.y - size.y);
     }
     super.draw(context, debug);
   }
@@ -350,7 +346,7 @@ class WorldDamageProjectile extends MovingSprite {
     // Will eventually be corrected.
     data.add(owner == null ? -1 : owner.networkId);
     if (explodeAfter != null) {
-      data.add(explodeAfter.toInt());
+      data.add(explodeAfter!.toInt());
     }
   }
 
@@ -359,16 +355,16 @@ class WorldDamageProjectile extends MovingSprite {
     damage = data[startAt + 1];
     showCounter = data[startAt + 2];
     int ownerId = data[startAt + 3];
-    this.owner = world.spriteIndex[ownerId];
+    this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite;
     if (data.length > startAt + 4) {
       this.explodeAfter = data[startAt + 4].toDouble();
     }
   }
 
-  WorldDamageProjectile.createWithOwner(WormWorld world, MovingSprite owner, int damage, [MovingSprite positionBase])
+  WorldDamageProjectile.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, [MovingSprite? positionBase = null])
      : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("zooka.png"), world.imageIndex()) {
     if (positionBase == null) {
-      positionBase = owner;;
+      positionBase = owner;
     }
     this.world = world;
     this.owner = owner;
@@ -379,7 +375,7 @@ class WorldDamageProjectile extends MovingSprite {
     this.position.x = positionCenter.x + cos(positionBase.angle) * ownerSize;
     this.position.y = positionCenter.y + sin(positionBase.angle) * ownerSize;
     this.velocity.x = cos(positionBase.angle);
-    this.angle = owner.angle;
+    this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);

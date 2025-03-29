@@ -1,16 +1,4 @@
-import 'package:dart2d/phys/phys.dart';
-import 'package:dart2d/util/gamestate.dart';
-import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/worlds/world_util.dart';
-import 'package:dart2d/util/hud_messages.dart';
-import 'package:di/di.dart';
-import 'package:dart2d/res/imageindex.dart';
-import 'package:dart2d/util/keystate.dart';
-import 'dart:math';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 // 15 server frames per second.
@@ -24,7 +12,7 @@ abstract class World {
   int invalidKeysPressed = 0;
 
   // Representing the player in the world.
-  LocalPlayerSprite playerSprite;
+  LocalPlayerSprite? playerSprite;
   // The next id we use for new sprites.
   int spriteNetworkId = 0;
 
@@ -37,7 +25,7 @@ abstract class World {
    * Connect to the given id.
    * The ID is an id of the rtc subsystem.
    */
-  void connectTo(var id, [String name = null]);
+  void connectTo(var id, [String? name = null]);
 
   /**
    * Advances the world this amount of time.

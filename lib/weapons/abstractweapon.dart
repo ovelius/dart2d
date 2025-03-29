@@ -10,7 +10,7 @@ class Weapon {
   // Instance state.
   double untilReload = 0.0;
   double untilNextFire = 0.0;
-  int shotsLeft;
+  int shotsLeft = 0;
   
   Weapon(this.name, this.shotsPerClip, this.reloadTime, this.fireDelay, this.fire) {
     shotsLeft = shotsPerClip;

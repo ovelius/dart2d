@@ -1,6 +1,5 @@
 library worlds;
 
-import 'package:di/di.dart';
 import "worlds.dart";
 
 export 'byteworld.dart';
@@ -11,6 +10,7 @@ export 'world_listener.dart';
 export 'worm_world.dart';
 export 'powerup_manager.dart';
 
+/*
 class WorldModule extends Module {
   WorldModule() {
     bind(WormWorld);
@@ -21,3 +21,4 @@ class WorldModule extends Module {
     bind(PowerupManager);
   }
 }
+*/

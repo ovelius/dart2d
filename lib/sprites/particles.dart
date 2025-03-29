@@ -11,24 +11,24 @@ class Particles extends MovingSprite {
   static const FIRE = 2;
   static const SODA = 3;
 
-  double radius;
-  int particleLifeTime;
-  List<_Particle> particles;
-  Sprite follow;
-  Vec2 followOffset = null;
-  int followId;
-  int particleType;
-  double shrinkPerStep;
+  late double radius;
+  late int particleLifeTime;
+  List<_Particle> particles = [];
+  Sprite? follow;
+  Vec2? followOffset = null;
+  int? followId;
+  late int particleType;
+  late double shrinkPerStep;
   // If we should explode.
-  int damage = null;
-  WormWorld world;
+  int? damage = null;
+  late WormWorld world;
   // We got it from network.
   bool sendToNetwork = false;
 
-  LocalPlayerSprite owner;
+  LocalPlayerSprite? owner;
 
-  Particles(WormWorld world, Sprite follow, Vec2 position, Vec2 velocityBase,
-      [Vec2 followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
+  Particles(WormWorld world, Sprite? follow, Vec2 position, Vec2 velocityBase,
+      [Vec2? followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
       super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
     this.velocity = velocityBase;
@@ -40,7 +40,6 @@ class Particles extends MovingSprite {
     this.invisibleOutsideCanvas = false;
     this.collision = false;
     Random r = new Random();
-    particles = new List();
     for (int i = 0; i < count; i++) {
       _Particle p = new _Particle();
       p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime);
@@ -60,16 +59,13 @@ class Particles extends MovingSprite {
     this.shrinkPerStep = data[7] / DOUBLE_INT_CONVERSION;
     int count = data[8];
     this.lifeTime = data[9];
-    if (data[10] != null) {
-      this.followOffset = new Vec2(data[10], data[11]);
-    }
+    this.followOffset = new Vec2(data[10], data[11]);
     if (data.length > 12) {
       this.followId = data[12];
     }
     this.networkType = NetworkType.LOCAL_ONLY;
     this.invisibleOutsideCanvas = false;
     Random r = new Random();
-    particles = new List();
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
        p.setToRandom(r, radius, follow, followOffset, position, velocity, lifeTime);
@@ -78,34 +74,34 @@ class Particles extends MovingSprite {
     this.world = world;
   }
   
-  List<int> toNetworkUpdate() {
-    List<int> list = [
-        position.x,
-        position.y,
-        velocity.x * DOUBLE_INT_CONVERSION,
-        velocity.y * DOUBLE_INT_CONVERSION,
-        radius * DOUBLE_INT_CONVERSION,
+  List<dynamic> toNetworkUpdate() {
+    List<dynamic> list = [
+        position.x.toInt(),
+        position.y.toInt(),
+        (velocity.x * DOUBLE_INT_CONVERSION).toInt(),
+        (velocity.y * DOUBLE_INT_CONVERSION).toInt(),
+        (radius * DOUBLE_INT_CONVERSION).toInt(),
         particleLifeTime,
-        particleType, 
-        shrinkPerStep * DOUBLE_INT_CONVERSION,
+        particleType,
+        (shrinkPerStep * DOUBLE_INT_CONVERSION).toInt(),
         particles.length,
         lifeTime,
       ];
     if (followOffset != null) {
-      list.add(followOffset.x.toInt());
-      list.add(followOffset.y.toInt());
+      list.add(followOffset!.x.toInt());
+      list.add(followOffset!.y.toInt());
     } else {
-      list.add(null);
-      list.add(null);
+      list.add(0);
+      list.add(0);
     }
     if (follow != null) {
-      list.add(follow.networkId);
+      list.add(follow!.networkId);
     }
     return list;
   }
 
-  frame(double duration, int frames, [Vec2 gravity]) {
-    Vec2 g = gravity.multiply(duration * 0.1);
+  frame(double duration, int frames, [Vec2? gravity]) {
+    Vec2? g = gravity == null ? null : gravity.multiply(duration * 0.1);
     if (followId != null && follow == null
         && world.spriteIndex[followId] != null) {
       follow = world.spriteIndex[followId];
@@ -118,7 +114,7 @@ class Particles extends MovingSprite {
       }
       p.location.x += p.speed.x * duration;
       p.location.y += p.speed.y * duration;
-      if (gravity != null && this.particleType != FIRE) {
+      if (g != null && this.particleType != FIRE) {
         p.location += g;
       }
       p.lifeTimeRemaining--;
@@ -135,7 +131,7 @@ class Particles extends MovingSprite {
     for(var i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
-        if (follow != null && !follow.remove) {
+        if (follow != null && !follow!.remove) {
           p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime);
         } else {
           dead++;
@@ -145,7 +141,7 @@ class Particles extends MovingSprite {
       
       context.beginPath();
       setFillStyle(context, p);
-      context.arc(p.location.x, p.location.y, p.radius, 0, PI*2.0);
+      context.arc(p.location.x, p.location.y, p.radius, 0, pi*2.0);
       context.fill();  
     }
     if (dead == particles.length) {
@@ -153,7 +149,7 @@ class Particles extends MovingSprite {
     }
   }
   
-  setFillStyle(var /*CanvasRenderingContext2D*/ context, _Particle p) {
+  setFillStyle(dynamic /*CanvasRenderingContext2D*/ context, _Particle p) {
     if (this.particleType == COLORFUL) {
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
       var /*CanvasGradient*/ gradient = context.createRadialGradient(
@@ -179,29 +175,35 @@ class Particles extends MovingSprite {
     }
   }
 
-  collide(MovingSprite other, var unused, int direction) {
+  collide(MovingSprite? other, var dynamic, int? direction) {
     if (!world.network().isCommander()) {
       return;
     }
-    if (other != null && damage != null && other.takesDamage() &&  other.networkId != owner.networkId) {
-      other.takeDamage(damage, owner, Mod.COFFEE);
-      lifeTime = 0;
-    } else if (direction != null && direction != 0 && damage != null) {
-      world.explosionAt(
-          location: centerPoint(), damage:damage, radius:radius * 1.5, damagerDoer: owner);
-      lifeTime = 0;
+    if (owner != null) {
+      if (other != null && damage != null && other.takesDamage() &&
+          other.networkId != owner!.networkId) {
+        other.takeDamage(damage!, owner!, Mod.COFFEE);
+        lifeTime = 0;
+      } else if (direction != null && direction != 0 && damage != null) {
+        world.explosionAt(
+            location: centerPoint(),
+            damage: damage!,
+            radius: radius * 1.5,
+            damagerDoer: owner);
+        lifeTime = 0;
+      }
     }
   }
 }
 
 class _Particle {
-  Vec2 location;
-  Vec2 speed;
-  int lifeTimeRemaining;
-  int r, g, b;
-  double radius;
+  late Vec2 location;
+  late Vec2 speed;
+  late int lifeTimeRemaining;
+  late int r, g, b;
+  late double radius;
   
-  setToRandom(Random ra, double radius, Sprite follow, Vec2 followOffset, Vec2 location, Vec2 velocityBase, int lifeTime) {
+  setToRandom(Random ra, double radius, Sprite? follow, Vec2? followOffset, Vec2 location, Vec2 velocityBase, int lifeTime) {
     r = ra.nextInt(255);
     g = ra.nextInt(255);
     b = ra.nextInt(255);

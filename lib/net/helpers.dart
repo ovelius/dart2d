@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:convert';
-import 'package:di/di.dart';
 import 'dart:core';
 
-@Injectable()
+@Singleton(scope: 'world')
 class PacketListenerBindings {
   static final Set<String> IgnoreListeners = new Set.from([
     IS_KEY_FRAME_KEY,
@@ -24,12 +24,12 @@ class PacketListenerBindings {
     if (!_handlers.containsKey(key)) {
       _handlers[key] = [];
     }
-    _handlers[key].add(handler);
+    _handlers[key]?.add(handler);
   }
 
   List<dynamic> handlerFor(String key) {
     assert(_handlers.containsKey(key));
-    return _handlers[key];
+    return _handlers[key]!;
   }
 
   // Transition method. Eventually there will be handler everywhere.
@@ -91,13 +91,13 @@ class ReliableHelper {
   // Storage of our reliable key data.
   Map reliableDataBuffer = {};
   // Reliable verifications.
-  List<int> reliableDataToVerify = [];
+  List<dynamic> reliableDataToVerify = [];
 
   ReliableHelper(this._packetListenerBindings) {
-    _packetListenerBindings.bindHandler(CONTAINED_DATA_RECEIPTS, (ConnectionWrapper c, List data) {
+    _packetListenerBindings.bindHandler(CONTAINED_DATA_RECEIPTS, (ConnectionWrapper c, List<dynamic> data) {
       reliableDataToVerify.addAll(data);
     });
-    _packetListenerBindings.bindHandler(DATA_RECEIPTS, (ConnectionWrapper c, List data) {
+    _packetListenerBindings.bindHandler(DATA_RECEIPTS, (ConnectionWrapper c, List<dynamic> data) {
       for (int receipt in data) {
         reliableDataBuffer.remove(receipt);
       }
@@ -153,7 +153,7 @@ class ReliableHelper {
     for (String reliableKey in RELIABLE_KEYS.keys) {
       if (dataMap.containsKey(reliableKey)) {
         Object data = dataMap[reliableKey];
-        int jsonHash = JSON.encode(data).hashCode;
+        int jsonHash = jsonEncode(data).hashCode;
         reliableDataBuffer[jsonHash] = [reliableKey, data];
         _addContainedReceipt(dataMap, jsonHash);
       }
@@ -260,12 +260,12 @@ class ConnectionFrameHandler {
 }
 
 class LeakyBucket {
-  int _fillRatePerMillis;
-  int _tokenBuffer;
+  final int _fillRatePerMillis;
+  late int _tokenBuffer;
 
-  DateTime _lastCall;
+  late DateTime _lastCall;
 
-  LeakyBucket(this._fillRatePerMillis, [int startBuffer]) {
+  LeakyBucket(this._fillRatePerMillis, [int? startBuffer = null]) {
     _tokenBuffer = _fillRatePerMillis;
     if (startBuffer != null) {
       _tokenBuffer = startBuffer;

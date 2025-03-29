@@ -1,57 +1,27 @@
 import 'package:dart2d/net/net.dart';
+import 'package:injectable/injectable.dart';
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/sprites/sprites.dart';
-import 'lib/test_lib.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dart2d/phys/vec2.dart';
-
-class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
-  Vec2 size = new Vec2(1, 1);
-  PlayerInfo info = new PlayerInfo('a', 'a', 123);
-}
-
-class FakeConnectionFactory extends ConnectionFactory {
-  Map<String, Map<String, TestConnection>> connections = {};
-
-  connectTo(ConnectionWrapper wrapper, String ourPeerId, String otherPeerId) {
-    TestConnection testConnection = new TestConnection(otherPeerId, wrapper);
-    if (connections[ourPeerId] == null) {
-      connections[ourPeerId] = {};
-    }
-    connections[ourPeerId][otherPeerId] = testConnection;
-    wrapper.setRtcConnection(testConnection);
-    wrapper.readyDataChannel(testConnection);
-    wrapper.open();
-
-    TestConnection otherEnd =
-        new TestConnection(ourPeerId, new MockConnectionWrapper());
-    testConnection.setOtherEnd(otherEnd);
-    otherEnd.setOtherEnd(testConnection);
-  }
-
-  createInboundConnection(ConnectionWrapper wrapper, dynamic sdp,
-      String otherPeerId, String ourPeerId) {}
-  handleCreateAnswer(dynamic connection, String src, String dst) {}
-  handleGotAnswer(dynamic connection, dynamic sdp) {}
-  handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {}
-}
+import 'lib/test_mocks.mocks.dart';
 
 void main() {
   final FAKE_ENABLED_KEYS = {'1': true};
-  PacketListenerBindings packetListenerBindings;
-  MockHudMessages mockHudMessages;
-  MockSpriteIndex mockSpriteIndex;
-  MockImageIndex mockImageIndex;
-  MockFpsCounter mockFpsCounter;
-  MockKeyState mockKeyState;
-  TestServerChannel channel;
-  FakeConnectionFactory fakeConnectionFactory;
-  GameState gameState;
-  Network network;
-  MockWormWorld mockWormWorld;
+  late PacketListenerBindings packetListenerBindings;
+  late MockHudMessages mockHudMessages;
+  late MockSpriteIndex mockSpriteIndex;
+  late MockImageIndex mockImageIndex;
+  late MockFpsCounter mockFpsCounter;
+  late MockKeyState mockKeyState;
+  late TestServerChannel channel;
+  late TestConnectionFactory fakeConnectionFactory;
+  late GameState gameState;
+  late Network network;
+  late MockWormWorld mockWormWorld;
 
   setUp(() {
     logOutputForTest();
@@ -65,16 +35,16 @@ void main() {
     mockKeyState = new MockKeyState();
     packetListenerBindings = new PacketListenerBindings();
     gameState = new GameState(packetListenerBindings, mockSpriteIndex);
-    channel = new TestServerChannel('c');
+    channel = new TestServerChannel();
 
     when(mockFpsCounter.fps()).thenReturn(15.0);
     when(mockWormWorld.imageIndex()).thenReturn(mockImageIndex);
     channel.sendOpenMessage();
-    when(mockSpriteIndex.spriteIds()).thenReturn(new List());
+    when(mockSpriteIndex.spriteIds()).thenReturn([]);
     when(mockKeyState.getEnabledState()).thenReturn(FAKE_ENABLED_KEYS);
     remapKeyNamesForTest();
 
-    fakeConnectionFactory = new FakeConnectionFactory();
+    fakeConnectionFactory = new TestConnectionFactory();
     network = new Network(
         new FakeGaReporter(),
         fakeConnectionFactory,
@@ -95,7 +65,7 @@ void main() {
   });
 
   frame([double duration = 0.01]) {
-    network.frame(duration, new List());
+    network.frame(duration, []);
   }
 
   test('Test basic client network update single connection', () {
@@ -103,9 +73,9 @@ void main() {
 
     network.peer.connectTo('b');
     expect(network.peer.connections.keys, contains('b'));
-    network.peer.connections['b'].setHandshakeReceived();
+    network.peer.connections['b']!.setHandshakeReceived();
     TestConnection connectionBtoC =
-        fakeConnectionFactory.connections['c']['b'].getOtherEnd();
+    testConnectionFactory.connections['c']!['b']!.getOtherEnd();
 
     frame();
     expect(connectionBtoC.decodedRecentDataRecevied(),
@@ -143,7 +113,7 @@ void main() {
     }
 
     // Now only delta updates.
-    network.frame(0.01, new List());
+    network.frame(0.01, []);
     expect(connectionBtoC.decodedRecentDataRecevied()['1000'],
         equals([sprite.extraSendFlags(), 9, 9, 0, 180000, 180000]));
   });
@@ -164,14 +134,12 @@ void main() {
 
     expectWarningContaining("CLIENT_TO_SERVER connection without being server");
 
-    int connectionNr = 0;
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
       });
-      connectionNr++;
     }
 
     expect(network.safeActiveConnections().length,
@@ -185,7 +153,7 @@ void main() {
 
     // Close down every connection.
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.signalClose();
     }
     expect(network.safeActiveConnections().length, equals(0));
@@ -240,7 +208,7 @@ void main() {
     // We picked 3 (index 2) since that has the highest current FPS.
     print(fakeConnectionFactory.connections);
     expect(
-        fakeConnectionFactory.connections['c']['3']
+        fakeConnectionFactory.connections['c']!['3']!
             .getOtherEnd()
             .decodedRecentDataRecevied()
             .keys,
@@ -252,14 +220,14 @@ void main() {
     expect(network.isCommander(), isFalse);
     expect(network.safeActiveConnections(), hasLength(1));
 
-    fakeConnectionFactory.connections['c']['b']
+    fakeConnectionFactory.connections['c']!['b']!
         .sendAndReceivByOtherPeerNativeObject({
       PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
       KEY_FRAME_KEY: 0
     });
 
     // Now close it.
-    fakeConnectionFactory.connections['c']['b'].signalClose();
+    fakeConnectionFactory.connections['c']!['b']!.signalClose();
     frame();
     // We didn't do anything. No game underway!
     expect(network.isCommander(), isFalse);
@@ -278,14 +246,14 @@ void main() {
     frame();
 
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.sendAndReceivByOtherPeerNativeObject({
         PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
       });
     }
 
-    MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
+    MockLocalPlayerSprite sprite = MockLocalPlayerSprite();
     when(mockSpriteIndex[1]).thenReturn(sprite);
     when(mockSpriteIndex[2]).thenReturn(sprite);
     when(mockSpriteIndex[3]).thenReturn(sprite);
@@ -297,14 +265,14 @@ void main() {
     network.gameState.addPlayerInfo(new PlayerInfo("testB", "c", 3));
 
     expect(network.getServerConnection(), isNotNull);
-    network.getServerConnection().setHandshakeReceived();
-    expect(network.getServerConnection().isValidGameConnection(), isTrue);
+    network.getServerConnection()!.setHandshakeReceived();
+    expect(network.getServerConnection()!.isValidGameConnection(), isTrue);
     expect(network.gameState.isInGame('c'), isTrue);
 
     frame();
 
     expect(network.isCommander(), isFalse);
-    network.getServerConnection().close("Test");
+    network.getServerConnection()!.close("Test");
 
     frame();
 
@@ -366,9 +334,9 @@ void main() {
     expect(recentSentDataTo("d"),
         new MapKeyMatcher.containsKey(sprite3.networkId.toString()));
 
-    List<int> data = propertiesToIntList(sprite, false);
+    List<dynamic> data = propertiesToIntList(sprite, false);
     TestConnection connectionBtoC =
-        fakeConnectionFactory.connections['c']['b'].getOtherEnd();
+        fakeConnectionFactory.connections['c']!['b']!.getOtherEnd();
     connectionBtoC.sendAndReceivByOtherPeerNativeObject(
         {KEY_FRAME_KEY: 1, sprite.networkId.toString(): data});
 
@@ -384,7 +352,7 @@ void main() {
     frame(0.1);
 
     gameState.addPlayerInfo(new PlayerInfo("testB", "b", sprite.networkId));
-    PlayerInfo bInfo = gameState.playerInfoByConnectionId('b');
+    PlayerInfo bInfo = gameState.playerInfoByConnectionId('b')!;
     bInfo.connections = {'d': new ConnectionInfo('d', 100)};
 
     expect(gameState.isConnected('b', 'd'), isTrue);
@@ -410,7 +378,7 @@ void main() {
       connection.setHandshakeReceived();
     }
 
-    MockRemotePlayerClientSprite sprite = new MockRemotePlayerClientSprite();
+    MockLocalPlayerSprite sprite = MockLocalPlayerSprite();
     when(mockSpriteIndex[1]).thenReturn(sprite);
     when(mockSpriteIndex[2]).thenReturn(sprite);
     when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
@@ -421,14 +389,14 @@ void main() {
     network.gameState.addPlayerInfo(new PlayerInfo("testB", "b", 2));
 
     expect(network.isCommander(), isFalse);
-    expect(network.getServerConnection().isValidGameConnection(), isTrue);
+    expect(network.getServerConnection()!.isValidGameConnection(), isTrue);
 
     // We haven't finished loading yet...
     when(mockWormWorld.loaderCompleted()).thenReturn(false);
 
     expectWarningContaining(
         "Can not transfer command to us before loading has completed");
-    fakeConnectionFactory.connections['c']['b']
+    fakeConnectionFactory.connections['c']!['b']!
         .getOtherEnd()
         .sendAndReceivByOtherPeerNativeObject(
             {TRANSFER_COMMAND: 'y', KEY_FRAME_KEY: 0});
@@ -439,7 +407,7 @@ void main() {
     // Now we finished loading.
     when(mockWormWorld.loaderCompleted()).thenReturn(true);
 
-    fakeConnectionFactory.connections['c']['b']
+    fakeConnectionFactory.connections['c']!['b']!
         .getOtherEnd()
         .sendAndReceivByOtherPeerNativeObject(
             {TRANSFER_COMMAND: 'y', KEY_FRAME_KEY: 0});
@@ -464,7 +432,7 @@ void main() {
 
     // All connections got pinged.
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       Map data = connection.getOtherEnd().decodedRecentDataRecevied();
       data[PING] = 123;
       data[CONTAINED_DATA_RECEIPTS] = [999];
@@ -481,7 +449,7 @@ void main() {
 
     // Returns pongs for all connection.
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -510,9 +478,9 @@ void main() {
     expect(network.findServer(), isFalse);
 
     // Respond with a Pong - this is the server.
-    GameState g = new GameState(packetListenerBindings, null);
+    GameState g = new GameState(packetListenerBindings, MockSpriteIndex());
     g.actingCommanderId = '0';
-    fakeConnectionFactory.connections['c']['0']
+    fakeConnectionFactory.connections['c']!['0']!
         .getOtherEnd()
         .sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
@@ -524,7 +492,7 @@ void main() {
     expect(network.findServer(), isTrue);
     expect(network.getServerConnection(), isNotNull);
     // Close it.
-    network.getServerConnection().close("Test");
+    network.getServerConnection()!.close("Test");
 
     expect(network.safeActiveConnections().length,
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
@@ -539,7 +507,7 @@ void main() {
 
     // Returns pongs for all connection.
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -558,7 +526,7 @@ void main() {
     // Respond with a Pong - this is the server.
     print("Connetions ${network.safeActiveConnections().keys}");
     g.actingCommanderId = '5';
-    fakeConnectionFactory.connections['c']['5']
+    fakeConnectionFactory.connections['c']!['5']!
         .getOtherEnd()
         .sendAndReceivByOtherPeerNativeObject({
       PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
@@ -571,14 +539,14 @@ void main() {
     expect(network.getServerConnection(), isNotNull);
 
     // aaaand it's gone.
-    network.getServerConnection().close("Test");
+    network.getServerConnection()!.close("Test");
 
     // No server again.
     expect(network.findServer(), isFalse);
 
     // Returns pongs for all connections again - no server connection.
     for (TestConnection connection
-        in fakeConnectionFactory.connections['c'].values) {
+        in fakeConnectionFactory.connections['c']!.values) {
       connection.getOtherEnd().sendAndReceivByOtherPeerNativeObject({
         PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
         KEY_FRAME_KEY: 0
@@ -609,7 +577,7 @@ class _TestSprite extends MovingSprite {
   }
 
   @override
-  frame(double duration, int frameStep, [Vec2 gravity]) {
+  frame(double duration, int frameStep, [Vec2? gravity]) {
     frameCalls++;
   }
 

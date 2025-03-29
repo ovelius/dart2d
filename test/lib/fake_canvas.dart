@@ -1,19 +1,22 @@
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:dart2d/net/net.dart';
 import 'dart:async';
 
-class FakeCanvas {
-  static const DATA_URL = "data:image/png;base64,THIS_IS_FAKE";
+import 'package:injectable/injectable.dart';
 
-  FakeContext2D context2D;
-  num height = 800;
-  num width = 800;
+const TEST_DATA_URL = "data:image/png;base64,THIS_IS_FAKE";
+
+@Injectable(as: WorldCanvas)
+class FakeCanvas implements WorldCanvas {
+
+  late FakeContext2D context2D;
+  int height = 800;
+  int width = 800;
 
   FakeCanvas() {
     context2D = new FakeContext2D(this);
   }
 
-  toDataUrl([String type]) => DATA_URL;
+  toDataUrl([String type = ""]) => TEST_DATA_URL;
 }
 
 class FakeContext2D {
@@ -24,7 +27,7 @@ class FakeContext2D {
   var font;
   var fillStyle;
   num globalAlpha = 1.0;
-  String globalCompositeOperation;
+  late String globalCompositeOperation;
 
   void clearRect(num one, two, three, four) {}
   void setFillColorRgb(num one, two, three, [four]) {}
@@ -84,8 +87,10 @@ class FakeGradient {
   void addColorStop(num where, String color) {}
 }
 
-class FakeScreen {
-
+@Injectable(as: HtmlScreen)
+class FakeScreen implements HtmlScreen {
+  @override
+  get orientation => throw UnimplementedError();
 }
 
 class _FakeTextMetrics {
@@ -102,37 +107,14 @@ class _FakeGradient {
   void addColorStop(num arg, var color) {}
 }
 
-class FakeImageFactory extends DynamicFactory {
-  FakeImageFactory() : super(null);
+@Singleton(as: ImageFactory, scope:'world')
+class FakeImageFactory extends ImageFactory {
   List<FakeImage> createdImages = [];
   // Required to avoid deadlock in end2end tests.
   bool completeImagesAsap = false;
   bool allowDataImages = true;
   bool allowURLImages = true;
 
-  create(var args) {
-    FakeImage image;
-    if (args.length == 2) {
-      image = new FakeImage.withHW(args[0], args[1]);
-    } else if (args.length == 1) {
-      if (!allowDataImages && args[0].startsWith("data:")) {
-        throw new ArgumentError("Not allowed to create image from data ${args[0]}");
-      }
-      if (!allowURLImages && args[0].startsWith("./")) {
-        throw new ArgumentError("Not allowed to create image from URL ${args[0]}");
-      }
-      image = new FakeImage.withSrc(args[0]);
-    } else if (args.length == 0) {
-      image = new FakeImage();
-    } else {
-      throw new ArgumentError("Can't handle arguments ${args}");
-    }
-    if (completeImagesAsap) {
-      completeAllImages();
-    }
-    createdImages.add(image);
-    return image;
-  }
 
   void completeAllImages() {
     createdImages.forEach((image) {
@@ -142,6 +124,37 @@ class FakeImageFactory extends DynamicFactory {
       }
     });
   }
+
+  @override
+  createWithSize(int x, y) {
+    return addImage(new FakeImage.withHW(x, y));
+  }
+
+  @override
+  createWithSrc(String src) {
+    if (!allowDataImages && src.startsWith("data:")) {
+      throw new ArgumentError("Not allowed to create image from data ${src}");
+    }
+    if (!allowURLImages && src.startsWith("./")) {
+      throw new ArgumentError("Not allowed to create image from URL ${src}");
+    }
+    FakeImage image = new FakeImage.withSrc(src);
+    return addImage(image);
+  }
+
+  @override
+  create() {
+    return addImage(FakeImage());
+  }
+
+  FakeImage addImage(FakeImage img) {
+    createdImages.add(img);
+    if (completeImagesAsap) {
+      completeAllImages();
+    }
+    return img;
+  }
+
 }
 
 class FakeImage {
@@ -150,24 +163,27 @@ class FakeImage {
   FakeImage.withSrc(this.src);
   FakeImage.withHW(this.width, this.height);
 
-  String src;
+  String src = "";
   int width = 100;
   int height = 100;
 
   _FakeEvenStream onLoad = new _FakeEvenStream();
+
+  String toString() => "src=$src w: $width h: $height";
 }
 
 class _FakeEvenStream {
   Completer _completer = new Completer.sync();
-  Future first;
+  late Future first;
   _FakeEvenStream() {
     first = _completer.future;
   }
 }
 
-class FakeImageDataFactory extends DynamicFactory {
-  FakeImageDataFactory() : super(null);
-  create(var args) {
+@Injectable(as: ImageDataFactory)
+class FakeImageDataFactory implements ImageDataFactory {
+  @override
+  createWithSize(int x, y) {
     return null;
   }
 }

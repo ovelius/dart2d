@@ -1,21 +1,21 @@
 import 'package:dart2d/bindings/annotations.dart';
-import 'package:di/di.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:injectable/injectable.dart';
 import 'dart:math';
 import 'util.dart';
 
-@Injectable()
+@Singleton(scope: 'world')
 class MobileControls {
   static const int BUTTON_SIZE = 40;
   static const int NO_BUTTON_TOUCH = -1;
-  bool _isMobileBrowser;
-  KeyState _localKeyState;
+  late bool _isTouchSupported;
+  late KeyState _localKeyState;
   Bot _bot;
-  String _botNameIfEnabled;
+  late String _botNameIfEnabled;
   ConfigParams _configParams;
-  int _width, _height;
-  var _canvas = null;
-  var _screen = null;
+  late int _width, _height;
+  late dynamic _canvas;
+  late HtmlScreen _screen;
   List<Point<int>> _buttons = [];
   Map<int, int> _buttonToKey = {};
   Map<int, int> _touchIdToButtonDown = {};
@@ -30,12 +30,11 @@ class MobileControls {
       this._selfPlayerInfoProvider,
       this._configParams,
       this._bot,
-      @HtmlScreen() Object screen,
-      @LocalStorage() Map localStorage,
-      @LocalKeyState() KeyState localKeyState,
-      @TouchControls() bool isMobileBrowser,
-      @WorldCanvas() Object canvasElement) {
-    this._isMobileBrowser = isMobileBrowser;
+      HtmlScreen screen,
+      KeyState localKeyState,
+      @Named(TOUCH_SUPPORTED) bool touchSupported,
+      WorldCanvas canvasElement) {
+    this._isTouchSupported = touchSupported;
     this._localKeyState = localKeyState;
     var canvasHack = canvasElement;
     this._canvas = canvasHack.context2D;
@@ -43,10 +42,10 @@ class MobileControls {
     this._width = canvasHack.width;
     this._height = canvasHack.height;
     this._botNameIfEnabled = _configParams.getString(ConfigParam.BOT_ENABLED);
-    num thirdX = _width / 3;
-    num halfY = _height / 2 + BUTTON_SIZE + BUTTON_SIZE;
-    num yDiff = 50;
-    num xDiff = 90;
+    int thirdX = (_width / 3).toInt();
+    int halfY = (_height / 2 + BUTTON_SIZE + BUTTON_SIZE).toInt();
+    int yDiff = 50;
+    int xDiff = 90;
 
     // TODO used named keys.
     _buttons.add(new Point(thirdX * 2, halfY - yDiff));
@@ -68,9 +67,9 @@ class MobileControls {
   draw(double duration) {
     if (_botNameIfEnabled.isNotEmpty) {
       _bot.tick(duration);
-    } else if (_isMobileBrowser) {
+    } else if (_isTouchSupported) {
       PlayerInfo selfInfo = _selfPlayerInfoProvider.getSelfInfo();
-      if (selfInfo == null || !selfInfo.inGame) {
+      if (!selfInfo.inGame) {
         return;
       }
       if (isPortrait()) {
@@ -93,7 +92,7 @@ class MobileControls {
           _canvas.setFillColorRgb(255, 255, 255, 0.5);
         }
         _canvas.beginPath();
-        _canvas.arc(btn.x, btn.y, BUTTON_SIZE, 0, PI * 2);
+        _canvas.arc(btn.x, btn.y, BUTTON_SIZE, 0, pi * 2);
         _canvas.closePath();
         _canvas.fill();
       }
@@ -123,7 +122,7 @@ class MobileControls {
         if (y >= btn.y - BUTTON_SIZE && y <= btn.y + BUTTON_SIZE) {
           _touchIdToButtonDown[id] = i;
           _buttonIdToTouchId[i] = id;
-          _localKeyState.onKeyDown(_buttonToKey[i]);
+          _localKeyState.onKeyDown(_buttonToKey[i]!);
           buttonFound = true;
         }
       }
@@ -137,16 +136,16 @@ class MobileControls {
   }
 
   void touchUp(int id) {
-    int index = _touchIdToButtonDown.remove(id);
+    int index = _touchIdToButtonDown.remove(id)!;
     if (index != NO_BUTTON_TOUCH) {
-      _localKeyState.onKeyUp(_buttonToKey[index]);
+      _localKeyState.onKeyUp(_buttonToKey[index]!);
     }
     _buttonIdToTouchId.remove(index);
     _touchStartPoints.remove(id);
   }
 
   void touchMove(int id, int x, int y) {
-    Point<int> startPoint = _touchStartPoints[id];
+    Point<int> startPoint = _touchStartPoints[id]!;
     _touchDeltas[id] = new Point(startPoint.x - x, startPoint.y - y);
   }
 
@@ -157,12 +156,12 @@ class MobileControls {
   /**
    * Get the current touch delta for a button.
    */
-  Point<int> getTouchDeltaForButton([int index = NO_BUTTON_TOUCH]) {
-    int id = _buttonIdToTouchId[index];
-    if (id != null) {
-      return _touchDeltas[id];
+  Point<int>? getTouchDeltaForButton([int index = NO_BUTTON_TOUCH]) {
+    int? id = _buttonIdToTouchId[index];
+    if (id == null) {
+      return null;
     }
-    return null;
+    return _touchDeltas[id];
   }
 
   Duration lastUserInput() {
