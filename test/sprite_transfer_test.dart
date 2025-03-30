@@ -660,7 +660,7 @@ class _TestDamageProjectile extends WorldDamageProjectile {
       expect(radius, equals(other.radius));
       expect(damage, equals(other.damage));
       expect(showCounter, equals(other.showCounter));
-      expect(owner.networkId, equals(other.owner.networkId));
+      expect(owner?.networkId, equals(other.owner?.networkId));
     }
   }
 }

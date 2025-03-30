@@ -196,8 +196,8 @@ class Network {
       }
       // Remove any projectiles without owner.
       // TODO remove rope here?
-      if (previousCommanderPlayerInfo != null && sprite is WorldDamageProjectile &&
-          sprite.owner.networkId == previousCommanderPlayerInfo.spriteId) {
+      if (previousCommanderPlayerInfo != null && sprite is MovingSprite &&
+          sprite.owner?.networkId == previousCommanderPlayerInfo.spriteId) {
         sprite.remove = true;
         sprite.collision = false;
       }

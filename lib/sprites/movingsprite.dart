@@ -3,6 +3,7 @@ import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/sprites/worm_player.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 
 class MovingSprite extends Sprite {
@@ -21,6 +22,9 @@ class MovingSprite extends Sprite {
   
   // Set from network. See static FLAG_ fields above.
   int flags = 0;
+
+  // If owned by a player.
+  LocalPlayerSprite? owner;
 
   MovingSprite.empty(ImageIndex imageIndex): super.empty(imageIndex);
 

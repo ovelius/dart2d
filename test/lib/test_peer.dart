@@ -22,11 +22,12 @@ class TestServerChannel extends ServerChannel {
 
   late StreamController<Map> _streamController;
 
-  TestServerChannel() {
-    if (testPeers.containsKey(serverChannelPeerId)) {
-      throw "TestPeer $serverChannelPeerId already exists!";
+  TestServerChannel() : this.withExplicitId(serverChannelPeerId);
+
+  TestServerChannel.withExplicitId(this.id) {
+    if (testPeers.containsKey(this.id)) {
+      throw "TestPeer $this.id already exists!";
     }
-    this.id = serverChannelPeerId;
     if (testPeers.containsKey(id)) {
       throw "A TestPeer with id $id already exists in ${testPeers.keys}";
     }

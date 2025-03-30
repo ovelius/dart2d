@@ -106,7 +106,7 @@ class PlayerWorldSelector {
             }
           }
         }
-      } else {
+      } else if (_mapPositions != null) {
         double scaledWidth = _maxMapWidth * _mapScale;
         for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
           if (_onPoint(_mapPositions![i], x, y, scaledWidth)) {

@@ -11,7 +11,6 @@ class Rope extends MovingSprite {
   late WormWorld world;
   bool locked = false;
   bool invisibleOutsideCanvas = false;
-  LocalPlayerSprite? owner;
   MovingSprite? lockedOnOther = null;
 
   Rope.createEmpty(WormWorld world)
@@ -21,18 +20,18 @@ class Rope extends MovingSprite {
     owner = null;
   }
   
-  Rope.createWithOwner(WormWorld world, this.owner, double angle, double velocity)
+  Rope.createWithOwner(WormWorld world, LocalPlayerSprite owner, double angle, double velocity)
        : super(new Vec2(), new Vec2(5.0, 5.0), SpriteType.RECT) {
       this.owner = owner;
-      Vec2 ownerCenter = owner!.centerPoint();
+      Vec2 ownerCenter = owner.centerPoint();
       this.position.x = ownerCenter.x - size.x / 2;
       this.position.y = ownerCenter.y - size.y / 2;
-      this.angle = owner!.angle;
+      this.angle = owner.angle;
       this.velocity.x = cos(angle);
       this.velocity.y = sin(angle);
       this.invisibleOutsideCanvas = false;
       this.velocity = this.velocity.multiply(velocity);
-      this.velocity = owner!.velocity + this.velocity;
+      this.velocity = owner.velocity + this.velocity;
   }
     
   collide(MovingSprite? other, ByteWorld? world, int? direction) {

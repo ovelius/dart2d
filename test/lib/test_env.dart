@@ -115,68 +115,6 @@ signalOpen(WormWorld w, [List<String> existingPeers = const[]]) {
   channel.sendOpenMessage(existingPeers);
 }
 
-dynamic createWorldInjector(String id, [bool loadImages = true]) {
-  /*
-  TestServerChannel channel = new TestServerChannel(id);
-  FakeCanvas fakeCanvas = new FakeCanvas();
-  FakeImageFactory fakeImageFactory = new FakeImageFactory();
-  if (!loadImages) {
-    fakeImageFactory.completeImagesAsap = true;
-  }
-  TestConnectionFactory connectionFactory = new TestConnectionFactory();
-  FpsCounter frameCounter = new FpsCounter();
-  frameCounter.setFpsForTest(45.0);
-
-  ModuleInjector injector = new ModuleInjector([
-    new Module()
-      // Test only.
-      ..bind(TestConnectionFactory, toValue: connectionFactory)
-      ..bind(TestServerChannel, toValue: channel)
-      ..bind(FakeImageFactory, toValue: fakeImageFactory)
-      ..bind(ConnectionFactory, toValue: connectionFactory)
-      ..bind(FakeImageDataFactory, toValue: new FakeImageDataFactory())
-      // World bindings.
-      ..bind(ServerChannel, toValue: channel)
-      ..bind(int, withAnnotation: const WorldWidth(), toValue: fakeCanvas.width)
-      ..bind(int,
-          withAnnotation: const WorldHeight(), toValue: fakeCanvas.height)
-      ..bind(DynamicFactory,
-          withAnnotation: const CanvasFactory(),
-          toValue: new DynamicFactory((args) => new FakeCanvas()))
-      ..bind(DynamicFactory,
-          withAnnotation: const ImageFactory(), toInstanceOf: FakeImageFactory)
-      ..bind(DynamicFactory,
-          withAnnotation: const ImageDataFactory(),
-          toInstanceOf: FakeImageDataFactory)
-      ..bind(Object,
-          withAnnotation: const WorldCanvas(), toValue: new FakeCanvas())
-      ..bind(bool, withAnnotation: const TouchControls(), toValue: false)
-      ..bind(Map, withAnnotation: const LocalStorage(), toValue: {})
-      ..bind(Map, withAnnotation: const UriParameters(), toValue: {})
-      ..bind(KeyState,
-          withAnnotation: const LocalKeyState(), toValue: new KeyState())
-      ..install(new UtilModule())
-      ..install(new NetModule())
-      ..install(new WorldModule())
-      ..bind(Object,
-          withAnnotation: const HtmlScreen(), toValue: new FakeScreen())
-      ..bind(DynamicFactory,
-          withAnnotation: const ReloadFactory(),
-          toValue: new DynamicFactory((args) {
-            print("Want to reload the world! Not available in tests...");
-          }))
-      ..bind(FpsCounter,
-          withAnnotation: const ServerFrameCounter(), toValue: frameCounter)
-      ..bind(ImageIndex)
-      ..bind(SpriteIndex)
-  ]);
-  if (loadImages) {
-    injector.get(ImageIndex).useEmptyImagesForTest();
-  }
-  injector.get(PowerupManager).setNextPowerForTest(1000.0);
-  return injector;
-  */
-}
 
 @Injectable(as: GaReporter)
 class FakeGaReporter extends GaReporter {

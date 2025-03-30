@@ -86,7 +86,6 @@ void init() {
         .message}';
     print(msg);
   });
-
   document.querySelector("#sendMsg")!.onClick.listen((e) {
     var message = (document.querySelector("#chatMsg") as HTMLInputElement).value;
     world.displayHudMessageAndSendToNetwork(

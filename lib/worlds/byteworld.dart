@@ -3,12 +3,14 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
+import 'package:logging/logging.dart';
 
 /**
  * Represents the destructable world.
  */
 @Singleton(scope: 'world')
 class ByteWorld {
+  final Logger log = new Logger('ByteWorld');
   // Needs to create canvas.
   late CanvasFactory _canvasFactory;
   // Needs to create imageData.
@@ -36,6 +38,7 @@ class ByteWorld {
    * Initialize the world image.
    */
   void setWorldImage(var image) {
+    DateTime start = DateTime.now();
     canvas = _canvasFactory.createCanvas(image.width, image.height);
     _width = canvas.width;
     _height = canvas.height;
@@ -45,6 +48,7 @@ class ByteWorld {
     // Store bedrock result in image.
     _bedrockImage = _imageFactory.createWithSize(_width, _height);
     _bedrockImage.src = bedrocksCanvas.toDataUrl();
+    log.info("ByteWorld initialized in ${DateTime.now().millisecondsSinceEpoch - start.millisecondsSinceEpoch} ms");
   }
 
   /**

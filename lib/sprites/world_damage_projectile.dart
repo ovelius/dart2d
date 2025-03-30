@@ -35,10 +35,10 @@ class BananaCake extends WorldDamageProjectile {
     world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
         addpParticles: particlesOnExplode,
-        damage: damage, radius: radius, damageDoer: owner, mod:Mod.BANANA);
+        damage: damage, radius: radius, damageDoer: owner!, mod:Mod.BANANA);
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world,
-          this.owner, 30, this);
+          this.owner!, 30, this);
       sprite.mod = Mod.BANANA;
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
       sprite.velocity.x = -pi * 2; 
@@ -88,7 +88,7 @@ class Hyper extends WorldDamageProjectile {
   void _collectDamageSprites() {
     List<LocalPlayerSprite> spritesInDamageArea = [];
     for (PlayerInfo inf in world.network().gameState.playerInfoList()) {
-      if (inf.spriteId != owner.networkId) {
+      if (inf.spriteId != owner?.networkId) {
         LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite;
         if (sprite.inGame() && sprite.takesDamage()) {
           double dst = distanceTo(sprite);
@@ -108,7 +108,7 @@ class Hyper extends WorldDamageProjectile {
     _collectDamageSprites();
     for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
       if (damageSprite.takesDamage()) {
-        damageSprite.takeDamage(damage, owner, Mod.HYPER);
+        damageSprite.takeDamage(damage, owner!, Mod.HYPER);
       }
     }
     super.frame(duration, frameStep, gravity);
@@ -170,8 +170,8 @@ class Hyper extends WorldDamageProjectile {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(damage, owner, Mod.HYPER);
+    if (owner != null && other != null && other.networkId != owner!.networkId && other.takesDamage()) {
+      other.takeDamage(damage, owner!, Mod.HYPER);
       remove = true;
     }
     if (world != null && other == null) {
@@ -244,7 +244,6 @@ class WorldDamageProjectile extends MovingSprite {
   static Random random = new Random();
 
   late WormWorld world;
-  late LocalPlayerSprite owner;
   int damage = 1;
 
   double bounche = 0.5;
@@ -268,8 +267,8 @@ class WorldDamageProjectile extends MovingSprite {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (other != null && other.networkId != owner.networkId && other.takesDamage()) {
-      other.takeDamage(damage, owner, mod);
+    if (other != null && owner != null && other.networkId != owner!.networkId && other.takesDamage()) {
+      other.takeDamage(damage, owner!, mod);
       explode();
     }
     if (world != null && direction != null) {
@@ -309,7 +308,7 @@ class WorldDamageProjectile extends MovingSprite {
       world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
         addpParticles: particlesOnExplode,
-        damage: damage, radius: radius, damageDoer: owner, mod:mod);
+        damage: damage, radius: radius, damageDoer: owner!, mod:mod);
     }
     this.remove = true;
   }
@@ -344,7 +343,7 @@ class WorldDamageProjectile extends MovingSprite {
     data.add(damage);
     data.add(showCounter);
     // Will eventually be corrected.
-    data.add(owner == null ? -1 : owner.networkId);
+    data.add(owner == null ? -1 : owner!.networkId);
     if (explodeAfter != null) {
       data.add(explodeAfter!.toInt());
     }

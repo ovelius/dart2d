@@ -17,9 +17,9 @@ class SelfPlayerInfoProvider {
   Network _network;
   SelfPlayerInfoProvider(this._network);
 
-  PlayerInfo getSelfInfo() {
+  PlayerInfo? getSelfInfo() {
     String peerId = _network.getPeer().getId();
-    return _network.getGameState().playerInfoByConnectionId(peerId)!;
+    return _network.getGameState().playerInfoByConnectionId(peerId);
   }
 }
 

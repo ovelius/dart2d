@@ -68,8 +68,8 @@ class MobileControls {
     if (_botNameIfEnabled.isNotEmpty) {
       _bot.tick(duration);
     } else if (_isTouchSupported) {
-      PlayerInfo selfInfo = _selfPlayerInfoProvider.getSelfInfo();
-      if (!selfInfo.inGame) {
+      PlayerInfo? selfInfo = _selfPlayerInfoProvider.getSelfInfo();
+      if (selfInfo == null || !selfInfo.inGame) {
         return;
       }
       if (isPortrait()) {
@@ -136,7 +136,7 @@ class MobileControls {
   }
 
   void touchUp(int id) {
-    int index = _touchIdToButtonDown.remove(id)!;
+    int? index = _touchIdToButtonDown.remove(id);
     if (index != NO_BUTTON_TOUCH) {
       _localKeyState.onKeyUp(_buttonToKey[index]!);
     }

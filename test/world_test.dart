@@ -74,19 +74,19 @@ void main() {
       worldA.explosionAt(location: player.centerPoint() + new Vec2(-40.0, 0), damage: damageDone, radius:  50.0, damagerDoer: player);
 
       // Momentum to the right.
-      expect(player.velocity.x, equals(120.0));
+      expect(player.velocity.x, equals(240.0));
       expect(player.velocity.y, equals(0));
       expect(player.health, equals(
-          LocalPlayerSprite.MAX_HEALTH - damageDone - 3));
+          LocalPlayerSprite.MAX_HEALTH - damageDone - 6));
 
       player.velocity = new Vec2();
       // 10 damage at 20 distance to the left.
       worldA.explosionAt(location: player.centerPoint() + new Vec2(30.0, 30.0), damage: damageDone, radius:  50.0, damagerDoer: player);
       // Momentum up to the left.
-      expect(player.velocity.x.toInt(), equals(-60));
-      expect(player.velocity.y.toInt(), equals(-60));
+      expect(player.velocity.x.toInt(), equals(-120));
+      expect(player.velocity.y.toInt(), equals(-120));
       expect(player.health, equals(
-          LocalPlayerSprite.MAX_HEALTH - damageDone - 5));
+          LocalPlayerSprite.MAX_HEALTH - damageDone - 10));
     });
   });
 }

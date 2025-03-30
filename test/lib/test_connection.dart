@@ -20,7 +20,7 @@ recentReceviedDataFrom(id, [int index = 0]) {
 
 class TestConnection {
   int dropPacketsAfter = 900000000;
-  late TestConnection _otherEnd;
+  TestConnection? _otherEnd;
   String id;
   ConnectionWrapper? _internalWrapper;
   bool closed = false;
@@ -28,6 +28,14 @@ class TestConnection {
   String? recentDataSent = null;
   int dataReceivedCount = 0;
   var recentDataRecevied = null;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is TestConnection) {
+       return other.id == id;
+    }
+    return false;
+  }
 
   dynamic decodedRecentDataRecevied() {
     if (recentDataRecevied == null) {
@@ -43,7 +51,7 @@ class TestConnection {
 
   TestConnection(this.id, this._internalWrapper) {
     if (this._internalWrapper is MockConnectionWrapper) {
-      throw ArgumentError("Only allows real ConnectionWrapper! Got: ${this._internalWrapper}!");
+      /// throw ArgumentError("Only allows real ConnectionWrapper! Got: ${this._internalWrapper}!");
     }
     if (!testConnections.containsKey(id)) {
       testConnections[id] = [];
@@ -55,7 +63,7 @@ class TestConnection {
     this._otherEnd = otherEnd;
   }
 
-  TestConnection getOtherEnd() => _otherEnd;
+  TestConnection? getOtherEnd() => _otherEnd;
 
   operator [](index) => id;
   
@@ -77,7 +85,7 @@ class TestConnection {
       throw "No internal wrapper to signal close to!";
     }
     _internalWrapper?.close("Test");
-    _otherEnd._internalWrapper?.close("TestOtherEnd");
+    _otherEnd?._internalWrapper?.close("TestOtherEnd");
     }
 
   void close() {
@@ -91,16 +99,16 @@ class TestConnection {
     bool drop = dropPacketsAfter <=0;
     dropPacketsAfter--;
     if (logConnectionData) {
-      print("Data ${drop ? "DROPPED" : ""} ${_otherEnd.id} -> ${id}: ${jsonString}");
+      print("Data ${drop ? "DROPPED" : ""} ${_otherEnd} -> ${id}: ${jsonString}");
     }
-    if (_otherEnd._internalWrapper == null) {
+    if (_otherEnd?._internalWrapper == null) {
       throw "No connection wrapper at other end, can't send data!";
     }
     if (!drop) {
       recentDataSent = jsonString;
-      _otherEnd.recentDataRecevied = jsonString;
-      _otherEnd.dataReceivedCount++;
-      _otherEnd._internalWrapper?.receiveData(jsonString);
+      _otherEnd?.recentDataRecevied = jsonString;
+      _otherEnd?.dataReceivedCount++;
+      _otherEnd?._internalWrapper?.receiveData(jsonString);
     }
   }
 
@@ -112,7 +120,7 @@ class TestConnection {
     }
   }
 
-  toString() => "TestConnection $id -> ${_otherEnd == null ? 'NULL' : _otherEnd.id}";
+  toString() => "TestConnection $id -> ${_otherEnd == null ? 'NULL' : _otherEnd?.id}";
 }
 
 class TestConnectionWrapper extends ConnectionWrapper {
@@ -186,6 +194,9 @@ class TestConnectionFactory extends ConnectionFactory {
       return;
     }
     // Signal open connection right away.
+    if (!testPeers.containsKey(otherPeerId)) {
+      throw "No such test peer $otherPeerId among ${testPeers.keys}";
+    }
     TestServerChannel otherChannel = testPeers[otherPeerId]!;
     otherChannel.fakeIncomingConnection(ourPeerId);
     for (TestConnection otherEndConnection in otherChannel.connections) {

@@ -54,12 +54,14 @@ class Bot {
   }
 
   bool _findPlayerSprite() {
-    PlayerInfo info = _selfPlayerInfoProvider.getSelfInfo();
+    PlayerInfo? info = _selfPlayerInfoProvider.getSelfInfo();
+    if (info == null) {
+      return false;
+    }
     _controlledSprite = _spriteIndex[info.spriteId] as LocalPlayerSprite?;
     log.info("Found controller target ${_controlledSprite}");
     _stuckAt = new Vec2.copy(_controlledSprite!.position);
     return true;
-        return false;
   }
 
   void _maybeJump() {

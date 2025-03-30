@@ -299,6 +299,9 @@ class Loader {
     if (_STATE_PRECONDITIONS.containsKey(state)) {
       _STATE_PRECONDITIONS[state](_localStorage);
     }
+    if (_currentState != state) {
+      log.info("Loader state changes to $state");
+    }
     this._currentState = state;
     if (message == null) {
       this._currentMessage = _STATE_DESCRIPTIONS[state]!;
