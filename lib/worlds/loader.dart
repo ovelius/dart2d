@@ -77,6 +77,17 @@ class Loader {
     this._imageIndex = imageIndex;
   }
 
+  Map<LoaderState, dynamic> _STATE_PRECONDITIONS = {
+    LoaderState.LOADED_AS_SERVER: (LocalStorage storage){
+      if (!storage.containsKey('playerSprite')) {
+        throw "Missing playerSprite!";
+      }
+      if (!storage.containsKey('playerName')) {
+        throw "Missing playerName!";
+      }
+    }
+  };
+
   void loaderTick([double duration = 0.01]) {
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
@@ -285,6 +296,9 @@ class Loader {
   bool completed() => _completed;
 
   setState(LoaderState state, [String? message = null]) {
+    if (_STATE_PRECONDITIONS.containsKey(state)) {
+      _STATE_PRECONDITIONS[state](_localStorage);
+    }
     this._currentState = state;
     if (message == null) {
       this._currentMessage = _STATE_DESCRIPTIONS[state]!;

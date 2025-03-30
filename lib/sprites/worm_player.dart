@@ -16,7 +16,9 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 class LocalPlayerSprite extends MovingSprite {
   final Logger log = new Logger('LocalPlayerSprite');
   static const BOUCHYNESS = 0.2;
-  static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(32.0, 32.0);
+  static const MAX_WALK_SPEED = 150.0;
+  static const WALK_ACCELERATION_SPEED = 100.0;
+  static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(42.0, 42.0);
   static int MAX_HEALTH = 100;
   static int MAX_SHIELD = 200;
   static const double RESPAWN_TIME = 5.0;
@@ -97,7 +99,8 @@ class LocalPlayerSprite extends MovingSprite {
   StickySprite _createGun(ImageIndex index) {
     StickySprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"),
         index, Sprite.UNLIMITED_LIFETIME);
-    sprite.size = new Vec2(30, 7).multiply(1.5);
+    // Gun size here.
+    sprite.size = new Vec2(30, 7).multiply(2.0);
     return sprite;
   }
 
@@ -372,14 +375,14 @@ class LocalPlayerSprite extends MovingSprite {
 
   void _applyVel(double? right, double? left) {
     if (left != null) {
-      if (velocity.x > -100) {
-        velocity.x -= 20.0 * left;
+      if (velocity.x > -WALK_ACCELERATION_SPEED) {
+        velocity.x -= WALK_ACCELERATION_SPEED * left;
       }
-      if (velocity.x < -100 * left) {
-        velocity.x = -100.0 * left;
+      if (velocity.x < -MAX_WALK_SPEED * left) {
+        velocity.x = -MAX_WALK_SPEED * left;
       }
-      if (velocity.x < -100) {
-        velocity.x = -100.0;
+      if (velocity.x < -MAX_WALK_SPEED) {
+        velocity.x = -MAX_WALK_SPEED;
       }
       if (angle < pi * 2) {
         gun.angle -= (gun.angle + pi / 2) * 2;
@@ -390,14 +393,14 @@ class LocalPlayerSprite extends MovingSprite {
         angle = pi * 2 + 0.01;
       }
     } else if (right != null) {
-      if (velocity.x < 100 * right) {
-        velocity.x += 20.0 * right;
+      if (velocity.x < MAX_WALK_SPEED * right) {
+        velocity.x += WALK_ACCELERATION_SPEED * right;
       }
-      if (velocity.x > 100 * right) {
-        velocity.x = 100.0 * right;
+      if (velocity.x > MAX_WALK_SPEED * right) {
+        velocity.x = MAX_WALK_SPEED * right;
       }
-      if (velocity.x > 100) {
-        velocity.x = 100.0;
+      if (velocity.x > MAX_WALK_SPEED) {
+        velocity.x = MAX_WALK_SPEED;
       }
       if (angle != 0.0) {
         angle = 0.0;

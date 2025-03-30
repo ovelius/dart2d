@@ -25,8 +25,8 @@ void main() {
       // canvas.fillRect(1, 1, 100, 100);
       // expect(WorldPhys.isConnected(byteWorld, 2, 2), equals({'x':1, 'x2':100, 'y':1, 'y2': 100}));
     });
-    test('TestDontDrawOutsideScreen', () {
-      WormWorld worldA = testWorld("a");
+    test('TestDontDrawOutsideScreen', () async {
+      WormWorld worldA = await createTestWorld("a");
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
       worldA.frameDraw();
@@ -53,8 +53,8 @@ void main() {
       expect(sprite.frameCalls, equals(3));
     });
 
-    test('TestVelcityAndDamageFromExplosion', () {
-      WormWorld worldA = testWorld("a");
+    test('TestVelcityAndDamageFromExplosion', () async {
+      WormWorld worldA = await createTestWorld("a");
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
       worldA.frameDraw();
@@ -64,14 +64,14 @@ void main() {
 
       // 10 damage at 0 distance.
       int damageDone = 10;
-      worldA.explosionAt(location: player.centerPoint(), damage: damageDone, radius:  10.0);
+      worldA.explosionAt(location: player.centerPoint(), damage: damageDone, radius:  10.0, damagerDoer: player);
 
       expect(player.velocity.x, equals(0));
       expect(player.velocity.y, equals(0));
       expect(player.health, equals(LocalPlayerSprite.MAX_HEALTH - damageDone));
 
       // 10 damage at 20 distance to the left.
-      worldA.explosionAt(location: player.centerPoint() + new Vec2(-40.0, 0), damage: damageDone, radius:  50.0);
+      worldA.explosionAt(location: player.centerPoint() + new Vec2(-40.0, 0), damage: damageDone, radius:  50.0, damagerDoer: player);
 
       // Momentum to the right.
       expect(player.velocity.x, equals(120.0));
@@ -81,7 +81,7 @@ void main() {
 
       player.velocity = new Vec2();
       // 10 damage at 20 distance to the left.
-      worldA.explosionAt(location: player.centerPoint() + new Vec2(30.0, 30.0), damage: damageDone, radius:  50.0);
+      worldA.explosionAt(location: player.centerPoint() + new Vec2(30.0, 30.0), damage: damageDone, radius:  50.0, damagerDoer: player);
       // Momentum up to the left.
       expect(player.velocity.x.toInt(), equals(-60));
       expect(player.velocity.y.toInt(), equals(-60));
@@ -91,7 +91,7 @@ void main() {
   });
 }
 
-class _TestSprite extends Sprite {
+class _TestSprite extends MovingSprite {
   int drawCalls = 0;
   int frameCalls = 0;
   _TestSprite.withVecPosition(Vec2 position)

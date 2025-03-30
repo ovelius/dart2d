@@ -55,7 +55,7 @@ class HudMessages {
         context.setFillColorRgb(0, 0, 0, 0.7);
         context.fillRect(0, 0, world.width(), world.height());
       }
-      drawPlayerStats(context, world, world.width().toInt(), world.height().toInt(), world.spriteIndex, world.imageIndex(), netIssue);
+      drawPlayerStats(context, world, world.width().toInt(), world.height().toInt(), world.spriteIndex, world.imageIndex(), netIssue, true);
       context.restore();
     }
   }

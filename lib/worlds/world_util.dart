@@ -28,8 +28,8 @@ String toKey(int code) {
 void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelperTime,
     LocalPlayerSprite playerSprite, int width, height) {
   if (controlHelperTime > 0) {
-    context.setFillColorRgb(255, 255, 255);
-    context.setStrokeColorRgb(255, 255, 255);
+    context.setFillColorRgb(0, 0, 0);
+    context.setStrokeColorRgb(0, 0, 0);
     context.fillText("Controls are:", width ~/ 3, 40);
     int i = playerSprite.getControls().length;
     for (String key in playerSprite.getControls().keys) {
@@ -48,7 +48,8 @@ void drawPlayerStats(
     int width, int height,
     SpriteIndex spriteIndex,
     ImageIndex imageIndex,
-    bool netIssue) {
+    bool netIssue,
+    bool blackText) {
   GameState gameState = world.network().gameState;
   List<PlayerInfo> infoList = world.network().gameState.playerInfoList();
   Map<String, ConnectionWrapper> connections = world.network().safeActiveConnections();
@@ -61,7 +62,11 @@ void drawPlayerStats(
   double y = height / 2;
 
   int fontSize = 20;
-  context.setFillColorRgb(255, 255, 255, 0.5);
+  if (blackText) {
+    context.setFillColorRgb(0, 0, 0, 0.7);
+  } else {
+    context.setFillColorRgb(255, 255, 255, 0.7);
+  }
   context.font = "${fontSize}px Arial";
 
   for (int i = 0; i < infoList.length; i++) {
@@ -106,9 +111,9 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
   if (player.inGame()) {
     return;
   }
-  context.setFillColorRgb(0, 0, 0, 0.5);
+  context.setFillColorRgb(0, 0, 0, 0.7);
   context.fillRect(0, 0, width, height);
-  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   GameState gameState = world.network().getGameState();
   PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId!)!;
   LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
@@ -145,9 +150,9 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   if (player.inGame()) {
     return;
   }
-  context.setFillColorRgb(0, 0, 0, 0.5);
+  context.setFillColorRgb(0, 0, 0, 0.7);
   context.fillRect(0, 0, width, height);
-  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false);
+  drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   PlayerInfo? killer = player.killer;
   if (killer == null || killer == player.info) {
     return;
@@ -158,7 +163,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   String text = "You were killed by ${killer.name}";
   var metrics = context.measureText(text);
 
-  context.setFillColorRgb(255, 255, 255, 0.5);
+  context.setFillColorRgb(255, 255, 255, 0.7);
   double messageLength =  metrics.width + killerSprite.size.x;
   if (messageLength > width) {
     // OOps we are larger than screen. Reduce text size for next frame.

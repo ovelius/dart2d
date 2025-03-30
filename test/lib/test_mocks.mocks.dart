@@ -3598,14 +3598,8 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
 class MockPlayerWorldSelector extends _i1.Mock
     implements _i3.PlayerWorldSelector {
   @override
-  void selectPlayer() => super.noSuchMethod(
-    Invocation.method(#selectPlayer, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void selectMap() => super.noSuchMethod(
-    Invocation.method(#selectMap, []),
+  void maybeSelectPlayerOrMap() => super.noSuchMethod(
+    Invocation.method(#maybeSelectPlayerOrMap, []),
     returnValueForMissingStub: null,
   );
 

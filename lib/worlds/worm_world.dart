@@ -422,6 +422,9 @@ class WormWorld extends World {
   }
   
   addLocalPlayerSprite(String name) {
+    if (!_localStorage.containsKey('playerSprite')) {
+      throw StateError("PlayerSprite not selected!");
+    }
     int id = _network.gameState.getNextUsablePlayerSpriteId(this);
     PlayerInfo info = new PlayerInfo(name, _network.peer.id!, id);
     info.updateWithLocalKeyState(localKeyState);

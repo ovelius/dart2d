@@ -7,7 +7,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'dart:async';
 
-@Injectable()
+@Singleton(scope:'world')
 class ChunkHelper {
   final Logger log = new Logger('ChunkHelper');
   static const int DEFAULT_CHUNK_SIZE = 1400;

@@ -110,9 +110,9 @@ setMap() {
   selector.setMapForTest("lion88.png");
 }
 
-signalOpen(WormWorld w) {
+signalOpen(WormWorld w, [List<String> existingPeers = const[]]) {
   TestServerChannel channel = w.network().peer.serverChannel as TestServerChannel;
-  channel.sendOpenMessage();
+  channel.sendOpenMessage(existingPeers);
 }
 
 dynamic createWorldInjector(String id, [bool loadImages = true]) {

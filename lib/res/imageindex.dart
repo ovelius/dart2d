@@ -154,6 +154,7 @@ class ImageIndex {
     images[index] = _imageFactory.createWithSrc(data);
     // Mark image as complete here.
     loadedImages[index] = true;
+    _imageComplete(index);
     return _imageLoadedFuture(images[index], index);
   }
 

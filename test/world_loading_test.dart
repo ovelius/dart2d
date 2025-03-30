@@ -2,6 +2,7 @@ library dart2d;
 
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:test/test.dart';
@@ -57,17 +58,20 @@ void main() {
 
     // Set player.
     expect(loader.currentState(), LoaderState.PLAYER_SELECT);
-    PlayerWorldSelector selector = getIt<PlayerWorldSelector>();
-    selector.selectPlayer();
+    KeyState localKeyState = w.localKeyState;
+    // Key down selects it.
+    localKeyState.onKeyDown(KeyCodeDart.ENTER);
     frameDraws(w);
 
     // Select playable sprite.
     expect(loader.currentState(), LoaderState.WORLD_SELECT);
-    selector.selectMap();
+    localKeyState.onKeyDown(KeyCodeDart.ENTER);
     frameDraws(w);
 
-
-
+    // Key must go up before we can select again...
+    localKeyState.onKeyUp(KeyCodeDart.ENTER);
+    localKeyState.onKeyDown(KeyCodeDart.ENTER);
+    frameDraws(w);
     expect(loader.currentState(), LoaderState.WORLD_LOADING);
     imageFactory.completeAllImages();
     frameDraws(w);

@@ -90,19 +90,16 @@ class PlayerWorldSelector {
           (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
       _selectedMap = (_selectedMap + 1) % AVAILABLE_MAPS.length;
     });
-    _keyState.registerListener(KeyCodeDart.SPACE, selectPlayer);
-    _keyState.registerListener(KeyCodeDart.ENTER, selectPlayer);
-    _keyState.registerListener(KeyCodeDart.CTRL, selectPlayer);
-    _keyState.registerListener(KeyCodeDart.SPACE, selectMap);
-    _keyState.registerListener(KeyCodeDart.ENTER, selectMap);
-    _keyState.registerListener(KeyCodeDart.CTRL, selectMap);
+    _keyState.registerListener(KeyCodeDart.SPACE, maybeSelectPlayerOrMap);
+    _keyState.registerListener(KeyCodeDart.ENTER, maybeSelectPlayerOrMap);
+    _keyState.registerListener(KeyCodeDart.CTRL, maybeSelectPlayerOrMap);
     _mobileControls.listenForTouch((int x, int y) {
       if (_spritePositions != null && !playerSelected()) {
         double scaledWidth = _maxWidth * _scale;
         for (int i = 0; i < PLAYER_SPRITES.length; i++) {
           if (_onPoint(_spritePositions![i], x, y, scaledWidth)) {
             if (_selectedPlayerSprite == i) {
-              selectPlayer();
+              maybeSelectPlayerOrMap();
             } else {
               _selectedPlayerSprite = i;
               _customMessage = "Touch again to confirm!";
@@ -114,7 +111,7 @@ class PlayerWorldSelector {
         for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
           if (_onPoint(_mapPositions![i], x, y, scaledWidth)) {
             if (_selectedMap == i) {
-              selectMap();
+              maybeSelectPlayerOrMap();
             } else {
               _selectedMap = i;
               _customMessage = "Touch again to confirm!";
@@ -124,7 +121,7 @@ class PlayerWorldSelector {
       }
     });
     _packetListenerBindings.bindHandler(OTHER_PLAYER_WORLD_SELECT,
-        (ConnectionWrapper connection, List data) {
+        (ConnectionWrapper connection, List<dynamic> data) {
       String playerName = data[0];
       int selectedIndex = data[1];
       // Clear up existing selection.
@@ -155,17 +152,12 @@ class PlayerWorldSelector {
     return false;
   }
 
-  void selectPlayer() {
+  void maybeSelectPlayerOrMap() {
     if (!playerSelected()) {
       String spriteName = PLAYER_SPRITES[_selectedPlayerSprite];
       _localStorage['playerSprite'] = spriteName;
       _gaReporter.reportEvent(spriteName, "PlayerSelect");
-    }
-  }
-
-  void selectMap() {
-    print("Sleceted MAP called!");
-    if (playerSelected()) {
+    } else {
       String mapFullName = WORLDS[AVAILABLE_MAPS[_selectedMap]]!;
       _imageIndex.addSingleImage(mapFullName);
       _selectedWorldName = mapFullName;
