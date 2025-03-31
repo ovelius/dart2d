@@ -99,7 +99,6 @@ class Network {
    * This is checked when a connection is dropped.
    * Potentially this method will elect a new commander.
    * returns the id of the new commander, or null if no new commander was needed.
-   * TODO(Erik): Consider more factors when electing servers, like number of connected
    *  peers.
    */
   String? findNewCommander(Map connections, [bool ignoreSelf = false]) {
@@ -195,7 +194,6 @@ class Network {
         }
       }
       // Remove any projectiles without owner.
-      // TODO remove rope here?
       if (previousCommanderPlayerInfo != null && sprite is MovingSprite &&
           sprite.owner?.networkId == previousCommanderPlayerInfo.spriteId) {
         sprite.remove = true;
@@ -288,14 +286,17 @@ class Network {
   }
 
   /**
-   * Try and find a connection to a server.
-   * Returns true once the search is complete.
+   * Try and find a connection to another peer with an active game.
+   * Returns true if we got one.
    */
-  bool findServer() {
-    Map connections = safeActiveConnections();
+  bool findActiveGameConnection() {
+    Map<String, ConnectionWrapper> connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
     if (connections.containsKey(gameState.actingCommanderId)) {
-      /// TODO probe if game is full and close connection if it is.
+      if (gameState.isAtMaxPlayers()) {
+         connections[gameState.actingCommanderId]!.close("Full game connection!");
+         return false;
+      }
       return true;
     }
     int activityMillis = new DateTime.now().millisecondsSinceEpoch - 3000;
@@ -316,7 +317,7 @@ class Network {
         for (int i = 0; i < closeAbleNotServer.length; i++) {
           // TODO close by some heuristic here?
           if (i > 1) break;
-          ConnectionWrapper connection = connections[closeAbleNotServer[i]];
+          ConnectionWrapper connection = connections[closeAbleNotServer[i]]!;
           log.info("Closing connection $connection in search for server.");
           connection.close("No game found");
 

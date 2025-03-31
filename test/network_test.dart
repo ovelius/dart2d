@@ -483,7 +483,7 @@ void main() {
     channelC.sendOpenMessage(ids);
     expect(network.safeActiveConnections().length, equals(4));
 
-    expect(network.findServer(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
 
     // All connections got pinged.
     for (TestConnection connection
@@ -513,7 +513,7 @@ void main() {
 
     // Search complete, we didn't find a server :(
     for (int i = 0; i < 4; i++) {
-      expect(network.findServer(), isTrue);
+      expect(network.findActiveGameConnection(), isTrue);
     }
     expect(network.getServerConnection(), isNull);
     // No connetions closed.
@@ -531,7 +531,7 @@ void main() {
     }
     channelC.sendOpenMessage(ids);
 
-    expect(network.findServer(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
 
     // Respond with a Pong - this is the server.
     GameState g = new GameState(packetListenerBindings, MockSpriteIndex());
@@ -545,7 +545,7 @@ void main() {
     });
 
     // We now have a server.
-    expect(network.findServer(), isTrue);
+    expect(network.findActiveGameConnection(), isTrue);
     expect(network.getServerConnection(), isNotNull);
     // Close it.
     network.getServerConnection()!.close("Test");
@@ -554,7 +554,7 @@ void main() {
         equals(PeerWrapper.MAX_AUTO_CONNECTIONS - 1));
 
     // No longer having a server.
-    expect(network.findServer(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
     expect(network.getServerConnection(), isNull);
 
     // This did not open more connections - as we don't know the type of the other connections yet.
@@ -571,9 +571,9 @@ void main() {
     }
 
     // Still false.
-    expect(network.findServer(), isFalse);
-    expect(network.findServer(), isFalse);
-    expect(network.findServer(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
 
     // We're back at max connections again.
     expect(network.safeActiveConnections().length,
@@ -591,14 +591,14 @@ void main() {
     });
 
     // Number 5 came through as our server :)
-    expect(network.findServer(), isTrue);
+    expect(network.findActiveGameConnection(), isTrue);
     expect(network.getServerConnection(), isNotNull);
 
     // aaaand it's gone.
     network.getServerConnection()!.close("Test");
 
     // No server again.
-    expect(network.findServer(), isFalse);
+    expect(network.findActiveGameConnection(), isFalse);
 
     // Returns pongs for all connections again - no server connection.
     for (TestConnection connection
@@ -612,13 +612,47 @@ void main() {
     // We gave up finding a server.
     expectWarningContaining(
         "didn't find any servers, and not able to connect to any more peers. Giving up");
-    expect(network.findServer(), isTrue);
+    expect(network.findActiveGameConnection(), isTrue);
     expect(network.getServerConnection(), isNull);
+  });
+
+  test('Find server at max players, closes connection', () {
+    List<TestServerChannel> peers = [];
+    List<String> ids = [];
+    for (int i = 0; i < 7; i++) {
+      serverChannelPeerId = "channel-$i";
+      TestServerChannel peer = new TestServerChannel();
+      ids.add(i.toString());
+      peers.add(peer);
+    }
+    channelC.sendOpenMessage(ids);
+
+    expect(network.findActiveGameConnection(), isFalse);
+
+    // Respond with a Pong - this is the server.
+    GameState g = new GameState(packetListenerBindings, MockSpriteIndex());
+    for (int i = 0; i < 20; i++) {
+      g.addPlayerInfo(PlayerInfo("test_$i", "abcc_$i", i*i));
+    }
+    g.actingCommanderId = '0';
+    fakeConnectionFactory.connections['c']!['0']!
+        .getOtherEnd()!
+        .sendAndReceivByOtherPeerNativeObject({
+      PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
+      GAME_STATE: g.toMap(),
+      KEY_FRAME_KEY: 0
+    });
+
+    // No game connection.
+    expect(network.findActiveGameConnection(), isFalse);
+    // And we closed it.
+    expect(network.safeActiveConnections().containsKey("o"),
+        isFalse);
   });
 
   test('Test find server no peers', () {
     channelC.sendOpenMessage();
-    expect(network.findServer(), isTrue);
+    expect(network.findActiveGameConnection(), isTrue);
     expect(network.getServerConnection(), isNull);
   });
 }

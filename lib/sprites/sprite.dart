@@ -49,6 +49,7 @@ class Sprite {
 
   int lifeTime = UNLIMITED_LIFETIME;
 
+  // A globally unique ID within the game.
   int? networkId;
   NetworkType networkType = NetworkType.LOCAL;
   // The connection that originally created this sprite.
@@ -139,6 +140,17 @@ class Sprite {
       context.lineWidth = 1;
       context.strokeStyle = '#ffffff';
       context.stroke();
+      context.setFillColorRgb(255, 255, 255, 0.7);
+      context.font = "9px Arial";
+      String positionText = "x: ${position.x}, y: ${position.y}";
+      var metrics = context.measureText(positionText);
+      context.fillText(positionText, - metrics.width / 2 , -(size.y));
+      if (this is MovingSprite) {
+        MovingSprite m = this as MovingSprite;
+        String velText = "dx: ${m.velocity.x}, dy: ${m.velocity.y}";
+        var metrics = context.measureText(velText);
+        context.fillText(velText, - metrics.width / 2 , -(size.y) / 2);
+      }
     }
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 

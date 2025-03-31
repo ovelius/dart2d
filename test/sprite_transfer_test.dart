@@ -103,7 +103,7 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT / 8 );
         worldC.frameDraw(KEY_FRAME_DEFAULT / 8 );
       }
-      expect(worldB.isCommander(), isTrue);
+      expect(worldB.isCommander, isTrue);
       expect(worldB.spriteIndex.count(), equals(2));
       expect(worldB, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))

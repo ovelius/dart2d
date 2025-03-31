@@ -45,12 +45,22 @@ class MovingSprite extends Sprite {
     if (flags & Sprite.FLAG_NO_MOVEMENTS == 0) {
       velocity = velocity.add(
           acceleration.multiply(duration));
-    
+
       position = position.add(
           velocity.multiply(duration));
+
+      // Don't execute tiny movements. stop them.
+      if (velocity.x.abs() < 0.05) {
+        velocity.x = 0.0;
+      }
+      // Don't execute tiny movements. stop them.
+      if (velocity.y.abs() < 0.05) {
+        velocity.y = 0.0;
+      }
     }
     
     if (gravity != null && (flags & Sprite.FLAG_NO_GRAVITY) == 0) {
+      _checkIsStill(duration);
       velocity = velocity.add(gravity.multiply(duration * gravityAffect));
     }
 
@@ -59,8 +69,36 @@ class MovingSprite extends Sprite {
     super.frame(duration, frames, gravity);
   }
 
+  Vec2 _lastPosition = Vec2();
+  double _stillDuration = 0.0;
+  double? baseGravity = 0.0;
+
+  /**
+   * check if sprite is very very still.. in which case we can disable gravity
+   * for it temporary...
+   */
+  void _checkIsStill(double duration) {
+    if (baseGravity == null || baseGravity == 0.0) {
+      baseGravity = gravityAffect;
+      return;
+    }
+    double positionDelta = (position.x - _lastPosition.x).abs() + (position.y - _lastPosition.y).abs();
+    if (positionDelta < 1.5) {
+      _stillDuration += duration;
+      gravityAffect = 0.0;
+    } else {
+      _stillDuration = 0.0;
+      _lastPosition = position;
+    }
+    if (_stillDuration > 0.3) {
+      gravityAffect = 0.0;
+      velocity.y = 0.0;
+    } else {
+      gravityAffect = baseGravity!;
+    }
+  }
+
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
- 
   }
 
   SpriteConstructor remoteRepresentation() {

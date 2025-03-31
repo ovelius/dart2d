@@ -204,7 +204,7 @@ class Loader {
   bool loadedAsServer() => _currentState == LoaderState.LOADED_AS_SERVER;
 
   void _loaderGameStateTick([double duration = 0.01]) {
-    if (!_network.findServer()) {
+    if (!_network.findActiveGameConnection()) {
       int connectionCount = 0;
       int connectionPongCount = 0;
       for (ConnectionWrapper connection in _network.safeActiveConnections().values) {
@@ -300,7 +300,7 @@ class Loader {
       _STATE_PRECONDITIONS[state](_localStorage);
     }
     if (_currentState != state) {
-      log.info("Loader state changes to $state");
+      log.info("Loader state changes from $_currentState to $state");
     }
     this._currentState = state;
     if (message == null) {

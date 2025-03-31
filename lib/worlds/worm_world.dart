@@ -179,7 +179,7 @@ class WormWorld extends World {
     _network.peer.connectTo(id);
     _network.gameState.actingCommanderId = null;
     if (startGame) {
-      _network.findServer();
+      _network.findActiveGameConnection();
       ConnectionWrapper? serverConnection = _network.getServerConnection();
       if (serverConnection == null) {
         throw new StateError("No server connection, can't connect to game :S Got ${_network.safeActiveConnections()}");
@@ -695,7 +695,8 @@ class WormWorld extends World {
   ImageIndex imageIndex() => _imageIndex;
   FpsCounter drawFps() => _drawFps;
   gaReporter() => _gaReporter;
-  bool isCommander() => _network.isCommander();
+  bool get isCommander => _network.isCommander();
+  LocalStorage get localStorage => _localStorage;
 
   toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
 }

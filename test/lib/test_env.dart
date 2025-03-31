@@ -3,6 +3,7 @@ import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
+import 'test_factories.dart';
 import 'test_injector.config.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -32,6 +33,10 @@ abstract class EnvModule {
   bool get touch => false;
   @Named(RELOAD_FUNCTION)
   Function get reload => () { };
+  TestConnectionFactory get getConnectionFactory =>
+      getIt<ConnectionFactory>() as TestConnectionFactory;
+  FakeImageFactory get getImageFactory =>
+      getIt<ImageFactory>() as FakeImageFactory;
 }
 
 @Singleton(as: LocalStorage, scope: 'world')

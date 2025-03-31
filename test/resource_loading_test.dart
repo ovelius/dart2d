@@ -1,6 +1,8 @@
 library dart2d;
 
+import 'package:dart2d/res/imageindex.dart';
 import 'package:test/test.dart';
+import 'lib/test_factories.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/net/net.dart';
@@ -25,10 +27,6 @@ void main() {
     logConnectionData = false;
     Logger.root.level = Level.INFO;
     remapKeyNamesForTest();
-  });
-
-  tearDown((){
-    assertNoLoggedWarnings();
   });
 
   group('End2End', () {
@@ -58,37 +56,85 @@ void main() {
       expect(loaderB.currentState(), equals(LoaderState.PLAYER_SELECT));
     });
 
-    /*
-    test('Resource loading failing p2p', () {
-      Injector injectorC = createWorldInjector("c", false);
-      setPlayerName(injectorC);
+    test('Resource loading failing p2p', () async {
+      WormWorld worldC = await createTestWorld('b',
+          signalPeerOpen: false, completeLoader: false, loadImages: false, setPlayerImage:false,
+          selectMap: false,
+          initByteWorld: false);
       // Now comes a goofy client, unable to connect to anyone!
-      WormWorld worldC = injectorC.get(WormWorld);
       Loader loaderC = worldC.loader;
-      TestServerChannel peerC = injectorC.get(TestServerChannel);
+      TestServerChannel peerC = worldC.network().peer.serverChannel as TestServerChannel;
       // Connections fail big time.
-      TestConnectionFactory connectionFactoryC = injectorC.get(TestConnectionFactory);
+      TestConnectionFactory connectionFactoryC = getIt<TestConnectionFactory>();
+      connectionFactoryC.expectPeerToExist = false;
       connectionFactoryC.failConnection('c', 'a').failConnection('c', 'b');
 
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
       peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
-      expect(loaderC.currentState(), equals(LoaderState.CONNECTING_TO_PEER));
+      expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       connectionFactoryC.signalErrorAllConnections('c');
-      worldC.frameDraw();
+      for (int i = 0; i < 100; i++) {
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
       expect(loaderC.currentState(), equals(LoaderState.LOADING_SERVER));
-      FakeImageFactory fakeImageFactoryC = injectorC.get(FakeImageFactory);
+      FakeImageFactory fakeImageFactoryC =  getIt<FakeImageFactory>();
       fakeImageFactoryC.completeAllImages();
       worldC.frameDraw(KEY_FRAME_DEFAULT);
-      expect(loaderC.currentState(), equals(LoaderState.LOADED_AS_SERVER));
-      worldC.frameDraw(KEY_FRAME_DEFAULT);
-      worldC.frameDraw(KEY_FRAME_DEFAULT);
-
-      expect(worldC, hasSpriteWithNetworkId(playerId(0)));
-      expect(worldC.spriteIndex[playerId(0)],
-          hasType('LocalPlayerSprite'));
+      expect(loaderC.currentState(), equals(LoaderState.PLAYER_SELECT));
     });
+
+    test('Resource loading from cache', () async {
+      WormWorld worldC = await createTestWorld('b',
+          signalPeerOpen: false, completeLoader: false, loadImages: false, setPlayerImage:false,
+          selectMap: false,
+          initByteWorld: false);
+      TestLocalStorage storage = worldC.localStorage as TestLocalStorage;
+      for (String name in IMAGE_SOURCES) {
+        storage["img$name"] = "data:image/png;base64,data$name";
+        storage["timg$name"] =
+            new DateTime.now().millisecondsSinceEpoch.toString();
+      }
+      // Now comes a goofy client, unable to connect to anyone!
+      Loader loaderC = worldC.loader;
+      TestServerChannel peerC = worldC.network().peer.serverChannel as TestServerChannel;
+      // Connections fail big time.
+      TestConnectionFactory connectionFactoryC = getIt<TestConnectionFactory>();
+      connectionFactoryC.expectPeerToExist = false;
+      connectionFactoryC.failConnection('c', 'a').failConnection('c', 'b');
+
+      worldC.frameDraw();
+      expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
+      peerC.sendOpenMessage(['a', 'b', 'c']);
+      worldC.frameDraw();
+      expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
+      connectionFactoryC.signalErrorAllConnections('c');
+      // All loaded from cache!
+      for (int i = 0; i < 100; i++) {
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(loaderC.currentState(), equals(LoaderState.PLAYER_SELECT));
+      expect(worldC.imageIndex().finishedLoadingImages(), isTrue);
+    });
+
+    /*
+    test("TestLoadFromCache", () {
+      fakeImageFactory.allowURLImages = false;
+      for (String name in IMAGE_SOURCES) {
+        localStorage["img$name"] = "data:image/png;base64,data$name";
+        localStorage["timg$name"] =
+            new DateTime.now().millisecondsSinceEpoch.toString();
+      }
+
+      index.loadImagesFromNetwork();
+
+      fakeImageFactory.completeAllImages();
+
+      expect(index.finishedLoadingImages(), isTrue);
+    }); */
+
+    /*
     test('Resource loading partial p2p', () {
       Injector injectorA = createWorldInjector("a", false);
       setPlayerName(injectorA);

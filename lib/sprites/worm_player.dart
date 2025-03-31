@@ -150,7 +150,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (world != null && direction != null) {
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         onGround = true;
-        if (velocity.y > 0.5) {
+        if (velocity.y.abs() > 1.0) {
           velocity.y = -velocity.y * BOUCHYNESS;
         } else {
           velocity.y = 0.0;

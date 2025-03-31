@@ -36,9 +36,6 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js" type="text/javascript"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
-    <meta name="google-signin-clientid" content="624447835870-9dd1fnadroksec8q13sb6f5tivcage0b.apps.googleusercontent.com" />
-    <meta name="google-signin-cookiepolicy" content="single_host_origin" />
-    <meta name="google-signin-scope" content="https://www.googleapis.com/auth/games" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
     <link rel="manifest" href="manifest.json">
     <script>
@@ -160,12 +157,6 @@
         window.localStorage.playerName = name;
       }
 
-      function onSignIn(user) {
-        var profile = user.getBasicProfile();
-        updateName(profile.getName());
-        $("#name-dialog").dialog("close");
-      }
-
       function createImageData(w, h) {
         return new ImageData(w,h);
       }
@@ -175,17 +166,10 @@
            (navigator.maxTouchPoints > 0) ||
            (navigator.msMaxTouchPoints > 0));
       }
-
-      function signOut() {
-        var auth2 = gapi.auth2.getAuthInstance();
-        auth2.signOut();
-      }
     </script>
 
     <div id="name-dialog" title="Tell us you name" style="display:none;">
       <p>Hello! We require a name to continue.</p>
-      <div class="g-signin2" data-onsuccess="onSignIn"></div>
-      <p><b>OR</b></p>
       <p>Enter a name</p> <input id="name" value="foo"/>
     </div>
   </body>

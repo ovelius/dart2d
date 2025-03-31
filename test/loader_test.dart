@@ -77,7 +77,7 @@ void main() {
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.playerResourcesLoaded()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(1)).thenReturn(false);
-      when(mockNetwork.findServer()).thenReturn(true);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(true);
 
       tickAndAssertState(LoaderState.WORLD_SELECT);
       when(selector.selectedWorldName).thenReturn("something");
@@ -160,10 +160,10 @@ void main() {
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
           .thenReturn(false);
-      when(mockNetwork.findServer()).thenReturn(false);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(false);
       tickAndAssertState(LoaderState.FINDING_SERVER);
 
-      when(mockNetwork.findServer()).thenReturn(true);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(true);
       when(mockNetwork.getServerConnection()).thenReturn(connection1);
       when(connection1.isValidGameConnection()).thenReturn(false);
       tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
@@ -206,7 +206,7 @@ void main() {
       when(mockImageIndex.imagesIndexed()).thenReturn(true);
       when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
       when(mockNetwork.getServerConnection()).thenReturn(connection1);
-      when(mockNetwork.findServer()).thenReturn(true);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(true);
       when(connection1.isValidGameConnection()).thenReturn(false);
       when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
       when(connection1.isValidGameConnection()).thenReturn(true);
