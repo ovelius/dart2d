@@ -1,0 +1,247 @@
+syntax = "proto2";
+package dart2d_proto;
+
+// Message sent over a connection.
+message GameStateUpdates {
+  // Last keyframe we've seen.
+  optional int32 last_key_frame = 1;
+
+  // List of updates.
+  repeated StateUpdate state_update = 2;
+
+  // Last time we got keyframe.
+  optional int32 key_frame_delay_ms = 3;
+
+  // Sprite updates...
+  repeated SpriteUpdate sprite_updates = 4;
+}
+
+message StateUpdate {
+  // This data has a receipt that needs acknowledgement.
+  optional int32 data_receipt = 1;
+  // The actual update.
+  oneof update {
+    int32 key_frame = 2;
+    // A user visible chat message.
+    string user_message = 3;
+    // Remove this sprite.
+    int32 sprite_removal = 4;
+
+    // The entire gamestate.
+    GameStateProto game_state = 5;
+
+    // Key state update.
+    KeyStateProto key_state = 6;
+
+    // Client trying to connect command.
+    ClientPlayerSpec client_player_spec = 7;
+
+    // Server reply to connect message.
+    CommanderGameReply commander_game_reply = 8;
+
+    // Send by client when ready to spawn.
+    bool client_enter = 9;
+
+    // A data receipt for reliable data.
+    int32 acked_data_receipts = 10;
+
+    // Random ping.
+    bool ping = 11;
+    bool pong = 12;
+
+    // In game selection mode.
+    OtherPlayerWorldSelect other_player_world_select = 13;
+
+    // Other side tells us to become game commander.
+    bool transfer_command = 14;
+
+    ByteWorldDestruction byte_world_destruction = 15;
+    ByteWorldDraw byte_world_draw = 16;
+    ParticleEffects particle_effects = 17;
+
+    ClientStatusData client_status_data = 18;
+
+    ResourceRequest resource_request = 19;
+    ResourceResponse resource_response = 20;
+  }
+}
+
+message ClientStatusData {
+  optional int32 fps = 1;
+  repeated ConnectionInfoProto connection_info = 2;
+}
+
+// Request to get resource data.
+message ResourceResponse {
+  // The index of the resource.
+  optional int32 resource_index = 1;
+  // Where in the bytestream this chunk starts.
+  optional int32 start_byte = 2;
+  optional bytes data = 3;
+}
+
+// Request to get resource data.
+message ResourceRequest {
+  // The index of the resource.
+  optional int32 resource_index = 1;
+  optional int32 start_byte = 2;
+  optional int32 end_byte = 3;
+}
+
+// Clear part of the ByteWorld.
+message ByteWorldDestruction {
+  // What position.
+  optional Vec2Proto position = 1;
+  // What radius to clear.
+  optional float radius = 2;
+}
+
+// Draw something on the ByteWorld.
+message ByteWorldDraw {
+  // Where.
+  optional Vec2Proto position = 1;
+  // Rectangle size.
+  optional Vec2Proto size = 2;
+  // HTML color string.
+  optional string color = 3;
+}
+
+message OtherPlayerWorldSelect {
+  optional string name = 1;
+  optional string world_selected = 2;
+}
+
+message CommanderGameReply {
+  enum ChallengeReply {
+    UNSET = 0;
+    ACCEPT = 1;
+    REJECT_FULL = 2;
+
+  }
+  optional ChallengeReply challenge_reply = 1;
+  optional GameStateProto game_state = 2;
+  optional int32 sprite_index_start = 3;
+  optional Vec2Proto starting_position = 4;
+}
+
+message Vec2Proto {
+  optional float x = 1;
+  optional float y = 2;;
+}
+
+message KeyStateProto {
+  repeated int32 keys_down = 1;
+}
+
+message ClientPlayerSpec {
+  optional string name = 1;
+}
+
+message GameStateProto {
+  // Start time.
+  optional int64 started_at_epoch_millis = 1;
+  repeated PlayerInfoProto player_info = 2;
+  // Named image of map.
+  optional string map_name = 3;
+  // Current acting commander player.
+  optional string acting_commander_id = 4;
+  // If non empty we have a winner.
+  optional string winner_player_id = 5;
+}
+
+message PlayerInfoProto {
+  // User visible name.
+  optional string name = 1;
+  // Connection in the mesh.
+  optional string connection_id = 2;
+  // World controlled sprite.
+  optional int32 sprite_id = 3;
+  // Score of player.
+  optional int32 score = 4;
+  // How many times it has died...
+  optional int32 deaths = 5;
+  // Current reported FPS.
+  optional int32 fps = 6;
+  // When it joined the game.
+  optional int64 added_to_game_epoch_millis = 7;
+  // What keys are down.
+  optional KeyStateProto remote_key_state = 8;
+  // Player currently in the game.
+  optional bool in_game = 9;
+  // What connections this player has.
+  repeated ConnectionInfoProto connection_info = 10;
+}
+
+message ParticleEffects {
+  // Where it starts.
+  optional Vec2Proto position = 1;
+  // Movement of particles.
+  optional Vec2Proto velocity = 2;
+  optional float radius = 3;
+
+  // How many frames the individual particle pieces will live.
+  optional int32 lifetime_frames = 4;
+
+  // How long the entire particle sprite lives.
+  optional int32 sprite_lifetime_frames = 5;
+
+  // Multiplied by it's size each frame.
+  optional float shrink_per_step = 6;
+
+  // How many particle effects to spawn.
+  optional int32 particle_count = 7;
+
+  enum ParticleType {
+    UNSET = 0;
+    // A colorful preset.
+    COLORFUL = 1;
+    // Looks a bit like fire.
+    FIRE = 2;
+    // Orange soda bubbles.
+    SODA = 3;
+  }
+  optional ParticleType particle_type = 8;
+
+  // If the particle sprite should follow another particle.
+  optional int32  follow_id = 10;
+  optional Vec2Proto follow_offset = 11;
+}
+
+message ConnectionInfoProto {
+  optional string id = 1;
+  optional int32 latency_millis = 2;
+}
+
+message SpriteUpdate {
+  optional int32 sprite_id = 1;
+  // Flags set.
+  optional int32 flags = 2;
+
+  optional Vec2Proto position = 3;
+  optional float angle = 4;
+  optional Vec2Proto velocity = 5;
+
+  // Keyframe specifics.
+  optional int32 remote_representation = 6;
+  optional int32 sprite_type = 7;
+
+  // Typically only one of these are set.
+  optional int32 image_id = 8;
+  // Animation frames of above image.
+  optional int32 frames = 9;
+
+  // Or color.
+  optional string color = 10;
+
+  optional Vec2Proto size = 11;
+
+  optional float rotation_velocity = 12;
+
+  optional ExtraSpriteData extra_sprite_data = 13;
+}
+
+message ExtraSpriteData {
+  repeated int32 extra_int = 1;
+  repeated float extra_float = 2;
+  repeated string extra_string = 3;
+}

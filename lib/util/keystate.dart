@@ -1,5 +1,6 @@
 library keystate;
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -73,11 +74,21 @@ class KeyState {
     return keysDown[key];
   }
 
-  void setEnabledKeys(Map<String, bool> keysDown) {
+  void setEnabledKeys(KeyStateProto proto) {
     this.keysDown = {};
-    for (String key in keysDown.keys) {
-      this.keysDown[int.parse(key)] = MAX_KEY_TRIGGER;
+    for (int key in proto.keysDown) {
+      this.keysDown[key] = MAX_KEY_TRIGGER;
     }
+  }
+
+  KeyStateProto toKeyStateProto() {
+    KeyStateProto proto = KeyStateProto();
+    for (int key in keysDown.keys) {
+      if (keysDown[key]! >= MAX_KEY_TRIGGER) {
+        proto.keysDown.add(key);
+      }
+    }
+    return proto;
   }
 
   Map<String, bool> getEnabledState() {

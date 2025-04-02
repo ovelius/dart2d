@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -223,13 +224,14 @@ class Sprite {
   /**
    * Extra data to be sent to clients.
    */
-  void addExtraNetworkData(List<dynamic> data) {
+  ExtraSpriteData addExtraNetworkData() {
+    return ExtraSpriteData();
   }
 
   /**
    * Parsing of above extra data.
    */
-  void parseExtraNetworkData(List<dynamic> data, int startAt) {
+  void parseExtraNetworkData(ExtraSpriteData data) {
   }
 
   /**

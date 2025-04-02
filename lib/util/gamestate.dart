@@ -1,9 +1,11 @@
 library gamestate;
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/keystate.dart';
+import 'package:fixnum/src/int64.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/helpers.dart';
@@ -11,11 +13,16 @@ import 'package:dart2d/net/helpers.dart';
 import '../net/connection.dart';
 import '../net/state_updates.dart';
 
-class ConnectionInfo {
-  final String to;
-  final latencyMillis;
-  ConnectionInfo(this.to, this.latencyMillis);
+
+extension DecorateWithKeyState on PlayerInfoProto {
+
+  KeyState _remoteKeyState = new KeyState.remote();
+
+  void updateWithLocalKeyState(KeyState localState) {
+
+  }
 }
+
 
 class PlayerInfo {
   late String name;
@@ -28,7 +35,7 @@ class PlayerInfo {
   // How many frames per second this client has.
   int fps = 45;
   // What conenctions this player has.
-  Map<String, ConnectionInfo> connections = {};
+  Map<String, ConnectionInfoProto> connections = {};
   // Keystate for the remote player, will only be set if
   // the remote peer is a client.
   KeyState _remoteKeyState = new KeyState.remote();
@@ -97,25 +104,22 @@ class GameState {
   PacketListenerBindings _packetListenerBindings;
   SpriteIndex _spriteIndex;
 
-  late DateTime startedAt;
-  List<PlayerInfo> _playerInfo = [];
-  Map<String, PlayerInfo> _playerInfoById = {};
-  String? mapName = null;
-  // Who has the bridge.
-  String? actingCommanderId = null;
+  GameStateProto _gameStateProto = GameStateProto();
+  GameStateProto get gameStateProto => _gameStateProto;
+  Map<String, PlayerInfoProto> _playerInfoById = {};
+
   // True if we have urgent data for the network.
   bool _urgentData = false;
-  // If we have a winner, this will be set.
-  String? winnerPlayerId = null;
+
 
   GameState(this._packetListenerBindings, this._spriteIndex) {
-    _packetListenerBindings.bindHandler(KEY_STATE_KEY,
-            (ConnectionWrapper connection, Map<dynamic, dynamic> data) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.keyState,
+            (ConnectionWrapper connection, StateUpdate update) {
           Map<String, bool> keyState = Map.from(data);
-          PlayerInfo? info = playerInfoByConnectionId(connection.id);
+          PlayerInfoProto? info = playerInfoByConnectionId(connection.id);
           info?._remoteKeyState.setEnabledKeys(keyState);
         });
-    startedAt = new DateTime.now();
+    _gameStateProto.startedAtEpochMillis = new DateTime.now().millisecondsSinceEpoch as Int64;
   }
 
   bool retrieveAndResetUrgentData() {
@@ -131,12 +135,8 @@ class GameState {
   bool isConnected(String a, String b) =>  _playerInfoById.containsKey(a) ? _playerInfoById[a]!.isConnectedTo(b) : false;
 
   void reset() {
-    actingCommanderId = null;
-    mapName = null;
-    _playerInfo = [];
+    _gameStateProto = GameStateProto();
     _playerInfoById = {};
-    startedAt = new DateTime.now();
-    winnerPlayerId = null;
     markAsUrgent();
   }
 
@@ -145,85 +145,58 @@ class GameState {
   }
 
   bool hasWinner() {
-    return winnerPlayerId != null;
+    return gameStateProto.winnerPlayerId != "";
   }
 
   bool hasCommander() {
-    return this.actingCommanderId != null;
+    return gameStateProto.actingCommanderId != "";
   }
 
   bool isAtMaxPlayers() {
-    return _playerInfo.length >= MAX_PLAYERS;
+    return gameStateProto.playerInfo.length >= MAX_PLAYERS;
   }
 
-  List<PlayerInfo> playerInfoList() => new List.from(_playerInfo);
+  List<PlayerInfoProto> playerInfoList() => new List.from(_gameStateProto.playerInfo);
 
-  void addPlayerInfo(PlayerInfo info) {
+  void addPlayerInfo(PlayerInfoProto info) {
     if (_playerInfoById.containsKey(info.connectionId)) {
       log.severe("Attempt to add playerInfo already in GameState! Not adding ${info}");
       return;
     }
-    info.addedToGameAtMillis = new DateTime.now().millisecondsSinceEpoch;
-    _playerInfo.add(info);
+    info.addedToGameEpochMillis = new DateTime.now().millisecondsSinceEpoch as Int64;
+    _gameStateProto.playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
     _urgentData = true;
   }
 
 
-  static bool updateContainsPlayerWithId(Map map, String id) {
-    List<Map> players = List<Map>.from(map["p"]);
-    for (Map playerMap in players) {
-      if (playerMap['cid'] == id) {
+  static bool updateContainsPlayerWithId(GameStateProto gameState, String id) {
+    for (PlayerInfoProto info in gameState.playerInfo) {
+      if (info.connectionId == id) {
         return true;
       }
     }
     return false;
   }
 
-  static String extractCommanderId(Map map) => map['e'];
-
-  updateFromMap(Map<dynamic, dynamic> map) {
-    List<Map> players = List<Map>.from(map["p"]);
-    List<PlayerInfo> newInfo = [];
-    Map<String, PlayerInfo> byId = {};
-    for (Map playerMap in players) {
-      String connectionId = playerMap["cid"];
-      PlayerInfo? info = playerInfoByConnectionId(connectionId);
+  updateFromMap(GameStateProto gameState) {
+    Map<String, PlayerInfoProto> byId = {};
+    for (PlayerInfoProto playerInfoProto in gameState.playerInfo) {
+      PlayerInfoProto? info = playerInfoByConnectionId(playerInfoProto.connectionId);
       if (info == null) {
-        info = new PlayerInfo.fromMap(playerMap);
-      } else {
-        info.updateFromMap(playerMap);
+        info = playerInfoProto;
       }
-      newInfo.add(info);
       byId[info.connectionId] = info;
     }
-    _playerInfo = newInfo;
     _playerInfoById = byId;
-    mapName = map["m"];
-    actingCommanderId = extractCommanderId(map);
-    winnerPlayerId = map["w"];
-    startedAt = new DateTime.fromMillisecondsSinceEpoch(map["s"]);
+    _gameStateProto = gameState;
   }
 
-  Map toMap() {
-    Map map = new Map();
-    map["m"] = mapName;
-    map["e"] = actingCommanderId;
-    map["s"] = startedAt.millisecondsSinceEpoch;
-    map["w"] = winnerPlayerId;
-    List<Map> players = [];
-    for (PlayerInfo info in _playerInfo) {
-      players.add(info.toMap());
-    }
-    map["p"] = players;
-    return map;
-  }
-
-  PlayerInfo? removeByConnectionId(WormWorld world, String id) {
-    for (int i = _playerInfo.length - 1; i >= 0; i--) {
-      PlayerInfo info = _playerInfo[i];
+  PlayerInfoProto? removeByConnectionId(WormWorld world, String id) {
+    for (int i = _gameStateProto.playerInfo.length - 1; i >= 0; i--) {
+      PlayerInfoProto info = _gameStateProto.playerInfo[i];
       if (info.connectionId == id) {
-        _playerInfo.removeAt(i);
+        _gameStateProto.playerInfo.removeAt(i);
         _playerInfoById.remove(info.connectionId);
         world.network().sendMessage("${info.name} disconnected :/", id);
         // This code runs under the assumption that we are acting server.
@@ -244,9 +217,9 @@ class GameState {
    * Converts the world sprite state for us to become server.
    */
   convertToServer(WormWorld world, var selfConnectionId) {
-    this.actingCommanderId = selfConnectionId;
-    for (int i = _playerInfo.length - 1; i >= 0; i--) {
-      PlayerInfo info = _playerInfo[i];
+    _gameStateProto.actingCommanderId = selfConnectionId;
+    for (int i = _gameStateProto.playerInfo.length - 1; i >= 0; i--) {
+      PlayerInfoProto info = _gameStateProto.playerInfo[i];
       // Convert self info to server.
       if (info.connectionId != selfConnectionId) {
         // Convert other players.
@@ -260,12 +233,12 @@ class GameState {
     }
   }
 
-  PlayerInfo? playerInfoByConnectionId(String id) {
+  PlayerInfoProto? playerInfoByConnectionId(String id) {
     return _playerInfoById[id];
   }
 
-  PlayerInfo playerInfoBySpriteId(int id) {
-    for (PlayerInfo info in playerInfoList()) {
+  PlayerInfoProto playerInfoBySpriteId(int id) {
+    for (PlayerInfoProto info in playerInfoList()) {
       if (info.spriteId == id) {
         return info;
       }
@@ -276,7 +249,7 @@ class GameState {
   int getNextUsablePlayerSpriteId(WormWorld world) {
     int id = ID_OFFSET_FOR_NEW_CLIENT +
         world.spriteNetworkId +
-        _playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
+        _gameStateProto.playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
     // Make sure we don't pick and ID we already use.
     while (world.spriteIndex.hasSprite(id)) {
       id = id + ID_OFFSET_FOR_NEW_CLIENT;
@@ -285,6 +258,6 @@ class GameState {
   }
 
   String toString() {
-    return "GameState with map ${mapName} commander ${actingCommanderId} ${_playerInfo} started ${startedAt}";
+    return "GameState: ${_gameStateProto.toDebugString()}";
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
@@ -30,7 +31,7 @@ class SpriteIndex {
         new MovingSprite.imageBasedSprite(new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE:
         (WormWorld world, int spriteId, String connectionId) {
-      PlayerInfo? info =
+      PlayerInfoProto? info =
           world.network().getGameState().playerInfoByConnectionId(connectionId);
       if (info == null) {
         log.warning(

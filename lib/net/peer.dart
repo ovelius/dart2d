@@ -1,5 +1,6 @@
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:convert';
@@ -186,7 +187,14 @@ class PeerWrapper {
     }
   }
 
-  void sendDataWithKeyFramesToAll(Map data,
+  void sendSingleStateUpdate(StateUpdate data,
+      [String? dontSendTo, String? onlySendTo]) {
+    GameStateUpdates g = GameStateUpdates();
+    g.stateUpdate.add(data);
+    sendDataWithKeyFramesToAll(g, dontSendTo, onlySendTo);
+  }
+
+  void sendDataWithKeyFramesToAll(GameStateUpdates data,
       [String? dontSendTo, String? onlySendTo]) {
     List<String> closedConnections = [];
     for (String key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
@@ -246,7 +254,7 @@ class PeerWrapper {
             _network.gameState.markAsUrgent();
           }
         } else {
-          PlayerInfo info = _network.gameState.playerInfoByConnectionId(commanderId)!;
+          PlayerInfoProto info = _network.gameState.playerInfoByConnectionId(commanderId)!;
           // Start treating the other peer as server.
           _network.gameState.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");

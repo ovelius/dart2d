@@ -2,6 +2,8 @@ library vec2;
 
 import 'dart:math';
 
+import 'package:dart2d/net/state_updates.pb.dart';
+
 class Vec2 {
 
   static final Vec2 ZERO = new Vec2();
@@ -30,6 +32,11 @@ class Vec2 {
   Vec2.copy(Vec2 other) {
       this.x = other.x;
       this.y = other.y;
+  }
+
+  Vec2.fromProto(Vec2Proto proto) {
+    this.x = proto.x;
+    this.y = proto.y;
   }
   
   Vec2.random([xmax, ymax]) {
@@ -84,4 +91,10 @@ class Vec2 {
     return x.hashCode + y.hashCode;
   }
   bool operator ==(o) => o is Vec2 && x == o.x && y == o.y;
+
+  Vec2Proto toProto() {
+    return Vec2Proto()
+      ..y = y
+      ..x = x;
+  }
 }

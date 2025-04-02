@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/gamestate.dart';
 import 'dart:math';
 import 'package:dart2d/net/state_updates.dart';
@@ -50,8 +51,8 @@ class LocalPlayerSprite extends MovingSprite {
   double _jetPackSec = 0.0;
   Particles? _jetParticles = null;
 
-  late PlayerInfo info;
-  PlayerInfo? _killer = null;
+  late PlayerInfoProto info;
+  PlayerInfoProto? _killer = null;
   Rope? rope = null;
   MobileControls? _mobileControls;
   double? _gunAngleTouchLock = null;
@@ -67,7 +68,7 @@ class LocalPlayerSprite extends MovingSprite {
   double _shieldSec = -1.0;
   late StickySprite _shield;
 
-  PlayerInfo? get killer => _killer;
+  PlayerInfoProto? get killer => _killer;
 
   /**
    * Server constructor.
@@ -76,7 +77,7 @@ class LocalPlayerSprite extends MovingSprite {
       WormWorld world,
       ImageIndex imageIndex,
       MobileControls? mobileControls,
-      PlayerInfo info,
+      PlayerInfoProto info,
       Vec2 position,
       int imageId)
       : super.imageBasedSprite(position, imageId, imageIndex) {

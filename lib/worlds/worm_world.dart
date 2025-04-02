@@ -14,6 +14,7 @@ import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/helpers.dart';
 import 'package:dart2d/net/state_updates.dart';
+import '../net/state_updates.pb.dart';
 import 'byteworld.dart';
 import 'loader.dart';
 import 'world_util.dart';
@@ -358,7 +359,7 @@ class WormWorld extends World {
 
   }
 
-  void checkWinner(PlayerInfo info) {
+  void checkWinner(PlayerInfoProto info) {
     int max = _configParams.getInt(ConfigParam.MAX_FRAGS);
     if (info.score >= max) {
       _network.getGameState().winnerPlayerId = info.connectionId;

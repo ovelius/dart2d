@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:injectable/injectable.dart';
@@ -18,22 +19,22 @@ class PacketListenerBindings {
     KEY_FRAME_DELAY,
   ]);
 
-  Map<String, List<dynamic>> _handlers = {};
+  Map<StateUpdate_Update, List<dynamic>> _handlers = {};
 
-  bindHandler(String key, dynamic handler) {
+  bindHandler(StateUpdate_Update key, dynamic handler) {
     if (!_handlers.containsKey(key)) {
       _handlers[key] = [];
     }
     _handlers[key]?.add(handler);
   }
 
-  List<dynamic> handlerFor(String key) {
+  List<dynamic> handlerFor(StateUpdate_Update key) {
     assert(_handlers.containsKey(key));
     return _handlers[key]!;
   }
 
   // Transition method. Eventually there will be handler everywhere.
-  bool hasHandler(String key) {
+  bool hasHandler(StateUpdate_Update key) {
     return _handlers.containsKey(key);
   }
 }
@@ -91,7 +92,7 @@ class ReliableHelper {
   // Storage of our reliable key data.
   Map reliableDataBuffer = {};
   // Reliable verifications.
-  List<dynamic> reliableDataToVerify = [];
+  List<StateUpdate> reliableDataToVerify = [];
 
   ReliableHelper(this._packetListenerBindings) {
     _packetListenerBindings.bindHandler(CONTAINED_DATA_RECEIPTS, (ConnectionWrapper c, List<dynamic> data) {
@@ -109,9 +110,9 @@ class ReliableHelper {
   /**
    * Append any previously received data receipts before sending.
    */
-  void updateWithDataReceipts(Map data) {
+  void updateWithDataReceipts(GameStateUpdates data) {
     if (reliableDataToVerify.isNotEmpty) {
-      data[DATA_RECEIPTS] = reliableDataToVerify;
+      data.ackedDataReceipts.add(reliableDataToVerify)
       reliableDataToVerify = [];
     }
   }
@@ -119,7 +120,7 @@ class ReliableHelper {
   /**
    * Maybe add reliable data that needs to be resent.
    */
-  void alsoSendWithStoredData(Map dataMap) {
+  void alsoSendWithStoredData(GameStateUpdates data) {
     storeAwayReliableData(dataMap);
     for (int hash in new List.from(reliableDataBuffer.keys)) {
       List tuple = reliableDataBuffer[hash];
@@ -149,7 +150,7 @@ class ReliableHelper {
   /**
    * Take data considered reliable and store away in case we need to resend.
    */
-  void storeAwayReliableData(Map dataMap) {
+  void storeAwayReliableData(GameStateUpdates dataMap) {
     for (String reliableKey in RELIABLE_KEYS.keys) {
       if (dataMap.containsKey(reliableKey)) {
         Object data = dataMap[reliableKey];

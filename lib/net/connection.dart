@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:convert';
@@ -64,10 +67,11 @@ class ConnectionWrapper {
 
   int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();
 
-  bool hasReceivedFirstKeyFrame(Map dataMap) {
-    if (dataMap.containsKey(IS_KEY_FRAME_KEY)) {
-      if (dataMap[IS_KEY_FRAME_KEY] > lastRemoteKeyFrame) {
-        lastRemoteKeyFrame = dataMap[IS_KEY_FRAME_KEY];
+  bool hasReceivedFirstKeyFrame(GameStateUpdates data) {
+    StateUpdate? keyFrameData = data.getStateUpdate(StateUpdate_Update.keyFrame);
+    if (keyFrameData != null) {
+      if (keyFrameData.keyFrame > lastRemoteKeyFrame) {
+        lastRemoteKeyFrame = keyFrameData.keyFrame;
         _lastRemoteKeyFrameTime = new DateTime.now();
       }
     }
@@ -94,6 +98,8 @@ class ConnectionWrapper {
   void connectToGame(String playerName, int playerSpriteId) {
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
+    StateUpdate clientConnect = StateUpdate();
+    ClientPlayerSpec spec = ClientPlayerSpec();
     Map playerData = {
       CLIENT_PLAYER_SPEC: [playerName, playerSpriteId],
       KEY_FRAME_KEY: lastRemoteKeyFrame,
@@ -301,7 +307,14 @@ class ConnectionWrapper {
     _removals = [];
     sendData(data);
   }
-  void sendData(Map data) {
+
+  void sendSingleUpdate(StateUpdate singleUpdate) {
+    GameStateUpdates g = GameStateUpdates();
+    g.stateUpdate.add(singleUpdate);
+    sendData(g);
+  }
+
+  void sendData(GameStateUpdates data) {
     if (_reliableHelper.reliableBufferOverFlow()) {
       log.warning(
           "Connection to $id too many reliable packets behind ${_reliableHelper.reliableDataBuffer.length}, dropping!");
@@ -320,48 +333,48 @@ class ConnectionWrapper {
 
     if (_lastRemoteKeyFrameTime != null) {
       int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime!.millisecondsSinceEpoch;
-      data[KEY_FRAME_DELAY] = millis;
+      data.keyFrameDelayMs = millis;
       _lastRemoteKeyFrameTime = null;
     }
-    if (data.containsKey(IS_KEY_FRAME_KEY)) {
+    StateUpdate? keyFrameUpdate = data.getStateUpdate(StateUpdate_Update.keyFrame);
+    if (keyFrameUpdate != null) {
       // The keyframe is incremented.
-      if (data[IS_KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
+      if (keyFrameUpdate.keyFrame > lastDeliveredKeyFrame) {
         if (_keyFrameIncrementLatencyTime == null) {
           _keyFrameIncrementLatencyTime = new DateTime.now();
         }
       }
     }
     assert(_dataChannel != null);
-    data[KEY_FRAME_KEY] = lastRemoteKeyFrame;
-    if (data.containsKey(IS_KEY_FRAME_KEY)) {
+    data.lastKeyFrame = lastRemoteKeyFrame;
+    if (keyFrameUpdate != null) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
-      checkIfShouldClose(data[IS_KEY_FRAME_KEY]);
+      checkIfShouldClose(keyFrameUpdate.keyFrame);
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
-      data = new Map.from(data);
       _reliableHelper.alsoSendWithStoredData(data);
     } else {
       // Store away any reliable data sent.
       _reliableHelper.storeAwayReliableData(data);
     }
-    String jsonData = jsonEncode(data);
+    Uint8List dataBytes = data.writeToBuffer();
 
 
-    if (_egressLimit?.removeTokens(jsonData.length) == true) {
+    if (_egressLimit?.removeTokens(dataBytes.length) == true) {
       log.fine("Dropping due to egress bandswith limitation");
       return;
     }
-    _connectionStats.txBytes += jsonData.length;
+    _connectionStats.txBytes += dataBytes.length;
     try {
       if (Logger.root.isLoggable(Level.FINE)) {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
       }
-      _dataChannel.send(jsonData);
+      _dataChannel.send(dataBytes);
       _sendFailures = 0;
     } catch (e, _) {
       if (THROW_SEND_ERRORS_FOR_TEST) {
-        throw "Failed to send data ${this._network.peer.id} -> ${this.id} $jsonData \nerror: $e";
+        throw "Failed to send data ${this._network.peer.id} -> ${this.id} ${data.toDebugString()} \nerror: $e";
       }
       if (++_sendFailures > 2) {
         log.severe("Failed to send to $id: $e, closing connection");

@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -110,11 +111,13 @@ class Powerup extends MovingSprite {
     return SpriteConstructor.POWERUP;
   }
 
-  void addExtraNetworkData(List<dynamic> data) {
-    data.add(_type.index);
+  ExtraSpriteData addExtraNetworkData() {
+    ExtraSpriteData data = ExtraSpriteData();
+    data.extraInt.add(_type.index);
+    return data;
   }
 
-  void parseExtraNetworkData(List<dynamic> data, int startAt) {
-    _type = PowerUpType.values[data[startAt]];
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    _type = PowerUpType.values[data.extraInt[0]];
   }
 }
