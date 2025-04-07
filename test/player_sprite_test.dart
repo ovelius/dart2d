@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -33,9 +34,13 @@ void main() {
     when(mockImageIndex.getImageIdByName("gun.png")).thenReturn(3);
     when(mockImageIndex.getImageIdByName("shield.png")).thenReturn(3);
     commanderSprite = new LocalPlayerSprite(
-        mockCommanderWormWorld, mockImageIndex, null, new PlayerInfo("test1", "a", 1), Vec2.ZERO, 2);
+        mockCommanderWormWorld, mockImageIndex, null, new PlayerInfoProto()
+            ..name = "test1"
+            ..connectionId =  "a", Vec2.ZERO, 2);
     otherSprite = new LocalPlayerSprite(
-        mockWormWorld, mockImageIndex, null, new PlayerInfo("test1", "a", 1), Vec2.ZERO, 2);
+        mockWormWorld, mockImageIndex, null, new PlayerInfoProto()
+            ..name = "test1"
+            ..connectionId =  "a", Vec2.ZERO, 2);
   });
   tearDown(() {
     assertNoLoggedWarnings();

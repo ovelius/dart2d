@@ -1,5 +1,7 @@
 library gamestate;
 
+import 'dart:ffi';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
@@ -47,7 +49,7 @@ class GameState {
           KeyState? state = _playerKeyStateById[connection.id];
           state?.setEnabledKeys(update.keyState);
         });
-    _gameStateProto.startedAtEpochMillis = new DateTime.now().millisecondsSinceEpoch as Int64;
+    _gameStateProto.startedAtEpochMillis = Int64(new DateTime.now().millisecondsSinceEpoch);
   }
 
   bool retrieveAndResetUrgentData() {
@@ -91,7 +93,7 @@ class GameState {
       log.severe("Attempt to add playerInfo already in GameState! Not adding ${info}");
       return;
     }
-    info.addedToGameEpochMillis = new DateTime.now().millisecondsSinceEpoch as Int64;
+    info.addedToGameEpochMillis = Int64(new DateTime.now().millisecondsSinceEpoch);
     _gameStateProto.playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
     _urgentData = true;

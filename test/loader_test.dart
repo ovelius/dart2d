@@ -1,5 +1,6 @@
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
@@ -180,7 +181,8 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
       verify(connection1.sendClientEnter());
 
-      PlayerInfo info = new PlayerInfo("", "", 0);
+      PlayerInfoProto info = new PlayerInfoProto()
+        ..name = "test";
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
 
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
@@ -212,7 +214,9 @@ void main() {
       when(connection1.isValidGameConnection()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
           .thenReturn(true);
-      PlayerInfo info = new PlayerInfo("", "", 0);
+      PlayerInfoProto info = new PlayerInfoProto()
+         ..name = "test"
+         ..connectionId = 'b';
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
       // Last phase of entering a game.
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
