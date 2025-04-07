@@ -2,6 +2,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 Map<Level, List<String>> _logged = {};
 List<String> _expected = [];
+bool throwIfLoggingUnexpected = true;
 
 logOutputForTest() {
   _logged.clear();
@@ -20,6 +21,9 @@ logOutputForTest() {
     if (!expectedWarning) {
       if (!_logged.containsKey(rec.level)) {
         _logged[rec.level] = [];
+      }
+      if (rec.level >= Level.WARNING && throwIfLoggingUnexpected) {
+        throw "Not allowed to log $rec";
       }
       _logged[rec.level]!.add(msg);
     }

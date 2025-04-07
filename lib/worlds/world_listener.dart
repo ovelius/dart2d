@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/util/hud_messages.dart';
@@ -21,44 +22,40 @@ class WorldListener {
   HudMessages hudMessages;
 
   WorldListener(this._packetListenerBindings, this._byteWorld, this._gameState, this._network, this.hudMessages, this._mobileControls) {
-    _packetListenerBindings.bindHandler(SERVER_PLAYER_REPLY, _handleServerReply);
-    _packetListenerBindings.bindHandler(CLIENT_PLAYER_SPEC, _handleClientConnect);
-    _packetListenerBindings.bindHandler(REMOVE_KEY, (ConnectionWrapper c, List removals) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.commanderGameReply, _handleServerReply);
+    _packetListenerBindings.bindHandler(StateUpdate_Update.clientPlayerSpec, _handleClientConnect);
+    _packetListenerBindings.bindHandler(StateUpdate_Update.spriteRemoval, (ConnectionWrapper c, StateUpdate update) {
       if (c.isValidGameConnection()) {
-        for (int id in removals) {
-          _world.removeSprite(id);
-        }
+        _world.removeSprite(update.spriteRemoval);
       }
     });
-    _packetListenerBindings.bindHandler(WORLD_DESTRUCTION, (ConnectionWrapper c, List<dynamic> data) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.byteWorldDestruction, (ConnectionWrapper c, StateUpdate update) {
       if (c.isValidGameConnection()) {
         if (_world.byteWorld.initialized()) {
-          _world.clearFromNetworkUpdate(List<int>.from(data));
+          _world.clearFromNetworkUpdate(update.byteWorldDestruction);
         } else {
           log.warning("TODO buffer byteworld data sent when world is loading!");
         }
       }
     });
-    _packetListenerBindings.bindHandler(WORLD_DRAW, (ConnectionWrapper c, List data) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.byteWorldDraw, (ConnectionWrapper c, StateUpdate data) {
       if (c.isValidGameConnection()) {
         if (_world.byteWorld.initialized()) {
-          _world.drawFromNetworkUpdate(data);
+          _world.drawFromNetworkUpdate(data.byteWorldDraw);
         } else {
           log.warning("TODO buffer byteworld data sent when world is loading!");
         }
       }
     });
-    _packetListenerBindings.bindHandler(WORLD_PARTICLE, (ConnectionWrapper c, List<dynamic> data) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.particleEffects, (ConnectionWrapper c, StateUpdate data) {
       if (c.isValidGameConnection()) {
-        for (List<dynamic> particleData in data) {
-          _world.addParticlesFromNetworkData(List<int>.from(particleData));
-        }
+        _world.addParticlesFromNetworkData(data);
       }
     });
-    _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER, (ConnectionWrapper c, dynamic) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.clientEnter, (ConnectionWrapper c, StateUpdate data) {
       assert(_network.isCommander());
       GameState game = _gameState;
-      PlayerInfo info = game.playerInfoByConnectionId(c.id)!;
+      PlayerInfoProto info = game.playerInfoByConnectionId(c.id)!;
       info.inGame = true;
       game.markAsUrgent();
     });
@@ -69,39 +66,38 @@ class WorldListener {
     _world = world;
   }
 
-  _handleServerReply(ConnectionWrapper connection, Map data) {
+  _handleServerReply(ConnectionWrapper connection, StateUpdate data) {
     if (!connection.isValidGameConnection()) {
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
-      _gameState.updateFromMap(data[GAME_STATE]);
-      Vec2 position = new Vec2(data['x'], data['y']);
-      _world.createLocalClient(data["spriteId"], position);
+      _gameState.gameStateProto = data.commanderGameReply.gameState;
+      Vec2 position = Vec2.fromProto(data.commanderGameReply.startingPosition);
+      _world.createLocalClient(data.commanderGameReply.spriteIndexStart, position);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
     }
   }
 
-  _handleClientConnect(ConnectionWrapper connection, List data) {
-    String name = data[0];
+  _handleClientConnect(ConnectionWrapper connection, StateUpdate data) {
+    ClientPlayerSpec spec = data.clientPlayerSpec;
+    CommanderGameReply reply = CommanderGameReply();
+    StateUpdate updateReply = StateUpdate()
+      ..commanderGameReply = reply;
     if (connection.isValidGameConnection()) {
       log.warning("Duplicate handshake received from ${connection}!");
       return;
     }
     if (_gameState.isAtMaxPlayers()) {
-      connection.sendData({
-        SERVER_PLAYER_REJECT: 'Game full',
-        KEY_FRAME_KEY: connection.lastRemoteKeyFrame,
-        IS_KEY_FRAME_KEY: connection.currentKeyFrame()});
+      reply.challengeReply = CommanderGameReply_ChallengeReply.REJECT_FULL;
+      connection.sendSingleUpdate(updateReply);
       // Mark as closed.
       connection.close("Game full");
       return;
     }
     if (_gameState.hasWinner()) {
-      connection.sendData({
-        SERVER_PLAYER_REJECT: 'Game already completed',
-        KEY_FRAME_KEY: connection.lastRemoteKeyFrame,
-        IS_KEY_FRAME_KEY: connection.currentKeyFrame()});
+      reply.challengeReply = CommanderGameReply_ChallengeReply.REJECT_ENDED;
+      connection.sendSingleUpdate(updateReply);
       // Mark as closed.
       connection.close("Game over");
       return;
@@ -110,8 +106,11 @@ class WorldListener {
     // the latest keyframe.
     // It will anyway get the keyframe from our response.
     int spriteId = _network.gameState.getNextUsablePlayerSpriteId(_world);
-    int spriteIndex = data[1];
-    PlayerInfo info = new PlayerInfo(name, connection.id, spriteId);
+    int spriteIndex = spec.playerImageId;
+    PlayerInfoProto info = new PlayerInfoProto()
+      ..name = spec.name
+      ..connectionId = connection.id
+      ..spriteId = spriteId;
     _network.gameState.addPlayerInfo(info);
 
     Vec2 position = _byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
@@ -124,15 +123,13 @@ class WorldListener {
     sprite.ownerId = connection.id;
     _world.addSprite(sprite);
 
-    _world.displayHudMessageAndSendToNetwork("${name} connected.");
+    _world.displayHudMessageAndSendToNetwork("${spec.name} connected.");
     // Send updates gamestate here.
-    Map serverData = {"spriteId": spriteId,
-      'x': position.x.toInt(), 'y': position.y.toInt(),
-      GAME_STATE: _network.getGameState().toMap()};
-    connection.sendData({
-      SERVER_PLAYER_REPLY: serverData,
-      KEY_FRAME_KEY:connection.lastRemoteKeyFrame,
-      IS_KEY_FRAME_KEY: connection.currentKeyFrame()});
+    reply.spriteIndexStart = spriteId;
+    reply.startingPosition = position.toProto();
+    reply.gameState = _gameState.gameStateProto;
+
+    connection.sendSingleUpdate(updateReply);
 
     connection.setHandshakeReceived();
     // We don't expect any more players, disconnect the peer.

@@ -86,7 +86,7 @@ class ReliableHelper {
   PacketListenerBindings _packetListenerBindings;
 
   ReliableHelper(this._packetListenerBindings) {
-    _packetListenerBindings.bindHandler(StateUpdate_Update.ackedDataReceipts, (StateUpdate update) {
+    _packetListenerBindings.bindHandler(StateUpdate_Update.ackedDataReceipts, (_, StateUpdate update) {
        reliableDataBuffer.remove(update.ackedDataReceipts);
     });
   }

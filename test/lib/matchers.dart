@@ -1,5 +1,6 @@
 library matchers;
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:matcher/matcher.dart';
 import 'dart:convert';
 import 'dart:mirrors';
@@ -56,15 +57,15 @@ class GameStateMatcher extends Matcher {
     if (item is GameState) {
       gameState = item;
     }
-    if (gameState!.actingCommanderId != _commanderId) {
-      matchState["ActualGameState"] = "Expected commander id of ${_commanderId} was ${gameState.actingCommanderId }";
+    if (gameState!.gameStateProto.actingCommanderId != _commanderId) {
+      matchState["ActualGameState"] = "Expected commander id of ${_commanderId} was ${gameState.gameStateProto.actingCommanderId  }";
       return false;
     }
       matchState["ActualGameState"] = gameState;
     if (gameState.playerInfoList().length == _playersWithName.length) {
       for (int id in _playersWithName.keys) {
         bool hasMatch = false;
-        for (PlayerInfo info in gameState.playerInfoList()) {
+        for (PlayerInfoProto info in gameState.playerInfoList()) {
           if (info.spriteId == id && info.name == _playersWithName[id]) {
             hasMatch = true;
           }
@@ -140,7 +141,7 @@ class WorldPlayerMatcher extends WorldSpriteMatcher {
   }
 
   bool _keyStateMatches(LocalPlayerSprite sprite) {
-    return sprite.info.remoteKeyState().remoteState == _remoteKeyState;
+    return sprite.getKeyState().remoteState == _remoteKeyState;
   }
 
   bool matches(item, Map matchState) {
@@ -163,8 +164,7 @@ class WorldPlayerMatcher extends WorldSpriteMatcher {
     } else if (sprite is LocalPlayerSprite) {
       if (!_keyStateMatches(sprite)) {
         mismatchDescription.add(
-            "Wanted keystate remote of ${_remoteKeyState} was ${sprite.info
-                .remoteKeyState()
+            "Wanted keystate remote of ${_remoteKeyState} was ${sprite.getKeyState()
                 .remoteState} for ${_networkId} info ${sprite
                 .info} of type ${sprite.runtimeType}\n");
       }
@@ -324,7 +324,7 @@ class WorldPlayerControlMatcher extends Matcher {
     PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) => s.checkControlKeys(0.01),
     PlayerControlMethods.RESPAWN: (LocalPlayerSprite s) => s.maybeRespawn(0.01),
     PlayerControlMethods.FIRE_KEY: (LocalPlayerSprite s) => s.checkShouldFire(),
-    PlayerControlMethods.SERVER_TO_OWNER_DATA: (LocalPlayerSprite s) => s.hasServerToOwnerData(),
+    PlayerControlMethods.SERVER_TO_OWNER_DATA: (LocalPlayerSprite s) => s.hasCommanderToOwnerData(),
     PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH: (LocalPlayerSprite s) => s.listenFor("Jump", () {}),
   };
 

@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -51,9 +52,9 @@ void drawPlayerStats(
     bool netIssue,
     bool blackText) {
   GameState gameState = world.network().gameState;
-  List<PlayerInfo> infoList = world.network().gameState.playerInfoList();
+  List<PlayerInfoProto> infoList = world.network().gameState.playerInfoList();
   Map<String, ConnectionWrapper> connections = world.network().safeActiveConnections();
-  infoList.sort((PlayerInfo info1, PlayerInfo info2) {
+  infoList.sort((PlayerInfoProto info1, PlayerInfoProto info2) {
     // TODO compare death numbers?
     return info2.score.compareTo(info1.score);
   });
@@ -70,7 +71,7 @@ void drawPlayerStats(
   context.font = "${fontSize}px Arial";
 
   for (int i = 0; i < infoList.length; i++) {
-    PlayerInfo info = infoList[i];
+    PlayerInfoProto info = infoList[i];
     Sprite? sprite = spriteIndex[info.spriteId];
     // Can happen when starting a game...
     if (sprite == null) {
@@ -80,11 +81,11 @@ void drawPlayerStats(
     var img = imageIndex.getImageById(sprite.imageId);
     int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId]!.expectedLatency().inMilliseconds : 0;
     String text;
-    if (netIssue && gameState.actingCommanderId == info.connectionId) {
+    if (netIssue && gameState.gameStateProto.actingCommanderId == info.connectionId) {
       Random r = new Random();
       text = "${info.score} ${info.name} ${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"} ms *";
     } else {
-      text = "${info.score} ${info.name} ${latency} ms ${gameState.actingCommanderId == info.connectionId ? "*" : ""}";
+      text = "${info.score} ${info.name} ${latency} ms ${gameState.gameStateProto.actingCommanderId == info.connectionId ? "*" : ""}";
     }
     var metrics = context.measureText(text);
     double totalWidth = sprite.size.x * spriteScale + metrics.width;
@@ -115,7 +116,7 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   GameState gameState = world.network().getGameState();
-  PlayerInfo winner = gameState.playerInfoByConnectionId(gameState.winnerPlayerId!)!;
+  PlayerInfoProto winner = gameState.playerInfoByConnectionId(gameState.gameStateProto.winnerPlayerId)!;
   LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
   var img = imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
@@ -153,7 +154,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   context.setFillColorRgb(0, 0, 0, 0.7);
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
-  PlayerInfo? killer = player.killer;
+  PlayerInfoProto? killer = player.killer;
   if (killer == null || killer == player.info) {
     return;
   }

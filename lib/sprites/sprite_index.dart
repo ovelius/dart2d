@@ -38,10 +38,6 @@ class SpriteIndex {
             "Recieved player sprite not in Gamestate ${world.network().getGameState()}");
         return null;
       }
-      if (!info.remoteKeyState().remoteState) {
-        throw new ArgumentError(
-            "Cannot create a remote sprite with local keystate! ${world}");
-      }
       return new LocalPlayerSprite(
           world, world.imageIndex(), null, info, new Vec2(), 0);
     },
@@ -75,7 +71,7 @@ class SpriteIndex {
     MovingSprite sprite =
         SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
     if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
-      world.adjustPlayerSprite(sprite as LocalPlayerSprite, data[8]);
+      world.adjustPlayerSprite(sprite as LocalPlayerSprite, data.imageId);
     }
     sprite.networkType = NetworkType.REMOTE;
     sprite.networkId = networkId;

@@ -8,6 +8,8 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
 
+import '../net/state_updates.pb.dart';
+
 class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = .9;
@@ -32,19 +34,7 @@ class WeaponState {
     }
   }
 
-  addServerToOwnerData(List data) {
-    Weapon w = weapons[selectedWeaponIndex];
-    data.add((w.untilReload * DOUBLE_INT_CONVERSION).toInt());
-    data.add((w.untilNextFire * DOUBLE_INT_CONVERSION).toInt());
-    data.add(w.shotsLeft);
-  }
-
-  void parseServerToOwnerData(List<dynamic> data, int startAt) {
-    Weapon w = weapons[selectedWeaponIndex];
-    w.untilReload = (data[startAt] / DOUBLE_INT_CONVERSION);
-    w.untilNextFire = (data[startAt + 1] / DOUBLE_INT_CONVERSION);
-    w.shotsLeft = data[startAt + 2];
-  }
+  Weapon getSelectedWeapon() => weapons[selectedWeaponIndex];
 
   List<Weapon> weapons = [
     new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
@@ -121,7 +111,7 @@ class WeaponState {
       Particles p = new Particles(
           weaponState.world,
           null, position, vel.multiply(200.0),
-          null, 8.0, 5, 45, -0.3, Particles.FIRE);
+          null, 8.0, 5, 45, -0.3, ParticleEffects_ParticleType.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;

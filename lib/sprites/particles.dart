@@ -1,4 +1,5 @@
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -7,17 +8,13 @@ import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
 
 class Particles extends MovingSprite {
-  static const COLORFUL = 1;
-  static const FIRE = 2;
-  static const SODA = 3;
-
   late double radius;
   late int particleLifeTime;
   List<_Particle> particles = [];
   Sprite? follow;
   Vec2? followOffset = null;
   int? followId;
-  late int particleType;
+  late ParticleEffects_ParticleType particleType;
   late double shrinkPerStep;
   // If we should explode.
   int? damage = null;
@@ -28,7 +25,7 @@ class Particles extends MovingSprite {
   LocalPlayerSprite? owner;
 
   Particles(WormWorld world, Sprite? follow, Vec2 position, Vec2 velocityBase,
-      [Vec2? followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, int particleType = COLORFUL]) :
+      [Vec2? followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, ParticleEffects_ParticleType particleType = ParticleEffects_ParticleType.COLORFUL]) :
       super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
     this.velocity = velocityBase;
@@ -49,19 +46,19 @@ class Particles extends MovingSprite {
     this.particleLifeTime = lifeTime;
   }
   
-  Particles.fromNetworkUpdate(List<int> data, WormWorld world)
+  Particles.fromNetworkUpdate(ParticleEffects data, WormWorld world)
       : super(new Vec2(), new Vec2(1, 1),  SpriteType.CUSTOM) {
-    this.position = new Vec2(data[0], data[1]);
-    this.velocity = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
-    this.radius = data[4] / DOUBLE_INT_CONVERSION;
-    this.particleLifeTime = data[5];
-    this.particleType = data[6];
-    this.shrinkPerStep = data[7] / DOUBLE_INT_CONVERSION;
-    int count = data[8];
-    this.lifeTime = data[9];
-    this.followOffset = new Vec2(data[10], data[11]);
-    if (data.length > 12) {
-      this.followId = data[12];
+    this.position = Vec2.fromProto(data.position);
+    this.velocity = Vec2.fromProto(data.velocity);
+    this.radius = data.radius;
+    this.particleLifeTime = data.lifetimeFrames;
+    this.particleType = data.particleType;
+    this.shrinkPerStep = data.shrinkPerStep;
+    int count = data.particleCount;
+    this.lifeTime = data.spriteLifetimeFrames;
+    this.followOffset = Vec2.fromProto(data.followOffset);
+    if (data.hasFollowId()) {
+      this.followId = data.followId;
     }
     this.networkType = NetworkType.LOCAL_ONLY;
     this.invisibleOutsideCanvas = false;
@@ -74,30 +71,24 @@ class Particles extends MovingSprite {
     this.world = world;
   }
   
-  List<dynamic> toNetworkUpdate() {
-    List<dynamic> list = [
-        position.x.toInt(),
-        position.y.toInt(),
-        (velocity.x * DOUBLE_INT_CONVERSION).toInt(),
-        (velocity.y * DOUBLE_INT_CONVERSION).toInt(),
-        (radius * DOUBLE_INT_CONVERSION).toInt(),
-        particleLifeTime,
-        particleType,
-        (shrinkPerStep * DOUBLE_INT_CONVERSION).toInt(),
-        particles.length,
-        lifeTime,
-      ];
+  ParticleEffects toNetworkUpdate() {
+    ParticleEffects particle = ParticleEffects()
+      ..position = position.toProto()
+      ..velocity = velocity.toProto()
+      ..radius = radius
+      ..lifetimeFrames = particleLifeTime
+      ..particleType = particleType
+      ..shrinkPerStep = shrinkPerStep
+      ..particleCount = particles.length
+      ..lifetimeFrames = lifeTime;
+
     if (followOffset != null) {
-      list.add(followOffset!.x.toInt());
-      list.add(followOffset!.y.toInt());
-    } else {
-      list.add(0);
-      list.add(0);
+      particle.followOffset = followOffset!.toProto();
     }
     if (follow != null) {
-      list.add(follow!.networkId);
+      particle.followId = follow!.networkId!;
     }
-    return list;
+    return particle;
   }
 
   frame(double duration, int frames, [Vec2? gravity]) {
@@ -114,7 +105,7 @@ class Particles extends MovingSprite {
       }
       p.location.x += p.speed.x * duration;
       p.location.y += p.speed.y * duration;
-      if (g != null && this.particleType != FIRE) {
+      if (g != null && this.particleType != ParticleEffects_ParticleType.FIRE) {
         p.location += g;
       }
       p.lifeTimeRemaining--;
@@ -125,7 +116,7 @@ class Particles extends MovingSprite {
   draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
     int dead = 0;
     Random r = new Random();
-    if (particleType != SODA) {
+    if (particleType != ParticleEffects_ParticleType.SODA) {
       context.globalCompositeOperation = "lighter";
     }
     for(var i = 0; i < particles.length; i++) {
@@ -150,7 +141,7 @@ class Particles extends MovingSprite {
   }
   
   setFillStyle(dynamic /*CanvasRenderingContext2D*/ context, _Particle p) {
-    if (this.particleType == COLORFUL) {
+    if (this.particleType == ParticleEffects_ParticleType.COLORFUL) {
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
       var /*CanvasGradient*/ gradient = context.createRadialGradient(
           p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);
@@ -160,13 +151,13 @@ class Particles extends MovingSprite {
       gradient.addColorStop(0.5, color);
       gradient.addColorStop(1, colorTransparent);
       context.fillStyle = gradient;   
-    } else if (this.particleType == FIRE) {
+    } else if (this.particleType == ParticleEffects_ParticleType.FIRE) {
       double lifePercentage = p.lifeTimeRemaining / this.particleLifeTime;
       double lifePercentageInverse = 1.0 - lifePercentage;   
       String color = 
           "rgba(${(260 * lifePercentage).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${lifePercentageInverse})";
       context.fillStyle = color;
-    } else if (this.particleType == SODA) {
+    } else if (this.particleType == ParticleEffects_ParticleType.SODA) {
       double lifePercentage = p.lifeTimeRemaining / this.particleLifeTime;
       double lifePercentageInverse = 1.0 - lifePercentage;
       String color =

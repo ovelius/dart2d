@@ -11,6 +11,8 @@ import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+import '../weapons/abstractweapon.dart';
+
 /**
  * How a server represents itself.
  */
@@ -88,7 +90,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.gun = _createGun(imageIndex);
     this._shield = _createShield(imageIndex);
     this.weaponState =
-        new WeaponState(world, info.remoteKeyState(), this, this.gun);
+        new WeaponState(world, world.network().gameState.getKeyStateFor(info.connectionId)!, this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState?.nextWeapon();
     });
@@ -116,33 +118,44 @@ class LocalPlayerSprite extends MovingSprite {
 
   bool drawWeaponHelpers() => _ownedByThisWorld();
 
-  hasServerToOwnerData() =>
+  hasCommanderToOwnerData() =>
       world.network().isCommander() && !_ownedByThisWorld();
 
-  addServerToOwnerData(List data) {
-    data.add(health);
-    data.add((_shieldSec * 10).toInt());
-    data.add(spawnIn * DOUBLE_INT_CONVERSION);
-    data.add(_shieldPoints);
+  ExtraSpriteData getCommanderToOwnerData() {
+    ExtraSpriteData data = ExtraSpriteData()
+        ..extraInt.add(health)
+        ..extraInt.add(_shieldPoints)
+        ..extraFloat.add(_shieldSec)
+        ..extraFloat.add(spawnIn);
     if (_killer != null) {
-      data.add(_killer!.connectionId);
-    } else {
-      data.add("");
+      data.extraString.add(_killer!.connectionId);
     }
     if (weaponState != null) {
-      data.add(weaponState!.addServerToOwnerData(data));
+      Weapon w = weaponState!.getSelectedWeapon();
+      data.extraFloat.add(w.untilReload);
+      data.extraFloat.add(w.untilNextFire);
+      data.extraInt.add(w.shotsLeft);
     }
+    return data;
   }
 
-  bool parseServerToOwnerData(List data, int startAt) {
-    health = data[startAt];
-    _shieldSec = data[startAt + 1] / 10.0;
-    spawnIn = data[startAt + 2] / DOUBLE_INT_CONVERSION;
-    _shieldPoints = data[startAt + 3];
-    String killerId = data[startAt + 4];
-    _killer = world.network().gameState.playerInfoByConnectionId(killerId);
-    if (data.length > 6) {
-      this.weaponState?.parseServerToOwnerData(data, startAt + 5);
+  bool commanderToOwnerData(ExtraSpriteData data) {
+    health = data.extraInt[0];
+    _shieldPoints = data.extraInt[1];
+    _shieldSec = data.extraFloat[0];
+    spawnIn = data.extraFloat[1];
+    if (data.extraString.isNotEmpty) {
+      String killerId = data.extraString[0];
+      _killer = world
+          .network()
+          .gameState
+          .playerInfoByConnectionId(killerId);
+    }
+    if (data.extraFloat.length > 2) {
+      Weapon w = weaponState!.getSelectedWeapon();
+      w.untilReload = data.extraFloat[2];
+      w.untilNextFire = data.extraFloat[3];
+      w.shotsLeft = data.extraInt[2];
     }
     return true;
   }
@@ -335,7 +348,7 @@ class LocalPlayerSprite extends MovingSprite {
         if (_jetParticles == null) {
           _jetParticles = new Particles(weaponState!.world,
               this, new Vec2.copy(this.position), new Vec2(0, velocity.y + 50),
-              new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, Particles.SODA);
+              new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, ParticleEffects_ParticleType.SODA);
           _jetParticles!.sendToNetwork = true;
           world.addSprite(_jetParticles!);
         }
@@ -548,20 +561,24 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
+  KeyState getKeyState() {
+    return world.network().gameState.getKeyStateFor(info.connectionId)!;
+  }
+
   bool listenFor(String key, dynamic f) {
     assert(getControls().containsKey(key));
-    info.remoteKeyState().registerListener(getControls()[key]!, f);
+    getKeyState().registerListener(getControls()[key]!, f);
     return true;
   }
 
   bool keyIsDown(String key) {
     assert(getControls().containsKey(key));
-    return info.remoteKeyState().keyIsDown(getControls()[key]!);
+    return getKeyState().keyIsDown(getControls()[key]!);
   }
 
   double? keyIsDownStrength(String key) {
     assert(getControls().containsKey(key));
-    return info.remoteKeyState().keyIsDownStrength(getControls()[key]!);
+    return getKeyState().keyIsDownStrength(getControls()[key]!);
   }
 
   ExtraSpriteData addExtraNetworkData() {

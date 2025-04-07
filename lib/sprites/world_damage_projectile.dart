@@ -1,4 +1,5 @@
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 
 import 'movingsprite.dart';
@@ -87,7 +88,7 @@ class Hyper extends WorldDamageProjectile {
 
   void _collectDamageSprites() {
     List<LocalPlayerSprite> spritesInDamageArea = [];
-    for (PlayerInfo inf in world.network().gameState.playerInfoList()) {
+    for (PlayerInfoProto inf in world.network().gameState.playerInfoList()) {
       if (inf.spriteId != owner?.networkId) {
         LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite;
         if (sprite.inGame() && sprite.takesDamage()) {
@@ -338,25 +339,26 @@ class WorldDamageProjectile extends MovingSprite {
     return SpriteConstructor.DAMAGE_PROJECTILE;
   }
 
-  void addExtraNetworkData(List data) {
-    data.add(radius);
-    data.add(damage);
-    data.add(showCounter);
-    // Will eventually be corrected.
-    data.add(owner == null ? -1 : owner!.networkId);
+  ExtraSpriteData addExtraNetworkData() {
+    ExtraSpriteData data = ExtraSpriteData()
+     ..extraFloat.add(radius)
+     ..extraInt.add(damage)
+     ..extraInt.add(owner == null ? -1 : owner!.networkId!)
+     ..extraBool.add(showCounter);
     if (explodeAfter != null) {
-      data.add(explodeAfter!.toInt());
+      data.extraFloat.add(explodeAfter!);
     }
+    return data;
   }
 
-  void parseExtraNetworkData(List data, int startAt) {
-    radius = data[startAt];
-    damage = data[startAt + 1];
-    showCounter = data[startAt + 2];
-    int ownerId = data[startAt + 3];
-    this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite;
-    if (data.length > startAt + 4) {
-      this.explodeAfter = data[startAt + 4].toDouble();
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    radius = data.extraFloat[0];
+    damage = data.extraInt[0];
+    showCounter = data.extraBool[0];
+    int ownerId = data.extraInt[1];
+    this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite?;
+    if (data.extraFloat.length > 1) {
+      this.explodeAfter = data.extraFloat[1];
     }
   }
 

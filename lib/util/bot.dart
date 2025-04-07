@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -54,7 +55,7 @@ class Bot {
   }
 
   bool _findPlayerSprite() {
-    PlayerInfo? info = _selfPlayerInfoProvider.getSelfInfo();
+    PlayerInfoProto? info = _selfPlayerInfoProvider.getSelfInfo();
     if (info == null) {
       return false;
     }

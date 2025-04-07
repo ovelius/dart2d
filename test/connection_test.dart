@@ -9,6 +9,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'lib/test_mocks.mocks.dart';
 
+class FakeClock extends Clock {
+  DateTime testTime = DateTime.now();
+  DateTime now() {
+    return testTime;
+  }
+}
+
 void main() {
   late MockNetwork mockNetwork;
   late ConfigParams testConfigParams;
@@ -16,10 +23,12 @@ void main() {
   late PacketListenerBindings packetListenerBindings;
   late ConnectionWrapper connection;
   late TestConnection testConnection;
+  late FakeClock fakeClock;
 
 
   setUp(() {
     logOutputForTest();
+    fakeClock = FakeClock();
     mockNetwork = new MockNetwork();
     when(mockNetwork.getPeer()).thenReturn(MockPeerWrapper());
     when(mockNetwork.isCommander()).thenReturn(false);
@@ -30,7 +39,7 @@ void main() {
     testConnection.buffer = true;
     connection = new ConnectionWrapper(
         mockNetwork, mockHudMessages, "a", packetListenerBindings,
-        testConfigParams, new ConnectionFrameHandler(new ConfigParams({})), Clock());
+        testConfigParams, new ConnectionFrameHandler(new ConfigParams({})), fakeClock);
     connection.setRtcConnection(testConnection);
     connection.readyDataChannel(testConnection);
   });
@@ -41,6 +50,7 @@ void main() {
 
   test('TestReliableDataSend', () {
     GameStateUpdates data = GameStateUpdates()
+        ..lastFrameSeen = 1
         ..stateUpdate.add(StateUpdate()
         ..dataReceipt = 123
         ..userMessage = "t");
@@ -54,115 +64,133 @@ void main() {
           123: data.stateUpdate[0]
         }));
 
-    expectWarningContaining("Data receipt 123456789");
     GameStateUpdates receipt = GameStateUpdates()
-      ..stateUpdate.add(StateUpdate()..dataReceipt = 123);
+        ..lastFrameSeen = 1
+        ..stateUpdate.add(StateUpdate()..ackedDataReceipts = 123);
     connection.receiveData(receipt.writeToBuffer());
 
     expect(connection.reliableHelper().reliableDataBuffer, equals({}));
   });
 
-  /*
   test('TestReliableDataReSend', () {
-    connection.sendData({
-      REMOVE_KEY: [1, 2]
-    });
-    expect(
-        testConnection.nativeBufferedDataAt(0),
-        equals({
-          REMOVE_KEY: [1, 2],
-          KEY_FRAME_KEY: 0,
-          CONTAINED_DATA_RECEIPTS: [613796826],
-        }));
-    connection.sendData({
-      IS_KEY_FRAME_KEY: 2,
-      REMOVE_KEY: [3],
-      CLIENT_PLAYER_SPEC: "test client",
-    });
+    StateUpdate reliableUpdate =
+        StateUpdate()
+            ..dataReceipt = 123
+            ..spriteRemoval = 111;
+
+    connection.sendSingleUpdate(reliableUpdate);
+    connection.sendData(
+      GameStateUpdates()
+          ..keyFrame = 2
+    );
 
     // Data got added again.
     expect(
         testConnection.nativeBufferedDataAt(1),
-        equals({
-          REMOVE_KEY: [3, 1, 2],
-          IS_KEY_FRAME_KEY: 2,
-          CLIENT_PLAYER_SPEC: "test client",
-          KEY_FRAME_KEY: 0,
-          CONTAINED_DATA_RECEIPTS: [325444850, 560726420, 613796826]
-        }));
+        equals(GameStateUpdates()
+          ..lastFrameSeen = 0
+          ..keyFrame = 2
+          ..stateUpdate.add(reliableUpdate)));
 
     expect(
         connection.reliableHelper().reliableDataBuffer,
         equals({
-          325444850: [
-            REMOVE_KEY,
-            [3]
-          ],
-          613796826: [
-            REMOVE_KEY,
-            [1, 2]
-          ],
-          560726420: [CLIENT_PLAYER_SPEC, 'test client']
+          123: reliableUpdate,
         }));
 
-    connection.sendData({
-      IS_KEY_FRAME_KEY: 2,
-    });
+    connection.sendData(GameStateUpdates()
+      ..keyFrame = 3);
 
     // Data got added yet again.
     expect(
         testConnection.nativeBufferedDataAt(2),
-        equals({
-          REMOVE_KEY: [1, 2, 3],
-          IS_KEY_FRAME_KEY: 2,
-          CLIENT_PLAYER_SPEC: "test client",
-          KEY_FRAME_KEY: 0,
-          CONTAINED_DATA_RECEIPTS: [613796826, 325444850, 560726420],
-        }));
+        equals(GameStateUpdates()
+          ..lastFrameSeen = 0
+          ..keyFrame = 3
+          ..stateUpdate.add(reliableUpdate)));
   });
 
-  test('TestReceiveReliableDataAndSendVerification', () {
-    String reliableKey = RELIABLE_KEYS.keys.first;
-    packetListenerBindings.bindHandler(
-        reliableKey, (ConnectionWrapper c, Object o) {});
-    connection.receiveData(jsonEncode({
-      KEY_FRAME_KEY: 0,
-      reliableKey: "test",
-      CONTAINED_DATA_RECEIPTS: [123, 456]
-    }));
+  test('TestVerifiesReliableData', () {
+    StateUpdate reliableUpdate =
+    StateUpdate()
+      ..dataReceipt = 123
+      ..spriteRemoval = 111;
 
-    List expected = [123, 456];
-    expect(connection.reliableHelper().reliableDataToVerify, equals(expected));
+    connection.sendSingleUpdate(reliableUpdate);
+    connection.sendData(
+        GameStateUpdates()
+          ..keyFrame = 2
+    );
 
-    connection.sendData({KEY_FRAME_KEY: 0});
+    GameStateUpdates ackData = GameStateUpdates()
+      ..lastFrameSeen = 1
+      ..stateUpdate.add(StateUpdate()..ackedDataReceipts = 123);
+    connection.receiveData(ackData.writeToBuffer());
 
-    expect(testConnection.nativeBufferedDataAt(0),
-        equals({DATA_RECEIPTS: expected, KEY_FRAME_KEY: 0}));
+    connection.sendData(
+        GameStateUpdates()
+          ..keyFrame = 2
+    );
+
+    // No resend was performed.
+    expect(
+        testConnection.nativeBufferedDataAt(2),
+        equals(GameStateUpdates()
+          ..lastFrameSeen = 0
+          ..keyFrame = 2));
   });
 
-  test('TestTickConnect', () {
+  test('ReceivesNewFrames_IncrementsFrameCounters', () {
+    connection.receiveData(
+        (GameStateUpdates()
+          ..lastFrameSeen = 10
+          ..frame = 2).writeToBuffer());
+
+    expect(connection.lastSeenRemoteFrame, equals(2));
+    expect(connection.lastDeliveredFrame, equals(10));
+  });
+
+
+  test('TicConnection_IncrementsFrameCounters', () {
     connection.setHandshakeReceived();
-    connection.tick(0.01, {}, {}, []);
+    connection.tick(0.01, []);
 
-    expect(testConnection.nativeBufferedDataAt(0), equals({IS_KEY_FRAME_KEY: 0, KEY_FRAME_KEY: 0}));
+    expect(testConnection.nativeBufferedDataAt(0), equals(GameStateUpdates()
+       ..frame = 0
+       ..lastFrameSeen = 0
+       ..keyFrame = 0));
 
-    connection.tick(KEY_FRAME_DEFAULT + 0.1, {}, {}, []);
+    connection.tick(KEY_FRAME_DEFAULT + 0.1, []);
 
     expect(testConnection.dataBuffer.length, 2);
-    expect(testConnection.nativeBufferedDataAt(1), equals({IS_KEY_FRAME_KEY: 1, KEY_FRAME_KEY: 0}));
+    expect(testConnection.nativeBufferedDataAt(1), equals(GameStateUpdates()
+      ..frame = 1
+      ..lastFrameSeen = 0
+      ..keyFrame = 1));
+    expect(connection.lastSentFrameTime, equals(fakeClock.testTime));
   });
 
-  test('TestKeyFrameAck', () {
+  test('TicConnection_sendFrameAndSetsRttOnFeedback', () {
     connection.setHandshakeReceived();
-    connection.receiveData(jsonEncode({KEY_FRAME_KEY: 10, IS_KEY_FRAME_KEY: 99}));
-    expect(connection.lastRemoteKeyFrame, equals(99));
-    expect(connection.lastDeliveredKeyFrame, equals(10));
-    connection.sendData({});
 
-    Map receivedData = testConnection.nativeBufferedDataAt(0);
-    receivedData.remove(KEY_FRAME_DELAY);
-    expect(receivedData, equals({KEY_FRAME_KEY: 99}));
+    connection.tick(0.1, []);
+    connection.tick(KEY_FRAME_DEFAULT + 0.1, []);
+
+    expect(testConnection.nativeBufferedDataAt(1), equals(GameStateUpdates()
+      ..frame = 1
+      ..lastFrameSeen = 0
+      ..keyFrame = 1));
+
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 10));
+
+    GameStateUpdates ackData = GameStateUpdates()
+      ..lastFrameSeen = 1
+      ..stateUpdate.add(StateUpdate()..ackedDataReceipts = 123);
+    connection.receiveData(ackData.writeToBuffer());
+
+    expect(connection.expectedLatency(), Duration(milliseconds: 10));
   });
+
 
   test('TestLeakyBucket', () {
     LeakyBucket leakyBucket = new LeakyBucket(1);
@@ -206,5 +234,5 @@ void main() {
     handler.reportFramesBehind(1, 0);
     // We increased the framerate again.
     expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 4);
-  }); */
+  });
 }

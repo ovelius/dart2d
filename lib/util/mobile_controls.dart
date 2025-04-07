@@ -1,4 +1,5 @@
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:math';
@@ -68,7 +69,7 @@ class MobileControls {
     if (_botNameIfEnabled.isNotEmpty) {
       _bot.tick(duration);
     } else if (_isTouchSupported) {
-      PlayerInfo? selfInfo = _selfPlayerInfoProvider.getSelfInfo();
+      PlayerInfoProto? selfInfo = _selfPlayerInfoProvider.getSelfInfo();
       if (selfInfo == null || !selfInfo.inGame) {
         return;
       }

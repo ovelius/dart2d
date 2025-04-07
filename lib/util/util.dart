@@ -1,5 +1,6 @@
 library util;
 
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 
 import 'package:dart2d/net/net.dart';
@@ -17,7 +18,7 @@ class SelfPlayerInfoProvider {
   Network _network;
   SelfPlayerInfoProvider(this._network);
 
-  PlayerInfo? getSelfInfo() {
+  PlayerInfoProto? getSelfInfo() {
     String peerId = _network.getPeer().getId();
     return _network.getGameState().playerInfoByConnectionId(peerId);
   }

@@ -1,7 +1,9 @@
 library test_connection;
 
+import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/config_params.dart';
 import 'package:injectable/injectable.dart';
 import 'test_env.dart';
@@ -25,7 +27,7 @@ class TestConnection {
   ConnectionWrapper? internalWrapper;
   bool closed = false;
 
-  String? recentDataSent = null;
+  List<int>? recentDataSent = null;
   int dataReceivedCount = 0;
   var recentDataRecevied = null;
 
@@ -45,7 +47,7 @@ class TestConnection {
   }
 
   bool buffer = false;
-  List<String> dataBuffer = [];
+  List<List<int>> dataBuffer = [];
 
   bool signalOpen = true;
 
@@ -69,12 +71,12 @@ class TestConnection {
     dataBuffer.clear();
   }
 
-  sendAndReceivByOtherPeerNativeObject(Map object) {
-    send(jsonEncode(object));
+  sendAndReceivByOtherPeerNativeObject(GameStateUpdates data) {
+    send(data.writeToBuffer());
   }
 
-  nativeBufferedDataAt(int pos) {
-    return jsonDecode(dataBuffer[pos]);
+  GameStateUpdates nativeBufferedDataAt(int pos) {
+    return GameStateUpdates.fromBuffer(dataBuffer[pos]);
   }
 
   void signalClose() {
@@ -89,7 +91,7 @@ class TestConnection {
     closed = true;
   }
 
-  sendAndReceivByOtherPeer(String jsonString) {
+  sendAndReceivByOtherPeer(List<int> jsonString) {
     if (closed) {
       throw new StateError("TestConnection is closed, can't send!");
     }
@@ -109,11 +111,11 @@ class TestConnection {
     }
   }
 
-  send(String string) {
+  send(List<int> data) {
     if (buffer) {
-      dataBuffer.add(string);
+      dataBuffer.add(data);
     } else {
-      sendAndReceivByOtherPeer(string);
+      sendAndReceivByOtherPeer(data);
     }
   }
 
@@ -124,11 +126,11 @@ class TestConnectionWrapper extends ConnectionWrapper {
 
   final String id;
   int sendCount = 0;
-  Map? lastDataSent = null;
-  List<Map> dataSent = [];
+  GameStateUpdates? lastDataSent = null;
+  List<GameStateUpdates> dataSent = [];
 
-  TestConnectionWrapper(this.id) : super(MockNetwork(), MockHudMessages(), id,
-      MockPacketListenerBindings(), ConfigParams({}), ConnectionFrameHandler(ConfigParams({})));
+  TestConnectionWrapper(this.id, Clock clock) : super(MockNetwork(), MockHudMessages(), id,
+      MockPacketListenerBindings(), ConfigParams({}), ConnectionFrameHandler(ConfigParams({})), clock);
 
   void sampleLatency(Duration latency) {
     print("Got latency data of $latency");
@@ -140,7 +142,7 @@ class TestConnectionWrapper extends ConnectionWrapper {
 
   expectedLatency() => new Duration(milliseconds: 400);
 
-  void sendData(Map data) {
+  void sendData(GameStateUpdates data) {
     this.lastDataSent = data;
     this.dataSent.add(data);
     this.sendCount++;

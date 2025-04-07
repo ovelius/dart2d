@@ -39,12 +39,12 @@ class ConnectionWrapper {
 
   // Keeping track of remote side frames, latest frame we've seen.
   int lastSeenRemoteFrame = 0;
-  DateTime _lastDataReceiveTime = DateTime.now();
+  late DateTime _lastDataReceiveTime;
   int? _lastSeenKeyFrame = null;
 
   // The last frame the other side said we sent.
   int lastSentFrame = 0;
-  DateTime lastSentFrameTime = DateTime.now();
+  late DateTime lastSentFrameTime;
 
   int lastDeliveredFrame = 0;
   // Time from sending to remote saying frame increased.
@@ -58,6 +58,8 @@ class ConnectionWrapper {
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
       this._connectionFrameHandler, this._clock) {
+    lastSentFrameTime = _clock.now();
+    _lastDataReceiveTime = _clock.now();
     _connectionStats = new ConnectionStats(this._clock);
     _reliableHelper = new ReliableHelper(_packetListenerBindings);
     // Start the connection timer.
@@ -183,7 +185,7 @@ class ConnectionWrapper {
       log.fine("Dropping due to ingress bandwidth limitation");
       return;
     }
-    DateTime now = new DateTime.now();
+    DateTime now = _clock.now();
     _connectionStats.lastReceiveTime = now;
     _connectionStats.rxBytes += rawData.length as int;
     GameStateUpdates dataMap = GameStateUpdates.fromBuffer(rawData);
@@ -209,6 +211,7 @@ class ConnectionWrapper {
       _frameIncrementLatencyTime = Duration(milliseconds: now.millisecondsSinceEpoch - lastSentFrameTime.millisecondsSinceEpoch);
       // How long time before the sender responded?
       sampleLatency(_frameIncrementLatencyTime);
+      lastDeliveredFrame = dataMap.lastFrameSeen;
     }
 
     if (dataMap.hasKeyFrame()) {
@@ -246,7 +249,7 @@ class ConnectionWrapper {
           }
         }
       } else {
-        throw new ArgumentError("No bound network listener for ${update.toDebugString()}");
+        throw new ArgumentError("No bound network listener for ${updateType} data: ${update.toDebugString()}");
       }
     }
 

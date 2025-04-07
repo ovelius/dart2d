@@ -13,37 +13,6 @@ import 'package:dart2d/net/helpers.dart';
 import '../net/connection.dart';
 import '../net/state_updates.dart';
 
-
-
-class PlayerInfo {
-  late String name;
-  late String connectionId;
-  late int spriteId;
-  int score = 0;
-  int deaths = 0;
-  bool inGame = false;
-  late int addedToGameAtMillis;
-  // How many frames per second this client has.
-  int fps = 45;
-  // What conenctions this player has.
-  Map<String, ConnectionInfoProto> connections = {};
-  // Keystate for the remote player, will only be set if
-  // the remote peer is a client.
-  KeyState _remoteKeyState = new KeyState.remote();
-
-  PlayerInfo(this.name, this.connectionId, this.spriteId);
-
-
-  KeyState remoteKeyState() => _remoteKeyState;
-
-  bool isConnectedTo(String other) => connections.containsKey(other);
-
-
-
-  String toString() =>
-      "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
-}
-
 @Singleton(scope: 'world')
 class GameState {
   static const MAX_PLAYERS = 4;
@@ -56,6 +25,7 @@ class GameState {
 
   GameStateProto _gameStateProto = GameStateProto();
   GameStateProto get gameStateProto => _gameStateProto;
+  void set gameStateProto(GameStateProto p) => _gameStateProto = p;
   Map<String, PlayerInfoProto> _playerInfoById = {};
   Map<String, KeyState> _playerKeyStateById = {};
 
@@ -65,6 +35,10 @@ class GameState {
   void updateWithLocalKeyState(String connectionId, KeyState localState) {
     assert(!localState.remoteState);
     _playerKeyStateById[connectionId] = localState;
+  }
+
+  KeyState? getKeyStateFor(String connectionId) {
+    return _playerKeyStateById[connectionId];
   }
 
   GameState(this._packetListenerBindings, this._spriteIndex) {

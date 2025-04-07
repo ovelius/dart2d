@@ -99,6 +99,10 @@ message ByteWorldDestruction {
   optional Vec2Proto position = 1;
   // What radius to clear.
   optional float radius = 2;
+  // If clearing it should take damage.
+  optional int32  damage = 3;
+  // Velocity of explosion.
+  optional Vec2Proto velocity = 4;
 }
 
 // Draw something on the ByteWorld.
@@ -113,7 +117,7 @@ message ByteWorldDraw {
 
 message OtherPlayerWorldSelect {
   optional string name = 1;
-  optional string world_selected = 2;
+  optional int32 world_selected_index = 2;
 }
 
 message CommanderGameReply {
@@ -121,6 +125,8 @@ message CommanderGameReply {
     UNSET = 0;
     ACCEPT = 1;
     REJECT_FULL = 2;
+    // Game already ended.
+    REJECT_ENDED = 3;
 
   }
   optional ChallengeReply challenge_reply = 1;
@@ -258,4 +264,5 @@ message ExtraSpriteData {
   repeated int32 extra_int = 1;
   repeated float extra_float = 2;
   repeated string extra_string = 3;
+  repeated bool extra_bool = 4;
 }

@@ -740,6 +740,8 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
   factory ByteWorldDestruction({
     Vec2Proto? position,
     $core.double? radius,
+    $core.int? damage,
+    Vec2Proto? velocity,
   }) {
     final $result = create();
     if (position != null) {
@@ -747,6 +749,12 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
     }
     if (radius != null) {
       $result.radius = radius;
+    }
+    if (damage != null) {
+      $result.damage = damage;
+    }
+    if (velocity != null) {
+      $result.velocity = velocity;
     }
     return $result;
   }
@@ -757,6 +765,8 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ByteWorldDestruction', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
     ..aOM<Vec2Proto>(1, _omitFieldNames ? '' : 'position', subBuilder: Vec2Proto.create)
     ..a<$core.double>(2, _omitFieldNames ? '' : 'radius', $pb.PbFieldType.OF)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'damage', $pb.PbFieldType.O3)
+    ..aOM<Vec2Proto>(4, _omitFieldNames ? '' : 'velocity', subBuilder: Vec2Proto.create)
     ..hasRequiredFields = false
   ;
 
@@ -802,6 +812,28 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
   $core.bool hasRadius() => $_has(1);
   @$pb.TagNumber(2)
   void clearRadius() => clearField(2);
+
+  /// If clearing it should take damage.
+  @$pb.TagNumber(3)
+  $core.int get damage => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set damage($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDamage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDamage() => clearField(3);
+
+  /// Velocity of explosion.
+  @$pb.TagNumber(4)
+  Vec2Proto get velocity => $_getN(3);
+  @$pb.TagNumber(4)
+  set velocity(Vec2Proto v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasVelocity() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVelocity() => clearField(4);
+  @$pb.TagNumber(4)
+  Vec2Proto ensureVelocity() => $_ensure(3);
 }
 
 /// Draw something on the ByteWorld.
@@ -893,14 +925,14 @@ class ByteWorldDraw extends $pb.GeneratedMessage {
 class OtherPlayerWorldSelect extends $pb.GeneratedMessage {
   factory OtherPlayerWorldSelect({
     $core.String? name,
-    $core.String? worldSelected,
+    $core.int? worldSelectedIndex,
   }) {
     final $result = create();
     if (name != null) {
       $result.name = name;
     }
-    if (worldSelected != null) {
-      $result.worldSelected = worldSelected;
+    if (worldSelectedIndex != null) {
+      $result.worldSelectedIndex = worldSelectedIndex;
     }
     return $result;
   }
@@ -910,7 +942,7 @@ class OtherPlayerWorldSelect extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'OtherPlayerWorldSelect', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
-    ..aOS(2, _omitFieldNames ? '' : 'worldSelected')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'worldSelectedIndex', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -945,13 +977,13 @@ class OtherPlayerWorldSelect extends $pb.GeneratedMessage {
   void clearName() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get worldSelected => $_getSZ(1);
+  $core.int get worldSelectedIndex => $_getIZ(1);
   @$pb.TagNumber(2)
-  set worldSelected($core.String v) { $_setString(1, v); }
+  set worldSelectedIndex($core.int v) { $_setSignedInt32(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasWorldSelected() => $_has(1);
+  $core.bool hasWorldSelectedIndex() => $_has(1);
   @$pb.TagNumber(2)
-  void clearWorldSelected() => clearField(2);
+  void clearWorldSelectedIndex() => clearField(2);
 }
 
 class CommanderGameReply extends $pb.GeneratedMessage {
@@ -2017,6 +2049,7 @@ class ExtraSpriteData extends $pb.GeneratedMessage {
     $core.Iterable<$core.int>? extraInt,
     $core.Iterable<$core.double>? extraFloat,
     $core.Iterable<$core.String>? extraString,
+    $core.Iterable<$core.bool>? extraBool,
   }) {
     final $result = create();
     if (extraInt != null) {
@@ -2028,6 +2061,9 @@ class ExtraSpriteData extends $pb.GeneratedMessage {
     if (extraString != null) {
       $result.extraString.addAll(extraString);
     }
+    if (extraBool != null) {
+      $result.extraBool.addAll(extraBool);
+    }
     return $result;
   }
   ExtraSpriteData._() : super();
@@ -2038,6 +2074,7 @@ class ExtraSpriteData extends $pb.GeneratedMessage {
     ..p<$core.int>(1, _omitFieldNames ? '' : 'extraInt', $pb.PbFieldType.P3)
     ..p<$core.double>(2, _omitFieldNames ? '' : 'extraFloat', $pb.PbFieldType.PF)
     ..pPS(3, _omitFieldNames ? '' : 'extraString')
+    ..p<$core.bool>(4, _omitFieldNames ? '' : 'extraBool', $pb.PbFieldType.PB)
     ..hasRequiredFields = false
   ;
 
@@ -2070,6 +2107,9 @@ class ExtraSpriteData extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(3)
   $core.List<$core.String> get extraString => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.List<$core.bool> get extraBool => $_getList(3);
 }
 
 

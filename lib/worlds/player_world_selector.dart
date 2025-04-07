@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 
 import '../net/connection.dart';
@@ -120,10 +121,10 @@ class PlayerWorldSelector {
         }
       }
     });
-    _packetListenerBindings.bindHandler(OTHER_PLAYER_WORLD_SELECT,
-        (ConnectionWrapper connection, List<dynamic> data) {
-      String playerName = data[0];
-      int selectedIndex = data[1];
+    _packetListenerBindings.bindHandler(StateUpdate_Update.otherPlayerWorldSelect,
+        (ConnectionWrapper connection, StateUpdate update) {
+      String playerName = update.otherPlayerWorldSelect.name;
+      int selectedIndex = update.otherPlayerWorldSelect.worldSelectedIndex;
       // Clear up existing selection.
       for (List existingSelection in _otherPlayersSelections) {
         existingSelection.remove(playerName);
@@ -190,9 +191,14 @@ class PlayerWorldSelector {
     if (_nextSendToNetwork < 0) {
       _nextSendToNetwork = UPDATE_SELECTION_TO_NETWORK_TIME;
       if (playerSelected()) {
-        _network.peer.sendDataWithKeyFramesToAll({
-          OTHER_PLAYER_WORLD_SELECT: [_localStorage['playerName'], _selectedMap]
-        });
+        OtherPlayerWorldSelect selected = OtherPlayerWorldSelect()
+          ..name = _localStorage['playerName']
+          ..worldSelectedIndex = _selectedMap;
+        _network.peer.sendDataWithKeyFramesToAll(
+            GameStateUpdates()
+                ..stateUpdate.add(StateUpdate()..otherPlayerWorldSelect =
+                    selected)
+        );
       }
     }
   }

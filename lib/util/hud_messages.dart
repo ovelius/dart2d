@@ -1,6 +1,7 @@
 library hud;
 
 import 'dart:math';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -28,10 +29,8 @@ class HudMessages {
       KeyState localKeyState,
       PacketListenerBindings packetListenerBindings) {
    this._localKeyState = localKeyState;
-   packetListenerBindings.bindHandler(MESSAGE_KEY, (c, List data) {
-     for (String message in data) {
-       display(message);
-     }
+   packetListenerBindings.bindHandler(StateUpdate_Update.userMessage, (c, StateUpdate data) {
+      display(data.userMessage);
    });
   }
 

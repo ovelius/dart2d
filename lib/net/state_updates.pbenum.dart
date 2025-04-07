@@ -17,11 +17,13 @@ class CommanderGameReply_ChallengeReply extends $pb.ProtobufEnum {
   static const CommanderGameReply_ChallengeReply UNSET = CommanderGameReply_ChallengeReply._(0, _omitEnumNames ? '' : 'UNSET');
   static const CommanderGameReply_ChallengeReply ACCEPT = CommanderGameReply_ChallengeReply._(1, _omitEnumNames ? '' : 'ACCEPT');
   static const CommanderGameReply_ChallengeReply REJECT_FULL = CommanderGameReply_ChallengeReply._(2, _omitEnumNames ? '' : 'REJECT_FULL');
+  static const CommanderGameReply_ChallengeReply REJECT_ENDED = CommanderGameReply_ChallengeReply._(3, _omitEnumNames ? '' : 'REJECT_ENDED');
 
   static const $core.List<CommanderGameReply_ChallengeReply> values = <CommanderGameReply_ChallengeReply> [
     UNSET,
     ACCEPT,
     REJECT_FULL,
+    REJECT_ENDED,
   ];
 
   static final $core.Map<$core.int, CommanderGameReply_ChallengeReply> _byValue = $pb.ProtobufEnum.initByValue(values);

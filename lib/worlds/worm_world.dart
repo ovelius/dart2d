@@ -178,7 +178,7 @@ class WormWorld extends World {
   void connectTo(var id, [String? name = null, bool startGame = true]) {
     hudMessages.display("Connecting to ${id}");
     _network.peer.connectTo(id);
-    _network.gameState.actingCommanderId = null;
+    _network.gameState.gameStateProto.actingCommanderId = "";
     if (startGame) {
       _network.findActiveGameConnection();
       ConnectionWrapper? serverConnection = _network.getServerConnection();
@@ -243,13 +243,14 @@ class WormWorld extends World {
     int frames = advanceFrames(duration);
 
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
-      List particles = [];
+      List<StateUpdate> particles = [];
      if (sprite is Particles && sprite.sendToNetwork) {
-       particles.add(sprite.toNetworkUpdate());
+       particles.add(StateUpdate()..particleEffects = sprite.toNetworkUpdate());
      }
      if (particles.isNotEmpty) {
        // TODO: Make part of main network loop instead.
-       _network.peer.sendDataWithKeyFramesToAll({WORLD_PARTICLE: particles});
+       _network.peer.sendDataWithKeyFramesToAll(GameStateUpdates()
+           ..stateUpdate.addAll(particles));
      }
     }
 
@@ -362,8 +363,8 @@ class WormWorld extends World {
   void checkWinner(PlayerInfoProto info) {
     int max = _configParams.getInt(ConfigParam.MAX_FRAGS);
     if (info.score >= max) {
-      _network.getGameState().winnerPlayerId = info.connectionId;
-      for (PlayerInfo info in _network.getGameState().playerInfoList()) {
+      _network.getGameState().gameStateProto.winnerPlayerId = info.connectionId;
+      for (PlayerInfoProto info in _network.getGameState().playerInfoList()) {
         info.inGame = false;
       }
       _gaReporter.reportEvent("game_over");
@@ -409,11 +410,11 @@ class WormWorld extends World {
 
   void createLocalClient(int spriteId,  Vec2 position) {
     spriteIndex.spriteNetworkId = spriteId;
-    PlayerInfo? info = _network.getGameState().playerInfoByConnectionId(network().peer.id!);
+    PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(network().peer.id!);
     if (info == null) {
       throw "Self gamestate data is missing!";
     }
-    info.updateWithLocalKeyState(localKeyState);
+    network().gameState.updateWithLocalKeyState(network().peer.id!, localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         position,
@@ -427,8 +428,11 @@ class WormWorld extends World {
       throw StateError("PlayerSprite not selected!");
     }
     int id = _network.gameState.getNextUsablePlayerSpriteId(this);
-    PlayerInfo info = new PlayerInfo(name, _network.peer.id!, id);
-    info.updateWithLocalKeyState(localKeyState);
+    PlayerInfoProto info = new PlayerInfoProto()
+      ..name = name
+      ..connectionId = _network.peer.id!
+      ..spriteId = id;
+    network().gameState.updateWithLocalKeyState(info.connectionId, localKeyState);
     playerSprite = new LocalPlayerSprite(
         this, _imageIndex, _mobileControls, info,
         byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE),
@@ -454,8 +458,8 @@ class WormWorld extends World {
     playerSprite.size.y *= ratio;
   }
   
-  void addParticlesFromNetworkData(List<int> data) {
-    addSprite(new Particles.fromNetworkUpdate(data, this));
+  void addParticlesFromNetworkData(StateUpdate data) {
+    addSprite(new Particles.fromNetworkUpdate(data.particleEffects, this));
   }
   
   void explosionAt({
@@ -486,8 +490,9 @@ class WormWorld extends World {
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
     if (!fromNetwork) {
-      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(location, velocity == null ? Vec2.ZERO : velocity, radius, damage)};
-      _network.peer.sendDataWithKeyFramesToAll(data);
+      _network.peer.sendSingleStateUpdate(StateUpdate()
+        ..byteWorldDestruction = destructionAsNetworkUpdate(
+            location, velocity == null ? Vec2.ZERO : velocity, radius, damage));
     }
   }
 
@@ -507,8 +512,7 @@ class WormWorld extends World {
   void fillRectAt(Vec2 pos, Vec2 size, String colorString,  [bool fromNetwork = false]) {
     byteWorld.fillRectAt(pos, size, colorString);
     if (!fromNetwork) {
-      Map data = {WORLD_DRAW: drawAsNetworkUpdate(pos, size, colorString)};
-      _network.peer.sendDataWithKeyFramesToAll(data);
+      _network.peer.sendSingleStateUpdate(StateUpdate()..byteWorldDraw = drawAsNetworkUpdate(pos, size, colorString));
     }
   }
 
@@ -540,9 +544,10 @@ class WormWorld extends World {
           sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer, mod);
     }
     if (!fromNetwork) {
-      Map data = {WORLD_DESTRUCTION: destructionAsNetworkUpdate(sprite.centerPoint(), velocity, radius, damage)};
       // TODO: Buffer here instead ?
-      _network.peer.sendDataWithKeyFramesToAll(data);
+      _network.peer.sendSingleStateUpdate(StateUpdate()..
+          byteWorldDestruction = destructionAsNetworkUpdate(
+              sprite.centerPoint(), velocity, radius, damage));
     }
   }
 
@@ -557,7 +562,7 @@ class WormWorld extends World {
    * We also ensure the sprites in the world have consistent owners.
    */
   void connectToAllPeersInGameState() {
-    for (PlayerInfo info in _network.gameState.playerInfoList()) {
+    for (PlayerInfoProto info in _network.gameState.playerInfoList()) {
       Sprite? sprite = spriteIndex[info.spriteId];
       if (sprite is LocalPlayerSprite) {
         // Make sure the ownerId is consistent with the connectionId.
@@ -577,45 +582,38 @@ class WormWorld extends World {
     }
   }
 
-  clearFromNetworkUpdate(List<int> data) {
-    Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
-    double radius = data[2] / DOUBLE_INT_CONVERSION;
-    int damage = data[3];
-    Vec2? velocity = null;
-    if (data.length > 4) {
-      velocity = new Vec2(data[4] / DOUBLE_INT_CONVERSION, data[5] / DOUBLE_INT_CONVERSION);
-    }
+  clearFromNetworkUpdate(ByteWorldDestruction data) {
+    Vec2 pos =  Vec2.fromProto(data.position);
+    double radius = data.radius;
+    int damage = data.damage;
+    Vec2 velocity = Vec2.fromProto(data.velocity);
     explosionAt(
-        location:pos, velocity:velocity!,
-        addParticles:velocity != null, damage:damage,
+        location:pos, velocity:velocity,
+        addParticles:data.hasVelocity(), damage:damage,
         radius:radius, fromNetwork:true);
   }
-  
-  List<int> destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
-    List<int> base = [
-      (pos.x * DOUBLE_INT_CONVERSION).toInt(), 
-      (pos.y * DOUBLE_INT_CONVERSION).toInt(),      
-      (radius * DOUBLE_INT_CONVERSION).toInt(),
-      damage];
-   base.addAll([
-       (velocity.x * DOUBLE_INT_CONVERSION).toInt(), 
-       (velocity.y * DOUBLE_INT_CONVERSION).toInt()]);
-      return base;
+
+  ByteWorldDestruction destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
+    return ByteWorldDestruction()
+      ..position = pos.toProto()
+      ..velocity = velocity.toProto()
+      ..radius = radius
+      ..damage = damage;
   }
 
-  drawFromNetworkUpdate(List data) {
-    Vec2 pos = new Vec2(data[0] / DOUBLE_INT_CONVERSION, data[1] / DOUBLE_INT_CONVERSION);
-    Vec2 size = new Vec2(data[2] / DOUBLE_INT_CONVERSION, data[3] / DOUBLE_INT_CONVERSION);
-    String colorString = data[4];
+  drawFromNetworkUpdate(ByteWorldDraw data) {
+    Vec2 pos = Vec2.fromProto(data.position);
+    Vec2 size = Vec2.fromProto(data.size);
+    String colorString = data.color;
     fillRectAt(pos, size, colorString, true);
   }
 
-  List drawAsNetworkUpdate(Vec2 pos, Vec2 size, String colorString) {
-    return [(pos.x.toInt() * DOUBLE_INT_CONVERSION).toInt(),
-    (pos.y.toInt() * DOUBLE_INT_CONVERSION).toInt(),
-    (size.x.toInt() * DOUBLE_INT_CONVERSION).toInt(),
-    (size.y.toInt() * DOUBLE_INT_CONVERSION).toInt(),
-    colorString];
+  ByteWorldDraw drawAsNetworkUpdate(Vec2 pos, Vec2 size, String colorString) {
+    return
+      ByteWorldDraw()
+      ..position = pos.toProto()
+      ..size = size.toProto()
+      ..color = colorString;
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, LocalPlayerSprite? damageDoer, Mod mod) {
@@ -650,7 +648,7 @@ class WormWorld extends World {
 
   void initByteWorld([String map = 'world_town.png']) {
     if (map.isNotEmpty) {
-      network().getGameState().mapName = map;
+      network().getGameState().gameStateProto.mapName = map;
     }
     var worldImage = map.isNotEmpty
         ? _imageIndex.getImageByName(map)

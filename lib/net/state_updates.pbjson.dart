@@ -144,13 +144,17 @@ const ByteWorldDestruction$json = {
   '2': [
     {'1': 'position', '3': 1, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'position'},
     {'1': 'radius', '3': 2, '4': 1, '5': 2, '10': 'radius'},
+    {'1': 'damage', '3': 3, '4': 1, '5': 5, '10': 'damage'},
+    {'1': 'velocity', '3': 4, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'velocity'},
   ],
 };
 
 /// Descriptor for `ByteWorldDestruction`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List byteWorldDestructionDescriptor = $convert.base64Decode(
     'ChRCeXRlV29ybGREZXN0cnVjdGlvbhIzCghwb3NpdGlvbhgBIAEoCzIXLmRhcnQyZF9wcm90by'
-    '5WZWMyUHJvdG9SCHBvc2l0aW9uEhYKBnJhZGl1cxgCIAEoAlIGcmFkaXVz');
+    '5WZWMyUHJvdG9SCHBvc2l0aW9uEhYKBnJhZGl1cxgCIAEoAlIGcmFkaXVzEhYKBmRhbWFnZRgD'
+    'IAEoBVIGZGFtYWdlEjMKCHZlbG9jaXR5GAQgASgLMhcuZGFydDJkX3Byb3RvLlZlYzJQcm90b1'
+    'IIdmVsb2NpdHk=');
 
 @$core.Deprecated('Use byteWorldDrawDescriptor instead')
 const ByteWorldDraw$json = {
@@ -173,14 +177,14 @@ const OtherPlayerWorldSelect$json = {
   '1': 'OtherPlayerWorldSelect',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'world_selected', '3': 2, '4': 1, '5': 9, '10': 'worldSelected'},
+    {'1': 'world_selected_index', '3': 2, '4': 1, '5': 5, '10': 'worldSelectedIndex'},
   ],
 };
 
 /// Descriptor for `OtherPlayerWorldSelect`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List otherPlayerWorldSelectDescriptor = $convert.base64Decode(
-    'ChZPdGhlclBsYXllcldvcmxkU2VsZWN0EhIKBG5hbWUYASABKAlSBG5hbWUSJQoOd29ybGRfc2'
-    'VsZWN0ZWQYAiABKAlSDXdvcmxkU2VsZWN0ZWQ=');
+    'ChZPdGhlclBsYXllcldvcmxkU2VsZWN0EhIKBG5hbWUYASABKAlSBG5hbWUSMAoUd29ybGRfc2'
+    'VsZWN0ZWRfaW5kZXgYAiABKAVSEndvcmxkU2VsZWN0ZWRJbmRleA==');
 
 @$core.Deprecated('Use commanderGameReplyDescriptor instead')
 const CommanderGameReply$json = {
@@ -201,6 +205,7 @@ const CommanderGameReply_ChallengeReply$json = {
     {'1': 'UNSET', '2': 0},
     {'1': 'ACCEPT', '2': 1},
     {'1': 'REJECT_FULL', '2': 2},
+    {'1': 'REJECT_ENDED', '2': 3},
   ],
 };
 
@@ -211,8 +216,8 @@ final $typed_data.Uint8List commanderGameReplyDescriptor = $convert.base64Decode
     'OwoKZ2FtZV9zdGF0ZRgCIAEoCzIcLmRhcnQyZF9wcm90by5HYW1lU3RhdGVQcm90b1IJZ2FtZV'
     'N0YXRlEiwKEnNwcml0ZV9pbmRleF9zdGFydBgDIAEoBVIQc3ByaXRlSW5kZXhTdGFydBJEChFz'
     'dGFydGluZ19wb3NpdGlvbhgEIAEoCzIXLmRhcnQyZF9wcm90by5WZWMyUHJvdG9SEHN0YXJ0aW'
-    '5nUG9zaXRpb24iOAoOQ2hhbGxlbmdlUmVwbHkSCQoFVU5TRVQQABIKCgZBQ0NFUFQQARIPCgtS'
-    'RUpFQ1RfRlVMTBAC');
+    '5nUG9zaXRpb24iSgoOQ2hhbGxlbmdlUmVwbHkSCQoFVU5TRVQQABIKCgZBQ0NFUFQQARIPCgtS'
+    'RUpFQ1RfRlVMTBACEhAKDFJFSkVDVF9FTkRFRBAD');
 
 @$core.Deprecated('Use vec2ProtoDescriptor instead')
 const Vec2Proto$json = {
@@ -399,6 +404,7 @@ const ExtraSpriteData$json = {
     {'1': 'extra_int', '3': 1, '4': 3, '5': 5, '10': 'extraInt'},
     {'1': 'extra_float', '3': 2, '4': 3, '5': 2, '10': 'extraFloat'},
     {'1': 'extra_string', '3': 3, '4': 3, '5': 9, '10': 'extraString'},
+    {'1': 'extra_bool', '3': 4, '4': 3, '5': 8, '10': 'extraBool'},
   ],
 };
 
@@ -406,5 +412,5 @@ const ExtraSpriteData$json = {
 final $typed_data.Uint8List extraSpriteDataDescriptor = $convert.base64Decode(
     'Cg9FeHRyYVNwcml0ZURhdGESGwoJZXh0cmFfaW50GAEgAygFUghleHRyYUludBIfCgtleHRyYV'
     '9mbG9hdBgCIAMoAlIKZXh0cmFGbG9hdBIhCgxleHRyYV9zdHJpbmcYAyADKAlSC2V4dHJhU3Ry'
-    'aW5n');
+    'aW5nEh0KCmV4dHJhX2Jvb2wYBCADKAhSCWV4dHJhQm9vbA==');
 
