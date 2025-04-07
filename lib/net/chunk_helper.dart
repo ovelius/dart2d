@@ -1,5 +1,7 @@
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
+import 'dart:convert';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -41,19 +43,19 @@ class ChunkHelper {
   Map<String, String> _byteWorldDataUrlCache = new Map();
 
   ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings) {
-    _packetListenerBindings.bindHandler(IMAGE_DATA_REQUEST,
-        (ConnectionWrapper connection, Map dataMap) {
-      replyWithImageData(dataMap, connection);
+    _packetListenerBindings.bindHandler(StateUpdate_Update.resourceRequest,
+        (ConnectionWrapper connection, StateUpdate resourceRequest) {
+      replyWithImageData(resourceRequest.resourceRequest, connection);
     });
-    _packetListenerBindings.bindHandler(IMAGE_DATA_RESPONSE,
-        (ConnectionWrapper connection, Map dataMap) {
-      parseImageChunkResponse(dataMap, connection);
+    _packetListenerBindings.bindHandler(StateUpdate_Update.resourceResponse,
+        (ConnectionWrapper connection, StateUpdate data) {
+      parseImageChunkResponse(data.resourceResponse, connection);
       // Request new data right away.
       requestNetworkData(
           // No time has passed.
           {connection.id: connection}, 0.0);
     });
-    _packetListenerBindings.bindHandler(CLIENT_PLAYER_ENTER,
+    _packetListenerBindings.bindHandler(StateUpdate_Update.clientEnter,
         (var connection, dynamic unused) {
       _byteWorldDataUrlCache.remove(connection.id);
     });
@@ -65,31 +67,24 @@ class ChunkHelper {
   /**
    * Send a reply with the requested image data.
    */
-  void replyWithImageData(Map imageDataRequest, var connection) {
-    int index = imageDataRequest['index'];
-    String data = _getData(index, connection);
-    int start =
-        imageDataRequest.containsKey("start") ? imageDataRequest["start"] : 0;
-    int end = imageDataRequest.containsKey("end")
-        ? imageDataRequest["end"]
-        : start + _chunkSize;
+  void replyWithImageData(ResourceRequest request, ConnectionWrapper connection) {
+    String data = _getData(request.resourceIndex, connection);
+    int end = request.hasEndByte() ? request.endByte
+        : request.startByte + _chunkSize;
     end = min(end, data.length);
 
-    if (start >= end) {
+    if (request.startByte >= end) {
       throw new ArgumentError(
-          "Got request ${imageDataRequest} for data of ${data.length} calculated end $end");
+          "Got request ${request.toDebugString()} for data of ${data.length} calculated end $end");
     }
-    String chunk = data.substring(start, end);
-    connection.sendData(
-      Map<String, dynamic>.from(
-        {
-      IMAGE_DATA_RESPONSE: {
-        'index': index,
-        'data': chunk,
-        'start': start,
-        'size': data.length
-      }
-    }));
+    String chunk = data.substring(request.startByte, end);
+    ResourceResponse response = ResourceResponse()
+      ..data = utf8.encode(chunk)
+      ..startByte = request.startByte
+      ..resourceIndex = request.resourceIndex
+      ..size = data.length;
+
+    connection.sendSingleUpdate(StateUpdate()..resourceResponse = response);
   }
 
   String _getData(int index, var connection) {
@@ -126,13 +121,13 @@ class ChunkHelper {
   /**
    * Parse response with imageData.
    */
-  void parseImageChunkResponse(Map imageDataResponse, var connection) {
-    int index = imageDataResponse['index'];
-    String data = imageDataResponse['data'];
+  void parseImageChunkResponse(ResourceResponse response, var connection) {
+    int index = response.resourceIndex;
+    String data = utf8.decode(response.data);
     counter.collect(data.length);
-    int start = imageDataResponse['start'];
+    int start = response.startByte;
     // Final expected siimageBufferze.
-    int size = imageDataResponse['size'];
+    int size = response.size;
     if (!_imageSizes.containsKey(index)) {
       _imageSizes[index] = size;
     }
@@ -227,16 +222,15 @@ class ChunkHelper {
     }
   }
 
-  Map buildImageChunkRequest(int index) {
+  ResourceRequest buildImageChunkRequest(int index) {
     if (!_imageBuffer.containsKey(index)) {
       _imageBuffer[index] = "";
     }
     String currentData = _imageBuffer[index]!;
-    return {
-      'index': index,
-      'start': currentData.length,
-      'end': currentData.length + _chunkSize
-    };
+    return ResourceRequest()
+        ..resourceIndex = index
+        ..startByte = currentData.length
+        ..endByte = currentData.length + _chunkSize;
   }
 
   /**
@@ -247,10 +241,9 @@ class ChunkHelper {
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
-      var connection = connections[r.nextInt(connections.length)];
-      connection.sendData(
-        Map<String, dynamic>.from(
-          {IMAGE_DATA_REQUEST: buildImageChunkRequest(index)}));
+      ConnectionWrapper connection = connections[r.nextInt(connections.length)];
+      connection.sendSingleUpdate(StateUpdate()
+        ..resourceRequest =  buildImageChunkRequest(index));
       Duration connectionLatency = connection.expectedLatency();
       int millis = min(IMAGE_RETRY_DURATION_MILLIS,
           connectionLatency.inMilliseconds * 2);

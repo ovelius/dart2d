@@ -1,4 +1,6 @@
+import 'package:fixnum/fixnum.dart';
 import 'dart:typed_data';
+import 'package:clock/clock.dart';
 
 import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/state_updates.dart';
@@ -13,8 +15,8 @@ import 'helpers.dart';
 class ConnectionWrapper {
   static bool THROW_SEND_ERRORS_FOR_TEST = false;
   final Logger log = new Logger('Connection');
-  // How many keyframes the connection can be behind before it is dropped.
-  static const int ALLOWED_KEYFRAMES_BEHIND = 5 ~/ KEY_FRAME_DEFAULT;
+  // Close connection due to inactivity.
+  static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
 
   Network _network;
   ConfigParams _configParams;
@@ -29,27 +31,34 @@ class ConnectionWrapper {
   // True if connection was successfully opened.
   bool _opened = false;
   bool closed = false;
+
   bool _initialPingSent = false;
   bool _initialPongReceived = false;
+
   bool _handshakeReceived = false;
-  // The last keyframe we successfully received from our peer.
-  int lastRemoteKeyFrame = 0;
-  DateTime? _lastRemoteKeyFrameTime = null;
-  // The last keyframe the peer said it received from us.
-  int lastDeliveredKeyFrame = 0;
-  DateTime? _keyFrameIncrementLatencyTime = null;
+
+  // Keeping track of remote side frames, latest frame we've seen.
+  int lastSeenRemoteFrame = 0;
+  DateTime _lastDataReceiveTime = DateTime.now();
+  int? _lastSeenKeyFrame = null;
+
+  // The last frame the other side said we sent.
+  int lastSentFrame = 0;
+  DateTime lastSentFrameTime = DateTime.now();
+
+  int lastDeliveredFrame = 0;
+  // Time from sending to remote saying frame increased.
+  Duration _frameIncrementLatencyTime = Duration.zero;
 
   late ConnectionStats _connectionStats;
   late ReliableHelper _reliableHelper;
   ConnectionFrameHandler _connectionFrameHandler;
-
-  // Buffered sprite removals.
-  List<int> _removals = [];
+  Clock _clock;
 
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
-      this._connectionFrameHandler) {
-    _connectionStats = new ConnectionStats();
+      this._connectionFrameHandler, this._clock) {
+    _connectionStats = new ConnectionStats(this._clock);
     _reliableHelper = new ReliableHelper(_packetListenerBindings);
     // Start the connection timer.
     if (_configParams.getInt(ConfigParam.INGRESS_BANDWIDTH) > 0) {
@@ -67,16 +76,11 @@ class ConnectionWrapper {
 
   int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();
 
-  bool hasReceivedFirstKeyFrame(GameStateUpdates data) {
-    StateUpdate? keyFrameData = data.getStateUpdate(StateUpdate_Update.keyFrame);
-    if (keyFrameData != null) {
-      if (keyFrameData.keyFrame > lastRemoteKeyFrame) {
-        lastRemoteKeyFrame = keyFrameData.keyFrame;
-        _lastRemoteKeyFrameTime = new DateTime.now();
-      }
-    }
+  int recipientFramesBehind() => (lastSentFrame - lastDeliveredFrame);
+
+  bool hasReceivedFirstKeyFrame() {
     // The server does not need to wait for keyframes.
-    return lastRemoteKeyFrame > 0 || _network.isCommander();
+    return _lastSeenKeyFrame != null || _network.isCommander();
   }
 
   void close(String reason) {
@@ -95,35 +99,34 @@ class ConnectionWrapper {
     _connectionStats.open();
   }
 
-  void connectToGame(String playerName, int playerSpriteId) {
+  void connectToGame(String playerName, int playerImageId) {
     // Send out local data hello. We don't do this as part of the intial handshake but over
     // the actual connection.
-    StateUpdate clientConnect = StateUpdate();
-    ClientPlayerSpec spec = ClientPlayerSpec();
-    Map playerData = {
-      CLIENT_PLAYER_SPEC: [playerName, playerSpriteId],
-      KEY_FRAME_KEY: lastRemoteKeyFrame,
-      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
-    };
-    sendData(playerData);
+    ClientPlayerSpec spec = ClientPlayerSpec()
+     ..name = playerName
+     ..playerImageId = playerImageId;
+    StateUpdate update = StateUpdate()
+      ..clientPlayerSpec = spec;
+
+    sendSingleUpdate(update);
   }
 
   /**
    * Send command to enter game.
    */
   void sendClientEnter() {
-    sendData({
-      CLIENT_PLAYER_ENTER: new DateTime.now().millisecondsSinceEpoch,
-      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
-    });
+    StateUpdate update = StateUpdate();
+    update.clientEnter = true;
+    sendSingleUpdate(update);
   }
 
   /**
     * Send command to enter game.
     */
   void sendCommandTransfer() {
-    sendData(
-        {TRANSFER_COMMAND: 'y', IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame()});
+    StateUpdate update = StateUpdate();
+    update.transferCommand = true;
+    sendSingleUpdate(update);
   }
 
   /**
@@ -134,10 +137,9 @@ class ConnectionWrapper {
       _initialPingSent = true;
       _initialPongReceived = false;
     }
-    sendData({
-      PING: new DateTime.now().millisecondsSinceEpoch,
-      IS_KEY_FRAME_KEY: _connectionFrameHandler.currentKeyFrame(),
-    });
+    StateUpdate update = StateUpdate();
+    update.ping = Int64(DateTime.now().millisecondsSinceEpoch);
+    sendSingleUpdate(update);
   }
 
   bool lastReceiveActivityOlderThan(int millis) {
@@ -160,14 +162,12 @@ class ConnectionWrapper {
   }
 
   /**
-   * Client to client connections to not need to shake hands :)
-   * Server knows about both clients anyway.
-   * Mark connection as having recieved our keyframes up to this point.
-   * This is required since CLIENT_TO_CLIENT connections do not do a handshake.
+   * Client to Client connection don't need to wait for handshakes or
+   * initial keyframes.
    */
   void markAsClientToClientConnection() {
     setHandshakeReceived();
-    lastDeliveredKeyFrame = _connectionFrameHandler.currentKeyFrame();
+    _lastSeenKeyFrame = 0;
   }
 
   void error(error) {
@@ -177,18 +177,19 @@ class ConnectionWrapper {
 
   Random r = new Random();
 
-  void receiveData(data) {
-    if (_ingressLimit?.removeTokens(data.length) == true) {
+  void receiveData(rawData) {
+    _lastDataReceiveTime = DateTime.now();
+    if (_ingressLimit?.removeTokens(rawData.length) == true) {
       log.fine("Dropping due to ingress bandwidth limitation");
       return;
     }
-      DateTime now = new DateTime.now();
+    DateTime now = new DateTime.now();
     _connectionStats.lastReceiveTime = now;
-    _connectionStats.rxBytes += data.length as int;
-    Map<String, dynamic> dataMap = jsonDecode(data);
-    assert(dataMap.containsKey(KEY_FRAME_KEY));
+    _connectionStats.rxBytes += rawData.length as int;
+    GameStateUpdates dataMap = GameStateUpdates.fromBuffer(rawData);
+    assert(dataMap.hasLastFrameSeen());
     if (Logger.root.isLoggable(Level.FINE)) {
-      log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
+      log.fine("${id} -> ${_network.getPeer().getId()} data ${dataMap.toDebugString()}");
     }
     // Tickle connection with some data in case it's about to go cold.
     if (_connectionStats.keepAlive()) {
@@ -196,54 +197,61 @@ class ConnectionWrapper {
     }
 
     bool oldData = false;
-    if (dataMap[KEY_FRAME_KEY] > lastDeliveredKeyFrame) {
-      lastDeliveredKeyFrame = dataMap[KEY_FRAME_KEY];
-    } else if (dataMap[KEY_FRAME_KEY] < lastDeliveredKeyFrame) {
+    if (dataMap.frame > lastSeenRemoteFrame) {
+      lastSeenRemoteFrame = dataMap.frame;
+    } else if (dataMap.frame < lastSeenRemoteFrame) {
+      // Basic check that we're not about to handle old data...
       oldData = true;
     }
 
-    // Fast return piNG messages.
-    if (dataMap.containsKey(PING)) {
-      Map data = {PONG: dataMap[PING]};
-      if (_network.isCommander()) {
-        data[GAME_STATE] = _network.gameState.toMap();
-      }
-      sendData(data);
-    }
-    if (dataMap.containsKey(PONG)) {
-      num latencyMillis = now.millisecondsSinceEpoch - dataMap[PONG];
-      sampleLatency(new Duration(milliseconds: latencyMillis.toInt()));
-      _initialPongReceived = true;
-    }
-    if (_keyFrameIncrementLatencyTime != null  && dataMap.containsKey(KEY_FRAME_DELAY)) {
+    if (dataMap.lastFrameSeen > lastDeliveredFrame) {
       // How long time passed since we sent the keyframe?
-      int sinceSendTime = now.millisecondsSinceEpoch - _keyFrameIncrementLatencyTime!.millisecondsSinceEpoch;
+      _frameIncrementLatencyTime = Duration(milliseconds: now.millisecondsSinceEpoch - lastSentFrameTime.millisecondsSinceEpoch);
       // How long time before the sender responded?
-      int waitMillis = dataMap[KEY_FRAME_DELAY];
-      sampleLatency(new Duration(milliseconds: (sinceSendTime - waitMillis)));
-      _keyFrameIncrementLatencyTime = null;
+      sampleLatency(_frameIncrementLatencyTime);
+    }
+
+    if (dataMap.hasKeyFrame()) {
+      _lastSeenKeyFrame = dataMap.keyFrame;
     }
 
     // New path.
-    for (String key in dataMap.keys) {
-      if (SPECIAL_KEYS.contains(key)) {
-        if (_packetListenerBindings.hasHandler(key)) {
-          for (dynamic handler in _packetListenerBindings.handlerFor(key)) {
-            try {
-              handler(this, dataMap[key]);
-            } catch (e) {
-              log.severe("Error handling data for key ${key} error: $e");
-            }
+    for (StateUpdate update in dataMap.stateUpdate) {
+      StateUpdate_Update updateType = update.whichUpdate();
+      switch (updateType) {
+        case StateUpdate_Update.ping:
+          StateUpdate pongUpdate = StateUpdate()
+            ..pong = update.ping;
+          GameStateUpdates updates = GameStateUpdates()
+            ..stateUpdate.add(pongUpdate);
+          if (_network.isCommander()) {
+            updates.stateUpdate.add(StateUpdate()
+              ..gameState = _network.gameState.gameStateProto);
           }
-          // TODO remove special cases!
-        } else if (!PacketListenerBindings.IgnoreListeners.contains(key)) {
-          throw new ArgumentError("No bound network listener for ${key}");
+          sendData(updates);
+          continue;
+        case StateUpdate_Update.pong:
+          int latencyMillis = now.millisecondsSinceEpoch - update.pong.toInt();
+          sampleLatency(new Duration(milliseconds: latencyMillis.toInt()));
+            _initialPongReceived = true;
+          continue;
+        default:
+      }
+      if (_packetListenerBindings.hasHandler(updateType)) {
+        for (dynamic handler in _packetListenerBindings.handlerFor(updateType)) {
+          try {
+            handler(this, update);
+          } catch (e) {
+            log.severe("Error handling data ${update.toDebugString()}, error: $e");
+          }
         }
+      } else {
+        throw new ArgumentError("No bound network listener for ${update.toDebugString()}");
       }
     }
 
     // Wait for a first keyframe from this connection.
-    if (!hasReceivedFirstKeyFrame(dataMap)) {
+    if (!hasReceivedFirstKeyFrame()) {
       return;
     }
     // Don't continue handling data if handshake is not finished.
@@ -266,9 +274,9 @@ class ConnectionWrapper {
   }
 
   void checkIfShouldClose(int keyFrame) {
-    if (keyFramesBehind() > ALLOWED_KEYFRAMES_BEHIND) {
+    if (lastDataReceived() > LAST_RECEIVE_DATA_CLOSE_DURATION) {
       log.warning(
-          "Connection to $id too many keyframes behind current: ${keyFrame} connection:${lastDeliveredKeyFrame}, dropping");
+          "Connection to $id closed due to inactivity, last active ${lastDataReceived()} dropping");
       close("Not responding");
       return;
     }
@@ -277,34 +285,28 @@ class ConnectionWrapper {
   /**
    * Advance connection time. Maybe send data. Maybe send keyframe.
    */
-  void tick(double duration, Map frameData, Map keyFrameData, List<int> removals) {
-    Map data = frameData;
-    _removals.addAll(removals);
+  void tick(double duration, List<int> removals) {
     if (!_connectionFrameHandler.tick(duration)) {
       // Don't send any data this tick.
       return;
     }
+    GameStateUpdates data = GameStateUpdates()
+      ..frame = _connectionFrameHandler.currentFrame();
     if (_connectionFrameHandler.keyFrame()) {
-      // Send keyframe data.
-      data = keyFrameData;
-      if (data.isEmpty) {
-        _network.stateBundle(true, data, _removals);
-      }
-      data[IS_KEY_FRAME_KEY] = _connectionFrameHandler.currentKeyFrame();
+      _network.stateBundle(true, data, removals);
+      data.keyFrame = _connectionFrameHandler.currentKeyFrame();
       // Maybe adjust connection framerate.
-      _connectionFrameHandler.reportConnectionMetrics(keyFramesBehind(),
-          _connectionStats.latency.inMilliseconds);
-    } else if(data.isEmpty) {
+      _connectionFrameHandler.reportFramesBehind(recipientFramesBehind(),
+          _frameIncrementLatencyTime.inMilliseconds);
+    } else {
       // Send regular data.
-      _network.stateBundle(false, data, _removals);
+      _network.stateBundle(false, data, removals);
     }
 
     if (!_handshakeReceived && !_connectionFrameHandler.keyFrame()) {
       // Don't send delta updates if not a valid game connection.
       return;
     }
-    // Reset removals buffer.
-    _removals = [];
     sendData(data);
   }
 
@@ -329,28 +331,14 @@ class ConnectionWrapper {
 
     DateTime now = new DateTime.now();
     _connectionStats.lastSendTime = now;
-    _reliableHelper.updateWithDataReceipts(data);
+    _reliableHelper.storeAwayReliableData(data);
 
-    if (_lastRemoteKeyFrameTime != null) {
-      int millis = now.millisecondsSinceEpoch - _lastRemoteKeyFrameTime!.millisecondsSinceEpoch;
-      data.keyFrameDelayMs = millis;
-      _lastRemoteKeyFrameTime = null;
-    }
-    StateUpdate? keyFrameUpdate = data.getStateUpdate(StateUpdate_Update.keyFrame);
-    if (keyFrameUpdate != null) {
-      // The keyframe is incremented.
-      if (keyFrameUpdate.keyFrame > lastDeliveredKeyFrame) {
-        if (_keyFrameIncrementLatencyTime == null) {
-          _keyFrameIncrementLatencyTime = new DateTime.now();
-        }
-      }
-    }
     assert(_dataChannel != null);
-    data.lastKeyFrame = lastRemoteKeyFrame;
-    if (keyFrameUpdate != null) {
+    data.lastFrameSeen = lastSeenRemoteFrame;
+    if (data.hasKeyFrame()) {
       // Check how many keyframes the remote peer is currenlty behind.
       // We might decide to close the connection because of this.
-      checkIfShouldClose(keyFrameUpdate.keyFrame);
+      checkIfShouldClose(data.keyFrame);
       // Make a defensive copy in case of keyframe.
       // Then add previous data to it.
       _reliableHelper.alsoSendWithStoredData(data);
@@ -393,8 +381,10 @@ class ConnectionWrapper {
     _rtcConnection = rtcConnection;
   }
 
-  int keyFramesBehind() {
-    return _connectionFrameHandler.currentKeyFrame() - lastDeliveredKeyFrame;
+  Duration lastDataReceived() {
+    return Duration(milliseconds: DateTime
+        .now()
+        .millisecondsSinceEpoch - _lastDataReceiveTime.millisecondsSinceEpoch);
   }
 
   bool isActiveConnection() {
@@ -438,4 +428,6 @@ class ConnectionWrapper {
   toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_connectionStats.latency}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
+
+  String frameStats() => "Sent/received: ${lastSentFrame}/${lastDeliveredFrame} Received: ${lastSeenRemoteFrame}";
 }

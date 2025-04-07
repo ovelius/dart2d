@@ -17,27 +17,27 @@ import 'dart:typed_data' as $typed_data;
 const GameStateUpdates$json = {
   '1': 'GameStateUpdates',
   '2': [
-    {'1': 'last_key_frame', '3': 1, '4': 1, '5': 5, '10': 'lastKeyFrame'},
-    {'1': 'state_update', '3': 2, '4': 3, '5': 11, '6': '.dart2d_proto.StateUpdate', '10': 'stateUpdate'},
-    {'1': 'key_frame_delay_ms', '3': 3, '4': 1, '5': 5, '10': 'keyFrameDelayMs'},
-    {'1': 'sprite_updates', '3': 4, '4': 3, '5': 11, '6': '.dart2d_proto.SpriteUpdate', '10': 'spriteUpdates'},
+    {'1': 'frame', '3': 1, '4': 1, '5': 5, '10': 'frame'},
+    {'1': 'last_frame_seen', '3': 2, '4': 1, '5': 5, '10': 'lastFrameSeen'},
+    {'1': 'key_frame', '3': 3, '4': 1, '5': 5, '10': 'keyFrame'},
+    {'1': 'state_update', '3': 4, '4': 3, '5': 11, '6': '.dart2d_proto.StateUpdate', '10': 'stateUpdate'},
+    {'1': 'sprite_updates', '3': 5, '4': 3, '5': 11, '6': '.dart2d_proto.SpriteUpdate', '10': 'spriteUpdates'},
   ],
 };
 
 /// Descriptor for `GameStateUpdates`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List gameStateUpdatesDescriptor = $convert.base64Decode(
-    'ChBHYW1lU3RhdGVVcGRhdGVzEiQKDmxhc3Rfa2V5X2ZyYW1lGAEgASgFUgxsYXN0S2V5RnJhbW'
-    'USPAoMc3RhdGVfdXBkYXRlGAIgAygLMhkuZGFydDJkX3Byb3RvLlN0YXRlVXBkYXRlUgtzdGF0'
-    'ZVVwZGF0ZRIrChJrZXlfZnJhbWVfZGVsYXlfbXMYAyABKAVSD2tleUZyYW1lRGVsYXlNcxJBCg'
-    '5zcHJpdGVfdXBkYXRlcxgEIAMoCzIaLmRhcnQyZF9wcm90by5TcHJpdGVVcGRhdGVSDXNwcml0'
-    'ZVVwZGF0ZXM=');
+    'ChBHYW1lU3RhdGVVcGRhdGVzEhQKBWZyYW1lGAEgASgFUgVmcmFtZRImCg9sYXN0X2ZyYW1lX3'
+    'NlZW4YAiABKAVSDWxhc3RGcmFtZVNlZW4SGwoJa2V5X2ZyYW1lGAMgASgFUghrZXlGcmFtZRI8'
+    'CgxzdGF0ZV91cGRhdGUYBCADKAsyGS5kYXJ0MmRfcHJvdG8uU3RhdGVVcGRhdGVSC3N0YXRlVX'
+    'BkYXRlEkEKDnNwcml0ZV91cGRhdGVzGAUgAygLMhouZGFydDJkX3Byb3RvLlNwcml0ZVVwZGF0'
+    'ZVINc3ByaXRlVXBkYXRlcw==');
 
 @$core.Deprecated('Use stateUpdateDescriptor instead')
 const StateUpdate$json = {
   '1': 'StateUpdate',
   '2': [
     {'1': 'data_receipt', '3': 1, '4': 1, '5': 5, '10': 'dataReceipt'},
-    {'1': 'key_frame', '3': 2, '4': 1, '5': 5, '9': 0, '10': 'keyFrame'},
     {'1': 'user_message', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'userMessage'},
     {'1': 'sprite_removal', '3': 4, '4': 1, '5': 5, '9': 0, '10': 'spriteRemoval'},
     {'1': 'game_state', '3': 5, '4': 1, '5': 11, '6': '.dart2d_proto.GameStateProto', '9': 0, '10': 'gameState'},
@@ -46,8 +46,8 @@ const StateUpdate$json = {
     {'1': 'commander_game_reply', '3': 8, '4': 1, '5': 11, '6': '.dart2d_proto.CommanderGameReply', '9': 0, '10': 'commanderGameReply'},
     {'1': 'client_enter', '3': 9, '4': 1, '5': 8, '9': 0, '10': 'clientEnter'},
     {'1': 'acked_data_receipts', '3': 10, '4': 1, '5': 5, '9': 0, '10': 'ackedDataReceipts'},
-    {'1': 'ping', '3': 11, '4': 1, '5': 8, '9': 0, '10': 'ping'},
-    {'1': 'pong', '3': 12, '4': 1, '5': 8, '9': 0, '10': 'pong'},
+    {'1': 'ping', '3': 11, '4': 1, '5': 3, '9': 0, '10': 'ping'},
+    {'1': 'pong', '3': 12, '4': 1, '5': 3, '9': 0, '10': 'pong'},
     {'1': 'other_player_world_select', '3': 13, '4': 1, '5': 11, '6': '.dart2d_proto.OtherPlayerWorldSelect', '9': 0, '10': 'otherPlayerWorldSelect'},
     {'1': 'transfer_command', '3': 14, '4': 1, '5': 8, '9': 0, '10': 'transferCommand'},
     {'1': 'byte_world_destruction', '3': 15, '4': 1, '5': 11, '6': '.dart2d_proto.ByteWorldDestruction', '9': 0, '10': 'byteWorldDestruction'},
@@ -60,45 +60,48 @@ const StateUpdate$json = {
   '8': [
     {'1': 'update'},
   ],
+  '9': [
+    {'1': 2, '2': 3},
+  ],
 };
 
 /// Descriptor for `StateUpdate`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List stateUpdateDescriptor = $convert.base64Decode(
-    'CgtTdGF0ZVVwZGF0ZRIhCgxkYXRhX3JlY2VpcHQYASABKAVSC2RhdGFSZWNlaXB0Eh0KCWtleV'
-    '9mcmFtZRgCIAEoBUgAUghrZXlGcmFtZRIjCgx1c2VyX21lc3NhZ2UYAyABKAlIAFILdXNlck1l'
-    'c3NhZ2USJwoOc3ByaXRlX3JlbW92YWwYBCABKAVIAFINc3ByaXRlUmVtb3ZhbBI9CgpnYW1lX3'
-    'N0YXRlGAUgASgLMhwuZGFydDJkX3Byb3RvLkdhbWVTdGF0ZVByb3RvSABSCWdhbWVTdGF0ZRI6'
-    'CglrZXlfc3RhdGUYBiABKAsyGy5kYXJ0MmRfcHJvdG8uS2V5U3RhdGVQcm90b0gAUghrZXlTdG'
-    'F0ZRJOChJjbGllbnRfcGxheWVyX3NwZWMYByABKAsyHi5kYXJ0MmRfcHJvdG8uQ2xpZW50UGxh'
-    'eWVyU3BlY0gAUhBjbGllbnRQbGF5ZXJTcGVjElQKFGNvbW1hbmRlcl9nYW1lX3JlcGx5GAggAS'
-    'gLMiAuZGFydDJkX3Byb3RvLkNvbW1hbmRlckdhbWVSZXBseUgAUhJjb21tYW5kZXJHYW1lUmVw'
-    'bHkSIwoMY2xpZW50X2VudGVyGAkgASgISABSC2NsaWVudEVudGVyEjAKE2Fja2VkX2RhdGFfcm'
-    'VjZWlwdHMYCiABKAVIAFIRYWNrZWREYXRhUmVjZWlwdHMSFAoEcGluZxgLIAEoCEgAUgRwaW5n'
-    'EhQKBHBvbmcYDCABKAhIAFIEcG9uZxJhChlvdGhlcl9wbGF5ZXJfd29ybGRfc2VsZWN0GA0gAS'
-    'gLMiQuZGFydDJkX3Byb3RvLk90aGVyUGxheWVyV29ybGRTZWxlY3RIAFIWb3RoZXJQbGF5ZXJX'
-    'b3JsZFNlbGVjdBIrChB0cmFuc2Zlcl9jb21tYW5kGA4gASgISABSD3RyYW5zZmVyQ29tbWFuZB'
-    'JaChZieXRlX3dvcmxkX2Rlc3RydWN0aW9uGA8gASgLMiIuZGFydDJkX3Byb3RvLkJ5dGVXb3Js'
-    'ZERlc3RydWN0aW9uSABSFGJ5dGVXb3JsZERlc3RydWN0aW9uEkUKD2J5dGVfd29ybGRfZHJhdx'
-    'gQIAEoCzIbLmRhcnQyZF9wcm90by5CeXRlV29ybGREcmF3SABSDWJ5dGVXb3JsZERyYXcSSgoQ'
-    'cGFydGljbGVfZWZmZWN0cxgRIAEoCzIdLmRhcnQyZF9wcm90by5QYXJ0aWNsZUVmZmVjdHNIAF'
-    'IPcGFydGljbGVFZmZlY3RzEk4KEmNsaWVudF9zdGF0dXNfZGF0YRgSIAEoCzIeLmRhcnQyZF9w'
-    'cm90by5DbGllbnRTdGF0dXNEYXRhSABSEGNsaWVudFN0YXR1c0RhdGESSgoQcmVzb3VyY2Vfcm'
-    'VxdWVzdBgTIAEoCzIdLmRhcnQyZF9wcm90by5SZXNvdXJjZVJlcXVlc3RIAFIPcmVzb3VyY2VS'
-    'ZXF1ZXN0Ek0KEXJlc291cmNlX3Jlc3BvbnNlGBQgASgLMh4uZGFydDJkX3Byb3RvLlJlc291cm'
-    'NlUmVzcG9uc2VIAFIQcmVzb3VyY2VSZXNwb25zZUIICgZ1cGRhdGU=');
+    'CgtTdGF0ZVVwZGF0ZRIhCgxkYXRhX3JlY2VpcHQYASABKAVSC2RhdGFSZWNlaXB0EiMKDHVzZX'
+    'JfbWVzc2FnZRgDIAEoCUgAUgt1c2VyTWVzc2FnZRInCg5zcHJpdGVfcmVtb3ZhbBgEIAEoBUgA'
+    'Ug1zcHJpdGVSZW1vdmFsEj0KCmdhbWVfc3RhdGUYBSABKAsyHC5kYXJ0MmRfcHJvdG8uR2FtZV'
+    'N0YXRlUHJvdG9IAFIJZ2FtZVN0YXRlEjoKCWtleV9zdGF0ZRgGIAEoCzIbLmRhcnQyZF9wcm90'
+    'by5LZXlTdGF0ZVByb3RvSABSCGtleVN0YXRlEk4KEmNsaWVudF9wbGF5ZXJfc3BlYxgHIAEoCz'
+    'IeLmRhcnQyZF9wcm90by5DbGllbnRQbGF5ZXJTcGVjSABSEGNsaWVudFBsYXllclNwZWMSVAoU'
+    'Y29tbWFuZGVyX2dhbWVfcmVwbHkYCCABKAsyIC5kYXJ0MmRfcHJvdG8uQ29tbWFuZGVyR2FtZV'
+    'JlcGx5SABSEmNvbW1hbmRlckdhbWVSZXBseRIjCgxjbGllbnRfZW50ZXIYCSABKAhIAFILY2xp'
+    'ZW50RW50ZXISMAoTYWNrZWRfZGF0YV9yZWNlaXB0cxgKIAEoBUgAUhFhY2tlZERhdGFSZWNlaX'
+    'B0cxIUCgRwaW5nGAsgASgDSABSBHBpbmcSFAoEcG9uZxgMIAEoA0gAUgRwb25nEmEKGW90aGVy'
+    'X3BsYXllcl93b3JsZF9zZWxlY3QYDSABKAsyJC5kYXJ0MmRfcHJvdG8uT3RoZXJQbGF5ZXJXb3'
+    'JsZFNlbGVjdEgAUhZvdGhlclBsYXllcldvcmxkU2VsZWN0EisKEHRyYW5zZmVyX2NvbW1hbmQY'
+    'DiABKAhIAFIPdHJhbnNmZXJDb21tYW5kEloKFmJ5dGVfd29ybGRfZGVzdHJ1Y3Rpb24YDyABKA'
+    'syIi5kYXJ0MmRfcHJvdG8uQnl0ZVdvcmxkRGVzdHJ1Y3Rpb25IAFIUYnl0ZVdvcmxkRGVzdHJ1'
+    'Y3Rpb24SRQoPYnl0ZV93b3JsZF9kcmF3GBAgASgLMhsuZGFydDJkX3Byb3RvLkJ5dGVXb3JsZE'
+    'RyYXdIAFINYnl0ZVdvcmxkRHJhdxJKChBwYXJ0aWNsZV9lZmZlY3RzGBEgASgLMh0uZGFydDJk'
+    'X3Byb3RvLlBhcnRpY2xlRWZmZWN0c0gAUg9wYXJ0aWNsZUVmZmVjdHMSTgoSY2xpZW50X3N0YX'
+    'R1c19kYXRhGBIgASgLMh4uZGFydDJkX3Byb3RvLkNsaWVudFN0YXR1c0RhdGFIAFIQY2xpZW50'
+    'U3RhdHVzRGF0YRJKChByZXNvdXJjZV9yZXF1ZXN0GBMgASgLMh0uZGFydDJkX3Byb3RvLlJlc2'
+    '91cmNlUmVxdWVzdEgAUg9yZXNvdXJjZVJlcXVlc3QSTQoRcmVzb3VyY2VfcmVzcG9uc2UYFCAB'
+    'KAsyHi5kYXJ0MmRfcHJvdG8uUmVzb3VyY2VSZXNwb25zZUgAUhByZXNvdXJjZVJlc3BvbnNlQg'
+    'gKBnVwZGF0ZUoECAIQAw==');
 
 @$core.Deprecated('Use clientStatusDataDescriptor instead')
 const ClientStatusData$json = {
   '1': 'ClientStatusData',
   '2': [
-    {'1': 'fps', '3': 1, '4': 1, '5': 5, '10': 'fps'},
+    {'1': 'fps', '3': 1, '4': 1, '5': 2, '10': 'fps'},
     {'1': 'connection_info', '3': 2, '4': 3, '5': 11, '6': '.dart2d_proto.ConnectionInfoProto', '10': 'connectionInfo'},
   ],
 };
 
 /// Descriptor for `ClientStatusData`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List clientStatusDataDescriptor = $convert.base64Decode(
-    'ChBDbGllbnRTdGF0dXNEYXRhEhAKA2ZwcxgBIAEoBVIDZnBzEkoKD2Nvbm5lY3Rpb25faW5mbx'
+    'ChBDbGllbnRTdGF0dXNEYXRhEhAKA2ZwcxgBIAEoAlIDZnBzEkoKD2Nvbm5lY3Rpb25faW5mbx'
     'gCIAMoCzIhLmRhcnQyZF9wcm90by5Db25uZWN0aW9uSW5mb1Byb3RvUg5jb25uZWN0aW9uSW5m'
     'bw==');
 
@@ -109,13 +112,15 @@ const ResourceResponse$json = {
     {'1': 'resource_index', '3': 1, '4': 1, '5': 5, '10': 'resourceIndex'},
     {'1': 'start_byte', '3': 2, '4': 1, '5': 5, '10': 'startByte'},
     {'1': 'data', '3': 3, '4': 1, '5': 12, '10': 'data'},
+    {'1': 'size', '3': 4, '4': 1, '5': 5, '10': 'size'},
   ],
 };
 
 /// Descriptor for `ResourceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List resourceResponseDescriptor = $convert.base64Decode(
     'ChBSZXNvdXJjZVJlc3BvbnNlEiUKDnJlc291cmNlX2luZGV4GAEgASgFUg1yZXNvdXJjZUluZG'
-    'V4Eh0KCnN0YXJ0X2J5dGUYAiABKAVSCXN0YXJ0Qnl0ZRISCgRkYXRhGAMgASgMUgRkYXRh');
+    'V4Eh0KCnN0YXJ0X2J5dGUYAiABKAVSCXN0YXJ0Qnl0ZRISCgRkYXRhGAMgASgMUgRkYXRhEhIK'
+    'BHNpemUYBCABKAVSBHNpemU=');
 
 @$core.Deprecated('Use resourceRequestDescriptor instead')
 const ResourceRequest$json = {
@@ -239,12 +244,14 @@ const ClientPlayerSpec$json = {
   '1': 'ClientPlayerSpec',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'player_image_id', '3': 2, '4': 1, '5': 5, '10': 'playerImageId'},
   ],
 };
 
 /// Descriptor for `ClientPlayerSpec`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List clientPlayerSpecDescriptor = $convert.base64Decode(
-    'ChBDbGllbnRQbGF5ZXJTcGVjEhIKBG5hbWUYASABKAlSBG5hbWU=');
+    'ChBDbGllbnRQbGF5ZXJTcGVjEhIKBG5hbWUYASABKAlSBG5hbWUSJgoPcGxheWVyX2ltYWdlX2'
+    'lkGAIgASgFUg1wbGF5ZXJJbWFnZUlk');
 
 @$core.Deprecated('Use gameStateProtoDescriptor instead')
 const GameStateProto$json = {
@@ -275,7 +282,7 @@ const PlayerInfoProto$json = {
     {'1': 'sprite_id', '3': 3, '4': 1, '5': 5, '10': 'spriteId'},
     {'1': 'score', '3': 4, '4': 1, '5': 5, '10': 'score'},
     {'1': 'deaths', '3': 5, '4': 1, '5': 5, '10': 'deaths'},
-    {'1': 'fps', '3': 6, '4': 1, '5': 5, '10': 'fps'},
+    {'1': 'fps', '3': 6, '4': 1, '5': 2, '10': 'fps'},
     {'1': 'added_to_game_epoch_millis', '3': 7, '4': 1, '5': 3, '10': 'addedToGameEpochMillis'},
     {'1': 'remote_key_state', '3': 8, '4': 1, '5': 11, '6': '.dart2d_proto.KeyStateProto', '10': 'remoteKeyState'},
     {'1': 'in_game', '3': 9, '4': 1, '5': 8, '10': 'inGame'},
@@ -287,7 +294,7 @@ const PlayerInfoProto$json = {
 final $typed_data.Uint8List playerInfoProtoDescriptor = $convert.base64Decode(
     'Cg9QbGF5ZXJJbmZvUHJvdG8SEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1jb25uZWN0aW9uX2lkGA'
     'IgASgJUgxjb25uZWN0aW9uSWQSGwoJc3ByaXRlX2lkGAMgASgFUghzcHJpdGVJZBIUCgVzY29y'
-    'ZRgEIAEoBVIFc2NvcmUSFgoGZGVhdGhzGAUgASgFUgZkZWF0aHMSEAoDZnBzGAYgASgFUgNmcH'
+    'ZRgEIAEoBVIFc2NvcmUSFgoGZGVhdGhzGAUgASgFUgZkZWF0aHMSEAoDZnBzGAYgASgCUgNmcH'
     'MSOgoaYWRkZWRfdG9fZ2FtZV9lcG9jaF9taWxsaXMYByABKANSFmFkZGVkVG9HYW1lRXBvY2hN'
     'aWxsaXMSRQoQcmVtb3RlX2tleV9zdGF0ZRgIIAEoCzIbLmRhcnQyZF9wcm90by5LZXlTdGF0ZV'
     'Byb3RvUg5yZW1vdGVLZXlTdGF0ZRIXCgdpbl9nYW1lGAkgASgIUgZpbkdhbWUSSgoPY29ubmVj'
@@ -367,6 +374,7 @@ const SpriteUpdate$json = {
     {'1': 'size', '3': 11, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'size'},
     {'1': 'rotation_velocity', '3': 12, '4': 1, '5': 2, '10': 'rotationVelocity'},
     {'1': 'extra_sprite_data', '3': 13, '4': 1, '5': 11, '6': '.dart2d_proto.ExtraSpriteData', '10': 'extraSpriteData'},
+    {'1': 'commander_to_owner_data', '3': 14, '4': 1, '5': 11, '6': '.dart2d_proto.ExtraSpriteData', '10': 'commanderToOwnerData'},
   ],
 };
 
@@ -381,7 +389,8 @@ final $typed_data.Uint8List spriteUpdateDescriptor = $convert.base64Decode(
     'BWNvbG9yGAogASgJUgVjb2xvchIrCgRzaXplGAsgASgLMhcuZGFydDJkX3Byb3RvLlZlYzJQcm'
     '90b1IEc2l6ZRIrChFyb3RhdGlvbl92ZWxvY2l0eRgMIAEoAlIQcm90YXRpb25WZWxvY2l0eRJJ'
     'ChFleHRyYV9zcHJpdGVfZGF0YRgNIAEoCzIdLmRhcnQyZF9wcm90by5FeHRyYVNwcml0ZURhdG'
-    'FSD2V4dHJhU3ByaXRlRGF0YQ==');
+    'FSD2V4dHJhU3ByaXRlRGF0YRJUChdjb21tYW5kZXJfdG9fb3duZXJfZGF0YRgOIAEoCzIdLmRh'
+    'cnQyZF9wcm90by5FeHRyYVNwcml0ZURhdGFSFGNvbW1hbmRlclRvT3duZXJEYXRh');
 
 @$core.Deprecated('Use extraSpriteDataDescriptor instead')
 const ExtraSpriteData$json = {

@@ -173,6 +173,9 @@ class ImageIndex {
     var image = images[index];
     var canvas = _canvasFactory.createCanvas(image.width, image.height);
     canvas.context2D.drawImage(image, 0, 0);
+    // TODO: Use toBlob here instead! c.toBlob(function (b) {
+    //     console.log("b" + b.size);
+    // });
     String data = canvas.toDataUrl("image/png");
     return data;
   }

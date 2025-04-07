@@ -564,27 +564,30 @@ class LocalPlayerSprite extends MovingSprite {
     return info.remoteKeyState().keyIsDownStrength(getControls()[key]!);
   }
 
-  void addExtraNetworkData(List data) {
-    data.add((gun.angle * DOUBLE_INT_CONVERSION).toInt());
-    data.add(weaponState!.selectedWeaponIndex);
+  ExtraSpriteData addExtraNetworkData() {
+    ExtraSpriteData data = ExtraSpriteData()
+      ..extraFloat.add(gun.angle)
+      ..extraInt.add(weaponState!.selectedWeaponIndex);
     if (world.network().isCommander()) {
-      data.add(health);
-      data.add(_shieldPoints);
-      data.add(_shieldSec);
+      data.extraInt
+        ..add(health)
+        ..add(_shieldPoints);
+      data.extraFloat.add(_shieldSec);
     }
+    return data;
   }
 
-  void parseExtraNetworkData(List data, int startAt) {
-    gun.angle = data[startAt] / DOUBLE_INT_CONVERSION;
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    gun.angle = data.extraFloat[0];
     if (weaponState != null) {
       if (!_ownedByThisWorld()) {
-        weaponState!.selectedWeaponIndex = data[startAt + 1];
+        weaponState!.selectedWeaponIndex = data.extraInt[0];
       }
     }
-    if (data.length > startAt + 2) {
-      health = data[startAt + 2];
-      _shieldPoints = data[startAt + 3];
-      _shieldSec = data[startAt + 4];
+    if (data.extraInt.length > 1) {
+      health = data.extraInt[1];
+      _shieldPoints = data.extraInt[2];
+      _shieldSec = data.extraFloat[1];
     }
   }
 

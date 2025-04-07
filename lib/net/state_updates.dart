@@ -19,19 +19,10 @@ extension FindUpdate on GameStateUpdates {
     return null;
   }
 }
-// Keys that should be delivered reliable.
-// Mapped to the function how old and new data should be merged.
-Map<StateUpdate_Update, dynamic> RELIABLE_KEYS = {
-  StateUpdate_Update.spriteRemoval: mergeUniqueList,
-  StateUpdate_Update.userMessage: mergeUniqueList,
-  StateUpdate_Update.byteWorldDestruction: mergeUniqueList,
-  StateUpdate_Update.byteWorldDraw: mergeUniqueList,
-  StateUpdate_Update.clientPlayerSpec: singleTonStoredValue,
-  StateUpdate_Update.clientEnter: singleTonStoredValue,
-  StateUpdate_Update.commanderGameReply: singleTonStoredValue,
-  StateUpdate_Update.ping: singleTonStoredValue,
-  StateUpdate_Update.pong: singleTonStoredValue,
-};
+
+extension PlayerInfoExtensions on PlayerInfoProto {
+  bool isConnectedTo(String other) => this.connectionInfo.any((c) => c.id == other);
+}
 
 List? mergeUniqueList(List? list1, List? list2) {
   Set merged = new Set();

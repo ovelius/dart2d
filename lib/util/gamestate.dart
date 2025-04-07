@@ -14,15 +14,6 @@ import '../net/connection.dart';
 import '../net/state_updates.dart';
 
 
-extension DecorateWithKeyState on PlayerInfoProto {
-
-  KeyState _remoteKeyState = new KeyState.remote();
-
-  void updateWithLocalKeyState(KeyState localState) {
-
-  }
-}
-
 
 class PlayerInfo {
   late String name;
@@ -42,53 +33,12 @@ class PlayerInfo {
 
   PlayerInfo(this.name, this.connectionId, this.spriteId);
 
-  PlayerInfo.fromMap(Map map) {
-    updateFromMap(map);
-  }
-
-  void updateFromMap(Map map) {
-    name = map["n"];
-    spriteId = map["sid"];
-    fps = map['f'];
-    connectionId = map["cid"];
-    score = map["s"];
-    deaths = map["d"];
-    Map<String, ConnectionInfo> newConnectionsInfo = {};
-    for (List item in map['c']) {
-      newConnectionsInfo[item[0]] = new ConnectionInfo(item[0], item[1]);
-    }
-    connections = newConnectionsInfo;
-    inGame = map.containsKey("g");
-    addedToGameAtMillis = map["gm"];
-  }
 
   KeyState remoteKeyState() => _remoteKeyState;
 
   bool isConnectedTo(String other) => connections.containsKey(other);
 
-  void updateWithLocalKeyState(KeyState localState) {
-    assert(!localState.remoteState);
-    _remoteKeyState = localState;
-  }
 
-  Map toMap() {
-    Map map = new Map();
-    map["n"] = name;
-    map["sid"] = spriteId;
-    map["cid"] = connectionId;
-    map['c'] = [];
-    for (ConnectionInfo info in connections.values) {
-     map['c'].add([info.to, info.latencyMillis]);
-    }
-    map['f'] = fps;
-    map["s"] = score;
-    map["d"] = deaths;
-    map["gm"] = addedToGameAtMillis;
-    if (inGame) {
-      map["g"] = inGame;
-    }
-    return map;
-  }
 
   String toString() =>
       "${spriteId} ${name} InGame: ${inGame} Remote Keystate: ${_remoteKeyState.remoteState}";
@@ -107,17 +57,21 @@ class GameState {
   GameStateProto _gameStateProto = GameStateProto();
   GameStateProto get gameStateProto => _gameStateProto;
   Map<String, PlayerInfoProto> _playerInfoById = {};
+  Map<String, KeyState> _playerKeyStateById = {};
 
   // True if we have urgent data for the network.
   bool _urgentData = false;
 
+  void updateWithLocalKeyState(String connectionId, KeyState localState) {
+    assert(!localState.remoteState);
+    _playerKeyStateById[connectionId] = localState;
+  }
 
   GameState(this._packetListenerBindings, this._spriteIndex) {
     _packetListenerBindings.bindHandler(StateUpdate_Update.keyState,
             (ConnectionWrapper connection, StateUpdate update) {
-          Map<String, bool> keyState = Map.from(data);
-          PlayerInfoProto? info = playerInfoByConnectionId(connection.id);
-          info?._remoteKeyState.setEnabledKeys(keyState);
+          KeyState? state = _playerKeyStateById[connection.id];
+          state?.setEnabledKeys(update.keyState);
         });
     _gameStateProto.startedAtEpochMillis = new DateTime.now().millisecondsSinceEpoch as Int64;
   }

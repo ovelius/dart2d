@@ -1,4 +1,6 @@
 
+import 'package:dart2d/net/state_updates.pb.dart';
+
 import 'movingsprite.dart';
 import 'sprite.dart';
 import 'dart:math';
@@ -98,21 +100,21 @@ class Rope extends MovingSprite {
     context.stroke();
     super.draw(context, debug);
   }
-  
-  void addExtraNetworkData(List<dynamic> data) {
-    if (owner != null) {
-      data.add(owner!.networkId);
-    }
+
+  ExtraSpriteData addExtraNetworkData() {
+    ExtraSpriteData data = ExtraSpriteData();
+      data.extraInt.add(owner!.networkId!);
     if (lockedOnOther != null) {
-      data.add(lockedOnOther!.networkId);
+      data.extraInt.add(lockedOnOther!.networkId!);
     } else {
-      data.add(-1);
+      data.extraInt.add(-1);
     }
+    return data;
   }
    
-  void parseExtraNetworkData(List<dynamic> data, int startAt) {
-    this.owner = world.spriteIndex[data[startAt]] as LocalPlayerSprite?;
-    this.lockedOnOther = world.spriteIndex[data[startAt + 1]] as MovingSprite?;
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    this.owner = world.spriteIndex[data.extraInt[0]] as LocalPlayerSprite?;
+    this.lockedOnOther = world.spriteIndex[data.extraInt[1]] as MovingSprite?;
     this.locked = lockedOnOther != null;
   }
   

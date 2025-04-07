@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -223,7 +224,7 @@ class Loader {
     }
 
     // Maybe trigger resend of reliable data.
-    serverConnection.tick(duration, {}, {}, []);
+    serverConnection.tick(duration, []);
 
     if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
       // World loaded, enter game.
@@ -245,7 +246,7 @@ class Loader {
   }
 
   void _enterGame(ConnectionWrapper serverConnection) {
-    PlayerInfo? ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+    PlayerInfoProto? ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
     if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
       if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
         serverConnection.sendClientEnter();

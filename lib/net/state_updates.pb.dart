@@ -21,20 +21,24 @@ export 'state_updates.pbenum.dart';
 /// Message sent over a connection.
 class GameStateUpdates extends $pb.GeneratedMessage {
   factory GameStateUpdates({
-    $core.int? lastKeyFrame,
+    $core.int? frame,
+    $core.int? lastFrameSeen,
+    $core.int? keyFrame,
     $core.Iterable<StateUpdate>? stateUpdate,
-    $core.int? keyFrameDelayMs,
     $core.Iterable<SpriteUpdate>? spriteUpdates,
   }) {
     final $result = create();
-    if (lastKeyFrame != null) {
-      $result.lastKeyFrame = lastKeyFrame;
+    if (frame != null) {
+      $result.frame = frame;
+    }
+    if (lastFrameSeen != null) {
+      $result.lastFrameSeen = lastFrameSeen;
+    }
+    if (keyFrame != null) {
+      $result.keyFrame = keyFrame;
     }
     if (stateUpdate != null) {
       $result.stateUpdate.addAll(stateUpdate);
-    }
-    if (keyFrameDelayMs != null) {
-      $result.keyFrameDelayMs = keyFrameDelayMs;
     }
     if (spriteUpdates != null) {
       $result.spriteUpdates.addAll(spriteUpdates);
@@ -46,10 +50,11 @@ class GameStateUpdates extends $pb.GeneratedMessage {
   factory GameStateUpdates.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GameStateUpdates', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'lastKeyFrame', $pb.PbFieldType.O3)
-    ..pc<StateUpdate>(2, _omitFieldNames ? '' : 'stateUpdate', $pb.PbFieldType.PM, subBuilder: StateUpdate.create)
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'keyFrameDelayMs', $pb.PbFieldType.O3)
-    ..pc<SpriteUpdate>(4, _omitFieldNames ? '' : 'spriteUpdates', $pb.PbFieldType.PM, subBuilder: SpriteUpdate.create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'frame', $pb.PbFieldType.O3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'lastFrameSeen', $pb.PbFieldType.O3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'keyFrame', $pb.PbFieldType.O3)
+    ..pc<StateUpdate>(4, _omitFieldNames ? '' : 'stateUpdate', $pb.PbFieldType.PM, subBuilder: StateUpdate.create)
+    ..pc<SpriteUpdate>(5, _omitFieldNames ? '' : 'spriteUpdates', $pb.PbFieldType.PM, subBuilder: SpriteUpdate.create)
     ..hasRequiredFields = false
   ;
 
@@ -74,37 +79,46 @@ class GameStateUpdates extends $pb.GeneratedMessage {
   static GameStateUpdates getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GameStateUpdates>(create);
   static GameStateUpdates? _defaultInstance;
 
-  /// Last keyframe we've seen.
+  /// Game frame generating this update.
   @$pb.TagNumber(1)
-  $core.int get lastKeyFrame => $_getIZ(0);
+  $core.int get frame => $_getIZ(0);
   @$pb.TagNumber(1)
-  set lastKeyFrame($core.int v) { $_setSignedInt32(0, v); }
+  set frame($core.int v) { $_setSignedInt32(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasLastKeyFrame() => $_has(0);
+  $core.bool hasFrame() => $_has(0);
   @$pb.TagNumber(1)
-  void clearLastKeyFrame() => clearField(1);
+  void clearFrame() => clearField(1);
+
+  /// Us telling remote side the last frame we know about.
+  @$pb.TagNumber(2)
+  $core.int get lastFrameSeen => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set lastFrameSeen($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLastFrameSeen() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLastFrameSeen() => clearField(2);
+
+  /// This is a keyframe, considered a full gamestate update.
+  @$pb.TagNumber(3)
+  $core.int get keyFrame => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set keyFrame($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasKeyFrame() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearKeyFrame() => clearField(3);
 
   /// List of updates.
-  @$pb.TagNumber(2)
-  $core.List<StateUpdate> get stateUpdate => $_getList(1);
-
-  /// Last time we got keyframe.
-  @$pb.TagNumber(3)
-  $core.int get keyFrameDelayMs => $_getIZ(2);
-  @$pb.TagNumber(3)
-  set keyFrameDelayMs($core.int v) { $_setSignedInt32(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasKeyFrameDelayMs() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearKeyFrameDelayMs() => clearField(3);
+  @$pb.TagNumber(4)
+  $core.List<StateUpdate> get stateUpdate => $_getList(3);
 
   /// Sprite updates...
-  @$pb.TagNumber(4)
-  $core.List<SpriteUpdate> get spriteUpdates => $_getList(3);
+  @$pb.TagNumber(5)
+  $core.List<SpriteUpdate> get spriteUpdates => $_getList(4);
 }
 
 enum StateUpdate_Update {
-  keyFrame, 
   userMessage, 
   spriteRemoval, 
   gameState, 
@@ -129,7 +143,6 @@ enum StateUpdate_Update {
 class StateUpdate extends $pb.GeneratedMessage {
   factory StateUpdate({
     $core.int? dataReceipt,
-    $core.int? keyFrame,
     $core.String? userMessage,
     $core.int? spriteRemoval,
     GameStateProto? gameState,
@@ -138,8 +151,8 @@ class StateUpdate extends $pb.GeneratedMessage {
     CommanderGameReply? commanderGameReply,
     $core.bool? clientEnter,
     $core.int? ackedDataReceipts,
-    $core.bool? ping,
-    $core.bool? pong,
+    $fixnum.Int64? ping,
+    $fixnum.Int64? pong,
     OtherPlayerWorldSelect? otherPlayerWorldSelect,
     $core.bool? transferCommand,
     ByteWorldDestruction? byteWorldDestruction,
@@ -152,9 +165,6 @@ class StateUpdate extends $pb.GeneratedMessage {
     final $result = create();
     if (dataReceipt != null) {
       $result.dataReceipt = dataReceipt;
-    }
-    if (keyFrame != null) {
-      $result.keyFrame = keyFrame;
     }
     if (userMessage != null) {
       $result.userMessage = userMessage;
@@ -217,7 +227,6 @@ class StateUpdate extends $pb.GeneratedMessage {
   factory StateUpdate.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static const $core.Map<$core.int, StateUpdate_Update> _StateUpdate_UpdateByTag = {
-    2 : StateUpdate_Update.keyFrame,
     3 : StateUpdate_Update.userMessage,
     4 : StateUpdate_Update.spriteRemoval,
     5 : StateUpdate_Update.gameState,
@@ -239,9 +248,8 @@ class StateUpdate extends $pb.GeneratedMessage {
     0 : StateUpdate_Update.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StateUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..oo(0, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
     ..a<$core.int>(1, _omitFieldNames ? '' : 'dataReceipt', $pb.PbFieldType.O3)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'keyFrame', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'userMessage')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'spriteRemoval', $pb.PbFieldType.O3)
     ..aOM<GameStateProto>(5, _omitFieldNames ? '' : 'gameState', subBuilder: GameStateProto.create)
@@ -250,8 +258,8 @@ class StateUpdate extends $pb.GeneratedMessage {
     ..aOM<CommanderGameReply>(8, _omitFieldNames ? '' : 'commanderGameReply', subBuilder: CommanderGameReply.create)
     ..aOB(9, _omitFieldNames ? '' : 'clientEnter')
     ..a<$core.int>(10, _omitFieldNames ? '' : 'ackedDataReceipts', $pb.PbFieldType.O3)
-    ..aOB(11, _omitFieldNames ? '' : 'ping')
-    ..aOB(12, _omitFieldNames ? '' : 'pong')
+    ..aInt64(11, _omitFieldNames ? '' : 'ping')
+    ..aInt64(12, _omitFieldNames ? '' : 'pong')
     ..aOM<OtherPlayerWorldSelect>(13, _omitFieldNames ? '' : 'otherPlayerWorldSelect', subBuilder: OtherPlayerWorldSelect.create)
     ..aOB(14, _omitFieldNames ? '' : 'transferCommand')
     ..aOM<ByteWorldDestruction>(15, _omitFieldNames ? '' : 'byteWorldDestruction', subBuilder: ByteWorldDestruction.create)
@@ -297,214 +305,205 @@ class StateUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearDataReceipt() => clearField(1);
 
-  @$pb.TagNumber(2)
-  $core.int get keyFrame => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set keyFrame($core.int v) { $_setSignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasKeyFrame() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearKeyFrame() => clearField(2);
-
   /// A user visible chat message.
   @$pb.TagNumber(3)
-  $core.String get userMessage => $_getSZ(2);
+  $core.String get userMessage => $_getSZ(1);
   @$pb.TagNumber(3)
-  set userMessage($core.String v) { $_setString(2, v); }
+  set userMessage($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(3)
-  $core.bool hasUserMessage() => $_has(2);
+  $core.bool hasUserMessage() => $_has(1);
   @$pb.TagNumber(3)
   void clearUserMessage() => clearField(3);
 
   /// Remove this sprite.
   @$pb.TagNumber(4)
-  $core.int get spriteRemoval => $_getIZ(3);
+  $core.int get spriteRemoval => $_getIZ(2);
   @$pb.TagNumber(4)
-  set spriteRemoval($core.int v) { $_setSignedInt32(3, v); }
+  set spriteRemoval($core.int v) { $_setSignedInt32(2, v); }
   @$pb.TagNumber(4)
-  $core.bool hasSpriteRemoval() => $_has(3);
+  $core.bool hasSpriteRemoval() => $_has(2);
   @$pb.TagNumber(4)
   void clearSpriteRemoval() => clearField(4);
 
   /// The entire gamestate.
   @$pb.TagNumber(5)
-  GameStateProto get gameState => $_getN(4);
+  GameStateProto get gameState => $_getN(3);
   @$pb.TagNumber(5)
   set gameState(GameStateProto v) { setField(5, v); }
   @$pb.TagNumber(5)
-  $core.bool hasGameState() => $_has(4);
+  $core.bool hasGameState() => $_has(3);
   @$pb.TagNumber(5)
   void clearGameState() => clearField(5);
   @$pb.TagNumber(5)
-  GameStateProto ensureGameState() => $_ensure(4);
+  GameStateProto ensureGameState() => $_ensure(3);
 
   /// Key state update.
   @$pb.TagNumber(6)
-  KeyStateProto get keyState => $_getN(5);
+  KeyStateProto get keyState => $_getN(4);
   @$pb.TagNumber(6)
   set keyState(KeyStateProto v) { setField(6, v); }
   @$pb.TagNumber(6)
-  $core.bool hasKeyState() => $_has(5);
+  $core.bool hasKeyState() => $_has(4);
   @$pb.TagNumber(6)
   void clearKeyState() => clearField(6);
   @$pb.TagNumber(6)
-  KeyStateProto ensureKeyState() => $_ensure(5);
+  KeyStateProto ensureKeyState() => $_ensure(4);
 
   /// Client trying to connect command.
   @$pb.TagNumber(7)
-  ClientPlayerSpec get clientPlayerSpec => $_getN(6);
+  ClientPlayerSpec get clientPlayerSpec => $_getN(5);
   @$pb.TagNumber(7)
   set clientPlayerSpec(ClientPlayerSpec v) { setField(7, v); }
   @$pb.TagNumber(7)
-  $core.bool hasClientPlayerSpec() => $_has(6);
+  $core.bool hasClientPlayerSpec() => $_has(5);
   @$pb.TagNumber(7)
   void clearClientPlayerSpec() => clearField(7);
   @$pb.TagNumber(7)
-  ClientPlayerSpec ensureClientPlayerSpec() => $_ensure(6);
+  ClientPlayerSpec ensureClientPlayerSpec() => $_ensure(5);
 
   /// Server reply to connect message.
   @$pb.TagNumber(8)
-  CommanderGameReply get commanderGameReply => $_getN(7);
+  CommanderGameReply get commanderGameReply => $_getN(6);
   @$pb.TagNumber(8)
   set commanderGameReply(CommanderGameReply v) { setField(8, v); }
   @$pb.TagNumber(8)
-  $core.bool hasCommanderGameReply() => $_has(7);
+  $core.bool hasCommanderGameReply() => $_has(6);
   @$pb.TagNumber(8)
   void clearCommanderGameReply() => clearField(8);
   @$pb.TagNumber(8)
-  CommanderGameReply ensureCommanderGameReply() => $_ensure(7);
+  CommanderGameReply ensureCommanderGameReply() => $_ensure(6);
 
   /// Send by client when ready to spawn.
   @$pb.TagNumber(9)
-  $core.bool get clientEnter => $_getBF(8);
+  $core.bool get clientEnter => $_getBF(7);
   @$pb.TagNumber(9)
-  set clientEnter($core.bool v) { $_setBool(8, v); }
+  set clientEnter($core.bool v) { $_setBool(7, v); }
   @$pb.TagNumber(9)
-  $core.bool hasClientEnter() => $_has(8);
+  $core.bool hasClientEnter() => $_has(7);
   @$pb.TagNumber(9)
   void clearClientEnter() => clearField(9);
 
   /// A data receipt for reliable data.
   @$pb.TagNumber(10)
-  $core.int get ackedDataReceipts => $_getIZ(9);
+  $core.int get ackedDataReceipts => $_getIZ(8);
   @$pb.TagNumber(10)
-  set ackedDataReceipts($core.int v) { $_setSignedInt32(9, v); }
+  set ackedDataReceipts($core.int v) { $_setSignedInt32(8, v); }
   @$pb.TagNumber(10)
-  $core.bool hasAckedDataReceipts() => $_has(9);
+  $core.bool hasAckedDataReceipts() => $_has(8);
   @$pb.TagNumber(10)
   void clearAckedDataReceipts() => clearField(10);
 
-  /// Random ping.
+  /// Basic pings.
   @$pb.TagNumber(11)
-  $core.bool get ping => $_getBF(10);
+  $fixnum.Int64 get ping => $_getI64(9);
   @$pb.TagNumber(11)
-  set ping($core.bool v) { $_setBool(10, v); }
+  set ping($fixnum.Int64 v) { $_setInt64(9, v); }
   @$pb.TagNumber(11)
-  $core.bool hasPing() => $_has(10);
+  $core.bool hasPing() => $_has(9);
   @$pb.TagNumber(11)
   void clearPing() => clearField(11);
 
   @$pb.TagNumber(12)
-  $core.bool get pong => $_getBF(11);
+  $fixnum.Int64 get pong => $_getI64(10);
   @$pb.TagNumber(12)
-  set pong($core.bool v) { $_setBool(11, v); }
+  set pong($fixnum.Int64 v) { $_setInt64(10, v); }
   @$pb.TagNumber(12)
-  $core.bool hasPong() => $_has(11);
+  $core.bool hasPong() => $_has(10);
   @$pb.TagNumber(12)
   void clearPong() => clearField(12);
 
   /// In game selection mode.
   @$pb.TagNumber(13)
-  OtherPlayerWorldSelect get otherPlayerWorldSelect => $_getN(12);
+  OtherPlayerWorldSelect get otherPlayerWorldSelect => $_getN(11);
   @$pb.TagNumber(13)
   set otherPlayerWorldSelect(OtherPlayerWorldSelect v) { setField(13, v); }
   @$pb.TagNumber(13)
-  $core.bool hasOtherPlayerWorldSelect() => $_has(12);
+  $core.bool hasOtherPlayerWorldSelect() => $_has(11);
   @$pb.TagNumber(13)
   void clearOtherPlayerWorldSelect() => clearField(13);
   @$pb.TagNumber(13)
-  OtherPlayerWorldSelect ensureOtherPlayerWorldSelect() => $_ensure(12);
+  OtherPlayerWorldSelect ensureOtherPlayerWorldSelect() => $_ensure(11);
 
   /// Other side tells us to become game commander.
   @$pb.TagNumber(14)
-  $core.bool get transferCommand => $_getBF(13);
+  $core.bool get transferCommand => $_getBF(12);
   @$pb.TagNumber(14)
-  set transferCommand($core.bool v) { $_setBool(13, v); }
+  set transferCommand($core.bool v) { $_setBool(12, v); }
   @$pb.TagNumber(14)
-  $core.bool hasTransferCommand() => $_has(13);
+  $core.bool hasTransferCommand() => $_has(12);
   @$pb.TagNumber(14)
   void clearTransferCommand() => clearField(14);
 
   @$pb.TagNumber(15)
-  ByteWorldDestruction get byteWorldDestruction => $_getN(14);
+  ByteWorldDestruction get byteWorldDestruction => $_getN(13);
   @$pb.TagNumber(15)
   set byteWorldDestruction(ByteWorldDestruction v) { setField(15, v); }
   @$pb.TagNumber(15)
-  $core.bool hasByteWorldDestruction() => $_has(14);
+  $core.bool hasByteWorldDestruction() => $_has(13);
   @$pb.TagNumber(15)
   void clearByteWorldDestruction() => clearField(15);
   @$pb.TagNumber(15)
-  ByteWorldDestruction ensureByteWorldDestruction() => $_ensure(14);
+  ByteWorldDestruction ensureByteWorldDestruction() => $_ensure(13);
 
   @$pb.TagNumber(16)
-  ByteWorldDraw get byteWorldDraw => $_getN(15);
+  ByteWorldDraw get byteWorldDraw => $_getN(14);
   @$pb.TagNumber(16)
   set byteWorldDraw(ByteWorldDraw v) { setField(16, v); }
   @$pb.TagNumber(16)
-  $core.bool hasByteWorldDraw() => $_has(15);
+  $core.bool hasByteWorldDraw() => $_has(14);
   @$pb.TagNumber(16)
   void clearByteWorldDraw() => clearField(16);
   @$pb.TagNumber(16)
-  ByteWorldDraw ensureByteWorldDraw() => $_ensure(15);
+  ByteWorldDraw ensureByteWorldDraw() => $_ensure(14);
 
   @$pb.TagNumber(17)
-  ParticleEffects get particleEffects => $_getN(16);
+  ParticleEffects get particleEffects => $_getN(15);
   @$pb.TagNumber(17)
   set particleEffects(ParticleEffects v) { setField(17, v); }
   @$pb.TagNumber(17)
-  $core.bool hasParticleEffects() => $_has(16);
+  $core.bool hasParticleEffects() => $_has(15);
   @$pb.TagNumber(17)
   void clearParticleEffects() => clearField(17);
   @$pb.TagNumber(17)
-  ParticleEffects ensureParticleEffects() => $_ensure(16);
+  ParticleEffects ensureParticleEffects() => $_ensure(15);
 
   @$pb.TagNumber(18)
-  ClientStatusData get clientStatusData => $_getN(17);
+  ClientStatusData get clientStatusData => $_getN(16);
   @$pb.TagNumber(18)
   set clientStatusData(ClientStatusData v) { setField(18, v); }
   @$pb.TagNumber(18)
-  $core.bool hasClientStatusData() => $_has(17);
+  $core.bool hasClientStatusData() => $_has(16);
   @$pb.TagNumber(18)
   void clearClientStatusData() => clearField(18);
   @$pb.TagNumber(18)
-  ClientStatusData ensureClientStatusData() => $_ensure(17);
+  ClientStatusData ensureClientStatusData() => $_ensure(16);
 
   @$pb.TagNumber(19)
-  ResourceRequest get resourceRequest => $_getN(18);
+  ResourceRequest get resourceRequest => $_getN(17);
   @$pb.TagNumber(19)
   set resourceRequest(ResourceRequest v) { setField(19, v); }
   @$pb.TagNumber(19)
-  $core.bool hasResourceRequest() => $_has(18);
+  $core.bool hasResourceRequest() => $_has(17);
   @$pb.TagNumber(19)
   void clearResourceRequest() => clearField(19);
   @$pb.TagNumber(19)
-  ResourceRequest ensureResourceRequest() => $_ensure(18);
+  ResourceRequest ensureResourceRequest() => $_ensure(17);
 
   @$pb.TagNumber(20)
-  ResourceResponse get resourceResponse => $_getN(19);
+  ResourceResponse get resourceResponse => $_getN(18);
   @$pb.TagNumber(20)
   set resourceResponse(ResourceResponse v) { setField(20, v); }
   @$pb.TagNumber(20)
-  $core.bool hasResourceResponse() => $_has(19);
+  $core.bool hasResourceResponse() => $_has(18);
   @$pb.TagNumber(20)
   void clearResourceResponse() => clearField(20);
   @$pb.TagNumber(20)
-  ResourceResponse ensureResourceResponse() => $_ensure(19);
+  ResourceResponse ensureResourceResponse() => $_ensure(18);
 }
 
 class ClientStatusData extends $pb.GeneratedMessage {
   factory ClientStatusData({
-    $core.int? fps,
+    $core.double? fps,
     $core.Iterable<ConnectionInfoProto>? connectionInfo,
   }) {
     final $result = create();
@@ -521,7 +520,7 @@ class ClientStatusData extends $pb.GeneratedMessage {
   factory ClientStatusData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ClientStatusData', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'fps', $pb.PbFieldType.O3)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'fps', $pb.PbFieldType.OF)
     ..pc<ConnectionInfoProto>(2, _omitFieldNames ? '' : 'connectionInfo', $pb.PbFieldType.PM, subBuilder: ConnectionInfoProto.create)
     ..hasRequiredFields = false
   ;
@@ -548,9 +547,9 @@ class ClientStatusData extends $pb.GeneratedMessage {
   static ClientStatusData? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.int get fps => $_getIZ(0);
+  $core.double get fps => $_getN(0);
   @$pb.TagNumber(1)
-  set fps($core.int v) { $_setSignedInt32(0, v); }
+  set fps($core.double v) { $_setFloat(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasFps() => $_has(0);
   @$pb.TagNumber(1)
@@ -566,6 +565,7 @@ class ResourceResponse extends $pb.GeneratedMessage {
     $core.int? resourceIndex,
     $core.int? startByte,
     $core.List<$core.int>? data,
+    $core.int? size,
   }) {
     final $result = create();
     if (resourceIndex != null) {
@@ -577,6 +577,9 @@ class ResourceResponse extends $pb.GeneratedMessage {
     if (data != null) {
       $result.data = data;
     }
+    if (size != null) {
+      $result.size = size;
+    }
     return $result;
   }
   ResourceResponse._() : super();
@@ -587,6 +590,7 @@ class ResourceResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(1, _omitFieldNames ? '' : 'resourceIndex', $pb.PbFieldType.O3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'startByte', $pb.PbFieldType.O3)
     ..a<$core.List<$core.int>>(3, _omitFieldNames ? '' : 'data', $pb.PbFieldType.OY)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'size', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -639,6 +643,16 @@ class ResourceResponse extends $pb.GeneratedMessage {
   $core.bool hasData() => $_has(2);
   @$pb.TagNumber(3)
   void clearData() => clearField(3);
+
+  /// The size of this resource.
+  @$pb.TagNumber(4)
+  $core.int get size => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set size($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSize() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSize() => clearField(4);
 }
 
 /// Request to get resource data.
@@ -1147,10 +1161,14 @@ class KeyStateProto extends $pb.GeneratedMessage {
 class ClientPlayerSpec extends $pb.GeneratedMessage {
   factory ClientPlayerSpec({
     $core.String? name,
+    $core.int? playerImageId,
   }) {
     final $result = create();
     if (name != null) {
       $result.name = name;
+    }
+    if (playerImageId != null) {
+      $result.playerImageId = playerImageId;
     }
     return $result;
   }
@@ -1160,6 +1178,7 @@ class ClientPlayerSpec extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ClientPlayerSpec', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'playerImageId', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -1192,6 +1211,15 @@ class ClientPlayerSpec extends $pb.GeneratedMessage {
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
   void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get playerImageId => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set playerImageId($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPlayerImageId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlayerImageId() => clearField(2);
 }
 
 class GameStateProto extends $pb.GeneratedMessage {
@@ -1305,7 +1333,7 @@ class PlayerInfoProto extends $pb.GeneratedMessage {
     $core.int? spriteId,
     $core.int? score,
     $core.int? deaths,
-    $core.int? fps,
+    $core.double? fps,
     $fixnum.Int64? addedToGameEpochMillis,
     KeyStateProto? remoteKeyState,
     $core.bool? inGame,
@@ -1354,7 +1382,7 @@ class PlayerInfoProto extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'spriteId', $pb.PbFieldType.O3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'score', $pb.PbFieldType.O3)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'deaths', $pb.PbFieldType.O3)
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'fps', $pb.PbFieldType.O3)
+    ..a<$core.double>(6, _omitFieldNames ? '' : 'fps', $pb.PbFieldType.OF)
     ..aInt64(7, _omitFieldNames ? '' : 'addedToGameEpochMillis')
     ..aOM<KeyStateProto>(8, _omitFieldNames ? '' : 'remoteKeyState', subBuilder: KeyStateProto.create)
     ..aOB(9, _omitFieldNames ? '' : 'inGame')
@@ -1435,9 +1463,9 @@ class PlayerInfoProto extends $pb.GeneratedMessage {
 
   /// Current reported FPS.
   @$pb.TagNumber(6)
-  $core.int get fps => $_getIZ(5);
+  $core.double get fps => $_getN(5);
   @$pb.TagNumber(6)
-  set fps($core.int v) { $_setSignedInt32(5, v); }
+  set fps($core.double v) { $_setFloat(5, v); }
   @$pb.TagNumber(6)
   $core.bool hasFps() => $_has(5);
   @$pb.TagNumber(6)
@@ -1748,6 +1776,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     Vec2Proto? size,
     $core.double? rotationVelocity,
     ExtraSpriteData? extraSpriteData,
+    ExtraSpriteData? commanderToOwnerData,
   }) {
     final $result = create();
     if (spriteId != null) {
@@ -1789,6 +1818,9 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     if (extraSpriteData != null) {
       $result.extraSpriteData = extraSpriteData;
     }
+    if (commanderToOwnerData != null) {
+      $result.commanderToOwnerData = commanderToOwnerData;
+    }
     return $result;
   }
   SpriteUpdate._() : super();
@@ -1809,6 +1841,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     ..aOM<Vec2Proto>(11, _omitFieldNames ? '' : 'size', subBuilder: Vec2Proto.create)
     ..a<$core.double>(12, _omitFieldNames ? '' : 'rotationVelocity', $pb.PbFieldType.OF)
     ..aOM<ExtraSpriteData>(13, _omitFieldNames ? '' : 'extraSpriteData', subBuilder: ExtraSpriteData.create)
+    ..aOM<ExtraSpriteData>(14, _omitFieldNames ? '' : 'commanderToOwnerData', subBuilder: ExtraSpriteData.create)
     ..hasRequiredFields = false
   ;
 
@@ -1883,7 +1916,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   Vec2Proto ensureVelocity() => $_ensure(4);
 
-  /// Keyframe specifics.
+  /// The Sprite constructor to run.
   @$pb.TagNumber(6)
   $core.int get remoteRepresentation => $_getIZ(5);
   @$pb.TagNumber(6)
@@ -1893,6 +1926,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   void clearRemoteRepresentation() => clearField(6);
 
+  /// What type of ImageSprite this is.
   @$pb.TagNumber(7)
   $core.int get spriteType => $_getIZ(6);
   @$pb.TagNumber(7)
@@ -1952,6 +1986,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   void clearRotationVelocity() => clearField(12);
 
+  /// Sprite specific data.
   @$pb.TagNumber(13)
   ExtraSpriteData get extraSpriteData => $_getN(12);
   @$pb.TagNumber(13)
@@ -1962,6 +1997,19 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   void clearExtraSpriteData() => clearField(13);
   @$pb.TagNumber(13)
   ExtraSpriteData ensureExtraSpriteData() => $_ensure(12);
+
+  /// Data flowing from a commander to the owner of the sprite.
+  /// This may be the only field set.
+  @$pb.TagNumber(14)
+  ExtraSpriteData get commanderToOwnerData => $_getN(13);
+  @$pb.TagNumber(14)
+  set commanderToOwnerData(ExtraSpriteData v) { setField(14, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasCommanderToOwnerData() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearCommanderToOwnerData() => clearField(14);
+  @$pb.TagNumber(14)
+  ExtraSpriteData ensureCommanderToOwnerData() => $_ensure(13);
 }
 
 class ExtraSpriteData extends $pb.GeneratedMessage {

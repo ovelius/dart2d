@@ -3,25 +3,28 @@ package dart2d_proto;
 
 // Message sent over a connection.
 message GameStateUpdates {
-  // Last keyframe we've seen.
-  optional int32 last_key_frame = 1;
+  // Game frame generating this update.
+  optional int32 frame = 1;
+
+  // Us telling remote side the last frame we know about.
+  optional int32 last_frame_seen = 2;
+
+  // This is a keyframe, considered a full gamestate update.
+  optional int32 key_frame = 3;
 
   // List of updates.
-  repeated StateUpdate state_update = 2;
-
-  // Last time we got keyframe.
-  optional int32 key_frame_delay_ms = 3;
+  repeated StateUpdate state_update = 4;
 
   // Sprite updates...
-  repeated SpriteUpdate sprite_updates = 4;
+  repeated SpriteUpdate sprite_updates = 5;
 }
 
 message StateUpdate {
+  reserved 2;
   // This data has a receipt that needs acknowledgement.
   optional int32 data_receipt = 1;
   // The actual update.
   oneof update {
-    int32 key_frame = 2;
     // A user visible chat message.
     string user_message = 3;
     // Remove this sprite.
@@ -45,9 +48,9 @@ message StateUpdate {
     // A data receipt for reliable data.
     int32 acked_data_receipts = 10;
 
-    // Random ping.
-    bool ping = 11;
-    bool pong = 12;
+    // Basic pings.
+    int64 ping = 11; // Local timestamp of ping sent.
+    int64 pong = 12; // Reflected back in pong.
 
     // In game selection mode.
     OtherPlayerWorldSelect other_player_world_select = 13;
@@ -67,7 +70,7 @@ message StateUpdate {
 }
 
 message ClientStatusData {
-  optional int32 fps = 1;
+  optional float fps = 1;
   repeated ConnectionInfoProto connection_info = 2;
 }
 
@@ -78,6 +81,8 @@ message ResourceResponse {
   // Where in the bytestream this chunk starts.
   optional int32 start_byte = 2;
   optional bytes data = 3;
+  // The size of this resource.
+  optional int32 size = 4;
 }
 
 // Request to get resource data.
@@ -135,6 +140,7 @@ message KeyStateProto {
 
 message ClientPlayerSpec {
   optional string name = 1;
+  optional int32 player_image_id = 2;
 }
 
 message GameStateProto {
@@ -161,7 +167,7 @@ message PlayerInfoProto {
   // How many times it has died...
   optional int32 deaths = 5;
   // Current reported FPS.
-  optional int32 fps = 6;
+  optional float fps = 6;
   // When it joined the game.
   optional int64 added_to_game_epoch_millis = 7;
   // What keys are down.
@@ -222,7 +228,10 @@ message SpriteUpdate {
   optional Vec2Proto velocity = 5;
 
   // Keyframe specifics.
+
+  // The Sprite constructor to run.
   optional int32 remote_representation = 6;
+  // What type of ImageSprite this is.
   optional int32 sprite_type = 7;
 
   // Typically only one of these are set.
@@ -237,7 +246,12 @@ message SpriteUpdate {
 
   optional float rotation_velocity = 12;
 
+  // Sprite specific data.
   optional ExtraSpriteData extra_sprite_data = 13;
+
+  // Data flowing from a commander to the owner of the sprite.
+  // This may be the only field set.
+  optional ExtraSpriteData commander_to_owner_data = 14;
 }
 
 message ExtraSpriteData {

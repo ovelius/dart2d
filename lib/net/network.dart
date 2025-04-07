@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -15,7 +17,7 @@ import 'helpers.dart';
 
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0 / 2;
-const PROBLEMATIC_FRAMES_BEHIND = 2;
+const PROBLEMATIC_FRAMES_BEHIND = 6;
 
 @Singleton(scope: 'world')
 class Network {
@@ -151,7 +153,7 @@ class Network {
    * TODO also count the number of connections?
    */
   String? _bestCommanderPeerId(List<String> validKeys) {
-    int bestFps = -1;
+    double bestFps = -1;
     String? bestFpsKey = null;
     for (String peerId in validKeys) {
       // pick commander with highest FPS.
@@ -176,7 +178,7 @@ class Network {
    * Set this peer as the commander.
    */
   void convertToCommander(
-      Map<String, ConnectionWrapper> connections, PlayerInfo? previousCommanderPlayerInfo) {
+      Map<String, ConnectionWrapper> connections, PlayerInfoProto? previousCommanderPlayerInfo) {
     _hudMessages.display("Commander role transfered to you :)");
     String oldCommanderId = gameState.gameStateProto.actingCommanderId;
     gameState.convertToServer(world, this.peer.id);
@@ -390,7 +392,7 @@ class Network {
     if (!isCommander()) {
       ConnectionWrapper? serverConnection = getServerConnection();
       if (serverConnection != null) {
-        serverFramesBehind = serverConnection.keyFramesBehind() - 1;
+        serverFramesBehind = serverConnection.recipientFramesBehind();
       }
     }
 
@@ -457,66 +459,64 @@ class Network {
     }
     for (ConnectionWrapper connection in peer.connections.values) {
       debugStrings.add(
-          "${connection.id} FR:${connection.currentFrameRate()} ms:${connection.expectedLatency().inMilliseconds} by: ${connection.stats()} kf: ${connection.lastDeliveredKeyFrame}/${connection.currentKeyFrame()}");
+          "${connection.id} FR:${connection.currentFrameRate()} "
+              "ms:${connection.expectedLatency().inMilliseconds} by: "
+              "${connection.stats()} frames: ${connection.frameStats()}");
     }
     return debugStrings;
   }
 
-  void parseBundle(ConnectionWrapper connection, Map<String, dynamic> bundle) {
-    for (String networkId in bundle.keys) {
-      if (!SPECIAL_KEYS.contains(networkId)) {
-        int parsedNetworkId = int.parse(networkId);
-        List<dynamic> data = bundle[networkId];
-        if (data[0] & Sprite.FLAG_COMMANDER_DATA ==
-            Sprite.FLAG_COMMANDER_DATA) {
-          // parse as commander data update.
-          MovingSprite? sprite = world.spriteIndex[parsedNetworkId] as MovingSprite?;
-          if (sprite == null) {
-            log.warning("Commander data update for missing sprite $parsedNetworkId");
-            continue;
-          }
-          if (isCommander()) {
-            log.warning("Warning: Attempt to update local sprite ${sprite
-                .networkId} from network ${connection.id}.");
-            continue;
-          }
-          List data = bundle[networkId];
-          sprite.parseServerToOwnerData(data, 1);
-        } else {
-          // Parse as generic update.
-          SpriteConstructor constructor = SpriteConstructor.DO_NOT_CREATE;
-          // Only try and construct sprite if this is a full frame - we have all
-          // the data.
-          if (data[0] & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
-            constructor = SpriteConstructor.values[data[6]];
-          }
-          MovingSprite? sprite = _spriteIndex[parsedNetworkId] as MovingSprite?;
-          if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
-            sprite = _spriteIndex.CreateSpriteFromNetwork(
-                world, parsedNetworkId, constructor, connection, data);
-          }
-          if (sprite == null) {
-            log.fine("Sprite with id ${networkId} can't be created, constructor: ${constructor}");
-            continue;
-          }
-          intListToSpriteProperties(bundle[networkId], sprite!);
-          // Forward sprite to others.
-          if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
-            for (ConnectionWrapper receipientConnection
-                in safeActiveConnections().values) {
-              if (connection.id == receipientConnection.id) {
-                // Don't send back from where it came.
-                continue;
-              }
-              // Don't forward if we know there is a direct connection between these
-              // two peers already.
-              // TODO: Forward if latency is better this path?
-              if (!gameState.isConnected(
-                  connection.id, receipientConnection.id)) {
-                Map data = {networkId: bundle[networkId]};
-                peer.sendDataWithKeyFramesToAll(
-                    data, null, receipientConnection.id);
-              }
+  void parseBundle(ConnectionWrapper connection, GameStateUpdates data) {
+  for (SpriteUpdate update in data.spriteUpdates) {
+      if (update.flags & Sprite.FLAG_COMMANDER_DATA ==
+          Sprite.FLAG_COMMANDER_DATA) {
+        // parse as commander data update.
+        MovingSprite? sprite = world.spriteIndex[update.spriteId] as MovingSprite?;
+        if (sprite == null) {
+          log.warning("Commander data update for missing sprite ${update.spriteId}");
+          continue;
+        }
+        if (isCommander()) {
+          log.warning("Warning: Attempt to update local sprite ${sprite
+              .networkId} from network ${connection.id}.");
+          continue;
+        }
+        sprite.commanderToOwnerData(update.commanderToOwnerData);
+      } else {
+        // Parse as generic update.
+        SpriteConstructor constructor = SpriteConstructor.DO_NOT_CREATE;
+        // Only try and construct sprite if this is a full frame - we have all
+        // the data.
+        if (update.flags & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
+          constructor = SpriteConstructor.values[update.remoteRepresentation];
+        }
+        MovingSprite? sprite = _spriteIndex[update.spriteId] as MovingSprite?;
+        if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
+          sprite = _spriteIndex.CreateSpriteFromNetwork(
+              world, update.spriteId, constructor, connection, update);
+        }
+        if (sprite == null) {
+          log.fine("Sprite ${update.toDebugString()} can't be created, constructor: ${constructor}");
+          continue;
+        }
+        intListToSpriteProperties(update, sprite);
+        // Forward sprite to others.
+        if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
+          for (ConnectionWrapper receipientConnection
+              in safeActiveConnections().values) {
+            if (connection.id == receipientConnection.id) {
+              // Don't send back from where it came.
+              continue;
+            }
+            // Don't forward if we know there is a direct connection between these
+            // two peers already.
+            // TODO: Forward if latency is better this path?
+            if (!gameState.isConnected(
+                connection.id, receipientConnection.id)) {
+              GameStateUpdates g = GameStateUpdates()
+                ..spriteUpdates.add(update);
+              peer.sendDataWithKeyFramesToAll(
+                  g, null, receipientConnection.id);
             }
           }
         }
@@ -528,39 +528,42 @@ class Network {
     for (int networkId in _spriteIndex.spriteIds()) {
       Sprite sprite = _spriteIndex[networkId]!;
       if (sprite.networkType == NetworkType.LOCAL) {
-        List<dynamic> dataAsList = propertiesToIntList(sprite as MovingSprite, keyFrame);
-        allData[sprite.networkId.toString()] = dataAsList;
-      } else if (isCommander() && sprite.hasServerToOwnerData()) {
-        List dataAsList = [Sprite.FLAG_COMMANDER_DATA];
-        sprite.addServerToOwnerData(dataAsList);
-        allData[sprite.networkId.toString()] = dataAsList;
+        updates.spriteUpdates.add(
+            toSpriteUpdate(sprite as MovingSprite, keyFrame));
+      } else if (isCommander() && sprite.hasCommanderToOwnerData()) {
+        SpriteUpdate update = SpriteUpdate()
+          ..flags = Sprite.FLAG_COMMANDER_DATA
+          ..commanderToOwnerData = sprite.getCommanderToOwnerData();
+        updates.spriteUpdates.add(update);
       }
     }
-    if (removals.length > 0) {
-      allData[REMOVE_KEY] = removals;
+    for (int remove in removals) {
+      updates.stateUpdate.add(StateUpdate()
+        ..dataReceipt = Random().nextInt(1000000000)
+        ..spriteRemoval = remove);
     }
     if (!isCommander()) {
-      // For none commanders, send keystate.
-      allData[KEY_STATE_KEY] = _localKeyState.getEnabledState();
-      if (keyFrame) {
-        allData[FPS] = _drawFps.fps().toInt();
-      }
+      updates.stateUpdate.add(StateUpdate()
+        ..keyState = _localKeyState.toKeyStateProto());
     } else if (keyFrame || gameState.retrieveAndResetUrgentData()) {
-      // For commander, send GameState.
-      gameState.playerInfoByConnectionId(peer.id!)?.fps = _drawFps.fps().toInt();
-      allData[GAME_STATE] = gameState.toMap();
+      gameState
+          .playerInfoByConnectionId(peer.id!)
+          ?.fps = _drawFps.fps();
+      updates.stateUpdate.add(StateUpdate()
+        ..gameState = gameState.gameStateProto);
     }
     if (keyFrame) {
-      allData[CONNECTIONS_LIST] = [];
-      Map<String, ConnectionInfo> connections = {};
-      for (ConnectionWrapper wrapper in safeActiveConnections().values) {
-        ConnectionInfo info = new ConnectionInfo(
-            wrapper.id, wrapper.expectedLatency().inMilliseconds);
-        allData[CONNECTIONS_LIST].add([info.to, info.latencyMillis]);
-        connections[info.to] = info;
+      ClientStatusData clientData = ClientStatusData()
+        ..fps = _drawFps.fps();
+      for (ConnectionWrapper c in safeActiveConnections().values) {
+        clientData.connectionInfo.add(ConnectionInfoProto()
+          ..id = c.id
+          ..latencyMillis = c
+              .expectedLatency()
+              .inMilliseconds);
       }
-      PlayerInfo? info = gameState.playerInfoByConnectionId(peer.id!);
-      info?.connections = connections;
+      updates.stateUpdate.add(StateUpdate()
+        ..clientStatusData = clientData);
     }
   }
 }

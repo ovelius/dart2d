@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -51,7 +52,7 @@ class PeerWrapper {
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
-        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams));
+        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
     _connectionFactory.connectTo(connectionWrapper, this.id!, id);
     connections[id] = connectionWrapper;
     return connectionWrapper;
@@ -146,14 +147,13 @@ class PeerWrapper {
    */
   ConnectionWrapper _createWrapper(String otherPeerId) {
     _gaReporter.reportEvent("connection_received", "Connection");
-    assert(otherPeerId != null);
     log.info("Got connection from ${otherPeerId}");
     _hudMessages.display("Got connection from ${otherPeerId}");
     if (connections.containsKey(otherPeerId)) {
       log.warning("Already a connection to ${otherPeerId}!");
     }
     ConnectionWrapper wrapper = new ConnectionWrapper(_network, _hudMessages,
-        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams));
+        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
     if (!_network.isCommander()
         && _network.gameState.playerInfoByConnectionId(otherPeerId) != null) {
       wrapper.markAsClientToClientConnection();
@@ -163,8 +163,6 @@ class PeerWrapper {
 
   void tickConnections(double duration, List<int> removals) {
     List<String> closedConnections = [];
-    Map frameData = {};
-    Map keyFrameData = {};
     for (String key in connections.keys) {
       ConnectionWrapper? connection = connections[key];
       if (connection == null) {
@@ -178,7 +176,7 @@ class PeerWrapper {
       if (!connection.isActiveConnection()) {
         continue;
       }
-      connection.tick(duration, frameData, keyFrameData, removals);
+      connection.tick(duration, removals);
     }
     if (closedConnections.length > 0) {
       for (String id in closedConnections) {
@@ -248,7 +246,7 @@ class PeerWrapper {
         // We got elected the new server, first task is to remove the old.
         if (commanderId == this.id) {
           log.info("Server ${this.id}: Removing GameState for ${id}");
-          PlayerInfo? info = _network.gameState.removeByConnectionId(_network.world, id);
+          PlayerInfoProto? info = _network.gameState.removeByConnectionId(_network.world, id);
           if (info != null) {
             _network.convertToCommander(connectionsCopy, info);
             _network.gameState.markAsUrgent();
@@ -256,7 +254,7 @@ class PeerWrapper {
         } else {
           PlayerInfoProto info = _network.gameState.playerInfoByConnectionId(commanderId)!;
           // Start treating the other peer as server.
-          _network.gameState.actingCommanderId = commanderId;
+          _network.gameState.gameStateProto.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
           _hudMessages.display("Elected new commander ${info.name}");
         }

@@ -71,21 +71,19 @@ class SpriteIndex {
    * Creates a sprite we got to know over the network.
    */
   MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
-      SpriteConstructor constructor, ConnectionWrapper wrapper, List<dynamic> data) {
+      SpriteConstructor constructor, ConnectionWrapper wrapper, SpriteUpdate data) {
     MovingSprite sprite =
         SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
-    if (sprite != null) {
-      if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
-        world.adjustPlayerSprite(sprite as LocalPlayerSprite, data[8]);
-      }
-      sprite.networkType = NetworkType.REMOTE;
-      sprite.networkId = networkId;
-      // This might not be 100% accurate, since onwer might be:
-      // Client -> Server -> Client.
-      // But if that is the case it will be updated when we parse the GameState.
-      sprite.ownerId = wrapper.id;
-      addSprite(sprite);
+    if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
+      world.adjustPlayerSprite(sprite as LocalPlayerSprite, data[8]);
     }
+    sprite.networkType = NetworkType.REMOTE;
+    sprite.networkId = networkId;
+    // This might not be 100% accurate, since onwer might be:
+    // Client -> Server -> Client.
+    // But if that is the case it will be updated when we parse the GameState.
+    sprite.ownerId = wrapper.id;
+    addSprite(sprite);
     return sprite;
   }
 

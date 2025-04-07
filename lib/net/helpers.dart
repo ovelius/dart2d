@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
@@ -9,16 +10,6 @@ import 'dart:core';
 
 @Singleton(scope: 'world')
 class PacketListenerBindings {
-  static final Set<String> IgnoreListeners = new Set.from([
-    IS_KEY_FRAME_KEY,
-    KEY_FRAME_KEY,
-    DATA_RECEIPTS,
-    CONTAINED_DATA_RECEIPTS,
-    PING,
-    PONG,
-    KEY_FRAME_DELAY,
-  ]);
-
   Map<StateUpdate_Update, List<dynamic>> _handlers = {};
 
   bindHandler(StateUpdate_Update key, dynamic handler) {
@@ -52,10 +43,11 @@ class ConnectionStats {
   // The monitored latency of the connection.
   Duration latency = OPEN_TIMEOUT;
 
-  DateTime lastSendTime = new DateTime.now();
-  DateTime lastReceiveTime = new DateTime.now();
+  Clock _clock;
+  DateTime lastSendTime = clock.now();
+  DateTime lastReceiveTime = clock.now();
 
-  ConnectionStats() {
+  ConnectionStats(this._clock) {
     _connectionOpenTimer.start();
   }
 
@@ -88,62 +80,25 @@ class ConnectionStats {
 class ReliableHelper {
   // How many items the reliable buffer can contain before we consider the connection dead.
   static const int MAX_RELIABLE_BUFFER_SIZE = 160;
+  // Storage of our reliable data.
+  Map<int, StateUpdate> reliableDataBuffer = {};
+
   PacketListenerBindings _packetListenerBindings;
-  // Storage of our reliable key data.
-  Map reliableDataBuffer = {};
-  // Reliable verifications.
-  List<StateUpdate> reliableDataToVerify = [];
 
   ReliableHelper(this._packetListenerBindings) {
-    _packetListenerBindings.bindHandler(CONTAINED_DATA_RECEIPTS, (ConnectionWrapper c, List<dynamic> data) {
-      reliableDataToVerify.addAll(data);
-    });
-    _packetListenerBindings.bindHandler(DATA_RECEIPTS, (ConnectionWrapper c, List<dynamic> data) {
-      for (int receipt in data) {
-        reliableDataBuffer.remove(receipt);
-      }
+    _packetListenerBindings.bindHandler(StateUpdate_Update.ackedDataReceipts, (StateUpdate update) {
+       reliableDataBuffer.remove(update.ackedDataReceipts);
     });
   }
 
   bool reliableBufferOverFlow() => reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE;
 
   /**
-   * Append any previously received data receipts before sending.
-   */
-  void updateWithDataReceipts(GameStateUpdates data) {
-    if (reliableDataToVerify.isNotEmpty) {
-      data.ackedDataReceipts.add(reliableDataToVerify)
-      reliableDataToVerify = [];
-    }
-  }
-
-  /**
    * Maybe add reliable data that needs to be resent.
    */
   void alsoSendWithStoredData(GameStateUpdates data) {
-    storeAwayReliableData(dataMap);
-    for (int hash in new List.from(reliableDataBuffer.keys)) {
-      List tuple = reliableDataBuffer[hash];
-      String reliableKey = tuple[0];
-      // There is more data of the same type. Merge.
-      if (dataMap.containsKey(reliableKey)) {
-        // Merge data with previously saved data for this key.
-        dynamic mergeFunction = RELIABLE_KEYS[reliableKey];
-        dataMap[reliableKey] = mergeFunction(dataMap[reliableKey], tuple[1]);
-        _addContainedReceipt(dataMap, hash);
-      } else {
-        dataMap[reliableKey] = tuple[1];
-        _addContainedReceipt(dataMap, hash);
-      }
-    }
-  }
-
-  void _addContainedReceipt(Map dataMap, int receipt) {
-    if (dataMap[CONTAINED_DATA_RECEIPTS] == null) {
-      dataMap[CONTAINED_DATA_RECEIPTS] = [];
-    }
-    if (!dataMap[CONTAINED_DATA_RECEIPTS].contains(receipt)) {
-      dataMap[CONTAINED_DATA_RECEIPTS].add(receipt);
+    for (StateUpdate reliableUpdate in reliableDataBuffer.values) {
+      data.stateUpdate.add(reliableUpdate);
     }
   }
 
@@ -151,12 +106,9 @@ class ReliableHelper {
    * Take data considered reliable and store away in case we need to resend.
    */
   void storeAwayReliableData(GameStateUpdates dataMap) {
-    for (String reliableKey in RELIABLE_KEYS.keys) {
-      if (dataMap.containsKey(reliableKey)) {
-        Object data = dataMap[reliableKey];
-        int jsonHash = jsonEncode(data).hashCode;
-        reliableDataBuffer[jsonHash] = [reliableKey, data];
-        _addContainedReceipt(dataMap, jsonHash);
+    for (StateUpdate stateUpdate in dataMap.stateUpdate) {
+      if (stateUpdate.hasDataReceipt()) {
+        reliableDataBuffer[stateUpdate.dataReceipt] = stateUpdate;
       }
     }
   }
@@ -198,7 +150,7 @@ class ConnectionFrameHandler {
   /**
    * Maybe adjust connection framerate.
    */
-  reportConnectionMetrics(int framesBehind, int latencyMillis) {
+  reportFramesBehind(int framesBehind, int latencyMillis) {
     // Being 0 or 1 keyframes behind is quite normal.
     if (framesBehind <= 1) {
       _stableFrames++;

@@ -238,19 +238,19 @@ class Sprite {
    * If the below methods should be inspected for data.
    */
 
-  bool hasServerToOwnerData() => false;
+  bool hasCommanderToOwnerData() => false;
   /**
    * Data flowing the other way, from Server to the sprite owner.
    */
-  void addServerToOwnerData(List data) {
+  ExtraSpriteData getCommanderToOwnerData() {
     throw new StateError("Needs implementation!");
   }
 
   /**
    * Parse the above data.
    */
-  bool parseServerToOwnerData(List data, int startAt) {
-    throw new StateError("${runtimeType} needs implementation of parseServerToOwnerData!");
+  bool commanderToOwnerData(ExtraSpriteData data) {
+    throw new StateError("${runtimeType} needs implementation of commanderToOwner!");
   }
 
   int extraSendFlags() {
