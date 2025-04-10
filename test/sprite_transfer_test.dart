@@ -21,7 +21,6 @@ void main() {
     testPeers.clear();
     logConnectionData = false;
     Logger.root.level = Level.INFO;
-    remapKeyNamesForTest();
   });
 
 
@@ -183,11 +182,7 @@ void main() {
           hasSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.LOCAL),
       ]));
-      
-      expect(recentReceviedDataFrom("b", 1),
-          new MapKeyMatcher.doesNotContain(REMOVE_KEY));
-      expect(recentReceviedDataFrom("c", 1),
-          new MapKeyMatcher.doesNotContain(REMOVE_KEY));
+
     }, skip: "Disabled");
 
     /*

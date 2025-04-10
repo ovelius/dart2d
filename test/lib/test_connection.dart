@@ -11,12 +11,12 @@ import 'test_mocks.mocks.dart';
 import 'test_peer.dart';
 import 'dart:convert';
 
-recentSentDataTo(id) {
-  return testConnections[id]![0].recentDataSent;
+GameStateUpdates recentSentDataTo(id) {
+  return GameStateUpdates.fromBuffer(testConnections[id]![0].recentDataSent!);
 }
 
-recentReceviedDataFrom(id, [int index = 0]) {
-  return testConnections[id]![index].recentDataRecevied;
+GameStateUpdates recentReceviedDataFrom(id, [int index = 0]) {
+  return GameStateUpdates.fromBuffer(testConnections[id]![index].recentDataRecevied!);
 }
 
 
@@ -89,29 +89,43 @@ class TestConnection {
 
   void close() {
     closed = true;
+    // Other ends also gets closed.
+    _otherEnd?.close();
   }
 
-  sendAndReceivByOtherPeer(List<int> jsonString) {
+  sendAndReceivByOtherPeer(List<int> data) {
+    GameStateUpdates update = GameStateUpdates.fromBuffer(data);
+    for (StateUpdate update in update.stateUpdate) {
+      if (update.whichUpdate() == StateUpdate_Update.notSet) {
+        throw "Missing update type in $update!";
+      }
+    }
     if (closed) {
       throw new StateError("TestConnection is closed, can't send!");
     }
     bool drop = dropPacketsAfter <=0;
     dropPacketsAfter--;
     if (logConnectionData) {
-      print("Data ${drop ? "DROPPED" : ""} ${_otherEnd} -> ${id}: ${jsonString}");
+      print("Data ${drop ? "DROPPED" : ""} ${_otherEnd} -> ${id}: ${update.toDebugString()}");
     }
     if (_otherEnd?.internalWrapper == null) {
       throw "No connection wrapper at other end, can't send data!";
     }
     if (!drop) {
-      recentDataSent = jsonString;
-      _otherEnd?.recentDataRecevied = jsonString;
+      recentDataSent = data;
+      _otherEnd?.recentDataRecevied = data;
       _otherEnd?.dataReceivedCount++;
-      _otherEnd?.internalWrapper?.receiveData(jsonString);
+      _otherEnd?.internalWrapper?.receiveData(data);
     }
   }
 
   send(List<int> data) {
+    GameStateUpdates update = GameStateUpdates.fromBuffer(data);
+    for (StateUpdate update in update.stateUpdate) {
+      if (update.whichUpdate() == StateUpdate_Update.notSet) {
+        throw "Missing update type in $update!";
+      }
+    }
     if (buffer) {
       dataBuffer.add(data);
     } else {

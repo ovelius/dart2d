@@ -50,7 +50,6 @@ class Powerup extends MovingSprite {
   };
 
   late PowerUpType _type;
-  double _blink = BLINK_TIME;
 
   Powerup(Vec2 position, PowerUpType type, ImageIndex imageIndex) :
         super.imageBasedSprite(position, imageIndex.getImageIdByName(_IMAGES[type]!), imageIndex) {

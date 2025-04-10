@@ -412,7 +412,7 @@ class WormWorld extends World {
     spriteIndex.spriteNetworkId = spriteId;
     PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(network().peer.id!);
     if (info == null) {
-      throw "Self gamestate data is missing!";
+      throw "Self gamestate data is missing id: ${_network.peer.id}!";
     }
     network().gameState.updateWithLocalKeyState(network().peer.id!, localKeyState);
     playerSprite = new LocalPlayerSprite(

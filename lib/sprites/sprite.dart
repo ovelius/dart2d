@@ -250,7 +250,7 @@ class Sprite {
    * Parse the above data.
    */
   bool commanderToOwnerData(ExtraSpriteData data) {
-    throw new StateError("${runtimeType} needs implementation of commanderToOwner!");
+    throw new StateError("${runtimeType} needs implementation of commanderToOwnerData!");
   }
 
   int extraSendFlags() {

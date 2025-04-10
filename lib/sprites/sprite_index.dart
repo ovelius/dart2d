@@ -55,7 +55,7 @@ class SpriteIndex {
             new Hyper(world, 0.0, 0.0, 0, world.imageIndex()),
   };
 
-  static MovingSprite fromWorldByIndex(WormWorld world, int spriteId,
+  static MovingSprite? fromWorldByIndex(WormWorld world, int spriteId,
       String connectionId, SpriteConstructor constructor) {
     if (!_spriteConstructors.containsKey(constructor)) {
       throw new ArgumentError("No such Spriteconstructor mapped $constructor");
@@ -66,10 +66,13 @@ class SpriteIndex {
   /**
    * Creates a sprite we got to know over the network.
    */
-  MovingSprite CreateSpriteFromNetwork(WormWorld world, int networkId,
+  MovingSprite? CreateSpriteFromNetwork(WormWorld world, int networkId,
       SpriteConstructor constructor, ConnectionWrapper wrapper, SpriteUpdate data) {
-    MovingSprite sprite =
+    MovingSprite? sprite =
         SpriteIndex.fromWorldByIndex(world, networkId, wrapper.id, constructor);
+    if (sprite == null) {
+      return null;
+    }
     if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
       world.adjustPlayerSprite(sprite as LocalPlayerSprite, data.imageId);
     }

@@ -17,6 +17,7 @@ class ConnectionWrapper {
   final Logger log = new Logger('Connection');
   // Close connection due to inactivity.
   static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
+  static const Duration KEEP_ALIVE_DURATION = Duration(seconds: 2);
 
   Network _network;
   ConfigParams _configParams;
@@ -180,12 +181,12 @@ class ConnectionWrapper {
   Random r = new Random();
 
   void receiveData(rawData) {
-    _lastDataReceiveTime = DateTime.now();
     if (_ingressLimit?.removeTokens(rawData.length) == true) {
       log.fine("Dropping due to ingress bandwidth limitation");
       return;
     }
     DateTime now = _clock.now();
+    _lastDataReceiveTime = now;
     _connectionStats.lastReceiveTime = now;
     _connectionStats.rxBytes += rawData.length as int;
     GameStateUpdates dataMap = GameStateUpdates.fromBuffer(rawData);
@@ -194,7 +195,7 @@ class ConnectionWrapper {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${dataMap.toDebugString()}");
     }
     // Tickle connection with some data in case it's about to go cold.
-    if (_connectionStats.keepAlive()) {
+    if (lastDataReceived() > KEEP_ALIVE_DURATION) {
       sendPing();
     }
 
@@ -245,11 +246,14 @@ class ConnectionWrapper {
           try {
             handler(this, update);
           } catch (e) {
-            log.severe("Error handling data ${update.toDebugString()}, error: $e");
+            log.severe("Error handling type ${updateType} data ${update.toDebugString()}, error: $e");
+            if (THROW_SEND_ERRORS_FOR_TEST) {
+              throw e;
+            }
           }
         }
       } else {
-        throw new ArgumentError("No bound network listener for ${updateType} data: ${update.toDebugString()}");
+        throw new ArgumentError("No bound network listener for ${updateType} data: ${dataMap.toDebugString()}");
       }
     }
 
@@ -280,7 +284,7 @@ class ConnectionWrapper {
     if (lastDataReceived() > LAST_RECEIVE_DATA_CLOSE_DURATION) {
       log.warning(
           "Connection to $id closed due to inactivity, last active ${lastDataReceived()} dropping");
-      close("Not responding");
+      // close("Not responding");
       return;
     }
   }
@@ -314,6 +318,7 @@ class ConnectionWrapper {
   }
 
   void sendSingleUpdate(StateUpdate singleUpdate) {
+    assert(singleUpdate.whichUpdate() != StateUpdate_Update.notSet);
     GameStateUpdates g = GameStateUpdates();
     g.stateUpdate.add(singleUpdate);
     sendData(g);
@@ -357,6 +362,7 @@ class ConnectionWrapper {
       return;
     }
     _connectionStats.txBytes += dataBytes.length;
+
     try {
       if (Logger.root.isLoggable(Level.FINE)) {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
@@ -365,7 +371,8 @@ class ConnectionWrapper {
       _sendFailures = 0;
     } catch (e, _) {
       if (THROW_SEND_ERRORS_FOR_TEST) {
-        throw "Failed to send data ${this._network.peer.id} -> ${this.id} ${data.toDebugString()} \nerror: $e";
+        log.severe("Error sending ${data}!");
+        throw e;
       }
       if (++_sendFailures > 2) {
         log.severe("Failed to send to $id: $e, closing connection");
@@ -385,7 +392,7 @@ class ConnectionWrapper {
   }
 
   Duration lastDataReceived() {
-    return Duration(milliseconds: DateTime
+    return Duration(milliseconds: _clock
         .now()
         .millisecondsSinceEpoch - _lastDataReceiveTime.millisecondsSinceEpoch);
   }

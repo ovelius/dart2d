@@ -90,7 +90,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.gun = _createGun(imageIndex);
     this._shield = _createShield(imageIndex);
     this.weaponState =
-        new WeaponState(world, world.network().gameState.getKeyStateFor(info.connectionId)!, this, this.gun);
+        new WeaponState(world, /*world.network().gameState.getKeyStateFor(info.connectionId)!, */ this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState?.nextWeapon();
     });
@@ -562,7 +562,11 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   KeyState getKeyState() {
-    return world.network().gameState.getKeyStateFor(info.connectionId)!;
+    KeyState? keyState = world.network().getGameState().getKeyStateFor(info.connectionId);
+    if (keyState == null) {
+      throw "No keystate for ${info.connectionId} in world ${world}";
+    }
+    return keyState;
   }
 
   bool listenFor(String key, dynamic f) {

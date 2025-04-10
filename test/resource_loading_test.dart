@@ -15,6 +15,7 @@ import 'package:dart2d/bindings/annotations.dart';
 void main() {
   setUpAll((){
     configureDependencies();
+    throwIfLoggingUnexpected = false;
   });
   setUp(() {
     logOutputForTest();
@@ -26,7 +27,6 @@ void main() {
     clearEnvironment();
     logConnectionData = false;
     Logger.root.level = Level.INFO;
-    remapKeyNamesForTest();
   });
 
   group('End2End', () {

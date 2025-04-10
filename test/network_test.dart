@@ -1,4 +1,5 @@
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
@@ -11,7 +12,7 @@ import 'lib/test_mocks.mocks.dart';
 
 class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   Vec2 size = new Vec2(1, 1);
-  PlayerInfo info = new PlayerInfo('a', 'a', 123);
+  PlayerInfoProto info = PlayerInfoProtoProto('a', 'a', 123);
 }
 
 class FakeConnectionFactory extends ConnectionFactory {
@@ -62,7 +63,6 @@ void main() {
   setUp(() {
     logOutputForTest();
     clearEnvironment();
-    remapKeyNamesForTest();
     mockHudMessages = new MockHudMessages();
     mockImageIndex = new MockImageIndex();
     mockSpriteIndex = new MockSpriteIndex();
@@ -79,7 +79,6 @@ void main() {
     channelC.sendOpenMessage();
     when(mockSpriteIndex.spriteIds()).thenReturn([]);
     when(mockKeyState.getEnabledState()).thenReturn(FAKE_ENABLED_KEYS);
-    remapKeyNamesForTest();
 
     fakeConnectionFactory = new FakeConnectionFactory();
     network = new Network(
@@ -199,7 +198,7 @@ void main() {
 
     // We got a gamestate with commanderId set.
     // TODO set more!
-    network.gameState.actingCommanderId = '0';
+    network.gameState.gameStateProto.actingCommanderId = '0';
     // And we now have a server connection.
     expect(network.getServerConnection(), isNotNull);
 
@@ -225,7 +224,7 @@ void main() {
       }
     }
 
-    network.gameState.addPlayerInfo(new PlayerInfo('Name c', 'c', -1));
+    network.gameState.addPlayerInfo(PlayerInfoProto('Name c', 'c', -1));
     network.setAsActingCommander();
     expect(network.isCommander(), isTrue);
 
@@ -244,8 +243,8 @@ void main() {
     expect(network.slowCommandingFrames(), 1);
 
     // Player1 is no a suitable candidate.
-    PlayerInfo player1Info = new PlayerInfo('Name 1', '1', -1);
-    PlayerInfo player3Info = new PlayerInfo('Name 3', '3', -1);
+    PlayerInfoProto player1Info = PlayerInfoProtoProto('Name 1', '1', -1);
+    PlayerInfoProto player3Info = PlayerInfoProtoProto('Name 3', '3', -1);
     player1Info.fps = 2;
     player3Info.fps = 10;
     network.gameState..addPlayerInfo(player1Info)..addPlayerInfo(player3Info);
@@ -312,9 +311,9 @@ void main() {
     when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
 
     network.gameState.actingCommanderId = 'b';
-    network.gameState.addPlayerInfo(new PlayerInfo("testC", "b", 1));
-    network.gameState.addPlayerInfo(new PlayerInfo("testB", "d", 2));
-    network.gameState.addPlayerInfo(new PlayerInfo("testB", "c", 3));
+    network.gameState.addPlayerInfo(PlayerInfoProto("testC", "b", 1));
+    network.gameState.addPlayerInfo(PlayerInfoProto("testB", "d", 2));
+    network.gameState.addPlayerInfo(PlayerInfoProto("testB", "c", 3));
 
     expect(network.getServerConnection(), isNotNull);
     network.getServerConnection()!.setHandshakeReceived();
@@ -343,8 +342,8 @@ void main() {
     network.peer.connectTo('b');
     network.peer.connectTo('d');
 
-    network.gameState.actingCommanderId = 'c';
-    gameState.addPlayerInfo(new PlayerInfo("testC", "c", 1));
+    network.gameState.gameStateProto.actingCommanderId = 'c';
+    gameState.addPlayerInfo(PlayerInfoProto("testC", "c", 1));
     expect(network.isCommander(), isTrue);
 
     for (ConnectionWrapper connection
@@ -405,8 +404,8 @@ void main() {
 
     frame(0.1);
 
-    gameState.addPlayerInfo(new PlayerInfo("testB", "b", sprite.networkId!));
-    PlayerInfo bInfo = gameState.playerInfoByConnectionId('b')!;
+    gameState.addPlayerInfo(PlayerInfoProto("testB", "b", sprite.networkId!));
+    PlayerInfoProto bInfo = gameState.playerInfoByConnectionId('b')!;
     bInfo.connections = {'d': new ConnectionInfo('d', 100)};
 
     expect(gameState.isConnected('b', 'd'), isTrue);
@@ -439,8 +438,8 @@ void main() {
 
     network.gameState.actingCommanderId = 'b';
     expect(network.isCommander(), isFalse);
-    network.gameState.addPlayerInfo(new PlayerInfo("testC", "c", 1));
-    network.gameState.addPlayerInfo(new PlayerInfo("testB", "b", 2));
+    network.gameState.addPlayerInfo(PlayerInfoProto("testC", "c", 1));
+    network.gameState.addPlayerInfo(PlayerInfoProto("testB", "b", 2));
 
     expect(network.isCommander(), isFalse);
     expect(network.getServerConnection()!.isValidGameConnection(), isTrue);
@@ -535,7 +534,7 @@ void main() {
 
     // Respond with a Pong - this is the server.
     GameState g = new GameState(packetListenerBindings, MockSpriteIndex());
-    g.actingCommanderId = '0';
+    g.gameStateProto.actingCommanderId = '0';
     fakeConnectionFactory.connections['c']!['0']!
         .getOtherEnd()!
         .sendAndReceivByOtherPeerNativeObject({

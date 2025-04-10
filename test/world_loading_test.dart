@@ -22,7 +22,6 @@ void main() {
     clearEnvironment();
     logConnectionData = false;
     Logger.root.level = Level.INFO;
-    remapKeyNamesForTest();
   });
 
   void frameDraws(WormWorld w) {

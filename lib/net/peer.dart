@@ -243,7 +243,7 @@ class PeerWrapper {
     } else {
       String? commanderId = _network.findNewCommander(connectionsCopy);
       if (commanderId != null) {
-        // We got elected the new server, first task is to remove the old.
+        // We got elected the new commander, first task is to remove the old.
         if (commanderId == this.id) {
           log.info("Server ${this.id}: Removing GameState for ${id}");
           PlayerInfoProto? info = _network.gameState.removeByConnectionId(_network.world, id);

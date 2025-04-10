@@ -21,13 +21,17 @@ void main() {
     mockNetwork = new MockNetwork();
     mockCommanderNetwork = new MockNetwork();
 
+    MockGameState gameState = MockGameState();
+    when(gameState.getKeyStateFor(any)).thenReturn(KeyState.remote());
     mockWormWorld = new MockWormWorld();
     when(mockWormWorld.network()).thenReturn(mockNetwork);
     mockCommanderWormWorld = new MockWormWorld();
+    when(mockCommanderNetwork.getGameState()).thenReturn(gameState);
     when(mockCommanderWormWorld.network()).thenReturn(mockCommanderNetwork);
 
     mockImageIndex = new MockImageIndex();
     when(mockNetwork.isCommander()).thenReturn(false);
+    when(mockNetwork.getGameState()).thenReturn(gameState);
     when(mockCommanderNetwork.isCommander()).thenReturn(true);
     when(mockImageIndex.getImageById(2)).thenReturn(new FakeImage());
     when(mockImageIndex.getImageById(3)).thenReturn(new FakeImage());

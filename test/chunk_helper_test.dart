@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:clock/clock.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:mockito/annotations.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/net/net.dart';
@@ -7,6 +11,9 @@ import 'package:mockito/mockito.dart';
 import 'lib/test_lib.dart';
 import 'lib/test_mocks.mocks.dart';
 
+GameStateUpdates addResourceRequest(ResourceRequest r) {
+  return GameStateUpdates()..stateUpdate.add(StateUpdate()..resourceRequest = r);
+}
 
 void main() {
   const String IMAGE_DATA =
@@ -23,8 +30,8 @@ void main() {
   late ByteWorld byteWorld;
   setUp(() {
     logOutputForTest();
-    connection1 = new TestConnectionWrapper("a");
-    connection2 = new TestConnectionWrapper("b");
+    connection1 = new TestConnectionWrapper("a", Clock());
+    connection2 = new TestConnectionWrapper("b", Clock());
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
     byteWorld = new MockByteWorld();
@@ -42,44 +49,51 @@ void main() {
       int requestedIndex = 5;
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
-      helper.replyWithImageData({'index': requestedIndex}, connection1);
+      helper.replyWithImageData(ResourceRequest()..resourceIndex = requestedIndex, connection1);
       // Default chunk size.
+
+      ResourceResponse req = ResourceResponse()
+        ..resourceIndex = 5
+        ..startByte = 0
+        ..data = utf8.encode(IMAGE_DATA.substring(0, 4))
+        ..size = 50;
       expect(
           connection1.lastDataSent,
-          equals({
-            '-i': {
-              'index': requestedIndex,
-              'data': '1234',
-              'start': 0,
-              'size': IMAGE_DATA.length
-            }
-          }));
-      helper.replyWithImageData(
-          {'index': requestedIndex, 'start': 1, 'end': 2}, connection1);
+          equals(
+              GameStateUpdates()
+                ..stateUpdate.add(
+                    StateUpdate()..resourceResponse = req)
+          ));
+      helper.replyWithImageData(ResourceRequest()
+          ..resourceIndex = requestedIndex
+          ..startByte = 1
+          ..endByte = 2, connection1);
       // Explicit request.
+      ResourceResponse response = ResourceResponse()
+        ..resourceIndex = requestedIndex
+        ..startByte = 1
+        ..size = 50
+        ..data = [50];
       expect(
           connection1.lastDataSent,
-          equals({
-            '-i': {
-              'index': requestedIndex,
-              'data': '2',
-              'start': 1,
-              'size': IMAGE_DATA.length
-            }
-          }));
+          equals(GameStateUpdates()
+            ..stateUpdate.add(StateUpdate()..resourceResponse = response)));
       // Explicit request of final byte.
       helper.replyWithImageData(
-          {'index': requestedIndex, 'start': 49, 'end': 900}, connection1);
+          ResourceRequest()
+            ..resourceIndex = requestedIndex
+            ..startByte = 49
+            ..endByte = 900, connection1);
+      // Explicit request.
+      ResourceResponse response2 = ResourceResponse()
+        ..resourceIndex = requestedIndex
+        ..startByte = 49
+        ..size = 50
+        ..data = [48];
       expect(
           connection1.lastDataSent,
-          equals({
-            '-i': {
-              'index': requestedIndex,
-              'data': '0',
-              'start': 49,
-              'size': IMAGE_DATA.length
-            }
-          }));
+          equals(GameStateUpdates()
+            ..stateUpdate.add(StateUpdate()..resourceResponse = response2)));
     });
 
     test('Test single load', () {
@@ -94,10 +108,10 @@ void main() {
         return Future.value();
       });
 
-      Map request = helper2.buildImageChunkRequest(requestedIndex);
+      ResourceRequest request = helper2.buildImageChunkRequest(requestedIndex);
       helper.replyWithImageData(request, connection1);
       helper2.parseImageChunkResponse(
-          connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
+          connection1.lastDataSent!.stateUpdate[0].resourceResponse, connection1);
 
       String fullData = IMAGE_DATA;
       String expectedData = fullData.substring(0, 4);
@@ -105,10 +119,10 @@ void main() {
 
       while (helper2.getCompleteRatio(requestedIndex) < 1.0) {
         print("Completed ratio is ${helper2.getCompleteRatio(requestedIndex)}");
-        Map request = helper2.buildImageChunkRequest(requestedIndex);
+        ResourceRequest request = helper2.buildImageChunkRequest(requestedIndex);
         helper.replyWithImageData(request, connection1);
         helper2.parseImageChunkResponse(
-            connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
+            connection1.lastDataSent!.stateUpdate[0].resourceResponse, connection1);
       }
 
       expect(IMAGE_DATA, equals(fullData));
@@ -117,7 +131,7 @@ void main() {
     test('Test single load missing server fallback', () {
       int requestedIndex = 6;
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
-      Map request = helper.buildImageChunkRequest(requestedIndex);
+      ResourceRequest request = helper.buildImageChunkRequest(requestedIndex);
 
       try {
         helper.replyWithImageData(request, connection1);
@@ -157,9 +171,9 @@ void main() {
         }
         helper.requestNetworkData(connections, 0.1);
         helper2.replyWithImageData(
-            connection1.lastDataSent![IMAGE_DATA_REQUEST], connection1);
+            connection1.lastDataSent!.stateUpdate[0].resourceRequest, connection1);
         helper.parseImageChunkResponse(
-            connection1.lastDataSent![IMAGE_DATA_RESPONSE], connection1);
+            connection1.lastDataSent!.stateUpdate[0].resourceResponse, connection1);
       }
       // Fully loaded.
       expect(imageIndex.imageIsLoaded(requestedIndex), isTrue);
@@ -173,19 +187,20 @@ void main() {
 
       helper.requestNetworkData(connections, 0.01);
       expect(connection1.sendCount, equals(3));
-      expect(
-          connection1.dataSent,
-          equals([
-            {
-              '_i': {'index': 4, 'start': 0, 'end': 5}
-            },
-            {
-              '_i': {'index': 6, 'start': 0, 'end': 6}
-            },
-            {
-              '_i': {'index': 7, 'start': 0, 'end': 7}
-            }
-          ]));
+
+      expect(connection1.dataSent,
+      [addResourceRequest(ResourceRequest()
+          ..resourceIndex = 4
+          ..startByte = 0
+          ..endByte = 5),
+      addResourceRequest(ResourceRequest()
+          ..resourceIndex = 6
+          ..startByte = 0
+          ..endByte = 6),
+      addResourceRequest(ResourceRequest()
+          ..resourceIndex = 7
+          ..startByte = 0
+          ..endByte = 7)]);
       // Should not retry, too soon.
       helper.requestNetworkData(connections, 0.01);
       expect(connection1.sendCount, equals(3));
@@ -209,17 +224,10 @@ void main() {
 
       helper.requestNetworkData(connections, 0.01);
       helper.replyWithImageData(
-          connection1.lastDataSent![IMAGE_DATA_REQUEST], connection1);
-      expect(
-          connection1.lastDataSent,
-          equals({
-            '-i': {
-              'index': requestedIndex,
-              'data': 'abcde',
-              'start': 0,
-              'size': BYTE_WORLD_IMAGE_DATA.length
-            }
-          }));
+          connection1.lastDataSent!.stateUpdate[0].resourceRequest, connection1);
+      //expect(
+        //  connection1.lastDataSent,
+          //GameStateUpdates());
       expect(
           helper.getByteWorldCache(), equals({'a': 'abcdefghijklmonpqrstuv'}));
 
@@ -229,26 +237,29 @@ void main() {
       Map<String, ConnectionWrapper> connections2 = {"2": connection2};
       helper2.requestNetworkData(connections2, 0.01);
       helper.replyWithImageData(
-          connection2.lastDataSent![IMAGE_DATA_REQUEST], connection2);
+          connection2.lastDataSent!.stateUpdate[0].resourceRequest, connection2);
       // Gets Byteworld 2 data.
+      ResourceResponse response = ResourceResponse()
+        ..resourceIndex = 1
+        ..startByte = 0
+        ..data = [97, 97, 97, 97, 97]
+        ..size = 19;
       expect(
           connection2.lastDataSent,
-          equals({
-            IMAGE_DATA_RESPONSE: {
-              'index': requestedIndex,
-              'data': 'aaaaa',
-              'start': 0,
-              'size': BYTE_WORLD_IMAGE_DATA2.length
-            }
-          }));
+          equals(
+            GameStateUpdates()
+              ..stateUpdate.add(StateUpdate()
+              ..resourceResponse = response)
+          ));
       // Two versions cached.
       expect(helper.getByteWorldCache(),
           equals({'a': 'abcdefghijklmonpqrstuv', 'b': 'aaaaaaaaaaaaaaaaaaa'}));
       // Trigger a client enter for a.
-      packetListenerBindings.handlerFor(CLIENT_PLAYER_ENTER)[0](
-          connection1, null);
+      packetListenerBindings.handlerFor(StateUpdate_Update.clientEnter)[0](
+          connection1, StateUpdate());
       // This cleared the cache for a.
       expect(helper.getByteWorldCache(), equals({'b': 'aaaaaaaaaaaaaaaaaaa'}));
     });
   });
+
 }

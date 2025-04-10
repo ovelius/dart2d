@@ -14,7 +14,7 @@ class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = .9;
   WormWorld world;
-  KeyState keyState;
+  //KeyState keyState;
   LocalPlayerSprite owner;
   Sprite gun;
   
@@ -26,7 +26,7 @@ class WeaponState {
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
 
 
-  WeaponState(this.world, this.keyState, this.owner, this.gun) {
+  WeaponState(this.world, this.owner, this.gun) {
     for (Weapon w in weapons) {
       if (w.name.length > _longestWeaponName.length) {
         _longestWeaponName = w.name;

@@ -27,7 +27,6 @@ class GameState {
 
   GameStateProto _gameStateProto = GameStateProto();
   GameStateProto get gameStateProto => _gameStateProto;
-  void set gameStateProto(GameStateProto p) => _gameStateProto = p;
   Map<String, PlayerInfoProto> _playerInfoById = {};
   Map<String, KeyState> _playerKeyStateById = {};
 
@@ -96,6 +95,7 @@ class GameState {
     info.addedToGameEpochMillis = Int64(new DateTime.now().millisecondsSinceEpoch);
     _gameStateProto.playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
+    _playerKeyStateById[info.connectionId] = KeyState.remote();
     _urgentData = true;
   }
 
@@ -111,12 +111,11 @@ class GameState {
 
   updateFromMap(GameStateProto gameState) {
     Map<String, PlayerInfoProto> byId = {};
-    for (PlayerInfoProto playerInfoProto in gameState.playerInfo) {
-      PlayerInfoProto? info = playerInfoByConnectionId(playerInfoProto.connectionId);
-      if (info == null) {
-        info = playerInfoProto;
-      }
+    for (PlayerInfoProto info in gameState.playerInfo) {
       byId[info.connectionId] = info;
+      if (_playerKeyStateById[info.connectionId] == null) {
+        _playerKeyStateById[info.connectionId] = KeyState.remote();
+      }
     }
     _playerInfoById = byId;
     _gameStateProto = gameState;

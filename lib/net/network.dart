@@ -61,12 +61,7 @@ class Network {
     _packetListenerBindings.bindHandler(StateUpdate_Update.gameState, _handleGameState);
     _packetListenerBindings.bindHandler(StateUpdate_Update.clientStatusData,
         (ConnectionWrapper connection, StateUpdate stateUpdate) {
-      ClientStatusData data = stateUpdate.clientStatusData;
-      /// Update the list of connections for this player.
-      PlayerInfoProto? info = gameState.playerInfoByConnectionId(connection.id);
-      info?.fps = data.fps;
-      info?.connectionInfo.clear();
-      info?.connectionInfo.addAll(data.connectionInfo);
+        _handleClientStatusData(connection.id, stateUpdate.clientStatusData);
     });
 
     _packetListenerBindings.bindHandler(StateUpdate_Update.commanderGameReply,
@@ -92,6 +87,14 @@ class Network {
       _gaReporter.reportEvent(
           "convert_self_to_commander_on_request", "Commander");
     });
+  }
+
+  _handleClientStatusData(String connectionId, ClientStatusData data) {
+    /// Update the list of connections for this player.
+    PlayerInfoProto? info = gameState.playerInfoByConnectionId(connectionId);
+    info?.fps = data.fps;
+    info?.connectionInfo.clear();
+    info?.connectionInfo.addAll(data.connectionInfo);
   }
 
   /**
@@ -251,7 +254,7 @@ class Network {
           "Not parsing gamestate from ${connection.id} because we are commander!");
       if (!GameState.updateContainsPlayerWithId(newGameState, peer.id!)) {
         // We are not even in the received GameState..grr..
-        if (gameState.gameStateProto.actingCommanderId == connection.id) {
+        if (newGameState.actingCommanderId == connection.id) {
           connection.close("two commanders talking to eachother");
           _gaReporter.reportEvent("network", "two_commander_connection");
         }
@@ -356,9 +359,10 @@ class Network {
   }
 
   void sendMessage(String message, [String? dontSendTo]) {
-    StateUpdate message = new StateUpdate();
-    GameStateUpdates state = GameStateUpdates();
-    state.stateUpdate.add(message);
+    StateUpdate update = new StateUpdate()
+      ..userMessage = message;
+    GameStateUpdates state = GameStateUpdates()
+      ..stateUpdate.add(update);
     peer.sendDataWithKeyFramesToAll(state, dontSendTo);
   }
 
@@ -470,6 +474,7 @@ class Network {
   for (SpriteUpdate update in data.spriteUpdates) {
       if (update.flags & Sprite.FLAG_COMMANDER_DATA ==
           Sprite.FLAG_COMMANDER_DATA) {
+        assert(update.hasSpriteId());
         // parse as commander data update.
         MovingSprite? sprite = world.spriteIndex[update.spriteId] as MovingSprite?;
         if (sprite == null) {
@@ -532,6 +537,7 @@ class Network {
             toSpriteUpdate(sprite as MovingSprite, keyFrame));
       } else if (isCommander() && sprite.hasCommanderToOwnerData()) {
         SpriteUpdate update = SpriteUpdate()
+          ..spriteId = networkId
           ..flags = Sprite.FLAG_COMMANDER_DATA
           ..commanderToOwnerData = sprite.getCommanderToOwnerData();
         updates.spriteUpdates.add(update);
@@ -562,8 +568,12 @@ class Network {
               .expectedLatency()
               .inMilliseconds);
       }
-      updates.stateUpdate.add(StateUpdate()
-        ..clientStatusData = clientData);
+      if (isCommander()) {
+        _handleClientStatusData(peer.id!, clientData);
+      } else {
+        updates.stateUpdate.add(StateUpdate()
+          ..clientStatusData = clientData);
+      }
     }
   }
 }

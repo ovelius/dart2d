@@ -68,11 +68,19 @@ class WorldListener {
 
   _handleServerReply(ConnectionWrapper connection, StateUpdate data) {
     if (!connection.isValidGameConnection()) {
+      CommanderGameReply reply = data.commanderGameReply;
+      switch (reply.challengeReply) {
+        case CommanderGameReply_ChallengeReply.REJECT_ENDED:
+        case CommanderGameReply_ChallengeReply.REJECT_FULL:
+          connection.close("Rejected by commander ${reply.challengeReply}");
+          return;
+        default:
+      }
       assert(!_network.isCommander());
       hudMessages.display("Got server challenge from ${connection.id}");
-      _gameState.gameStateProto = data.commanderGameReply.gameState;
-      Vec2 position = Vec2.fromProto(data.commanderGameReply.startingPosition);
-      _world.createLocalClient(data.commanderGameReply.spriteIndexStart, position);
+      _gameState.updateFromMap(reply.gameState);
+      Vec2 position = Vec2.fromProto(reply.startingPosition);
+      _world.createLocalClient(reply.spriteIndexStart, position);
       connection.setHandshakeReceived();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
