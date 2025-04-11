@@ -257,10 +257,6 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   bool _ownedByThisWorld() {
-    if (info == null) {
-      throw new StateError(
-          "Info should never be null! ${world.network().peer.getId()} type ${this.runtimeType} id ${networkId} gs ${world.network().getGameState()}");
-    }
     return info.connectionId == world.network().peer.getId();
   }
 

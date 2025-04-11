@@ -93,7 +93,10 @@ class GameState {
     info.addedToGameEpochMillis = Int64(new DateTime.now().millisecondsSinceEpoch);
     _gameStateProto.playerInfo.add(info);
     _playerInfoById[info.connectionId] = info;
-    _playerKeyStateById[info.connectionId] = KeyState.remote();
+    KeyState? existingKeyState = _playerKeyStateById[info.connectionId];
+    if (existingKeyState == null) {
+      _playerKeyStateById[info.connectionId] = KeyState.remote();
+    }
     _urgentData = true;
   }
 

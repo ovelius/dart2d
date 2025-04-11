@@ -321,7 +321,13 @@ class WorldPlayerControlMatcher extends Matcher {
   Map<PlayerControlMethods, dynamic> _methodCheck = {
     PlayerControlMethods.DRAW_HEALTH_BAR: (LocalPlayerSprite s) => s.drawHealthBar(new FakeCanvas().context2D),
     PlayerControlMethods.DRAW_WEAPON_HELPER: (LocalPlayerSprite s) => s.drawWeaponHelpers(),
-    PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) => s.checkControlKeys(0.01),
+    PlayerControlMethods.CONTROL_KEYS: (LocalPlayerSprite s) {
+      if (!s.checkControlKeys(0.01)) {
+        return false;
+      }
+      // A locally controlled player sprite.
+      return !s.getKeyState().remoteState;
+    },
     PlayerControlMethods.RESPAWN: (LocalPlayerSprite s) => s.maybeRespawn(0.01),
     PlayerControlMethods.FIRE_KEY: (LocalPlayerSprite s) => s.checkShouldFire(),
     PlayerControlMethods.SERVER_TO_OWNER_DATA: (LocalPlayerSprite s) => s.hasCommanderToOwnerData(),
