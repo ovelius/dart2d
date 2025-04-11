@@ -1,9 +1,7 @@
 library gamestate;
 
-import 'dart:ffi';
 
 import 'package:dart2d/net/state_updates.pb.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/keystate.dart';

@@ -17,7 +17,7 @@ import 'helpers.dart';
 
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0 / 2;
-const PROBLEMATIC_FRAMES_BEHIND = 6;
+const PROBLEMATIC_FRAMES_BEHIND = 8;
 
 @Singleton(scope: 'world')
 class Network {
@@ -402,7 +402,7 @@ class Network {
 
     // Transfer our commanding role to someone else!
     if (isCommander() && isTooSlowForCommanding()) {
-      log.info("Self framerate is too low${_slowCommandingFrames} attempting to transfer command role");
+      log.info("Self framerate is too low ${_slowCommandingFrames} attempting to transfer command role");
       Map connections = safeActiveConnections();
       String? newCommander = findNewCommander(connections, true);
       if (newCommander != null) {

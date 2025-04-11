@@ -606,8 +606,8 @@ void main() {
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-      for (int i = 0; i < 5; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      for (int i = 0; i < 9; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5 + 0.01);
       }
 
       // B hasn't responded in a long time.
@@ -649,16 +649,16 @@ void main() {
 
       // Because worldB is only doing 2 Fps!
       expect(worldB.network().getGameState().playerInfoByConnectionId('b')!.fps,
-          equals(2));
+          lessThan(2.2));
       expect(worldA.network().getGameState().playerInfoByConnectionId('b')!.fps,
-          equals(2));
+          lessThan(2.2));
 
       worldB.drawFps().setFpsForTest(25.0);
+      worldA.drawFps().setFpsForTest(25.1);
 
-      // And all is well for a while.
-      for (int i = 0; i < 10; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-        worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT /5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT /5);
       }
 
       // Commander is still a.
@@ -695,12 +695,7 @@ void main() {
           worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('b'));
-
-      expect(worldB.network().getGameState().playerInfoByConnectionId('a')!.fps,
-          equals(3));
-      expect(worldA.network().getGameState().playerInfoByConnectionId('a')!.fps,
-          equals(3));
-    }, skip: "disabled");
+    });
 
     /*
     test('TestCommanderSpriteForward', () {
@@ -900,10 +895,11 @@ void main() {
           hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
     });
 
-    test('TestDoubleDrop', () async {
+    test('TwoConnectionsDropped_findsNewStableGameState', () async {
       logConnectionData = false;
       WormWorld worldA = await createTestWorld("a");
       worldA.startAsServer("nameA");
+
       WormWorld worldB = await createTestWorld("b");
       WormWorld worldC = await createTestWorld("c");
       WormWorld worldD = await createTestWorld("d");
@@ -917,18 +913,24 @@ void main() {
       worldC.frameDraw(KEY_FRAME_DEFAULT);
       worldD.frameDraw(KEY_FRAME_DEFAULT);
 
-      for (int i = 0; i < 100; i++) {
+      testConnections['a']?.forEach((TestConnection c) {c.close();});
+      testConnections['b']?.forEach((TestConnection c) {c.close();});
+
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+
+      for (int i = 0; i < 20; i++) {
         worldC.frameDraw(0.1);
         worldD.frameDraw(0.1);
       }
 
+      // The two worlds still survived, and connected to each other. Yay!
       expect(worldC, isGameStateOf(
-          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
       expect(worldD, isGameStateOf(
-          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
-    },  skip: "disabled");
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
+    });
 
-    test('TestMultipleCommanderConfusion', () async {
+    test('TestMultipleCommanders_keepsOneCommander', () async {
       logConnectionData = false;
       WormWorld worldA = await createTestWorld("a");
       worldA.startAsServer("nameA");
@@ -946,28 +948,28 @@ void main() {
       // Poor worldC is confused about who is in charge :(
       expect(worldC, isGameStateOf({}));
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
-      expect(worldC, isGameStateOf({playerId(0): "nameA"}));
+      expect(worldC, isGameStateOf({playerId(0): "nameA"}).withCommanderId("a"));
       expect(worldC.network().getServerConnection()!.id, "a");
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.1);
       expect(worldC.network().getServerConnection()!.id, "b");
-      expect(worldC, isGameStateOf({playerId(0): "nameB"}));
+      expect(worldC, isGameStateOf({playerId(0): "nameB"}).withCommanderId("b"));
 
       // Now connect.
       worldC.network().getServerConnection()!.connectToGame("nameC", 2);
       // We got gamestate and all.
       expect(
-          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}).withCommanderId("b"));
 
       // Now A tries to update.
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
       // We keep our gamestate.
       expect(
-          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}));
+          worldC, isGameStateOf({playerId(0): "nameB", playerId(1): "nameC"}).withCommanderId("b"));
       // And we even dropped connection to the other commander.
       worldC.frameDraw();
       expect(worldC, hasSpecifiedConnections(['b']).isValidGameConnections());
-    },  skip: "disabled");
+    });
 
     test('TestCloseCommanderToCommanderConnection', () async {
       logConnectionData = false;

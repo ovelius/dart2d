@@ -3,11 +3,9 @@ import 'dart:typed_data';
 import 'package:clock/clock.dart';
 
 import 'package:dart2d/net/network.dart';
-import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'dart:convert';
 import 'dart:math';
 import 'dart:core';
 import 'helpers.dart';
@@ -44,7 +42,6 @@ class ConnectionWrapper {
   int? _lastSeenKeyFrame = null;
 
   // The last frame the other side said we sent.
-  int lastSentFrame = 0;
   late DateTime lastSentFrameTime;
 
   int lastDeliveredFrame = 0;
@@ -79,7 +76,7 @@ class ConnectionWrapper {
 
   int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();
 
-  int recipientFramesBehind() => (lastSentFrame - lastDeliveredFrame);
+  int recipientFramesBehind() => (_connectionFrameHandler.currentFrame() - lastDeliveredFrame);
 
   bool hasReceivedFirstKeyFrame() {
     // The server does not need to wait for keyframes.
@@ -140,8 +137,8 @@ class ConnectionWrapper {
       _initialPingSent = true;
       _initialPongReceived = false;
     }
-    StateUpdate update = StateUpdate();
-    update.ping = Int64(DateTime.now().millisecondsSinceEpoch);
+    StateUpdate update = StateUpdate()
+      ..ping = Int64(_clock.now().millisecondsSinceEpoch);
     sendSingleUpdate(update);
   }
 
@@ -188,17 +185,13 @@ class ConnectionWrapper {
     DateTime now = _clock.now();
     _lastDataReceiveTime = now;
     _connectionStats.lastReceiveTime = now;
-    _connectionStats.rxBytes += rawData.length as int;
-    GameStateUpdates dataMap = GameStateUpdates.fromBuffer(rawData);
+    Uint8List list = rawData.asUint8List();
+    _connectionStats.rxBytes += list.length;
+    GameStateUpdates dataMap = GameStateUpdates.fromBuffer(list);
     assert(dataMap.hasLastFrameSeen());
     if (Logger.root.isLoggable(Level.FINE)) {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${dataMap.toDebugString()}");
     }
-    // Tickle connection with some data in case it's about to go cold.
-    if (lastDataReceived() > KEEP_ALIVE_DURATION) {
-      sendPing();
-    }
-
     bool oldData = false;
     if (dataMap.frame > lastSeenRemoteFrame) {
       lastSeenRemoteFrame = dataMap.frame;
@@ -284,7 +277,7 @@ class ConnectionWrapper {
     if (lastDataReceived() > LAST_RECEIVE_DATA_CLOSE_DURATION) {
       log.warning(
           "Connection to $id closed due to inactivity, last active ${lastDataReceived()} dropping");
-      // close("Not responding");
+      close("Not responding");
       return;
     }
   }
@@ -293,6 +286,11 @@ class ConnectionWrapper {
    * Advance connection time. Maybe send data. Maybe send keyframe.
    */
   void tick(double duration, List<int> removals) {
+    // Tickle connection with some data in case it's about to go cold.
+    if (lastDataReceived() > KEEP_ALIVE_DURATION) {
+      sendPing();
+    }
+
     if (!_connectionFrameHandler.tick(duration)) {
       // Don't send any data this tick.
       return;
@@ -358,7 +356,7 @@ class ConnectionWrapper {
 
 
     if (_egressLimit?.removeTokens(dataBytes.length) == true) {
-      log.fine("Dropping due to egress bandswith limitation");
+      log.fine("Dropping due to egress bandwith limitation");
       return;
     }
     _connectionStats.txBytes += dataBytes.length;
@@ -435,9 +433,9 @@ class ConnectionWrapper {
 
   int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
 
-  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_connectionStats.latency}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
+  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_frameIncrementLatencyTime.inMilliseconds}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 
-  String frameStats() => "Sent/received: ${lastSentFrame}/${lastDeliveredFrame} Received: ${lastSeenRemoteFrame}";
+  String frameStats() => "Frames S/D: ${_connectionFrameHandler.currentFrame()}/${lastDeliveredFrame} R: ${lastSeenRemoteFrame}";
 }

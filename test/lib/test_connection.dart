@@ -19,6 +19,13 @@ GameStateUpdates recentReceviedDataFrom(id, [int index = 0]) {
   return GameStateUpdates.fromBuffer(testConnections[id]![index].recentDataRecevied!);
 }
 
+class PacketWrapper {
+  PacketWrapper(this._data);
+  List<int> _data;
+  dynamic asUint8List() {
+    return _data;
+  }
+}
 
 class TestConnection {
   int dropPacketsAfter = 900000000;
@@ -37,13 +44,6 @@ class TestConnection {
        return other.id == id;
     }
     return false;
-  }
-
-  dynamic decodedRecentDataRecevied() {
-    if (recentDataRecevied == null) {
-      throw new StateError("No recent data received on ${toString()}");
-    }
-    return jsonDecode(recentDataRecevied);
   }
 
   bool buffer = false;
@@ -90,7 +90,9 @@ class TestConnection {
   void close() {
     closed = true;
     // Other ends also gets closed.
-    _otherEnd?.close();
+    if (_otherEnd != null && !_otherEnd!.closed) {
+      _otherEnd?.close();
+    }
   }
 
   sendAndReceivByOtherPeer(List<int> data) {
@@ -115,7 +117,7 @@ class TestConnection {
       recentDataSent = data;
       _otherEnd?.recentDataRecevied = data;
       _otherEnd?.dataReceivedCount++;
-      _otherEnd?.internalWrapper?.receiveData(data);
+      _otherEnd?.internalWrapper?.receiveData(PacketWrapper(data));
     }
   }
 

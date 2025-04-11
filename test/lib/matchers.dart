@@ -40,7 +40,7 @@ TypeMatcher hasType(String type) {
 
 class GameStateMatcher extends Matcher {
   Map<int, String> _playersWithName;
-  String? _commanderId = null;
+  String _commanderId = "";
   
   GameStateMatcher(this._playersWithName);
 
