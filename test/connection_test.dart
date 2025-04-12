@@ -305,6 +305,23 @@ void main() {
     expect(connection.recipientFramesBehind(), 2);
   });
 
+  test('TickConnectionWithRemovals_alwaysSent', () {
+    connection.setHandshakeReceived();
+
+    connection.tick(0.001, []);
+    // Removal always sent immediately.
+    connection.tick(0.001 , [134]);
+
+    expect(testConnection.dataBuffer.length, 2);
+
+    expect(testConnection.nativeBufferedDataAt(1), equals(GameStateUpdates()
+      ..frame = 1
+      ..lastFrameSeen = 0
+    ..stateUpdate.add(StateUpdate()
+        ..dataReceipt = 214851342
+        ..spriteRemoval = 134)));
+  });
+
 
   test('TestLeakyBucket', () {
     LeakyBucket leakyBucket = new LeakyBucket(1);

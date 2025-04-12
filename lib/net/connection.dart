@@ -301,23 +301,31 @@ class ConnectionWrapper {
       sendPing();
     }
 
-    if (!_connectionFrameHandler.tick(duration)) {
-      // Don't send any data this tick.
+    if (!_connectionFrameHandler.tick(duration) && removals.isEmpty) {
+      // Don't send any data this tick....no updates to provide!
       return;
     }
     GameStateUpdates data = GameStateUpdates()
       ..frame = _connectionFrameHandler.currentFrame();
     _reliableHelper.addDataReceipts(data);
+
+
+    for (int remove in removals) {
+      data.stateUpdate.add(StateUpdate()
+        ..dataReceipt = uniqueDataReceiptString("removal_$remove")
+        ..spriteRemoval = remove);
+    }
+
     
     if (_connectionFrameHandler.keyFrame()) {
-      _network.stateBundle(true, data, removals);
+      _network.stateBundle(true, data);
       data.keyFrame = _connectionFrameHandler.currentKeyFrame();
       // Maybe adjust connection framerate.
       _connectionFrameHandler.reportFramesBehind(recipientFramesBehind(),
           _frameIncrementLatencyTime.inMilliseconds);
     } else {
       // Send regular data.
-      _network.stateBundle(false, data, removals);
+      _network.stateBundle(false, data);
     }
 
     if (!_handshakeReceived && !_connectionFrameHandler.keyFrame()) {

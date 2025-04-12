@@ -530,7 +530,7 @@ class Network {
     }
   }
 
-  void stateBundle(bool keyFrame, GameStateUpdates updates, List<int> removals) {
+  void stateBundle(bool keyFrame, GameStateUpdates updates) {
     for (int networkId in _spriteIndex.spriteIds()) {
       Sprite sprite = _spriteIndex[networkId]!;
       if (sprite.networkType == NetworkType.LOCAL) {
@@ -543,11 +543,6 @@ class Network {
           ..commanderToOwnerData = sprite.getCommanderToOwnerData();
         updates.spriteUpdates.add(update);
       }
-    }
-    for (int remove in removals) {
-      updates.stateUpdate.add(StateUpdate()
-        ..dataReceipt = Random().nextInt(1000000000)
-        ..spriteRemoval = remove);
     }
     if (!isCommander()) {
       updates.stateUpdate.add(StateUpdate()
