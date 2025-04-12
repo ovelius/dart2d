@@ -140,6 +140,34 @@ void main() {
           ..keyFrame = 2));
   });
 
+
+  test('TestReliableData_addsAck', () {
+    StateUpdate reliableUpdate =
+        StateUpdate()
+          ..dataReceipt = 123
+          ..spriteRemoval = 111;
+
+    PacketWrapper p = PacketWrapper((GameStateUpdates()
+      ..stateUpdate.add(reliableUpdate)
+      ..lastFrameSeen = 10
+      ..frame = 2).writeToBuffer());
+
+    packetListenerBindings.bindHandler(StateUpdate_Update.spriteRemoval, (_, StateUpdate update) {});
+
+    connection.receiveData(p);
+
+    connection.tick(KEY_FRAME_DEFAULT / 5, []);
+
+    // Data receipt was added to ticked data.
+    expect(
+        testConnection.nativeBufferedDataAt(0),
+        equals(GameStateUpdates()
+          ..stateUpdate.add(StateUpdate()..ackedDataReceipts = 123)
+          ..frame = 0
+          ..lastFrameSeen = 2
+          ..keyFrame = 0));
+  });
+
   test('ReceivesNewFrames_IncrementsFrameCounters', () {
     PacketWrapper p = PacketWrapper((GameStateUpdates()
       ..lastFrameSeen = 10

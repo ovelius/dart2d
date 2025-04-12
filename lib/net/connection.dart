@@ -1,3 +1,4 @@
+import 'package:dart2d/net/net.dart';
 import 'package:fixnum/fixnum.dart';
 import 'dart:typed_data';
 import 'package:clock/clock.dart';
@@ -106,7 +107,8 @@ class ConnectionWrapper {
      ..name = playerName
      ..playerImageId = playerImageId;
     StateUpdate update = StateUpdate()
-      ..clientPlayerSpec = spec;
+      ..clientPlayerSpec = spec
+      ..attachUniqueDataReceipt(this);
 
     sendSingleUpdate(update);
   }
@@ -115,8 +117,9 @@ class ConnectionWrapper {
    * Send command to enter game.
    */
   void sendClientEnter() {
-    StateUpdate update = StateUpdate();
-    update.clientEnter = true;
+    StateUpdate update = StateUpdate()
+      ..clientEnter = true
+      ..attachUniqueDataReceipt(this);
     sendSingleUpdate(update);
   }
 
@@ -124,8 +127,9 @@ class ConnectionWrapper {
     * Send command to enter game.
     */
   void sendCommandTransfer() {
-    StateUpdate update = StateUpdate();
-    update.transferCommand = true;
+    StateUpdate update = StateUpdate()
+      ..transferCommand = true
+      ..attachUniqueDataReceipt(this);
     sendSingleUpdate(update);
   }
 
@@ -215,6 +219,8 @@ class ConnectionWrapper {
     // New path.
     for (StateUpdate update in dataMap.stateUpdate) {
       StateUpdate_Update updateType = update.whichUpdate();
+      // See if we need to send data receipts next tick.
+      _reliableHelper.checkForDataReceipt(update);
       switch (updateType) {
         case StateUpdate_Update.ping:
           StateUpdate pongUpdate = StateUpdate()
@@ -297,6 +303,8 @@ class ConnectionWrapper {
     }
     GameStateUpdates data = GameStateUpdates()
       ..frame = _connectionFrameHandler.currentFrame();
+    _reliableHelper.addDataReceipts(data);
+    
     if (_connectionFrameHandler.keyFrame()) {
       _network.stateBundle(true, data, removals);
       data.keyFrame = _connectionFrameHandler.currentKeyFrame();
@@ -438,4 +446,8 @@ class ConnectionWrapper {
   String stats() => _connectionStats.stats();
 
   String frameStats() => "Frames S/D: ${_connectionFrameHandler.currentFrame()}/${lastDeliveredFrame} R: ${lastSeenRemoteFrame}";
+
+  int uniqueDataReceiptString(String key) {
+    return "${key}_$id".hashCode;
+  }
 }

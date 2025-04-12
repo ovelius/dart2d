@@ -91,7 +91,8 @@ class WorldListener {
     ClientPlayerSpec spec = data.clientPlayerSpec;
     CommanderGameReply reply = CommanderGameReply();
     StateUpdate updateReply = StateUpdate()
-      ..commanderGameReply = reply;
+      ..commanderGameReply = reply
+      ..attachUniqueDataReceipt(connection);
     if (connection.isValidGameConnection()) {
       log.warning("Duplicate handshake received from ${connection}!");
       return;

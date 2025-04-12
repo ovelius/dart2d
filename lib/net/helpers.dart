@@ -83,6 +83,9 @@ class ReliableHelper {
   // Storage of our reliable data.
   Map<int, StateUpdate> reliableDataBuffer = {};
 
+  // Receipts we should send next tick.
+  List<int> _pendingDataReceipts = [];
+
   PacketListenerBindings _packetListenerBindings;
 
   ReliableHelper(this._packetListenerBindings) {
@@ -92,6 +95,27 @@ class ReliableHelper {
   }
 
   bool reliableBufferOverFlow() => reliableDataBuffer.length > MAX_RELIABLE_BUFFER_SIZE;
+
+
+  /**
+   * See if we got any data receipts we need to keep track of.
+   */
+  void checkForDataReceipt(StateUpdate update) {
+    if (update.hasDataReceipt()) {
+      _pendingDataReceipts.add(update.dataReceipt);
+    }
+  }
+
+  /**
+   * Add any receives data receipts to the update.
+   */
+  void addDataReceipts(GameStateUpdates data) {
+    for (int receipt in _pendingDataReceipts) {
+      data.stateUpdate.add(StateUpdate()
+        ..ackedDataReceipts = receipt);
+    }
+    _pendingDataReceipts.clear();
+  }
 
   /**
    * Maybe add reliable data that needs to be resent.

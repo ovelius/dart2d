@@ -1,3 +1,4 @@
+import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
@@ -22,6 +23,12 @@ extension FindUpdate on GameStateUpdates {
 
 extension PlayerInfoExtensions on PlayerInfoProto {
   bool isConnectedTo(String other) => this.connectionInfo.any((c) => c.id == other);
+}
+
+extension AttachCaseUniqueDataReceipt on StateUpdate {
+  void attachUniqueDataReceipt(ConnectionWrapper c) {
+    dataReceipt = "${this.whichUpdate()}_${c.id}".hashCode;
+  }
 }
 
 List? mergeUniqueList(List? list1, List? list2) {

@@ -360,6 +360,7 @@ class Network {
 
   void sendMessage(String message, [String? dontSendTo]) {
     StateUpdate update = new StateUpdate()
+      ..dataReceipt = message.hashCode
       ..userMessage = message;
     GameStateUpdates state = GameStateUpdates()
       ..stateUpdate.add(update);
