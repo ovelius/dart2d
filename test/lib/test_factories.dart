@@ -1,5 +1,8 @@
 
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/negotiator.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 
 import 'fake_canvas.dart';
@@ -34,7 +37,9 @@ class TestConnectionFactory extends ConnectionFactory {
   /**
    * Us trying to connect to someone.
    */
-  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId) {
+  connectTo(ConnectionWrapper wrapper, Negotiator negotiator) {
+    String ourPeerId = negotiator.ourId;
+    String otherPeerId = negotiator.otherId;
     print("Create outbound connection from ${ourPeerId} to ${otherPeerId}");
     TestConnection c = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
@@ -68,8 +73,9 @@ class TestConnectionFactory extends ConnectionFactory {
   /**
    * Callback for someone trying to connection to us.
    */
-  createInboundConnection(dynamic wrapper, dynamic sdp,
-      String otherPeerId, String ourPeerId) {
+  createInboundConnection(ConnectionWrapper wrapper, Negotiator negotiator, WebRtcDanceProto proto) {
+    String ourPeerId = negotiator.ourId;
+    String otherPeerId = negotiator.otherId;
     print("Create inbound connection from ${otherPeerId} to ${ourPeerId}");
     TestServerChannel ourChannel = testPeers[ourPeerId]!;
     TestConnection c = new TestConnection(otherPeerId, wrapper);

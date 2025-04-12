@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/negotiator.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
+
 
 const WORLD_WIDTH = "world_width";
 const WORLD_HEIGHT= "world_height";
@@ -66,24 +70,14 @@ abstract class ConnectionFactory {
   /**
    * Us trying to connect to someone.
    */
-  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId);
+  connectTo(ConnectionWrapper wrapper, Negotiator negotiator);
   /**
    * Callback for someone trying to connection to us.
    */
-  createInboundConnection(dynamic wrapper, dynamic sdp,  String otherPeerId,
-      String ourPeerId);
-  /**
-   * Create and answer for our inbound connection.
-   */
-  handleCreateAnswer(dynamic connection, String src, String dst);
+  createInboundConnection(ConnectionWrapper wrapper, Negotiator negotiator, WebRtcDanceProto proto);
   /**
    * Handle receiving that answer.
    */
-  handleGotAnswer(dynamic connection, dynamic sdp);
-
-  /**
-   * Handle receiving ICE candidates.
-   */
-  handleIceCandidateReceived(dynamic connection, dynamic iceCandidate);
+  handleGotAnswer(dynamic connection, WebRtcDanceProto proto);
 }
 

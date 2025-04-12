@@ -1,6 +1,10 @@
 library spaceworld;
 
+import 'dart:convert';
+
 import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/net/negotiator.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'dart:math';
@@ -168,17 +172,14 @@ class RtcConnectionFactory extends ConnectionFactory {
   /**
    * Try to connect to a remote peer.
    */
-  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId) {
+  connectTo(ConnectionWrapper wrapper, Negotiator negotiator) {
     RTCPeerConnection connection = new RTCPeerConnection(getRtcConfiguration());
-    _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     RTCDataChannelInit init = RTCDataChannelInit(ordered: false, maxRetransmits: 0);
     RTCDataChannel channel = connection.createDataChannel('dart2d', init);
-    log.info(
-        "Created DataChannel ${ourPeerId} <-> ${otherPeerId} maxRetransmits: ${channel.maxRetransmits} Ordered: ${channel.ordered}");
     channel.onopen = (Event event) {
       wrapper.readyDataChannel(channel);
-      log.info("Outbound datachannel to ${otherPeerId} ready.");
+      log.info("Outbound datachannel to ${wrapper.id} ready.");
     }.toJS;
     channel.onmessage = (MessageEvent e) {
       if (!wrapper.hasReadyDataChannel()) {
@@ -188,16 +189,11 @@ class RtcConnectionFactory extends ConnectionFactory {
       }
       wrapper.receiveData(e.data);
     }.toJS;
+
+    _listenForAndSendIceCandidatesToPeer(connection, negotiator);
     connection.createOffer().toDart.then((dynamic desc) {
       connection.setLocalDescription(desc).toDart.then((_) {
-        _serverChannel.sendData({
-          'type': 'OFFER',
-          'payload': {
-            'sdp': {'sdp': desc.sdp, 'type': desc.type},
-            'type': 'data',
-          },
-          'dst': otherPeerId
-        });
+        negotiator.sdpReceived(desc.sdp, desc.type);
       });
     });
     return connection;
@@ -206,19 +202,16 @@ class RtcConnectionFactory extends ConnectionFactory {
   /**
    * Someone sent us an offer and wants to connect.
    */
-  createInboundConnection(dynamic wrapper, dynamic sdp,
-      String otherPeerId, String ourPeerId) {
-
+  createInboundConnection(ConnectionWrapper wrapper,
+      Negotiator negotiator, WebRtcDanceProto proto) {
     // Create a local peer object.
     RTCPeerConnection connection = new RTCPeerConnection(getRtcConfiguration());
-    // Make sure ICE candidates are sent to our remote peer.
-    _listenForAndSendIceCandidatesToPeer(connection, ourPeerId, otherPeerId);
     _addConnectionListeners(wrapper, connection);
     // We expect there to be a datachannel available here eventually.
     connection.ondatachannel = (RTCDataChannelEvent e) {
       e.channel.onopen = (Event openEvent) {
         wrapper.readyDataChannel(e.channel);
-        log.info("Inbound datachannel to ${otherPeerId} ready.");
+        log.info("Inbound datachannel to ${negotiator.otherId} ready.");
       }.toJS;
       e.channel.onmessage = (MessageEvent messageEvent) {
         if (!wrapper.hasReadyDataChannel()) {
@@ -231,8 +224,18 @@ class RtcConnectionFactory extends ConnectionFactory {
     }.toJS;
     // Set our local peers remote description, what type of data thus the other
     // peer want us to receive?
-    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: sdp['type'], sdp: sdp['sdp']);
-    connection.setRemoteDescription(init);
+    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: proto.sdpType, sdp: proto.sdp);
+    _listenForAndSendIceCandidatesToPeer(connection, negotiator);
+    connection.setRemoteDescription(init).toDart.then((_) {
+      for (String candidate in proto.candidates) {
+        _addIceCandidateReceived(connection, candidate);
+      }
+      connection.createAnswer().toDart.then((dynamic desc) {
+        connection.setLocalDescription(desc).toDart.then((_) {
+            negotiator.sdpReceived(desc.sdp, desc.type);
+          });
+        });
+    });
     return connection;
   }
 
@@ -260,57 +263,28 @@ class RtcConnectionFactory extends ConnectionFactory {
     }.toJS;
   }
 
-  _listenForAndSendIceCandidatesToPeer(
-      RTCPeerConnection connection, String ourPeerId, String otherPeerId) {
+  handleGotAnswer(dynamic connection,  WebRtcDanceProto proto) {
+    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
+    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: proto.sdpType, sdp:proto.sdp);
+    rtcPeerConnection.setRemoteDescription(init).toDart;
+  }
 
+  _listenForAndSendIceCandidatesToPeer(
+      RTCPeerConnection connection, Negotiator negotiator) {
     connection.onicecandidate = (RTCPeerConnectionIceEvent e) {
       if (e.candidate == null) {
-        log.warning("Received null ICE candidate - END OF CANDIDATES");
-        return;
+        negotiator.onIceCandidate(null);
+      } else {
+        negotiator.onIceCandidate(e.candidate!.candidate);
       }
-      _serverChannel.sendData({
-        'type': 'CANDIDATE',
-        'payload': {
-          'candidate': {
-            'candidate': e.candidate!.candidate,
-          },
-          'type': 'data',
-        },
-        'src': ourPeerId,
-        'dst': otherPeerId
-      });
     }.toJS;
   }
 
-  handleIceCandidateReceived(
-      dynamic connection, dynamic iceCandidate) {
+  _addIceCandidateReceived(
+      dynamic connection, String iceCandidate) {
     RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
-    RTCIceCandidateInit init = new RTCIceCandidateInit(candidate:iceCandidate['candidate'], sdpMLineIndex:0);
+    RTCIceCandidateInit init = new RTCIceCandidateInit(candidate:iceCandidate, sdpMLineIndex:0);
     rtcPeerConnection.addIceCandidate(init);
-  }
-
-  handleCreateAnswer(dynamic connection, String src, String dst) {
-    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
-    rtcPeerConnection.createAnswer().toDart.then((dynamic desc) {
-      rtcPeerConnection.setLocalDescription(desc).toDart.then((_) {
-        _serverChannel.sendData({
-          'type': 'ANSWER',
-          'payload': {
-            'sdp': {'sdp': desc.sdp, 'type': desc.type},
-            'type': 'data',
-            'browser': 'fixme',
-          },
-          'src': dst,
-          'dst': src
-        });
-      });
-    });
-  }
-
-  handleGotAnswer(dynamic connection, dynamic sdp) {
-    RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
-    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: sdp['type'], sdp:sdp['sdp']);
-    rtcPeerConnection.setRemoteDescription(init).toDart;
   }
 }
 

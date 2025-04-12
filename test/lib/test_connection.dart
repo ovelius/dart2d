@@ -145,7 +145,7 @@ class TestConnectionWrapper extends ConnectionWrapper {
   GameStateUpdates? lastDataSent = null;
   List<GameStateUpdates> dataSent = [];
 
-  TestConnectionWrapper(this.id, Clock clock) : super(MockNetwork(), MockHudMessages(), id,
+  TestConnectionWrapper(this.id, MockNetwork mockNetwork, Clock clock) : super(mockNetwork, MockHudMessages(), id,
       MockPacketListenerBindings(), ConfigParams({}), ConnectionFrameHandler(ConfigParams({})), clock);
 
   void sampleLatency(Duration latency) {

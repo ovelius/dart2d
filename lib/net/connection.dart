@@ -1,3 +1,4 @@
+import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:fixnum/fixnum.dart';
 import 'dart:typed_data';
@@ -53,6 +54,8 @@ class ConnectionWrapper {
   late ReliableHelper _reliableHelper;
   ConnectionFrameHandler _connectionFrameHandler;
   Clock _clock;
+  late Negotiator _negotiator;
+  Negotiator get negotiator => _negotiator;
 
   ConnectionWrapper(this._network, this._hudMessages, this.id,
       this._packetListenerBindings, this._configParams,
@@ -72,7 +75,8 @@ class ConnectionWrapper {
           _configParams.getInt(ConfigParam.EGRESS_BANDWIDTH));
       log.info("Limit egress bandwidth to ${_configParams.getInt(ConfigParam.EGRESS_BANDWIDTH)  / 1000 } ~kB/s");
     }
-    log.fine("Opened connection to $id");
+    log.fine("Created connection to $id");
+    _negotiator = Negotiator(this._network.getPeer().id!, this.id);
   }
 
   int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();

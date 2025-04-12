@@ -30,7 +30,9 @@ void main() {
     logOutputForTest();
     fakeClock = FakeClock();
     mockNetwork = new MockNetwork();
-    when(mockNetwork.getPeer()).thenReturn(MockPeerWrapper());
+    MockPeerWrapper mockPeerWrapper = MockPeerWrapper();
+    when(mockPeerWrapper.id).thenReturn("b");
+    when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.isCommander()).thenReturn(false);
     mockHudMessages = new MockHudMessages();
     testConfigParams = new ConfigParams({});

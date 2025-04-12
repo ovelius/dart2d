@@ -1,5 +1,8 @@
 library test_peer;
 
+import 'dart:convert';
+
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 
 import 'test_connection.dart';
@@ -57,11 +60,13 @@ class TestServerChannel extends ServerChannel {
   }
 
   fakeIncomingConnection(String fromId) {
+    WebRtcDanceProto proto = WebRtcDanceProto()
+       ..sdp = "fake sdp"
+       ..candidates.add("fake candidate");
+    
     _streamController.add({
       'type': 'OFFER',
-      'payload': {
-        'sdp': 'fakesdp',
-      },
+      'payload': base64Encode(proto.writeToBuffer()),
       'src': fromId,
       'dst': id});
   }

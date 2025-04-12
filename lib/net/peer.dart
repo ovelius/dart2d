@@ -1,5 +1,6 @@
 import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
@@ -53,9 +54,23 @@ class PeerWrapper {
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
         id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
-    _connectionFactory.connectTo(connectionWrapper, this.id!, id);
+    connectionWrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto){
+      _sendNegotiatorPayload(connectionWrapper.negotiator, proto, 'OFFER');
+    });
+    _connectionFactory.connectTo(connectionWrapper, connectionWrapper.negotiator);
     connections[id] = connectionWrapper;
     return connectionWrapper;
+  }
+
+  void _sendNegotiatorPayload(Negotiator negotiator, WebRtcDanceProto proto, String type) {
+    String base64Proto = base64Encode(negotiator.buildProto().writeToBuffer());
+    Map<String, String> data = {
+      'src': negotiator.ourId,
+      'dst': negotiator.otherId,
+      'type': type,
+      'payload': base64Proto
+    };
+    serverChannel.sendData(data);
   }
 
   /**
@@ -315,9 +330,14 @@ class PeerWrapper {
   _onServerMessage(Map<dynamic, dynamic> json) {
     log.fine("Got ServerChannel data ${json}");
     String type = json['type'];
-    dynamic payload = json['payload'];
+    String? payload = json['payload'];
     String? src = json['src'];
     String? dst = json['dst'];
+
+    WebRtcDanceProto? proto = null;
+    if (payload != null) {
+      proto = WebRtcDanceProto.fromBuffer(base64Decode(payload));
+    }
 
     switch (type) {
       case 'ACTIVE_IDS':
@@ -327,17 +347,6 @@ class PeerWrapper {
       case 'ERROR':
         log.severe("Got error from server ${payload}");
         break;
-      case 'CANDIDATE':
-        ConnectionWrapper? connection = connections[src];
-        if (connection == null) {
-          log.warning(
-              "Missing connection for candidate data ${payload}");
-        } else {
-          _connectionFactory.handleIceCandidateReceived(
-              connection.rtcConnection(), payload['candidate']);
-          log.info("Added ICE candidate ${payload}");
-        }
-        break;
       case 'LEAVE':
       // Someone left, fixme...
         break;
@@ -345,7 +354,7 @@ class PeerWrapper {
         log.warning("Could not connect to peer ${src}");
         break;
       case 'OFFER':
-        if (src == null || dst == null) {
+        if (src == null || dst == null || proto == null) {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;
         }
@@ -354,16 +363,17 @@ class PeerWrapper {
           log.warning(
               "Received offer from peer that has connection? ${src} Existing connection: ${connection}");
         } else {
-          log.info("Handling offer from ${src} offer: ${payload}");
+          log.info("Handling offer from ${src} offer: ${proto.toDebugString()}");
           ConnectionWrapper wrapper = _createWrapper(src);
-          dynamic connection = _connectionFactory.createInboundConnection(
-              wrapper, payload['sdp'], src, dst);
+          wrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto) {
+            _sendNegotiatorPayload(wrapper.negotiator, proto, 'ANSWER');
+          });
+          _connectionFactory.createInboundConnection(wrapper, wrapper.negotiator, proto);
           connections[src] = wrapper;
-          _connectionFactory.handleCreateAnswer(connection, src, dst);
         }
         break;
       case 'ANSWER':
-        if (src == null || dst == null) {
+        if (src == null || dst == null || proto == null) {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;
         }
@@ -372,11 +382,9 @@ class PeerWrapper {
         if (connection == null) {
           log.warning("Received answer from unknown connection '$src'!");
         } else {
-          _connectionFactory.handleGotAnswer(
-              connection.rtcConnection(), payload['sdp']);
+          _connectionFactory.handleGotAnswer(connection.rtcConnection(), proto);
         }
         break;
-
       default:
         log.severe("Unhandled message ${json}");
         break;

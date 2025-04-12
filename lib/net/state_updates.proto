@@ -266,3 +266,12 @@ message ExtraSpriteData {
   repeated string extra_string = 3;
   repeated bool extra_bool = 4;
 }
+
+message WebRtcDanceProto {
+  // Gzipped version of SDP string.
+  optional string sdp = 1;
+  // Gzipped version of ICE candidates.
+  repeated string candidates = 2;
+  // Offer or answer etc.
+  optional string sdp_type = 3;
+}

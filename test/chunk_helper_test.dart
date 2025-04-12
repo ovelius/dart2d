@@ -30,8 +30,12 @@ void main() {
   late ByteWorld byteWorld;
   setUp(() {
     logOutputForTest();
-    connection1 = new TestConnectionWrapper("a", Clock());
-    connection2 = new TestConnectionWrapper("b", Clock());
+    MockPeerWrapper mockPeerWrapper = MockPeerWrapper();
+    when(mockPeerWrapper.id).thenReturn("c");
+    MockNetwork mockNetwork = MockNetwork();
+    when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
+    connection1 = new TestConnectionWrapper("a", mockNetwork, Clock());
+    connection2 = new TestConnectionWrapper("b", mockNetwork, Clock());
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
     byteWorld = new MockByteWorld();
