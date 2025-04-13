@@ -18,6 +18,7 @@ class ConnectionWrapper {
   // Close connection due to inactivity.
   static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
   static const Duration KEEP_ALIVE_DURATION = Duration(seconds: 2);
+  static const int PING_EVERY_N_FRAMES = 20;
 
   Network _network;
   ConfigParams _configParams;
@@ -212,8 +213,6 @@ class ConnectionWrapper {
     if (dataMap.lastFrameSeen > lastDeliveredFrame) {
       // How long time passed since we sent the keyframe?
       _frameIncrementLatencyTime = Duration(milliseconds: now.millisecondsSinceEpoch - lastSentFrameTime.millisecondsSinceEpoch);
-      // How long time before the sender responded?
-      sampleLatency(_frameIncrementLatencyTime);
       lastDeliveredFrame = dataMap.lastFrameSeen;
     }
 
@@ -378,9 +377,10 @@ class ConnectionWrapper {
     } else {
       // Store away any reliable data sent.
       _reliableHelper.storeAwayReliableData(data);
+      // Maybe issue a direct ping to measure latency.
+      _maybeSentImmediatePing(data);
     }
     Uint8List dataBytes = data.writeToBuffer();
-
 
     if (_egressLimit?.removeTokens(dataBytes.length) == true) {
       log.fine("Dropping due to egress bandwith limitation");
@@ -404,6 +404,19 @@ class ConnectionWrapper {
         close("Failed to send data");
       }
     }
+  }
+
+  void _maybeSentImmediatePing(GameStateUpdates data) {
+    if (!initialPongReceived()) {
+      return;
+    }
+    if (data.frame <= 0 || data.frame % PING_EVERY_N_FRAMES != 0) {
+      return;
+    }
+    if (data.stateUpdate.isNotEmpty && data.stateUpdate[0].hasPing()) {
+      return;
+    }
+    sendPing();
   }
 
   void readyDataChannel(var dataChannel) {
@@ -452,7 +465,7 @@ class ConnectionWrapper {
     this._connectionStats.latency = latency;
   }
 
-  Duration expectedLatency() => _frameIncrementLatencyTime;
+  Duration expectedLatency() => _connectionStats.latency;
 
   ReliableHelper reliableHelper() => _reliableHelper;
 
@@ -460,7 +473,7 @@ class ConnectionWrapper {
 
   int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
 
-  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${_frameIncrementLatencyTime.inMilliseconds}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
+  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${expectedLatency().inMilliseconds}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 

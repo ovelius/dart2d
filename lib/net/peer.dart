@@ -4,7 +4,6 @@ import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:injectable/injectable.dart';
 import 'dart:convert';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 

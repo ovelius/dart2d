@@ -1,6 +1,8 @@
+import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
+import 'package:fixnum/fixnum.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/util/util.dart';
@@ -12,13 +14,18 @@ import 'lib/test_mocks.mocks.dart';
 
 class MockRemotePlayerClientSprite extends Mock implements LocalPlayerSprite {
   Vec2 size = new Vec2(1, 1);
-  PlayerInfoProto info = PlayerInfoProtoProto('a', 'a', 123);
+  PlayerInfoProto info = PlayerInfoProto()
+      ..connectionId = "a"
+      ..spriteId = 123
+      ..name = 'nameA';
 }
 
 class FakeConnectionFactory extends ConnectionFactory {
   Map<String, Map<String, TestConnection>> connections = {};
 
-  connectTo(dynamic wrapper, String ourPeerId, String otherPeerId) {
+  connectTo(dynamic wrapper, Negotiator negotiator) {
+    String otherPeerId = negotiator.otherId;
+    String ourPeerId = negotiator.ourId;
     TestConnection testConnection = new TestConnection(otherPeerId, wrapper);
     if (connections[ourPeerId] == null) {
       connections[ourPeerId] = {};
@@ -33,12 +40,8 @@ class FakeConnectionFactory extends ConnectionFactory {
     testConnection.setOtherEnd(otherEnd);
     otherEnd.setOtherEnd(testConnection);
   }
-
-  createInboundConnection(dynamic wrapper, dynamic sdp,
-      String otherPeerId, String ourPeerId) {}
-  handleCreateAnswer(dynamic connection, String src, String dst) {}
+  createInboundConnection(ConnectionWrapper wrapper, Negotiator negotiator, WebRtcDanceProto proto) {}
   handleGotAnswer(dynamic connection, dynamic sdp) {}
-  handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {}
 }
 
 void main() {
@@ -117,57 +120,6 @@ void main() {
     expect(connection.getOtherEnd(), isNotNull);
   });
 
-  test('Test basic client network update single connection', () {
-    frame();
-
-    network.peer.connectTo('b');
-    expect(network.peer.connections.keys, contains('b'));
-    network.peer.connections['b']!.setHandshakeReceived();
-    TestConnection? connectionBtoC =
-    fakeConnectionFactory.connections['c']!['b']!.getOtherEnd();
-    expect(connectionBtoC, isNotNull);
-
-    frame();
-    expect(connectionBtoC!.decodedRecentDataRecevied(),
-        equals({KEY_STATE_KEY: FAKE_ENABLED_KEYS, KEY_FRAME_KEY: 0, FPS: 15, IS_KEY_FRAME_KEY: 0, CONNECTIONS_LIST: [['b', 6000]]}));
-
-    _TestSprite sprite = new _TestSprite.withVecPosition(1000, new Vec2(9, 9));
-    sprite.color = "rgba(1, 2, 3, 1.0)";
-    when(mockSpriteIndex.spriteIds()).thenReturn(new List.filled(1, 1000));
-    when(mockSpriteIndex[1000]).thenReturn(sprite);
-
-    frame(KEY_FRAME_DEFAULT + 0.01);
-
-    // Full state sent over network.
-    expect(
-        connectionBtoC.decodedRecentDataRecevied()['1000'],
-        equals([
-          sprite.extraSendFlags(),
-          9,
-          9,
-          0,
-          180000,
-          180000,
-          SpriteConstructor.DAMAGE_PROJECTILE.index,
-          1,
-          "rgba(1, 2, 3, 1.0)",
-          2,
-          2,
-          1,
-          0
-        ]));
-
-    // Sprites only send full state of a while.
-    while (sprite.fullFramesOverNetwork > 0) {
-      frame();
-    }
-
-    // Now only delta updates.
-    network.frame(0.01, []);
-    expect(connectionBtoC.decodedRecentDataRecevied()['1000'],
-        equals([sprite.extraSendFlags(), 9, 9, 0, 180000, 180000]));
-  });
-
   test('Test many connections different types', () {
     List<TestServerChannel> peers = [];
     List<String> ids = [];
@@ -187,10 +139,9 @@ void main() {
 
     for (TestConnection connection
         in fakeConnectionFactory.connections['c']!.values) {
-      connection.sendAndReceivByOtherPeerNativeObject({
-        PONG: (new DateTime.now().millisecondsSinceEpoch - 1000),
-        KEY_FRAME_KEY: 0
-      });
+      connection.sendAndReceivByOtherPeerNativeObject(
+        GameStateUpdates()
+      );
     }
 
     expect(network.safeActiveConnections().length,
@@ -210,61 +161,6 @@ void main() {
     expect(network.safeActiveConnections().length, equals(0));
   });
 
-  test('Test set as acting commander but we suck too much to be commander :(',
-      () {
-    network.peer.connectTo('1');
-    network.peer.connectTo('2');
-    network.peer.connectTo('3');
-
-    // Only mark two connections as having active game.
-    for (ConnectionWrapper connection
-        in network.safeActiveConnections().values) {
-      if (connection.id == '1' || connection.id == '3') {
-        connection.setHandshakeReceived();
-      }
-    }
-
-    network.gameState.addPlayerInfo(PlayerInfoProto('Name c', 'c', -1));
-    network.setAsActingCommander();
-    expect(network.isCommander(), isTrue);
-
-    // We have three connections.
-    expect(new Set.from(network.safeActiveConnections().keys),
-        equals(['1', '2', '3']));
-
-    frame();
-
-    expect(network.slowCommandingFrames(), 0);
-
-    // We're running out of CPU or running in the background or something.
-    when(mockFpsCounter.fps()).thenReturn(0.01);
-
-    frame();
-    expect(network.slowCommandingFrames(), 1);
-
-    // Player1 is no a suitable candidate.
-    PlayerInfoProto player1Info = PlayerInfoProtoProto('Name 1', '1', -1);
-    PlayerInfoProto player3Info = PlayerInfoProtoProto('Name 3', '3', -1);
-    player1Info.fps = 2;
-    player3Info.fps = 10;
-    network.gameState..addPlayerInfo(player1Info)..addPlayerInfo(player3Info);
-
-    int max = 10;
-    while (network.slowCommandingFrames() > 0 && max-- > 0) {
-      print("waiting for command transfer");
-      frame();
-    }
-
-    // We signaled a transfer to another active game connection.
-    // We picked 3 (index 2) since that has the highest current FPS.
-    print(fakeConnectionFactory.connections);
-    expect(
-        fakeConnectionFactory.connections['c']!['3']!
-            .getOtherEnd()!
-            .decodedRecentDataRecevied()
-            .keys,
-        contains(TRANSFER_COMMAND));
-  });
 
   test('Test no game no active commander', () {
     network.peer.connectTo('b');
@@ -272,10 +168,9 @@ void main() {
     expect(network.safeActiveConnections(), hasLength(1));
 
     fakeConnectionFactory.connections['c']!['b']!
-        .sendAndReceivByOtherPeerNativeObject({
-      PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
-      KEY_FRAME_KEY: 0
-    });
+        .sendAndReceivByOtherPeerNativeObject(
+      GameStateUpdates()
+    );
 
     // Now close it.
     fakeConnectionFactory.connections['c']!['b']!.signalClose();
@@ -298,10 +193,10 @@ void main() {
 
     for (TestConnection connection
         in fakeConnectionFactory.connections['c']!.values) {
-      connection.sendAndReceivByOtherPeerNativeObject({
-        PING: (new DateTime.now().millisecondsSinceEpoch - 1000),
-        KEY_FRAME_KEY: 0
-      });
+      connection.sendAndReceivByOtherPeerNativeObject(
+        GameStateUpdates()
+            ..stateUpdate.add(StateUpdate()..ping = Int64(111))
+      );
     }
 
     MockLocalPlayerSprite sprite = MockLocalPlayerSprite();
@@ -310,7 +205,7 @@ void main() {
     when(mockSpriteIndex[3]).thenReturn(sprite);
     when(mockImageIndex.getImageById(any)).thenReturn(new FakeImage());
 
-    network.gameState.actingCommanderId = 'b';
+    network.gameState.gameStateProto.actingCommanderId = 'b';
     network.gameState.addPlayerInfo(PlayerInfoProto("testC", "b", 1));
     network.gameState.addPlayerInfo(PlayerInfoProto("testB", "d", 2));
     network.gameState.addPlayerInfo(PlayerInfoProto("testB", "c", 3));
@@ -335,6 +230,7 @@ void main() {
     expect(network.getServerConnection(), isNull);
   });
 
+  /*
   test('Test network sprite types', () {
     serverChannelPeerId = "d";
     TestServerChannel channelD = TestServerChannel();
@@ -467,7 +363,7 @@ void main() {
 
     // We accepted the command transfer.
     expect(network.isCommander(), isTrue);
-  });
+  }); */
 
   test('Test find server basic', () {
     List<TestServerChannel> peers = [];

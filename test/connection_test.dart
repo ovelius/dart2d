@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
@@ -184,17 +182,22 @@ void main() {
     expect(connection.lastDeliveredFrame, equals(10));
   });
 
-  test('SendFrameReceiveAck_setFrameLatency', () {
-    GameStateUpdates data = GameStateUpdates()
-      ..frame = 1
-      ..lastFrameSeen = 1;
-    connection.sendData(data);
+  test('SendPingGetReply_setsLatency', () {
+    connection.sendPing();
+
+    Int64 expectedPing = Int64(fakeClock.now().millisecondsSinceEpoch);
+
+    expect(testConnection.nativeBufferedDataAt(0), equals(GameStateUpdates()
+      ..lastFrameSeen = 0
+      ..stateUpdate.add(StateUpdate()..ping = expectedPing)));
 
     fakeClock.testTime = DateTime.fromMillisecondsSinceEpoch(
         fakeClock.testTime.millisecondsSinceEpoch + 500);
+
     PacketWrapper p = PacketWrapper((GameStateUpdates()
       ..lastFrameSeen = 1
-      ..frame = 2).writeToBuffer());
+      ..frame = 2
+      ..stateUpdate.add(StateUpdate()..pong = expectedPing)).writeToBuffer());
     connection.receiveData(p);
 
     expect(connection.expectedLatency(), Duration(milliseconds: 500));
@@ -264,27 +267,6 @@ void main() {
       ..lastFrameSeen = 0
       ..keyFrame = 1));
     expect(connection.lastSentFrameTime, equals(fakeClock.testTime));
-  });
-
-  test('TicConnection_sendFrameAndSetsRttOnFeedback', () {
-    connection.setHandshakeReceived();
-
-    connection.tick(0.1, []);
-    connection.tick(KEY_FRAME_DEFAULT + 0.1, []);
-
-    expect(testConnection.nativeBufferedDataAt(1), equals(GameStateUpdates()
-      ..frame = 1
-      ..lastFrameSeen = 0
-      ..keyFrame = 1));
-
-    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 10));
-
-    GameStateUpdates ackData = GameStateUpdates()
-      ..lastFrameSeen = 1
-      ..stateUpdate.add(StateUpdate()..ackedDataReceipts = 123);
-    connection.receiveData(PacketWrapper(ackData.writeToBuffer()));
-
-    expect(connection.expectedLatency(), Duration(milliseconds: 10));
   });
 
   test('TickConnection_sendsPingDueToInactivity', () {

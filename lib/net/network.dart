@@ -10,7 +10,6 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
-import 'dart:convert';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
 import 'helpers.dart';
