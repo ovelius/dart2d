@@ -65,7 +65,7 @@ class Particles extends MovingSprite {
     Random r = new Random();
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
-       p.setToRandom(r, radius, follow, followOffset, position, velocity, lifeTime);
+       p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime );
        particles.add(p);
     }
     this.world = world;
@@ -77,6 +77,7 @@ class Particles extends MovingSprite {
       ..velocity = velocity.toProto()
       ..radius = radius
       ..lifetimeFrames = particleLifeTime
+      ..spriteLifetimeFrames = lifeTime
       ..particleType = particleType
       ..shrinkPerStep = shrinkPerStep
       ..particleCount = particles.length

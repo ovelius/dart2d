@@ -44,6 +44,7 @@ class ConnectionWrapper {
   int? _lastSeenKeyFrame = null;
 
   // The last frame the other side said we sent.
+  int lastSentFrame = 0;
   late DateTime lastSentFrameTime;
 
   int lastDeliveredFrame = 0;
@@ -355,7 +356,11 @@ class ConnectionWrapper {
       close("Not responding receive timeout");
     }
 
-    DateTime now = new DateTime.now();
+    DateTime now = _clock.now();
+    if (data.frame > lastSentFrame) {
+      lastSentFrame = data.frame;
+      lastSentFrameTime = now;
+    }
     _connectionStats.lastSendTime = now;
     _reliableHelper.storeAwayReliableData(data);
 
@@ -445,7 +450,7 @@ class ConnectionWrapper {
     this._connectionStats.latency = latency;
   }
 
-  Duration expectedLatency() => _connectionStats.latency;
+  Duration expectedLatency() => _frameIncrementLatencyTime;
 
   ReliableHelper reliableHelper() => _reliableHelper;
 

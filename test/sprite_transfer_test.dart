@@ -1,3 +1,4 @@
+import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
@@ -34,6 +35,8 @@ void main() {
 
   group('Sprite transfer tests', () {
     test('TestBasicSpriteTransfer', () async {
+      throwIfLoggingUnexpected = false;
+      logConnectionData = false;
       WormWorld worldA = await createTestWorld('a');
       WormWorld worldB = await createTestWorld('b');
       WormWorld worldC = await createTestWorld('c');
@@ -102,29 +105,24 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT / 8 );
         worldC.frameDraw(KEY_FRAME_DEFAULT / 8 );
       }
-      expect(worldB.isCommander, isTrue);
-      expect(worldB.spriteIndex.count(), equals(2));
-      expect(worldB, hasExactSprites([
+      expect(worldC.isCommander, isTrue);
+      expect(worldC.spriteIndex.count(), equals(2));
+      expect(worldC, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
-              .andNetworkType(NetworkType.LOCAL),
-          hasSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.REMOTE_FORWARD),
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.LOCAL),
       ]));
+      expect(worldB.spriteIndex.count(), equals(2));
+          expect(worldB, hasExactSprites([
+              hasSpriteWithNetworkId(playerId(1))
+                  .andNetworkType(NetworkType.LOCAL),
+              hasSpriteWithNetworkId(playerId(2))
+                  .andNetworkType(NetworkType.REMOTE_FORWARD),
+          ]));
       expect(worldB.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
       expect(worldB.spriteIndex[playerId(2)],
-          hasType('LocalPlayerSprite'));
-      
-      expect(worldC.spriteIndex.count(), equals(2));
-          expect(worldC, hasExactSprites([
-              hasSpriteWithNetworkId(playerId(1))
-                  .andNetworkType(NetworkType.REMOTE),
-              hasSpriteWithNetworkId(playerId(2))
-                  .andNetworkType(NetworkType.LOCAL),
-          ]));
-      expect(worldC.spriteIndex[playerId(1)],
-          hasType('LocalPlayerSprite'));
-      expect(worldC.spriteIndex[playerId(2)],
           hasType('LocalPlayerSprite'));
       
       // Now test transferring a sprite over the network.
@@ -150,7 +148,7 @@ void main() {
       // Sprite gets added to worldC the next frame.
       expect(worldC, hasExactSprites([
         hasPlayerSpriteWithNetworkId(playerId(1))
-             .andNetworkType(NetworkType.REMOTE)
+             .andNetworkType(NetworkType.REMOTE_FORWARD)
              .andRemoteKeyState(),
         hasPlayerSpriteWithNetworkId(playerId(2))
              .andNetworkType(NetworkType.LOCAL),
@@ -178,13 +176,55 @@ void main() {
       ]));
       expect(worldC, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
-              .andNetworkType(NetworkType.REMOTE),
+              .andNetworkType(NetworkType.REMOTE_FORWARD),
           hasSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.LOCAL),
       ]));
+    });
 
-    }, skip: "Disabled");
+    test('Particles_TransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
 
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite sprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      Particles p = new Particles(worldA, sprite, sprite.position, sprite.velocity.multiply(0.2));
+      p.sendToNetwork = true;
+
+      worldA.addSprite(p);
+      worldA.frameDraw(0.1);
+      expect(p.networkId, isNotNull);
+      worldB.frameDraw(0.1);
+
+      Particles? bParticles = null;
+      for (int spriteId in worldB.spriteIndex.spriteIds()) {
+        print(worldB.spriteIndex[spriteId].runtimeType);
+        if (worldB.spriteIndex[spriteId] is Particles) {
+          bParticles = worldB.spriteIndex[spriteId] as Particles;
+        }
+      }
+      expect(bParticles, isNotNull,
+          reason: "Expect particle to transfer over network!");
+
+      ParticleEffects bParticleData = bParticles!.toNetworkUpdate();
+      ParticleEffects aParticleData = p.toNetworkUpdate();
+
+      // Same data on both sides.
+      expect(aParticleData.position, bParticleData.position);
+      expect(aParticleData.velocity, bParticleData.velocity);
+      expect(aParticleData.particleCount, bParticleData.particleCount);
+      expect(aParticleData.radius, bParticleData.radius);
+      expect(aParticleData.followId, bParticleData.followId);
+      expect(aParticleData.particleType, bParticleData.particleType);
+    });
     /*
     test('TestKillDormantSprites', () {
       Logger.root.level = Level.FINE;

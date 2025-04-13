@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
@@ -178,6 +180,22 @@ void main() {
 
     expect(connection.lastSeenRemoteFrame, equals(2));
     expect(connection.lastDeliveredFrame, equals(10));
+  });
+
+  test('SendFrameReceiveAck_setFrameLatency', () {
+    GameStateUpdates data = GameStateUpdates()
+      ..frame = 1
+      ..lastFrameSeen = 1;
+    connection.sendData(data);
+
+    fakeClock.testTime = DateTime.fromMillisecondsSinceEpoch(
+        fakeClock.testTime.millisecondsSinceEpoch + 500);
+    PacketWrapper p = PacketWrapper((GameStateUpdates()
+      ..lastFrameSeen = 1
+      ..frame = 2).writeToBuffer());
+    connection.receiveData(p);
+
+    expect(connection.expectedLatency(), Duration(milliseconds: 500));
   });
 
   test('SpriteDataNoKeyFrame_ignoresIt', () {

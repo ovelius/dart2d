@@ -1,0 +1,22 @@
+4) Fix Particles + unit test.
+5) Fix connection stats..
+
+1) Better loading of ByteWorld - progress.
+2) Explicit loading state when commander selects world.
+  2b) Also load the same world immediately when commander selects it... no reason to load state from commander.
+3) Disconnect non commanding peers from server - connect via commander.
+6) Use Bytes instead of Base64 images.
+
+7) Handle ICE disconnect instead of failed?
+9) Work I Safari/iOS.
+
+Gameplay:
+ - loading animation 
+ - Mobile controls fine tuning
+ - Icon weapon switching.
+ - Blowtorch weapon
+ - Earth world
+ - Space world
+ - Better world collision, no going through walls.
+ - zoom out when killed, zoom in when re-spawning (hint!)
+ - Sounds!
