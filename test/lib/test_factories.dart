@@ -107,4 +107,9 @@ class TestConnectionFactory extends ConnectionFactory {
   handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {
 
   }
+
+  @override
+  Future<String> getStats(connection) {
+    return Future.value("{\"currentRoundTripTime\":0.1}");
+  }
 }

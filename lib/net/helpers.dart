@@ -2,11 +2,8 @@ import 'dart:math';
 import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:dart2d/net/net.dart';
-import 'package:dart2d/worlds/world.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
-import 'dart:convert';
 import 'dart:core';
 
 @Singleton(scope: 'world')

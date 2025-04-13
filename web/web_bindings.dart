@@ -91,6 +91,8 @@ class HtmlImageFactory implements ImageFactory {
 external ImageData createImageData(int w, int h);
 @JS()
 external bool isTouchDevice();
+@JS()
+external String getRtcConnectionStats(RTCStatsReport stats);
 
 @Injectable(as : ImageDataFactory)
 class HtmlImageDataFactory implements ImageDataFactory {

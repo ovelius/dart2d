@@ -161,6 +161,27 @@
         return new ImageData(w,h);
       }
 
+      function getRtcConnectionStats(stats) {
+        let data = {bytesReceived: 0,
+           bytesSent: 0, currentRoundTripTime: 0,
+           packetsReceived: 0, packetsSent: 0};
+
+        let iter = stats.values();
+        let result = iter.next();
+        while (!result.done) {
+          let stat = result.value;
+          if (stat.type == "candidate-pair" && stat.nominated == true) {
+            for (key in data) {
+              if (stat[key]) {
+                data[key] = stat[key];
+              }
+            }
+          }
+          result = iter.next();
+        }
+        return JSON.stringify(data);
+      }
+
       function isTouchDevice() {
         return (('ontouchstart' in window) ||
            (navigator.maxTouchPoints > 0) ||

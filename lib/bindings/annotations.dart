@@ -79,5 +79,7 @@ abstract class ConnectionFactory {
    * Handle receiving that answer.
    */
   handleGotAnswer(dynamic connection, WebRtcDanceProto proto);
+
+  Future<String> getStats(dynamic connection);
 }
 

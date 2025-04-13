@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:fixnum/fixnum.dart';
@@ -137,6 +139,14 @@ class ConnectionWrapper {
       ..transferCommand = true
       ..attachUniqueDataReceipt(this);
     sendSingleUpdate(update);
+  }
+
+  void collectRtcStats() {
+    _network.connectionFactory.getStats(rtcConnection()).then((String statsJson) {
+      Map<String, num> stats = new Map.from(jsonDecode(statsJson));
+      // {bytesReceived: 1303458, bytesSent: 426002, currentRoundTripTime: 0, packetsReceived: 3014, packetsSent: 2800}
+      sampleLatency(Duration(milliseconds: (1000.0 * stats["currentRoundTripTime"]!).toInt()));
+    });
   }
 
   /**
@@ -416,7 +426,7 @@ class ConnectionWrapper {
     if (data.stateUpdate.isNotEmpty && data.stateUpdate[0].hasPing()) {
       return;
     }
-    sendPing();
+    collectRtcStats();
   }
 
   void readyDataChannel(var dataChannel) {

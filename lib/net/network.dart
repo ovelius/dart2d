@@ -27,6 +27,7 @@ class Network {
   late SpriteIndex _spriteIndex;
   GaReporter _gaReporter;
   ConnectionFactory _connectionFactory;
+  ConnectionFactory get connectionFactory => _connectionFactory;
   late KeyState _localKeyState;
   late PeerWrapper peer;
   PacketListenerBindings _packetListenerBindings;

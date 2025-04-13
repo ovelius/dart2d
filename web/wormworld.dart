@@ -1,7 +1,6 @@
 library spaceworld;
 
-import 'dart:convert';
-
+import 'web_bindings.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -264,6 +263,11 @@ class RtcConnectionFactory extends ConnectionFactory {
     RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
     RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: proto.sdpType, sdp:proto.sdp);
     rtcPeerConnection.setRemoteDescription(init).toDart;
+  }
+
+  Future<String> getStats(dynamic connection) {
+    return (connection as RTCPeerConnection).getStats().toDart
+        .then((stats) => getRtcConnectionStats(stats));
   }
 
   _listenForAndSendIceCandidatesToPeer(
