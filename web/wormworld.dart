@@ -19,14 +19,11 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:async';
 
 const bool RELOAD_ON_ERROR = false;
-const int TIMEOUT_MILLIS = 21;
-const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
 final Logger log = new Logger('WormWorldMain');
 
 late DateTime lastStep;
 late WormWorld world;
 late GaReporter gaReporter;
-late ServerChannel _serverChannel;
 
 List iceServers = [
   {'url': 'stun:turn.goog'}
@@ -80,7 +77,6 @@ void init() {
   getIt.initWorldScope();
   world = getIt<WormWorld>();
   gaReporter = getIt<GaReporter>();
-  _serverChannel = getIt<ServerChannel>();
 
   setKeyListeners(world, canvasElement);
 
@@ -249,10 +245,11 @@ class RtcConnectionFactory extends ConnectionFactory {
       } else if (connection.iceConnectionState == "connected") {
         wrapper.open();
       } else if (connection.iceConnectionState == 'closed') {
-        wrapper.close("ICE closed");
+        wrapper.close("ICE closed!");
       } else if (connection.iceConnectionState == 'failed') {
-        wrapper.error(e.toString());
+        wrapper.error("ICE failed!");
       } else if (connection.iceConnectionState == 'disconnected') {
+        // This technically not a final state...
         wrapper.close("ICE disconnected");
       } else {
         log.warning(

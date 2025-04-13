@@ -322,8 +322,10 @@ class ConnectionWrapper {
       _network.stateBundle(true, data);
       data.keyFrame = _connectionFrameHandler.currentKeyFrame();
       // Maybe adjust connection framerate.
-      _connectionFrameHandler.reportFramesBehind(recipientFramesBehind(),
-          _frameIncrementLatencyTime.inMilliseconds);
+      PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(id);
+      if (info != null) {
+        _connectionFrameHandler.reportFrameRates(info.fps, _network.getCurrentFps());
+      }
     } else {
       // Send regular data.
       _network.stateBundle(false, data);

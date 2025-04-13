@@ -2,6 +2,11 @@ library fps_counter;
 
 import 'package:injectable/injectable.dart';
 
+/** The target FPS of the main game loop */
+const GAME_TARGET_FPS = 47;
+const int TIMEOUT_MILLIS = 1000  ~/ GAME_TARGET_FPS;
+const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
+
 @Singleton(scope: 'world')
 class FpsCounter extends _FrameTrigger {
   FpsCounter() : super(1.0);

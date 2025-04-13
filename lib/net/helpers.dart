@@ -3,6 +3,7 @@ import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/net/net.dart';
+import 'package:dart2d/worlds/world.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'dart:convert';
@@ -139,6 +140,9 @@ class ReliableHelper {
 }
 
 class ConnectionFrameHandler {
+  static double KEEP_MAX_NETWORK_FPS = GAME_TARGET_FPS * 0.8;
+  static double KEEP_MIN_NETWORKS_FPS = GAME_TARGET_FPS / 2;
+
   static bool DISABLE_AUTO_ADJUST_FOR_TEST = false;
   final Logger log = new Logger('ConnectionFrameHandler');
 
@@ -149,7 +153,7 @@ class ConnectionFrameHandler {
   // How often to trigger keyframes. Base value is (1.0 / 15.0) * 7.5 = 0.5
   static const double BASE_KEY_FRAME_RATE_INTERVAL = BASE_FRAMERATE_INTERVAL * 7.5;
 
-  static const int STABLE_FRAME_RATE_TUNING_INTERVAL = 6;
+  static const int STABLE_FRAME_RATE_TUNING_INTERVAL = 5;
 
   double _nextFrame = 0.0;
   double _nextKeyFrame = 0.0;
@@ -161,8 +165,6 @@ class ConnectionFrameHandler {
   int _currentFrame = 0;
   int _currentKeyFrame = 0;
 
-  // How many frames in a row we've considered the connection to be stable.
-  int _stableFrames = 0;
 
   ConnectionFrameHandler(ConfigParams params) {
     int frameRate = params.getInt(ConfigParam.MAX_NETWORK_FRAMERATE);
@@ -174,23 +176,21 @@ class ConnectionFrameHandler {
   /**
    * Maybe adjust connection framerate.
    */
-  reportFramesBehind(int framesBehind, int latencyMillis) {
-    // Being 0 or 1 keyframes behind is quite normal.
-    if (framesBehind <= 1) {
-      _stableFrames++;
-      if (_stableFrames > STABLE_FRAME_RATE_TUNING_INTERVAL) {
-        // Try to increase framerate again.
-        _setFrameRate(_currentFrameRate + 1);
-        _stableFrames = 0;
-      }
+  reportFrameRates(double receivingClientFps, double ourFps) {
+    // We adjust based on signal of performance issues either locally or remote.
+    int newFps = min(_translateFrameRate(receivingClientFps), _translateFrameRate(ourFps));
+    _setFrameRate(newFps);
+  }
+
+  int _translateFrameRate(double drawFps) {
+    if (drawFps > KEEP_MAX_NETWORK_FPS) {
+      return MAX_FRAMERATE;
     }
-    // Being more than 1 keyframe behind shouldn't really happen.
-    // Reduce framerate.
-    if (framesBehind > 1) {
-      _stableFrames = 0;
-      // Reduce framerate.
-      _setFrameRate(_currentFrameRate - min(framesBehind, 5));
+    if (drawFps < KEEP_MIN_NETWORKS_FPS) {
+      return MIN_FRAMERATE;
     }
+    double percentOfTarget = drawFps / GAME_TARGET_FPS;
+    return (percentOfTarget * MAX_FRAMERATE).toInt();
   }
 
   _setFrameRate(int rate) {

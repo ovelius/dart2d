@@ -33,6 +33,8 @@ void main() {
     fakeClock = FakeClock();
     mockNetwork = new MockNetwork();
     MockPeerWrapper mockPeerWrapper = MockPeerWrapper();
+    MockGameState mockGameState = MockGameState();
+    when(mockNetwork.getGameState()).thenReturn(mockGameState);
     when(mockPeerWrapper.id).thenReturn("b");
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.isCommander()).thenReturn(false);
@@ -369,19 +371,17 @@ void main() {
     ConnectionFrameHandler handler =
         new ConnectionFrameHandler(new ConfigParams({}));
     expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE);
-    handler.reportFramesBehind(1, 1);
-    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE);
-    handler.reportFramesBehind(2, 1);
-    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 2);
-    handler.reportFramesBehind(3, 1);
-    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 5);
 
-    // Now pretend we are stable.
-    for (int i = 0; i < ConnectionFrameHandler.STABLE_FRAME_RATE_TUNING_INTERVAL; i++) {
-      handler.reportFramesBehind(1, 0);
-    }
-    handler.reportFramesBehind(1, 0);
-    // We increased the framerate again.
-    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE - 4);
+    handler.reportFrameRates(99.0, 88.0);
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MAX_FRAMERATE);
+
+    handler.reportFrameRates(1.0, 88.0);
+    expect(handler.currentFrameRate(), ConnectionFrameHandler.MIN_FRAMERATE);
+
+    handler.reportFrameRates(98.0, 30.0);
+    expect(handler.currentFrameRate(), 9);
+
+    handler.reportFrameRates(98.0, 25.0);
+    expect(handler.currentFrameRate(), 7);
   });
 }

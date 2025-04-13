@@ -32,9 +32,10 @@ class Network {
   late PeerWrapper peer;
   PacketListenerBindings _packetListenerBindings;
   late FpsCounter _drawFps;
-  // If we are client, this indicates that the server
+  double getCurrentFps() => _drawFps.fps();
+  // If we are client, this indicates that the commander
   // is unable to ack our data.
-  int serverFramesBehind = 0;
+  int commanderFramesBehind = 0;
   // How many times we trigger a frame while being very slow at doing so.
   // We may choose to give up our commanding role if this happens too much.
   int _slowCommandingFrames = 0;
@@ -46,14 +47,14 @@ class Network {
       HudMessages hudMessages,
       this.gameState,
       this._packetListenerBindings,
-      FpsCounter serverFrameCounter,
+      FpsCounter clientFrameCounter,
       ServerChannel serverChannel,
       ConfigParams configParams,
       SpriteIndex spriteIndex,
       KeyState localKeyState) {
     this._hudMessages = hudMessages;
     this._spriteIndex = spriteIndex;
-    this._drawFps = serverFrameCounter;
+    this._drawFps = clientFrameCounter;
     this._localKeyState = localKeyState;
     peer = new PeerWrapper(_connectionFactory, this, hudMessages, configParams,
         serverChannel, _packetListenerBindings, _gaReporter);
@@ -355,7 +356,7 @@ class Network {
    * Returns true if the network is in such a problemetic state we should notify the user.
    */
   bool hasNetworkProblem() {
-    return serverFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isCommander();
+    return commanderFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isCommander();
   }
 
   void sendMessage(String message, [String? dontSendTo]) {
@@ -377,7 +378,7 @@ class Network {
 
   void frame(double duration, List<int> removals) {
     if (!hasReadyConnection()) {
-      serverFramesBehind = 0;
+      commanderFramesBehind = 0;
       return;
     }
     if (isCommander()) {
@@ -397,7 +398,7 @@ class Network {
     if (!isCommander()) {
       ConnectionWrapper? serverConnection = getServerConnection();
       if (serverConnection != null) {
-        serverFramesBehind = serverConnection.recipientFramesBehind();
+        commanderFramesBehind = serverConnection.recipientFramesBehind();
       }
     }
 
