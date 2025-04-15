@@ -78,7 +78,7 @@ class Loader {
     _width = canvasElement.width;
     _height = canvasElement.height;
     this._imageIndex = imageIndex;
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 20; i++) {
       _spinners.add(_Spinner());
     }
   }
@@ -105,11 +105,6 @@ class Loader {
   }
 
   void _loaderTickInternal([double duration = 0.01]) {
-
-    for (_Spinner s in _spinners) {
-      s.angle += duration * s.speed;
-    }
-    // print("Loaderstick ${_currentState}");
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
       // Start loading images while waiting for a name.
@@ -122,7 +117,6 @@ class Loader {
     if (_imageIndex.playerResourcesLoaded() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
       _playerWorldSelector.frame(duration);
-      drawCenteredText(_currentMessage);
       // Continue loading other resources while waiting for playerSelect.
       _tickImagesLoad(duration);
       return;
@@ -132,7 +126,8 @@ class Loader {
     } else {
       _advanceStage(duration);
     }
-    if (_currentMessage != "") {
+    if (_currentMessage != "" && !completed()) {
+      _moveSpinner(duration);
       drawCenteredText(_currentMessage);
     }
   }
@@ -312,16 +307,37 @@ class Loader {
     _context.restore();
   }
 
-  void _drawSpinner() {
-    int height = 20;
-    _context.translate(_width / 2,  _height ~/ 2);
-    _context.globalCompositeOperation = "lighter";
+  void _moveSpinner(double duration) {
     for (_Spinner s in _spinners) {
-      _context.fillStyle = _Spinner.RGB[s.color];
+      s.angle += duration * s.speed;
+      if (s.angle > 2 * pi) {
+        s.angle -= 2 * pi;
+      }
+      if (s.angle > pi && s.angle < 2 * pi) {
+        double pd = (s.angle - pi) * 4;
+        s.angle += duration * pd;
+      }
+      if (s.angle > 0 && s.angle < pi) {
+        double pd = (pi - s.angle) * 4;
+        s.angle += duration * pd;
+      }
+    }
+  }
+
+  void _drawSpinner() {
+    int height = 4;
+    _context.translate(_width / 2,  _height ~/ 2  + _height ~/ 8);
+    _context.globalCompositeOperation = "overlay";
+    for (_Spinner s in _spinners) {
+      _context.save();
+      _context.beginPath();
+      _context.fillStyle =  s.colorString;
       _context.rotate(s.angle);
       _context
-        ..fillRect(-s.width / 2,
-            _height ~/ 2, s.width, height);
+        .rect(-s.width / 15,
+            _height ~/ 15, s.width, height);
+      _context.fill();
+      _context.restore();
     }
   }
 
@@ -350,23 +366,18 @@ class Loader {
 }
 
 class _Spinner {
-  static const List<String> RGB = ["#990000", "#009900", "#000099"];
   double angle = 0.0;
   double speed = 0.0;
   int width = 0;
-  int color = 0;
+  String colorString = "";
 
   _Spinner() {
     Random r = Random();
-    angle = r.nextDouble() * 2 * pi;
-    while (speed < 0.2) {
-      speed = r.nextDouble() * 2.0;
-    }
-    if (r.nextBool()) {
-      speed = -speed;
-    }
-    width = 50 + r.nextInt(200);
-    color = r.nextInt(RGB.length);
+    angle = r.nextDouble() * pi;
+
+    colorString = "rgba(${r.nextInt(255)}, ${r.nextInt(255)}, ${r.nextInt(255)}, 1.0)";
+    speed = 1.0;
+    width = 10 + r.nextInt(15);
   }
 }
 
