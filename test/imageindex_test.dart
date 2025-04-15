@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:test/test.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
@@ -40,7 +42,9 @@ void main() {
 
     // Check caching.
     for (String name in index.allImagesByName().keys) {
-      FakeImage img = index.getImageByName(name);
+      if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
+        continue;
+      }
       expect(localStorage["img$name"], TEST_DATA_URL);
     }
   });
@@ -55,7 +59,7 @@ void main() {
     // Now add data for each image.
     for (String name in PLAYER_SOURCES) {
       int imageId = index.getImageIdByName(name);
-      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
       fakeImageFactory.completeAllImages();
     }
 
@@ -63,7 +67,7 @@ void main() {
     expect(index.finishedLoadingImages(), isFalse);
 
     for (int imageId in index.allImagesByName().values) {
-      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
       fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
     }
@@ -77,7 +81,9 @@ void main() {
 
     // Check caching.
     for (String name in index.allImagesByName().keys) {
-      FakeImage img = index.getImageByName(name);
+      if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
+        continue;
+      }
       expect(localStorage["img$name"], TEST_DATA_URL);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
@@ -89,7 +95,7 @@ void main() {
     List<int> ids = new List.from(index.allImagesByName().values);
     ids.sort();
     for (int imageId in ids) {
-      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId");
+      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
       fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
       if (imageId > 5) {
@@ -99,6 +105,7 @@ void main() {
     // Did not complete from client.
     expect(index.finishedLoadingImages(), isFalse);
 
+    // Fallback to server loaded images.
     index.loadImagesFromServer();
 
     fakeImageFactory.completeAllImages();
@@ -108,7 +115,8 @@ void main() {
     // Some images got loaded from client.
     for (int id in ids) {
       FakeImage image = index.getImageById(id);
-      expect(image.src, equals("data:image/png;base64,testData$id"));
+      expect(image.src, equals("data:image/png;base64,testData$id")
+      , reason: "Image ${image.src} is client loaded and cached");
       if (id > 5) {
         break;
       }
@@ -116,7 +124,9 @@ void main() {
 
     // Check caching.
     for (String name in index.allImagesByName().keys) {
-      FakeImage img = index.getImageByName(name);
+      if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
+        continue;
+      }
       expect(localStorage["img$name"], TEST_DATA_URL);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
@@ -133,6 +143,22 @@ void main() {
     index.loadImagesFromNetwork();
 
     fakeImageFactory.completeAllImages();
+
+    expect(index.finishedLoadingImages(), isTrue);
+  });
+
+  test("testClientThenServer_loadsCacheOnce", () {
+    fakeImageFactory.allowURLImages = false;
+    for (String name in IMAGE_SOURCES) {
+      localStorage["img$name"] = "data:image/png;base64,data$name";
+      localStorage["timg$name"] =
+          new DateTime.now().millisecondsSinceEpoch.toString();
+    }
+
+    index.loadImagesFromNetwork();
+    fakeImageFactory.completeAllImages();
+    index.loadImagesFromServer();
+
 
     expect(index.finishedLoadingImages(), isTrue);
   });
@@ -169,7 +195,7 @@ void main() {
   test("TestAddCorruptImage", () {
     expectWarningContaining("Dropping corrupted image data");
     index.loadImagesFromNetwork();
-    index.addFromImageData(2, "Blergh");
+    index.addFromImageData(2, "Blergh", false);
 
     expect(index.loadedImages[2], isNull);
     fakeImageFactory.completeAllImages();

@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:injectable/injectable.dart';
 
-const TEST_DATA_URL = "data:image/png;base64,THIS_IS_FAKE";
+const TEST_DATA_URL = "data:image/png;base64,THIS_IS_TEST_DATA_URL";
 
 @Injectable(as: WorldCanvas)
 class FakeCanvas implements WorldCanvas {

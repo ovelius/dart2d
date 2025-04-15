@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
@@ -5,7 +7,6 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'player_world_selector.dart';
-import 'package:dart2d/util/gamestate.dart';
 
 enum LoaderState {
   ERROR,
@@ -60,6 +61,7 @@ class Loader {
   bool _completed = false;
 
   String _currentMessage = "";
+  List<_Spinner> _spinners = [];
 
   Loader(LocalStorage storage,
          WorldCanvas canvasElement,
@@ -76,6 +78,9 @@ class Loader {
     _width = canvasElement.width;
     _height = canvasElement.height;
     this._imageIndex = imageIndex;
+    for (int i = 0; i < 25; i++) {
+      _spinners.add(_Spinner());
+    }
   }
 
   Map<LoaderState, dynamic> _STATE_PRECONDITIONS = {
@@ -89,7 +94,22 @@ class Loader {
     }
   };
 
+
   void loaderTick([double duration = 0.01]) {
+    DateTime now = DateTime.now();
+    _loaderTickInternal(duration);
+    int millis = DateTime.now().millisecondsSinceEpoch - now.millisecondsSinceEpoch;
+    if (millis > 100) {
+      print("!!Loader tick took ${millis}");
+    }
+  }
+
+  void _loaderTickInternal([double duration = 0.01]) {
+
+    for (_Spinner s in _spinners) {
+      s.angle += duration * s.speed;
+    }
+    // print("Loaderstick ${_currentState}");
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
       // Start loading images while waiting for a name.
@@ -102,6 +122,7 @@ class Loader {
     if (_imageIndex.playerResourcesLoaded() && !_localStorage.containsKey('playerSprite')) {
       setState(LoaderState.PLAYER_SELECT);
       _playerWorldSelector.frame(duration);
+      drawCenteredText(_currentMessage);
       // Continue loading other resources while waiting for playerSelect.
       _tickImagesLoad(duration);
       return;
@@ -287,7 +308,21 @@ class Loader {
     var metrics = _context.measureText(text);
     _context.fillText(
         text, _width / 2 - metrics.width / 2, y);
+    _drawSpinner();
     _context.restore();
+  }
+
+  void _drawSpinner() {
+    int height = 20;
+    _context.translate(_width / 2,  _height ~/ 2);
+    _context.globalCompositeOperation = "lighter";
+    for (_Spinner s in _spinners) {
+      _context.fillStyle = _Spinner.RGB[s.color];
+      _context.rotate(s.angle);
+      _context
+        ..fillRect(-s.width / 2,
+            _height ~/ 2, s.width, height);
+    }
   }
 
   void markCompleted() {
@@ -314,6 +349,27 @@ class Loader {
   String? selectedWorldName() => _playerWorldSelector.selectedWorldName;
 }
 
+class _Spinner {
+  static const List<String> RGB = ["#990000", "#009900", "#000099"];
+  double angle = 0.0;
+  double speed = 0.0;
+  int width = 0;
+  int color = 0;
+
+  _Spinner() {
+    Random r = Random();
+    angle = r.nextDouble() * 2 * pi;
+    while (speed < 0.2) {
+      speed = r.nextDouble() * 2.0;
+    }
+    if (r.nextBool()) {
+      speed = -speed;
+    }
+    width = 50 + r.nextInt(200);
+    color = r.nextInt(RGB.length);
+  }
+}
+
 Map<LoaderState, String> _STATE_DESCRIPTIONS = {
   LoaderState.WEB_RTC_INIT : "Waiting for WebRTC init",
   LoaderState.WAITING_FOR_PEER_DATA : "Fetching list of active peers...",
@@ -330,6 +386,6 @@ Map<LoaderState, String> _STATE_DESCRIPTIONS = {
 
   LoaderState.FINDING_SERVER: "Finding game to join...",
   LoaderState.LOADING_AS_CLIENT_COMPLETED: "Loading completed.",
-  LoaderState.LOADED_AS_SERVER: "Start as server!",
+  LoaderState.LOADED_AS_SERVER: "Joining as first player...",
   LoaderState.LOADING_ENTERING_GAME: "Entering game...",
 };

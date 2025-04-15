@@ -106,7 +106,7 @@ void main() {
       when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(false);
       // Set image to be loaded.
-      when(imageIndex2.addFromImageData(requestedIndex, IMAGE_DATA))
+      when(imageIndex2.addFromImageData(requestedIndex, IMAGE_DATA, true))
           .thenAnswer((i) {
         when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
         return Future.value();
@@ -155,15 +155,16 @@ void main() {
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
       when(imageIndex.getImageDataUrl(requestedIndex2)).thenReturn(IMAGE_DATA);
       when(imageIndex2.imageIsLoaded(requestedIndex2)).thenReturn(true);
-      when(imageIndex.imageIsLoaded(requestedIndex2)).thenReturn(true);
-      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(false);
+      when(imageIndex.imageIsLoading(requestedIndex2)).thenReturn(true);
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
       when(imageIndex.orderedImageIds()).thenReturn([requestedIndex, requestedIndex2]);
       when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
       when(imageIndex2.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
 
       // Set image to be loaded.
-      when(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA))
+      when(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA, true))
           .thenAnswer((i) {
+        when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(true);
         when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
         return Future.value();
       });

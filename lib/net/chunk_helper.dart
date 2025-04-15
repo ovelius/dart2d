@@ -145,7 +145,7 @@ class ChunkHelper {
 
     // Image complete.
     if (_imageBuffer[index]!.length == size) {
-      _imageIndex.addFromImageData(index, _imageBuffer[index]!);
+      _imageIndex.addFromImageData(index, _imageBuffer[index]!, true);
       _imageBuffer.remove(index);
       _imageSizes.remove(index);
       log.info("Image complete ${index} :)");
@@ -169,7 +169,7 @@ class ChunkHelper {
       if (requestedImages > 2) {
         continue;
       }
-      if (!_imageIndex.imageIsLoaded(index)) {
+      if (!_imageIndex.imageIsLoading(index)) {
         if (_maybeRequestImageLoad(index, connections, secondsDuration)) {
           requestedImages++;
         }

@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 import 'lib/test_factories.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
+import 'lib/fake_canvas.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worlds.dart';
@@ -48,9 +49,11 @@ void main() {
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       expect(worldB.network().peer.connections.length, equals(1));
 
+      FakeImageFactory fakeImageFactory = worldB.imageIndex().imageFactory as FakeImageFactory;
       for (int i = 0; i < 5; i++) {
         worldA.frameDraw();
         worldB.frameDraw();
+        fakeImageFactory.completeAllImages();
       }
       // TODO: This should be PLAYER_SELECT even if no images completed...
       expect(loaderB.currentState(), equals(LoaderState.PLAYER_SELECT));
@@ -111,8 +114,10 @@ void main() {
       expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       connectionFactoryC.signalErrorAllConnections('c');
       // All loaded from cache!
-      for (int i = 0; i < 100; i++) {
+      FakeImageFactory fakeImageFactory = worldC.imageIndex().imageFactory as FakeImageFactory;
+      for (int i = 0; i < 10; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+        fakeImageFactory.completeAllImages();
       }
       expect(loaderC.currentState(), equals(LoaderState.PLAYER_SELECT));
       expect(worldC.imageIndex().finishedLoadingImages(), isTrue);

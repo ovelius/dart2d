@@ -8,8 +8,6 @@ import 'package:injectable/injectable.dart';
 import 'package:mockito/annotations.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
-const MAX_LOCAL_STORAGE_SIZE = 4 * 1024 * 1024;
-
 // Required for selecting player.
 Set<String> PLAYER_SOURCES = new Set<String>.from([
   "lion88.png",
@@ -54,15 +52,20 @@ const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANS
 class ImageIndex {
   final Logger log = new Logger('ImageIndex');
   static const int WORLD_IMAGE_INDEX = 1;
+  static const String WORLD_NAME = "world";
+  static const String EMPTY = "empty";
   var _EMPTY_IMAGE;
   var _WORLD_IMAGE;
   ConfigParams _configParams;
   late CanvasFactory _canvasFactory;
   late ImageFactory _imageFactory;
-  // Map ImageName -> ImageIndex.
+  ImageFactory get imageFactory => _imageFactory;
+  // Map ImageName -> index of image.
   Map<String, int> imageByName = new Map<String, int>();
-  // Map ImageName -> Loaded bool.
+  // Map ImageIndex -> Loaded bool.
   Map<int, bool> loadedImages = new Map<int, bool>();
+  // Map ImageIndex
+  Map<int, Future> _imagesLoading = new Map<int, Future>();
   List<dynamic> images = [];
 
   // Keep track of these types in a Set.
@@ -93,6 +96,8 @@ class ImageIndex {
     _WORLD_IMAGE = _imageFactory.createWithSize(1, 1);
     images.add(_EMPTY_IMAGE);
     images.add(_WORLD_IMAGE);
+    imageByName[EMPTY] = 1;
+    imageByName[WORLD_NAME] = 1;
   }
 
   /**
@@ -109,7 +114,7 @@ class ImageIndex {
     int index = images.length - 1;
     imageByName[name] = index;
     loadedImages[index] = true;
-    _imageComplete(index);
+    _imageComplete(index, false);
   }
 
   dynamic getImageByName(String name) {
@@ -144,7 +149,7 @@ class ImageIndex {
     loadImagesFromServer();
   }
 
-  Future addFromImageData(int index, String data) {
+  Future addFromImageData(int index, String data, bool allowCaching) {
     if (!data.startsWith("data:image/png;base64,")) {
       String imageName = imageNameFromIndex(index);
       log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
@@ -152,10 +157,9 @@ class ImageIndex {
       return new Future.value();
     }
     images[index] = _imageFactory.createWithSrc(data);
-    // Mark image as complete here.
-    loadedImages[index] = true;
-    _imageComplete(index);
-    return _imageLoadedFuture(images[index], index);
+    _imagesLoading[index] = _imageLoadedFuture(
+        images[index], index, allowCaching);
+    return _imagesLoading[index]!;
   }
 
   void addImagesFromNetwork() {
@@ -182,7 +186,6 @@ class ImageIndex {
 
   loadImagesFromServer() {
     log.info("Loading images from Server.");
-    List<Future> imageFutures = [];
     _indexImages();
     _loadFromCacheInLocalStorage();
     for (var imgName in IMAGE_SOURCES) {
@@ -191,15 +194,19 @@ class ImageIndex {
       if (loadedImages[index] == true) {
         continue;
       }
-      imageFutures.add(addSingleImage(imgName));
+      Future? existingLoading = _imagesLoading[index];
+      if (existingLoading != null) {
+        continue;
+      }
+      _imagesLoading[index] = addSingleImage(imgName);
     }
-    return Future.wait(imageFutures);
+    return Future.wait(_imagesLoading.values);
   }
 
   Future addSingleImage(String imgName, [String path = "./img/"]) {
     assert(imagesIndexed());
-    var element = this._imageFactory.createWithSrc(path + imgName);
     int? index = imageByName[imgName];
+    var element = this._imageFactory.createWithSrc(path + imgName);
     // Already indexed. Update existing item.
     if (index != null) {
       images[index] = element;
@@ -209,11 +216,12 @@ class ImageIndex {
       index = images.length - 1;
       imageByName[imgName] = index;
     }
-    return _imageLoadedFuture(element, index);
+    return _imageLoadedFuture(element, index, true);
   }
 
-  Future _imageLoadedFuture(var img, int index) {
-    img.onLoad.first.then((e) {
+  Future _imageLoadedFuture(var img, int index, bool allowCaching) {
+    Future loaded = img.onLoad.first;
+    loaded.then((e) {
       String imageName = imageNameFromIndex(index);
       if (images[index].width == 0 || images[index].height == 0) {
         log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
@@ -221,10 +229,14 @@ class ImageIndex {
         addSingleImage(imageName);
       } else {
         loadedImages[index] = true;
-        _imageComplete(index);
+        _imageComplete(index, allowCaching);
       }
     });
-    return img.onLoad.first;
+    loaded.onError((error, _) {
+      log.warning("Error loading image ${error}");
+      _imagesLoading.remove(index);
+    });
+    return loaded;
   }
 
   loadImagesFromNetwork() {
@@ -232,15 +244,15 @@ class ImageIndex {
     _loadFromCacheInLocalStorage();
   }
 
-  void _imageComplete(int index) {
-    if (finishedLoadingImages()) {
-      _cacheInLocalStorage();
+  void _imageComplete(int index, bool allowCaching) {
+    if (allowCaching) {
+      _cacheInLocalStorage(index);
     }
     String name = imageNameFromIndex(index);
     _playerImages.remove(name);
     _worldImages.remove(name);
     _gameImages.remove(name);
-    }
+  }
 
   String imageNameFromIndex(int index) {
     for (String name in imageByName.keys) {
@@ -268,8 +280,13 @@ class ImageIndex {
     return imageByName;
   }
 
-  bool imageIsLoaded(int index) {
+  bool imageIsLoaded(int? index) {
+    if (index == null) return false;
     return loadedImages[index] == true;
+  }
+
+  bool imageIsLoading(int index) {
+    return imageIsLoaded(index) ||  _imagesLoading.containsKey(index);
   }
 
   void clearImageLoader(int index) {
@@ -290,6 +307,11 @@ class ImageIndex {
     assert(imagesIndexed());
     DateTime now = new DateTime.now();
     for (String image in imageByName.keys) {
+      int index = imageByName[image]!;
+      // This image is already in the process of being loaded.
+      if (imageIsLoading(index)) {
+        continue;
+      }
       String key = "img$image";
       if (_localStorage.containsKey(key) &&  _localStorage.containsKey("t$key")) {
         String millis = _localStorage["t$key"];
@@ -298,7 +320,7 @@ class ImageIndex {
           String data = _localStorage[key];
           int imageIndex = imageByName[image]!;
           log.info("Added image from cache ${image}.");
-          addFromImageData(imageIndex, data);
+          addFromImageData(imageIndex, data, false);
         } else {
           // Clear cache.
           _localStorage.remove(key);
@@ -308,25 +330,19 @@ class ImageIndex {
     }
   }
 
-  void _cacheInLocalStorage() {
-    int size = 0;
+  void _cacheInLocalStorage(int index) {
     Set<String> dontCache = new Set.from(WORLDS.values);
-    for (String image in imageByName.keys) {
-      int imageId = imageByName[image]!;
-      // Never cache the world.
-      if (imageId <= WORLD_IMAGE_INDEX || dontCache.contains(image)) {
-        continue;
-      }
-      if (size > MAX_LOCAL_STORAGE_SIZE) {
-        continue;
-      }
-      String imageData = getImageDataUrl(imageId);
-      size += imageData.length;
-      String key = "img$image";
-      if (!_localStorage.containsKey(key)) {
-        _localStorage[key] = imageData;
-        _localStorage["t$key"] = (new DateTime.now().millisecondsSinceEpoch).toString();
-      }
+    String image = imageNameFromIndex(index);
+    // Never cache the world.
+    if (index <= WORLD_IMAGE_INDEX || dontCache.contains(index)) {
+      return;
+    }
+    log.info("putting image in cache $image");
+    String imageData = getImageDataUrl(index);
+    String key = "img$image";
+    if (!_localStorage.containsKey(key)) {
+      _localStorage[key] = imageData;
+      _localStorage["t$key"] = (new DateTime.now().millisecondsSinceEpoch).toString();
     }
   }
 }
