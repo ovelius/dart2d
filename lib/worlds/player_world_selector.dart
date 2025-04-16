@@ -24,7 +24,7 @@ class PlayerWorldSelector {
     "dra98.png",
     "turtle96.png"
   ];
-  static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
+  static final List<int> PLAYER_SPRITE_SIZES = [98, 96, 98, 93, 78, 88, 98, 95];
 
   static final List<String> AVAILABLE_MAPS = new List.from(WORLDS.keys);
 
