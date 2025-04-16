@@ -10,6 +10,7 @@ const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
 @Singleton(scope: 'world')
 class FpsCounter extends _FrameTrigger {
   FpsCounter() : super(1.0);
+  FpsCounter.withPeriod(double period) : super(period);
 }
 
 class _FrameTrigger {
@@ -23,6 +24,10 @@ class _FrameTrigger {
   _FrameTrigger(double period) {
     this._period = period;
     this._nextTriggerIn = period;
+  }
+
+  bool timeSingleFrame(double time) {
+    return timeWithFrames(time, 1);
   }
 
   bool timeWithFrames(double time, int framesPassed) {

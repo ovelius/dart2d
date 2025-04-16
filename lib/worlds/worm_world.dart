@@ -42,6 +42,7 @@ class WormWorld extends World {
   late KeyState localKeyState;
   late HudMessages hudMessages;
   late PacketListenerBindings _packetListenerBindings;
+  PacketListenerBindings get packetListenerBindings => _packetListenerBindings;
   dynamic _canvas = null;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld = new Vec2();
@@ -209,14 +210,15 @@ class WormWorld extends World {
   double _winTime = 10.0;
 
   void frameDraw([double duration = 0.01, bool slowDown = false]) {
+    // Keep track on how often we do this :)
+    _drawFps.timeWithFrames(duration, 1);
+
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {
         startAsServer();
         loader.markCompleted();
         _gaReporter.reportEvent("server", "StartType");
       } else if (loader.hasGameState()) {
-        // We are client.
-        initByteWorld("");
         loader.markCompleted();
         _gaReporter.reportEvent("client", "StartType");
       } else {
@@ -235,7 +237,6 @@ class WormWorld extends World {
     assert(byteWorld.initialized());
 
     // Count the draw FPS before adjusting the duration.
-    _drawFps.timeWithFrames(duration, 1);
     if (duration >= 0.041 && slowDown) {
       // Slow down the game instead of skipping frames.
       duration = 0.041;
@@ -568,8 +569,6 @@ class WormWorld extends World {
         // Make sure the ownerId is consistent with the connectionId.
         sprite.ownerId = info.connectionId;
         sprite.info = info;
-      } else {
-        log.warning("No matching sprite found for ${info} ?");
       }
       if (!_network.peer.hasConnectionTo(info.connectionId) && !_network.peer.hasHadConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
@@ -640,21 +639,11 @@ class WormWorld extends World {
     assert(network().peer.connectedToServer());
     assert(network().peer.id != null);
     assert(loader.selectedWorldName() != null);
-    initByteWorld(loader.selectedWorldName()!);
+    //initByteWorld(loader.selectedWorldName()!);
     addLocalPlayerSprite(name == null ? _localStorage['playerName'] : name);
     _network.setAsActingCommander();
   }
 
-
-  void initByteWorld([String map = 'world_town.png']) {
-    if (map.isNotEmpty) {
-      network().getGameState().gameStateProto.mapName = map;
-    }
-    var worldImage = map.isNotEmpty
-        ? _imageIndex.getImageByName(map)
-        : _imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
-    byteWorld.setWorldImage(worldImage);
-  }
 
   void addSprite(Sprite sprite) {
     spriteIndex.addSprite(sprite);

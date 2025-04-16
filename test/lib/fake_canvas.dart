@@ -52,6 +52,10 @@ class FakeContext2D {
 
   }
 
+  void rect(num x,y, num w, h) {
+
+  }
+
   void clip() { }
 
   void scale(num one, two) {}

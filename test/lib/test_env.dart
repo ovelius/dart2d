@@ -72,6 +72,8 @@ Future<WormWorld> createTestWorld(String id,  {
     getIt.initWorldScope();
 
     WormWorld world = getIt<WormWorld>();
+    ByteWorld byteWorld = getIt<ByteWorld>();
+    ImageIndex imageIndex = getIt<ImageIndex>();
 
     if (signalPeerOpen) {
       signalOpen(world);
@@ -92,7 +94,10 @@ Future<WormWorld> createTestWorld(String id,  {
       world.loader.markCompleted();
     }
     if (initByteWorld) {
-      world.initByteWorld("lion88.png");
+      byteWorld.setWorldImage(imageIndex.getImageById(2));
+      while (!byteWorld.bedrockComputed()) {
+        byteWorld.bedrockStep();
+      }
     }
     ConnectionFrameHandler.DISABLE_AUTO_ADJUST_FOR_TEST = true;
     return world;

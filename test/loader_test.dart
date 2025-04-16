@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:dart2d/util/gamestate.dart';
 import 'lib/test_lib.dart';
 import 'lib/test_mocks.mocks.dart';
+import 'world_test.dart';
 
 const double TICK_TIME = 0.01;
 
@@ -21,6 +22,7 @@ void main() {
   late MockChunkHelper mockChunkHelper;
   late MockGameState mockGameState;
   late MockPlayerWorldSelector selector;
+  late MockByteWorld byteWorld;
   late LocalStorage localStorage;
   late StreamController<int> streamController;
   void tickAndAssertState(LoaderState state) {
@@ -38,8 +40,12 @@ void main() {
     mockChunkHelper = new MockChunkHelper();
     mockGameState = new MockGameState();
     selector = new MockPlayerWorldSelector();
+    byteWorld = new MockByteWorld();
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.getGameState()).thenReturn(mockGameState);
+    when(mockGameState.gameStateProto).thenReturn(
+      GameStateProto()..mapName = "test"
+    );
     when(mockNetwork.safeActiveConnections()).thenReturn({});
     when(mockPeerWrapper.getId()).thenReturn('b');
     when(mockChunkHelper.bytesPerSecondSamples())
@@ -47,7 +53,7 @@ void main() {
     when(mockImageIndex.playerResourcesLoaded()).thenReturn(false);
     when(selector.worldSelectedAndLoaded()).thenReturn(false);
     loader = new Loader(localStorage, new FakeCanvas(), selector,
-        mockImageIndex, mockNetwork, mockChunkHelper);
+        mockImageIndex, mockNetwork, mockChunkHelper, byteWorld);
     // TODO actually test this.
     localStorage['playerSprite'] = 'playerSprite';
     when(mockImageIndex.finishedLoadingImages()).thenReturn(false);
@@ -85,6 +91,9 @@ void main() {
       tickAndAssertState(LoaderState.WORLD_LOADING);
       when(selector.worldSelectedAndLoaded()).thenReturn(true);
       // Loaded from server, assert we'll start as server.
+      tickAndAssertState(LoaderState.COMPUTING_BYTE_WORLD);
+
+      when(byteWorld.byteWorldReady()).thenReturn(true);
       tickAndAssertState(LoaderState.LOADED_AS_SERVER);
       expect(loader.loadedAsServer(), isTrue);
     });
@@ -178,6 +187,9 @@ void main() {
           .thenReturn(true);
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(null);
 
+      tickAndAssertState(LoaderState.COMPUTING_BYTE_WORLD);
+      when(byteWorld.byteWorldReady()).thenReturn(true);
+
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
       verify(connection1.sendClientEnter());
 
@@ -218,6 +230,9 @@ void main() {
          ..name = "test"
          ..connectionId = 'b';
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(info);
+
+      tickAndAssertState(LoaderState.COMPUTING_BYTE_WORLD);
+      when(byteWorld.byteWorldReady()).thenReturn(true);
       // Last phase of entering a game.
       tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
       // Connection fail so we fallback to server path.

@@ -75,7 +75,13 @@ void main() {
     imageFactory.completeAllImages();
     frameDraws(w);
 
-    // Completed!
+    // Doing the byteworld.
+    expect(loader.currentState(), LoaderState.COMPUTING_BYTE_WORLD);
+
+    while(loader.currentState() == LoaderState.COMPUTING_BYTE_WORLD) {
+      w.frameDraw(0.1);
+    }
+    // Completed.
     expect(loader.currentState(), LoaderState.LOADED_AS_SERVER);
   });
 

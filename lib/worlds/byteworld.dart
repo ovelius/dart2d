@@ -20,8 +20,14 @@ class ByteWorld {
   late int _width;
   late int _height;
   late Point<int> viewSize;
+  // The main canvas object.
   late var canvas;
+  // The part of the world the player can't destroy... if any.
   late var _bedrockImage;
+  // Temporary canvas storage.
+  var _bedrocksCanvas;
+  // x line for current bedrock computation.
+  int _bedrockLine = -1;
 
   ByteWorld(
       ImageFactory imageFactory,
@@ -38,37 +44,52 @@ class ByteWorld {
    * Initialize the world image.
    */
   void setWorldImage(var image) {
-    DateTime start = DateTime.now();
     canvas = _canvasFactory.createCanvas(image.width, image.height);
     _width = canvas.width;
     _height = canvas.height;
     canvas.context2D.drawImageScaled(image, 0, 0, _width, _height);
-    var bedrocksCanvas = _canvasFactory.createCanvas(_width, _height);
-    _computeBedrock(bedrocksCanvas);
-    // Store bedrock result in image.
-    _bedrockImage = _imageFactory.createWithSize(_width, _height);
-    _bedrockImage.src = bedrocksCanvas.toDataUrl();
-    log.info("ByteWorld initialized in ${DateTime.now().millisecondsSinceEpoch - start.millisecondsSinceEpoch} ms");
+    _bedrocksCanvas = _canvasFactory.createCanvas(_width, _height);
+    _bedrockLine = 0;
+  }
+  bool worldImageSet() {
+    return _bedrockLine >= 0;
+  }
+  bool bedrockComputed() {
+    return (_bedrockLine > _width);
   }
 
+  bool byteWorldReady() {
+    return worldImageSet() && bedrockComputed();
+  }
   /**
-   * Bedrock represents the parts of the world that can't be destroyed.
+   * calculate a single bedrock segment, or finish bedrock computation.
    */
-  void _computeBedrock(var bedrockCanvas) {
-    int segments = 10;
-    // Compute 10 segments to avoid using too much memory.
-    int segmentSize = _width ~/ segments;
-    for (int i = 0; i < segments + 1; i++) {
-      int startX = min(i * segmentSize, _width);
-      int computeWidth = min(startX + segmentSize, _width) - startX;
-      if (computeWidth > 0) {
-        _computeBedrockSegment(startX, computeWidth, bedrockCanvas);
-      }
+  void bedrockStep() {
+    assert(!bedrockComputed());
+    int startX = min(_bedrockLine, _width);
+    int computeWidth = min(startX + 1, _width) - startX;
+    if (computeWidth > 0) {
+      _computeBedrockSegment(startX, computeWidth, _bedrocksCanvas);
+    }
+    _bedrockLine++;
+    if (_bedrockLine > _width) {
+      _finalizeBedrock();
     }
   }
 
   /**
-   * Some colors in the level image can't be, we find them and put them
+   * create the final bedrock image.
+   */
+  void _finalizeBedrock() {
+    _bedrockImage = _imageFactory.createWithSize(_width, _height);
+    _bedrockImage.src = _bedrocksCanvas.toDataUrl();
+  }
+
+  double percentComplete() => _bedrockLine / _width;
+
+
+  /**
+   * Some colors in the level image can't be destroyed, we find them and put them
    * in it's own image.
    */
   void _computeBedrockSegment(int startX, int computeWidth, var bedrockCanvas) {
