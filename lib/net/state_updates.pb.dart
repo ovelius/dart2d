@@ -2112,6 +2112,81 @@ class ExtraSpriteData extends $pb.GeneratedMessage {
   $core.List<$core.bool> get extraBool => $_getList(3);
 }
 
+class WebRtcDanceProto extends $pb.GeneratedMessage {
+  factory WebRtcDanceProto({
+    $core.String? sdp,
+    $core.Iterable<$core.String>? candidates,
+    $core.String? sdpType,
+  }) {
+    final $result = create();
+    if (sdp != null) {
+      $result.sdp = sdp;
+    }
+    if (candidates != null) {
+      $result.candidates.addAll(candidates);
+    }
+    if (sdpType != null) {
+      $result.sdpType = sdpType;
+    }
+    return $result;
+  }
+  WebRtcDanceProto._() : super();
+  factory WebRtcDanceProto.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WebRtcDanceProto.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WebRtcDanceProto', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sdp')
+    ..pPS(2, _omitFieldNames ? '' : 'candidates')
+    ..aOS(3, _omitFieldNames ? '' : 'sdpType')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WebRtcDanceProto clone() => WebRtcDanceProto()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WebRtcDanceProto copyWith(void Function(WebRtcDanceProto) updates) => super.copyWith((message) => updates(message as WebRtcDanceProto)) as WebRtcDanceProto;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WebRtcDanceProto create() => WebRtcDanceProto._();
+  WebRtcDanceProto createEmptyInstance() => create();
+  static $pb.PbList<WebRtcDanceProto> createRepeated() => $pb.PbList<WebRtcDanceProto>();
+  @$core.pragma('dart2js:noInline')
+  static WebRtcDanceProto getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WebRtcDanceProto>(create);
+  static WebRtcDanceProto? _defaultInstance;
+
+  /// Gzipped version of SDP string.
+  @$pb.TagNumber(1)
+  $core.String get sdp => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sdp($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSdp() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSdp() => clearField(1);
+
+  /// Gzipped version of ICE candidates.
+  @$pb.TagNumber(2)
+  $core.List<$core.String> get candidates => $_getList(1);
+
+  /// Offer or answer etc.
+  @$pb.TagNumber(3)
+  $core.String get sdpType => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sdpType($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSdpType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSdpType() => clearField(3);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

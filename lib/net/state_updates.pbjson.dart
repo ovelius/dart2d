@@ -414,3 +414,18 @@ final $typed_data.Uint8List extraSpriteDataDescriptor = $convert.base64Decode(
     '9mbG9hdBgCIAMoAlIKZXh0cmFGbG9hdBIhCgxleHRyYV9zdHJpbmcYAyADKAlSC2V4dHJhU3Ry'
     'aW5nEh0KCmV4dHJhX2Jvb2wYBCADKAhSCWV4dHJhQm9vbA==');
 
+@$core.Deprecated('Use webRtcDanceProtoDescriptor instead')
+const WebRtcDanceProto$json = {
+  '1': 'WebRtcDanceProto',
+  '2': [
+    {'1': 'sdp', '3': 1, '4': 1, '5': 9, '10': 'sdp'},
+    {'1': 'candidates', '3': 2, '4': 3, '5': 9, '10': 'candidates'},
+    {'1': 'sdp_type', '3': 3, '4': 1, '5': 9, '10': 'sdpType'},
+  ],
+};
+
+/// Descriptor for `WebRtcDanceProto`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List webRtcDanceProtoDescriptor = $convert.base64Decode(
+    'ChBXZWJSdGNEYW5jZVByb3RvEhAKA3NkcBgBIAEoCVIDc2RwEh4KCmNhbmRpZGF0ZXMYAiADKA'
+    'lSCmNhbmRpZGF0ZXMSGQoIc2RwX3R5cGUYAyABKAlSB3NkcFR5cGU=');
+

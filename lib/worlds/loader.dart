@@ -164,7 +164,7 @@ class Loader {
       _nextAllowedAdjustSteps += FRAME_SAMPLE_TIME;
       // This counter is ever 0.5s so we need to double it to get per second.
       double fps = _loaderFrameCounter.fps() * 2.0;
-      if (fps > GAME_TARGET_FPS * 0.8) {
+      if (fps > GAME_TARGET_FPS * 0.7) {
         _byteWorldComputeSteps = _byteWorldComputeSteps + (_byteWorldComputeSteps * 0.5).toInt();
       } else if (fps < GAME_TARGET_FPS / 2 ) {
         _byteWorldComputeSteps = _byteWorldComputeSteps - (_byteWorldComputeSteps * 0.5).toInt();
