@@ -332,6 +332,7 @@ const ParticleEffects_ParticleType$json = {
     {'1': 'COLORFUL', '2': 1},
     {'1': 'FIRE', '2': 2},
     {'1': 'SODA', '2': 3},
+    {'1': 'CONFETTI', '2': 4},
   ],
 };
 
@@ -345,8 +346,9 @@ final $typed_data.Uint8List particleEffectsDescriptor = $convert.base64Decode(
     'JTdGVwEiUKDnBhcnRpY2xlX2NvdW50GAcgASgFUg1wYXJ0aWNsZUNvdW50Ek8KDXBhcnRpY2xl'
     'X3R5cGUYCCABKA4yKi5kYXJ0MmRfcHJvdG8uUGFydGljbGVFZmZlY3RzLlBhcnRpY2xlVHlwZV'
     'IMcGFydGljbGVUeXBlEhsKCWZvbGxvd19pZBgKIAEoBVIIZm9sbG93SWQSPAoNZm9sbG93X29m'
-    'ZnNldBgLIAEoCzIXLmRhcnQyZF9wcm90by5WZWMyUHJvdG9SDGZvbGxvd09mZnNldCI7CgxQYX'
-    'J0aWNsZVR5cGUSCQoFVU5TRVQQABIMCghDT0xPUkZVTBABEggKBEZJUkUQAhIICgRTT0RBEAM=');
+    'ZnNldBgLIAEoCzIXLmRhcnQyZF9wcm90by5WZWMyUHJvdG9SDGZvbGxvd09mZnNldCJJCgxQYX'
+    'J0aWNsZVR5cGUSCQoFVU5TRVQQABIMCghDT0xPUkZVTBABEggKBEZJUkUQAhIICgRTT0RBEAMS'
+    'DAoIQ09ORkVUVEkQBA==');
 
 @$core.Deprecated('Use connectionInfoProtoDescriptor instead')
 const ConnectionInfoProto$json = {

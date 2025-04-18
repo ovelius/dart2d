@@ -127,7 +127,6 @@ message CommanderGameReply {
     REJECT_FULL = 2;
     // Game already ended.
     REJECT_ENDED = 3;
-
   }
   optional ChallengeReply challenge_reply = 1;
   optional GameStateProto game_state = 2;
@@ -211,6 +210,8 @@ message ParticleEffects {
     FIRE = 2;
     // Orange soda bubbles.
     SODA = 3;
+    // Random confetti stuff.
+    CONFETTI = 4;
   }
   optional ParticleType particle_type = 8;
 
