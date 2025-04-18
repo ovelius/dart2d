@@ -35,13 +35,9 @@ List<String> GAME_SOURCES = [
 ];
 
 // Required for selecting world.
-Set<String> WORLD_SOURCES = new Set<String>.from([
-  "world_map_mini.png",
-  "world_house_mini.png",
-  "world_cloud_mini.png",
-  "world_maze_mini.png",
-  "world_town_mini.png",
-]);
+Set<String> WORLD_SOURCES = new Set<String>.from(
+  WORLDS.keys
+);
 
 // The resources with the highest priority are first in the list here.
 List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(GAME_SOURCES)..addAll(WORLD_SOURCES);
@@ -334,7 +330,7 @@ class ImageIndex {
     Set<String> dontCache = new Set.from(WORLDS.values);
     String image = imageNameFromIndex(index);
     // Never cache the world.
-    if (index <= WORLD_IMAGE_INDEX || dontCache.contains(index)) {
+    if (index <= WORLD_IMAGE_INDEX || dontCache.contains(image)) {
       return;
     }
     log.info("putting image in cache $image");

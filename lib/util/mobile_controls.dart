@@ -7,7 +7,7 @@ import 'util.dart';
 
 @Singleton(scope: 'world')
 class MobileControls {
-  static const int BUTTON_SIZE = 40;
+  static const int BUTTON_SIZE = 50;
   static const int NO_BUTTON_TOUCH = -1;
   late bool _isTouchSupported;
   late KeyState _localKeyState;

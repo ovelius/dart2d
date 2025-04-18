@@ -1,7 +1,5 @@
 import 'package:dart2d/net/state_updates.pb.dart';
-import 'package:dart2d/util/gamestate.dart';
 import 'dart:math';
-import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -68,6 +66,7 @@ class LocalPlayerSprite extends MovingSprite {
   late MovingSprite gun;
 
   double _shieldSec = -1.0;
+  double _nextDamageAnimation = 0.0;
   late StickySprite _shield;
 
   PlayerInfoProto? get killer => _killer;
@@ -277,7 +276,7 @@ class LocalPlayerSprite extends MovingSprite {
     if (!world.network().isCommander()) {
       return false;
     }
-    if (info != null && !inGame() && !world.network().getGameState().hasWinner()) {
+    if (!inGame() && !world.network().getGameState().hasWinner()) {
       spawnIn -= duration;
       if (spawnIn < 0) {
         velocity = new Vec2();
@@ -300,6 +299,7 @@ class LocalPlayerSprite extends MovingSprite {
     _shield.frame(duration, frames, gravity);
     _shieldSec -= duration;
     _jetPackSec -= duration;
+    _nextDamageAnimation -= duration;
     weaponState?.think(duration);
     if (velocity.x.abs() < 10.0) {
       this.frameIndex = 0;
@@ -526,12 +526,10 @@ class LocalPlayerSprite extends MovingSprite {
         info.deaths++;
         info.inGame = false;
         collision = false;
-        _killer = inflictor != null
-            ? world
+        _killer = world
             .network()
             .gameState
-            .playerInfoBySpriteId(inflictor.networkId!)
-            : null;
+            .playerInfoBySpriteId(inflictor.networkId!);
         if (_killer != null && _killer != info) {
           _killer!.score++;
           world.gaReporter().reportEvent("player_frags", "Frags");
@@ -539,14 +537,44 @@ class LocalPlayerSprite extends MovingSprite {
         }
         spawnIn = RESPAWN_TIME;
         _deathMessage(mod);
+        _addDeathParticles();
+      } else if (_shieldPoints <= 0) {
+        _addDamageParticles();
       }
+    }
+  }
+
+  void _addDeathParticles() {
+    Particles p = Particles(world, null, centerPoint(), Vec2(200,300),
+        null, 25.0, 120, 120, 0.3,
+        ParticleEffects_ParticleType.CONFETTI);
+    p.sendToNetwork = true;
+    world.addSprite(p);
+  }
+
+  void _addDamageParticles() {
+    if (_nextDamageAnimation < 0) {
+      Particles p = Particles(
+          world,
+          null,
+          centerPoint(),
+          Vec2(200, 300),
+          null,
+          8.0,
+          10,
+          60,
+          0.3,
+          ParticleEffects_ParticleType.CONFETTI);
+      p.sendToNetwork = true;
+      world.addSprite(p);
+      _nextDamageAnimation = 0.3;
     }
   }
 
   void _deathMessage(Mod mod) {
     if (_killer != null) {
       if (_killer == info) {
-        world.displayHudMessageAndSendToNetwork("${info.name} killed iself!");
+        world.displayHudMessageAndSendToNetwork("${info.name} killed itself!");
         world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
         String message = killedMessage(info.name, killer!.name, mod);

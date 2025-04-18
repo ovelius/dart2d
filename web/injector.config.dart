@@ -129,6 +129,16 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.CanvasFactory>(),
               gh<_i988.ImageFactory>(),
             ));
+        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
+              gh<_i883.ImageIndex>(),
+              gh<_i401.ByteWorld>(),
+              gh<_i835.PacketListenerBindings>(),
+            ));
+        gh.singleton<_i745.PowerupManager>(() => _i745.PowerupManager(
+              gh<_i899.SpriteIndex>(),
+              gh<_i883.ImageIndex>(),
+              gh<_i401.ByteWorld>(),
+            ));
         gh.singleton<_i64.Network>(() => _i64.Network(
               gh<_i988.GaReporter>(),
               gh<_i988.ConnectionFactory>(),
@@ -140,16 +150,6 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i559.ConfigParams>(),
               gh<_i899.SpriteIndex>(),
               gh<_i559.KeyState>(),
-            ));
-        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
-              gh<_i883.ImageIndex>(),
-              gh<_i401.ByteWorld>(),
-              gh<_i835.PacketListenerBindings>(),
-            ));
-        gh.singleton<_i745.PowerupManager>(() => _i745.PowerupManager(
-              gh<_i899.SpriteIndex>(),
-              gh<_i883.ImageIndex>(),
-              gh<_i401.ByteWorld>(),
             ));
         gh.singleton<_i559.SelfPlayerInfoProvider>(
             () => _i559.SelfPlayerInfoProvider(gh<_i835.Network>()));
@@ -180,6 +180,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i883.ImageIndex>(),
               gh<_i835.Network>(),
               gh<_i835.ChunkHelper>(),
+              gh<_i401.ByteWorld>(),
             ));
         gh.singleton<_i112.WormWorld>(() => _i112.WormWorld(
               gh<_i64.Network>(),

@@ -3,23 +3,25 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i15;
-import 'dart:math' as _i6;
+import 'dart:async' as _i17;
+import 'dart:math' as _i7;
 
-import 'package:dart2d/bindings/annotations.dart' as _i8;
+import 'package:dart2d/bindings/annotations.dart' as _i3;
 import 'package:dart2d/net/connection.dart' as _i9;
-import 'package:dart2d/net/helpers.dart' as _i13;
-import 'package:dart2d/net/net.dart' as _i11;
-import 'package:dart2d/net/peer.dart' as _i5;
-import 'package:dart2d/phys/vec2.dart' as _i7;
-import 'package:dart2d/res/imageindex.dart' as _i12;
+import 'package:dart2d/net/helpers.dart' as _i11;
+import 'package:dart2d/net/negotiator.dart' as _i15;
+import 'package:dart2d/net/net.dart' as _i13;
+import 'package:dart2d/net/peer.dart' as _i6;
+import 'package:dart2d/net/state_updates.pb.dart' as _i12;
+import 'package:dart2d/phys/vec2.dart' as _i8;
+import 'package:dart2d/res/imageindex.dart' as _i14;
 import 'package:dart2d/sprites/sprites.dart' as _i10;
-import 'package:dart2d/util/util.dart' as _i4;
-import 'package:dart2d/weapons/weapon_state.dart' as _i16;
-import 'package:dart2d/worlds/worlds.dart' as _i3;
+import 'package:dart2d/util/util.dart' as _i5;
+import 'package:dart2d/weapons/weapon_state.dart' as _i18;
+import 'package:dart2d/worlds/worlds.dart' as _i4;
 import 'package:logging/logging.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i14;
+import 'package:mockito/src/dummies.dart' as _i16;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -40,123 +42,187 @@ class _FakeLogger_0 extends _i1.SmartFake implements _i2.Logger {
     : super(parent, parentInvocation);
 }
 
-class _FakeWormWorld_1 extends _i1.SmartFake implements _i3.WormWorld {
-  _FakeWormWorld_1(Object parent, Invocation parentInvocation)
+class _FakeImageFactory_1 extends _i1.SmartFake implements _i3.ImageFactory {
+  _FakeImageFactory_1(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeGameState_2 extends _i1.SmartFake implements _i4.GameState {
-  _FakeGameState_2(Object parent, Invocation parentInvocation)
+class _FakeWormWorld_2 extends _i1.SmartFake implements _i4.WormWorld {
+  _FakeWormWorld_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakePeerWrapper_3 extends _i1.SmartFake implements _i5.PeerWrapper {
-  _FakePeerWrapper_3(Object parent, Invocation parentInvocation)
+class _FakeGameState_3 extends _i1.SmartFake implements _i5.GameState {
+  _FakeGameState_3(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakePoint_4<T extends num> extends _i1.SmartFake
-    implements _i6.Point<T> {
-  _FakePoint_4(Object parent, Invocation parentInvocation)
+class _FakePeerWrapper_4 extends _i1.SmartFake implements _i6.PeerWrapper {
+  _FakePeerWrapper_4(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeVec2_5 extends _i1.SmartFake implements _i7.Vec2 {
-  _FakeVec2_5(Object parent, Invocation parentInvocation)
+class _FakeConnectionFactory_5 extends _i1.SmartFake
+    implements _i3.ConnectionFactory {
+  _FakeConnectionFactory_5(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeServerChannel_6 extends _i1.SmartFake implements _i8.ServerChannel {
-  _FakeServerChannel_6(Object parent, Invocation parentInvocation)
+class _FakePoint_6<T extends num> extends _i1.SmartFake
+    implements _i7.Point<T> {
+  _FakePoint_6(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeConnectionWrapper_7 extends _i1.SmartFake
+class _FakeVec2_7 extends _i1.SmartFake implements _i8.Vec2 {
+  _FakeVec2_7(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeServerChannel_8 extends _i1.SmartFake implements _i3.ServerChannel {
+  _FakeServerChannel_8(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeConnectionWrapper_9 extends _i1.SmartFake
     implements _i9.ConnectionWrapper {
-  _FakeConnectionWrapper_7(Object parent, Invocation parentInvocation)
+  _FakeConnectionWrapper_9(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeLoader_8 extends _i1.SmartFake implements _i3.Loader {
-  _FakeLoader_8(Object parent, Invocation parentInvocation)
+class _FakeLoader_10 extends _i1.SmartFake implements _i4.Loader {
+  _FakeLoader_10(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeSpriteIndex_9 extends _i1.SmartFake implements _i10.SpriteIndex {
-  _FakeSpriteIndex_9(Object parent, Invocation parentInvocation)
+class _FakeSpriteIndex_11 extends _i1.SmartFake implements _i10.SpriteIndex {
+  _FakeSpriteIndex_11(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeKeyState_10 extends _i1.SmartFake implements _i4.KeyState {
-  _FakeKeyState_10(Object parent, Invocation parentInvocation)
+class _FakeKeyState_12 extends _i1.SmartFake implements _i5.KeyState {
+  _FakeKeyState_12(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeHudMessages_11 extends _i1.SmartFake implements _i4.HudMessages {
-  _FakeHudMessages_11(Object parent, Invocation parentInvocation)
+class _FakeHudMessages_13 extends _i1.SmartFake implements _i5.HudMessages {
+  _FakeHudMessages_13(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeByteWorld_12 extends _i1.SmartFake implements _i3.ByteWorld {
-  _FakeByteWorld_12(Object parent, Invocation parentInvocation)
+class _FakeByteWorld_14 extends _i1.SmartFake implements _i4.ByteWorld {
+  _FakeByteWorld_14(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeNetwork_13 extends _i1.SmartFake implements _i11.Network {
-  _FakeNetwork_13(Object parent, Invocation parentInvocation)
+class _FakePacketListenerBindings_15 extends _i1.SmartFake
+    implements _i11.PacketListenerBindings {
+  _FakePacketListenerBindings_15(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeImageIndex_14 extends _i1.SmartFake implements _i12.ImageIndex {
-  _FakeImageIndex_14(Object parent, Invocation parentInvocation)
+class _FakeLocalStorage_16 extends _i1.SmartFake implements _i3.LocalStorage {
+  _FakeLocalStorage_16(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeFpsCounter_15 extends _i1.SmartFake implements _i4.FpsCounter {
-  _FakeFpsCounter_15(Object parent, Invocation parentInvocation)
+class _FakeByteWorldDestruction_17 extends _i1.SmartFake
+    implements _i12.ByteWorldDestruction {
+  _FakeByteWorldDestruction_17(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeRandom_16 extends _i1.SmartFake implements _i6.Random {
-  _FakeRandom_16(Object parent, Invocation parentInvocation)
+class _FakeByteWorldDraw_18 extends _i1.SmartFake
+    implements _i12.ByteWorldDraw {
+  _FakeByteWorldDraw_18(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeDuration_17 extends _i1.SmartFake implements Duration {
-  _FakeDuration_17(Object parent, Invocation parentInvocation)
+class _FakeNetwork_19 extends _i1.SmartFake implements _i13.Network {
+  _FakeNetwork_19(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeReliableHelper_18 extends _i1.SmartFake
-    implements _i13.ReliableHelper {
-  _FakeReliableHelper_18(Object parent, Invocation parentInvocation)
+class _FakeImageIndex_20 extends _i1.SmartFake implements _i14.ImageIndex {
+  _FakeImageIndex_20(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeDateTime_19 extends _i1.SmartFake implements DateTime {
-  _FakeDateTime_19(Object parent, Invocation parentInvocation)
+class _FakeFpsCounter_21 extends _i1.SmartFake implements _i5.FpsCounter {
+  _FakeFpsCounter_21(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakePlayerInfo_20 extends _i1.SmartFake implements _i4.PlayerInfo {
-  _FakePlayerInfo_20(Object parent, Invocation parentInvocation)
+class _FakeDateTime_22 extends _i1.SmartFake implements DateTime {
+  _FakeDateTime_22(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeMovingSprite_21 extends _i1.SmartFake implements _i10.MovingSprite {
-  _FakeMovingSprite_21(Object parent, Invocation parentInvocation)
+class _FakeRandom_23 extends _i1.SmartFake implements _i7.Random {
+  _FakeRandom_23(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeDataCounter_22 extends _i1.SmartFake implements _i11.DataCounter {
-  _FakeDataCounter_22(Object parent, Invocation parentInvocation)
+class _FakeNegotiator_24 extends _i1.SmartFake implements _i15.Negotiator {
+  _FakeNegotiator_24(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeDuration_25 extends _i1.SmartFake implements Duration {
+  _FakeDuration_25(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeReliableHelper_26 extends _i1.SmartFake
+    implements _i11.ReliableHelper {
+  _FakeReliableHelper_26(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeKeyStateProto_27 extends _i1.SmartFake
+    implements _i12.KeyStateProto {
+  _FakeKeyStateProto_27(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeGameStateProto_28 extends _i1.SmartFake
+    implements _i12.GameStateProto {
+  _FakeGameStateProto_28(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakePlayerInfoProto_29 extends _i1.SmartFake
+    implements _i12.PlayerInfoProto {
+  _FakePlayerInfoProto_29(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeDataCounter_30 extends _i1.SmartFake implements _i13.DataCounter {
+  _FakeDataCounter_30(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeResourceRequest_31 extends _i1.SmartFake
+    implements _i12.ResourceRequest {
+  _FakeResourceRequest_31(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeMovingSprite_32 extends _i1.SmartFake implements _i10.MovingSprite {
+  _FakeMovingSprite_32(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeExtraSpriteData_33 extends _i1.SmartFake
+    implements _i12.ExtraSpriteData {
+  _FakeExtraSpriteData_33(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
 /// A class which mocks [ImageIndex].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
+class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -213,6 +279,21 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
     Invocation.setter(#images, _images),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i3.ImageFactory get imageFactory =>
+      (super.noSuchMethod(
+            Invocation.getter(#imageFactory),
+            returnValue: _FakeImageFactory_1(
+              this,
+              Invocation.getter(#imageFactory),
+            ),
+            returnValueForMissingStub: _FakeImageFactory_1(
+              this,
+              Invocation.getter(#imageFactory),
+            ),
+          )
+          as _i3.ImageFactory);
 
   @override
   dynamic addEmptyImageForTest(String? name) => super.noSuchMethod(
@@ -290,11 +371,11 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
   String imagesLoadedString() =>
       (super.noSuchMethod(
             Invocation.method(#imagesLoadedString, []),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#imagesLoadedString, []),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#imagesLoadedString, []),
             ),
@@ -308,13 +389,17 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
   );
 
   @override
-  _i15.Future<dynamic> addFromImageData(int? index, String? data) =>
+  _i17.Future<dynamic> addFromImageData(
+    int? index,
+    String? data,
+    bool? allowCaching,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#addFromImageData, [index, data]),
-            returnValue: _i15.Future<dynamic>.value(),
-            returnValueForMissingStub: _i15.Future<dynamic>.value(),
+            Invocation.method(#addFromImageData, [index, data, allowCaching]),
+            returnValue: _i17.Future<dynamic>.value(),
+            returnValueForMissingStub: _i17.Future<dynamic>.value(),
           )
-          as _i15.Future<dynamic>);
+          as _i17.Future<dynamic>);
 
   @override
   void addImagesFromNetwork() => super.noSuchMethod(
@@ -335,11 +420,11 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
   String getImageDataUrl(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#getImageDataUrl, [index]),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#getImageDataUrl, [index]),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#getImageDataUrl, [index]),
             ),
@@ -347,26 +432,26 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
           as String);
 
   @override
-  _i15.Future<dynamic> addSingleImage(
+  _i17.Future<dynamic> addSingleImage(
     String? imgName, [
     String? path = './img/',
   ]) =>
       (super.noSuchMethod(
             Invocation.method(#addSingleImage, [imgName, path]),
-            returnValue: _i15.Future<dynamic>.value(),
-            returnValueForMissingStub: _i15.Future<dynamic>.value(),
+            returnValue: _i17.Future<dynamic>.value(),
+            returnValueForMissingStub: _i17.Future<dynamic>.value(),
           )
-          as _i15.Future<dynamic>);
+          as _i17.Future<dynamic>);
 
   @override
   String imageNameFromIndex(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#imageNameFromIndex, [index]),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#imageNameFromIndex, [index]),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#imageNameFromIndex, [index]),
             ),
@@ -392,6 +477,15 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
           as bool);
 
   @override
+  bool imageIsLoading(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#imageIsLoading, [index]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   void clearImageLoader(int? index) => super.noSuchMethod(
     Invocation.method(#clearImageLoader, [index]),
     returnValueForMissingStub: null,
@@ -410,7 +504,7 @@ class MockImageIndex extends _i1.Mock implements _i12.ImageIndex {
 /// A class which mocks [Network].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockNetwork extends _i1.Mock implements _i11.Network {
+class MockNetwork extends _i1.Mock implements _i13.Network {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -424,73 +518,97 @@ class MockNetwork extends _i1.Mock implements _i11.Network {
           as _i2.Logger);
 
   @override
-  _i3.WormWorld get world =>
+  _i4.WormWorld get world =>
       (super.noSuchMethod(
             Invocation.getter(#world),
-            returnValue: _FakeWormWorld_1(this, Invocation.getter(#world)),
-            returnValueForMissingStub: _FakeWormWorld_1(
+            returnValue: _FakeWormWorld_2(this, Invocation.getter(#world)),
+            returnValueForMissingStub: _FakeWormWorld_2(
               this,
               Invocation.getter(#world),
             ),
           )
-          as _i3.WormWorld);
+          as _i4.WormWorld);
 
   @override
-  set world(_i3.WormWorld? _world) => super.noSuchMethod(
+  set world(_i4.WormWorld? _world) => super.noSuchMethod(
     Invocation.setter(#world, _world),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i4.GameState get gameState =>
+  _i5.GameState get gameState =>
       (super.noSuchMethod(
             Invocation.getter(#gameState),
-            returnValue: _FakeGameState_2(this, Invocation.getter(#gameState)),
-            returnValueForMissingStub: _FakeGameState_2(
+            returnValue: _FakeGameState_3(this, Invocation.getter(#gameState)),
+            returnValueForMissingStub: _FakeGameState_3(
               this,
               Invocation.getter(#gameState),
             ),
           )
-          as _i4.GameState);
+          as _i5.GameState);
 
   @override
-  set gameState(_i4.GameState? _gameState) => super.noSuchMethod(
+  set gameState(_i5.GameState? _gameState) => super.noSuchMethod(
     Invocation.setter(#gameState, _gameState),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i5.PeerWrapper get peer =>
+  _i6.PeerWrapper get peer =>
       (super.noSuchMethod(
             Invocation.getter(#peer),
-            returnValue: _FakePeerWrapper_3(this, Invocation.getter(#peer)),
-            returnValueForMissingStub: _FakePeerWrapper_3(
+            returnValue: _FakePeerWrapper_4(this, Invocation.getter(#peer)),
+            returnValueForMissingStub: _FakePeerWrapper_4(
               this,
               Invocation.getter(#peer),
             ),
           )
-          as _i5.PeerWrapper);
+          as _i6.PeerWrapper);
 
   @override
-  set peer(_i5.PeerWrapper? _peer) => super.noSuchMethod(
+  set peer(_i6.PeerWrapper? _peer) => super.noSuchMethod(
     Invocation.setter(#peer, _peer),
     returnValueForMissingStub: null,
   );
 
   @override
-  int get serverFramesBehind =>
+  int get commanderFramesBehind =>
       (super.noSuchMethod(
-            Invocation.getter(#serverFramesBehind),
+            Invocation.getter(#commanderFramesBehind),
             returnValue: 0,
             returnValueForMissingStub: 0,
           )
           as int);
 
   @override
-  set serverFramesBehind(int? _serverFramesBehind) => super.noSuchMethod(
-    Invocation.setter(#serverFramesBehind, _serverFramesBehind),
+  set commanderFramesBehind(int? _commanderFramesBehind) => super.noSuchMethod(
+    Invocation.setter(#commanderFramesBehind, _commanderFramesBehind),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i3.ConnectionFactory get connectionFactory =>
+      (super.noSuchMethod(
+            Invocation.getter(#connectionFactory),
+            returnValue: _FakeConnectionFactory_5(
+              this,
+              Invocation.getter(#connectionFactory),
+            ),
+            returnValueForMissingStub: _FakeConnectionFactory_5(
+              this,
+              Invocation.getter(#connectionFactory),
+            ),
+          )
+          as _i3.ConnectionFactory);
+
+  @override
+  double getCurrentFps() =>
+      (super.noSuchMethod(
+            Invocation.method(#getCurrentFps, []),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
 
   @override
   String? findNewCommander(
@@ -512,7 +630,7 @@ class MockNetwork extends _i1.Mock implements _i11.Network {
   @override
   void convertToCommander(
     Map<String, _i9.ConnectionWrapper>? connections,
-    _i4.PlayerInfo? previousCommanderPlayerInfo,
+    _i12.PlayerInfoProto? previousCommanderPlayerInfo,
   ) => super.noSuchMethod(
     Invocation.method(#convertToCommander, [
       connections,
@@ -522,34 +640,34 @@ class MockNetwork extends _i1.Mock implements _i11.Network {
   );
 
   @override
-  _i5.PeerWrapper getPeer() =>
+  _i6.PeerWrapper getPeer() =>
       (super.noSuchMethod(
             Invocation.method(#getPeer, []),
-            returnValue: _FakePeerWrapper_3(
+            returnValue: _FakePeerWrapper_4(
               this,
               Invocation.method(#getPeer, []),
             ),
-            returnValueForMissingStub: _FakePeerWrapper_3(
+            returnValueForMissingStub: _FakePeerWrapper_4(
               this,
               Invocation.method(#getPeer, []),
             ),
           )
-          as _i5.PeerWrapper);
+          as _i6.PeerWrapper);
 
   @override
-  _i4.GameState getGameState() =>
+  _i5.GameState getGameState() =>
       (super.noSuchMethod(
             Invocation.method(#getGameState, []),
-            returnValue: _FakeGameState_2(
+            returnValue: _FakeGameState_3(
               this,
               Invocation.method(#getGameState, []),
             ),
-            returnValueForMissingStub: _FakeGameState_2(
+            returnValueForMissingStub: _FakeGameState_3(
               this,
               Invocation.method(#getGameState, []),
             ),
           )
-          as _i4.GameState);
+          as _i5.GameState);
 
   @override
   Map<String, _i9.ConnectionWrapper> safeActiveConnections() =>
@@ -561,9 +679,9 @@ class MockNetwork extends _i1.Mock implements _i11.Network {
           as Map<String, _i9.ConnectionWrapper>);
 
   @override
-  bool findServer() =>
+  bool findActiveGameConnection() =>
       (super.noSuchMethod(
-            Invocation.method(#findServer, []),
+            Invocation.method(#findActiveGameConnection, []),
             returnValue: false,
             returnValueForMissingStub: false,
           )
@@ -668,38 +786,35 @@ class MockNetwork extends _i1.Mock implements _i11.Network {
   @override
   void parseBundle(
     _i9.ConnectionWrapper? connection,
-    Map<String, dynamic>? bundle,
+    _i12.GameStateUpdates? data,
   ) => super.noSuchMethod(
-    Invocation.method(#parseBundle, [connection, bundle]),
+    Invocation.method(#parseBundle, [connection, data]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void stateBundle(
-    bool? keyFrame,
-    Map<dynamic, dynamic>? allData,
-    List<int>? removals,
-  ) => super.noSuchMethod(
-    Invocation.method(#stateBundle, [keyFrame, allData, removals]),
-    returnValueForMissingStub: null,
-  );
+  void stateBundle(bool? keyFrame, _i12.GameStateUpdates? updates) =>
+      super.noSuchMethod(
+        Invocation.method(#stateBundle, [keyFrame, updates]),
+        returnValueForMissingStub: null,
+      );
 }
 
 /// A class which mocks [HudMessages].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockHudMessages extends _i1.Mock implements _i4.HudMessages {
+class MockHudMessages extends _i1.Mock implements _i5.HudMessages {
   @override
-  List<_i4.HudMessage> get messages =>
+  List<_i5.HudMessage> get messages =>
       (super.noSuchMethod(
             Invocation.getter(#messages),
-            returnValue: <_i4.HudMessage>[],
-            returnValueForMissingStub: <_i4.HudMessage>[],
+            returnValue: <_i5.HudMessage>[],
+            returnValueForMissingStub: <_i5.HudMessage>[],
           )
-          as List<_i4.HudMessage>);
+          as List<_i5.HudMessage>);
 
   @override
-  set messages(List<_i4.HudMessage>? _messages) => super.noSuchMethod(
+  set messages(List<_i5.HudMessage>? _messages) => super.noSuchMethod(
     Invocation.setter(#messages, _messages),
     returnValueForMissingStub: null,
   );
@@ -720,14 +835,14 @@ class MockHudMessages extends _i1.Mock implements _i4.HudMessages {
           as bool);
 
   @override
-  void showGameTable(_i3.WormWorld? world, dynamic context) =>
+  void showGameTable(_i4.WormWorld? world, dynamic context) =>
       super.noSuchMethod(
         Invocation.method(#showGameTable, [world, context]),
         returnValueForMissingStub: null,
       );
 
   @override
-  void render(_i3.WormWorld? world, dynamic context, double? timeSpent) =>
+  void render(_i4.WormWorld? world, dynamic context, double? timeSpent) =>
       super.noSuchMethod(
         Invocation.method(#render, [world, context, timeSpent]),
         returnValueForMissingStub: null,
@@ -738,15 +853,16 @@ class MockHudMessages extends _i1.Mock implements _i4.HudMessages {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockPacketListenerBindings extends _i1.Mock
-    implements _i13.PacketListenerBindings {
+    implements _i11.PacketListenerBindings {
   @override
-  dynamic bindHandler(String? key, dynamic handler) => super.noSuchMethod(
-    Invocation.method(#bindHandler, [key, handler]),
-    returnValueForMissingStub: null,
-  );
+  dynamic bindHandler(_i12.StateUpdate_Update? key, dynamic handler) =>
+      super.noSuchMethod(
+        Invocation.method(#bindHandler, [key, handler]),
+        returnValueForMissingStub: null,
+      );
 
   @override
-  List<dynamic> handlerFor(String? key) =>
+  List<dynamic> handlerFor(_i12.StateUpdate_Update? key) =>
       (super.noSuchMethod(
             Invocation.method(#handlerFor, [key]),
             returnValue: <dynamic>[],
@@ -755,7 +871,7 @@ class MockPacketListenerBindings extends _i1.Mock
           as List<dynamic>);
 
   @override
-  bool hasHandler(String? key) =>
+  bool hasHandler(_i12.StateUpdate_Update? key) =>
       (super.noSuchMethod(
             Invocation.method(#hasHandler, [key]),
             returnValue: false,
@@ -768,7 +884,7 @@ class MockPacketListenerBindings extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockConnectionFrameHandler extends _i1.Mock
-    implements _i13.ConnectionFrameHandler {
+    implements _i11.ConnectionFrameHandler {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -782,12 +898,9 @@ class MockConnectionFrameHandler extends _i1.Mock
           as _i2.Logger);
 
   @override
-  dynamic reportConnectionMetrics(int? framesBehind, int? latencyMillis) =>
+  dynamic reportFrameRates(double? receivingClientFps, double? ourFps) =>
       super.noSuchMethod(
-        Invocation.method(#reportConnectionMetrics, [
-          framesBehind,
-          latencyMillis,
-        ]),
+        Invocation.method(#reportFrameRates, [receivingClientFps, ourFps]),
         returnValueForMissingStub: null,
       );
 
@@ -840,21 +953,33 @@ class MockConnectionFrameHandler extends _i1.Mock
 /// A class which mocks [ByteWorld].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockByteWorld extends _i1.Mock implements _i3.ByteWorld {
+class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
   @override
-  _i6.Point<int> get viewSize =>
+  _i2.Logger get log =>
+      (super.noSuchMethod(
+            Invocation.getter(#log),
+            returnValue: _FakeLogger_0(this, Invocation.getter(#log)),
+            returnValueForMissingStub: _FakeLogger_0(
+              this,
+              Invocation.getter(#log),
+            ),
+          )
+          as _i2.Logger);
+
+  @override
+  _i7.Point<int> get viewSize =>
       (super.noSuchMethod(
             Invocation.getter(#viewSize),
-            returnValue: _FakePoint_4<int>(this, Invocation.getter(#viewSize)),
-            returnValueForMissingStub: _FakePoint_4<int>(
+            returnValue: _FakePoint_6<int>(this, Invocation.getter(#viewSize)),
+            returnValueForMissingStub: _FakePoint_6<int>(
               this,
               Invocation.getter(#viewSize),
             ),
           )
-          as _i6.Point<int>);
+          as _i7.Point<int>);
 
   @override
-  set viewSize(_i6.Point<int>? _viewSize) => super.noSuchMethod(
+  set viewSize(_i7.Point<int>? _viewSize) => super.noSuchMethod(
     Invocation.setter(#viewSize, _viewSize),
     returnValueForMissingStub: null,
   );
@@ -890,6 +1015,48 @@ class MockByteWorld extends _i1.Mock implements _i3.ByteWorld {
   );
 
   @override
+  bool worldImageSet() =>
+      (super.noSuchMethod(
+            Invocation.method(#worldImageSet, []),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool bedrockComputed() =>
+      (super.noSuchMethod(
+            Invocation.method(#bedrockComputed, []),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool byteWorldReady() =>
+      (super.noSuchMethod(
+            Invocation.method(#byteWorldReady, []),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  void bedrockStep() => super.noSuchMethod(
+    Invocation.method(#bedrockStep, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  double percentComplete() =>
+      (super.noSuchMethod(
+            Invocation.method(#percentComplete, []),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
+
+  @override
   bool initialized() =>
       (super.noSuchMethod(
             Invocation.method(#initialized, []),
@@ -899,7 +1066,7 @@ class MockByteWorld extends _i1.Mock implements _i3.ByteWorld {
           as bool);
 
   @override
-  List<int> getImageData(_i7.Vec2? pos, _i7.Vec2? size) =>
+  List<int> getImageData(_i8.Vec2? pos, _i8.Vec2? size) =>
       (super.noSuchMethod(
             Invocation.method(#getImageData, [pos, size]),
             returnValue: <int>[],
@@ -954,11 +1121,11 @@ class MockByteWorld extends _i1.Mock implements _i3.ByteWorld {
   String asDataUrl() =>
       (super.noSuchMethod(
             Invocation.method(#asDataUrl, []),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#asDataUrl, []),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#asDataUrl, []),
             ),
@@ -966,38 +1133,38 @@ class MockByteWorld extends _i1.Mock implements _i3.ByteWorld {
           as String);
 
   @override
-  dynamic fillRectAt(_i7.Vec2? pos, _i7.Vec2? size, String? colorString) =>
+  dynamic fillRectAt(_i8.Vec2? pos, _i8.Vec2? size, String? colorString) =>
       super.noSuchMethod(
         Invocation.method(#fillRectAt, [pos, size, colorString]),
         returnValueForMissingStub: null,
       );
 
   @override
-  dynamic clearAt(_i7.Vec2? pos, double? radius) => super.noSuchMethod(
+  dynamic clearAt(_i8.Vec2? pos, double? radius) => super.noSuchMethod(
     Invocation.method(#clearAt, [pos, radius]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i7.Vec2 randomNotSolidPoint(_i7.Vec2? sizeOffset) =>
+  _i8.Vec2 randomNotSolidPoint(_i8.Vec2? sizeOffset) =>
       (super.noSuchMethod(
             Invocation.method(#randomNotSolidPoint, [sizeOffset]),
-            returnValue: _FakeVec2_5(
+            returnValue: _FakeVec2_7(
               this,
               Invocation.method(#randomNotSolidPoint, [sizeOffset]),
             ),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.method(#randomNotSolidPoint, [sizeOffset]),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 }
 
 /// A class which mocks [PeerWrapper].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPeerWrapper extends _i1.Mock implements _i5.PeerWrapper {
+class MockPeerWrapper extends _i1.Mock implements _i6.PeerWrapper {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -1011,22 +1178,22 @@ class MockPeerWrapper extends _i1.Mock implements _i5.PeerWrapper {
           as _i2.Logger);
 
   @override
-  _i8.ServerChannel get serverChannel =>
+  _i3.ServerChannel get serverChannel =>
       (super.noSuchMethod(
             Invocation.getter(#serverChannel),
-            returnValue: _FakeServerChannel_6(
+            returnValue: _FakeServerChannel_8(
               this,
               Invocation.getter(#serverChannel),
             ),
-            returnValueForMissingStub: _FakeServerChannel_6(
+            returnValueForMissingStub: _FakeServerChannel_8(
               this,
               Invocation.getter(#serverChannel),
             ),
           )
-          as _i8.ServerChannel);
+          as _i3.ServerChannel);
 
   @override
-  set serverChannel(_i8.ServerChannel? _serverChannel) => super.noSuchMethod(
+  set serverChannel(_i3.ServerChannel? _serverChannel) => super.noSuchMethod(
     Invocation.setter(#serverChannel, _serverChannel),
     returnValueForMissingStub: null,
   );
@@ -1057,11 +1224,11 @@ class MockPeerWrapper extends _i1.Mock implements _i5.PeerWrapper {
   _i9.ConnectionWrapper connectTo(String? id) =>
       (super.noSuchMethod(
             Invocation.method(#connectTo, [id]),
-            returnValue: _FakeConnectionWrapper_7(
+            returnValue: _FakeConnectionWrapper_9(
               this,
               Invocation.method(#connectTo, [id]),
             ),
-            returnValueForMissingStub: _FakeConnectionWrapper_7(
+            returnValueForMissingStub: _FakeConnectionWrapper_9(
               this,
               Invocation.method(#connectTo, [id]),
             ),
@@ -1139,8 +1306,18 @@ class MockPeerWrapper extends _i1.Mock implements _i5.PeerWrapper {
       );
 
   @override
+  void sendSingleStateUpdate(
+    _i12.StateUpdate? data, [
+    String? dontSendTo,
+    String? onlySendTo,
+  ]) => super.noSuchMethod(
+    Invocation.method(#sendSingleStateUpdate, [data, dontSendTo, onlySendTo]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void sendDataWithKeyFramesToAll(
-    Map<dynamic, dynamic>? data, [
+    _i12.GameStateUpdates? data, [
     String? dontSendTo,
     String? onlySendTo,
   ]) => super.noSuchMethod(
@@ -1204,7 +1381,7 @@ class MockPeerWrapper extends _i1.Mock implements _i5.PeerWrapper {
 /// A class which mocks [FpsCounter].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockFpsCounter extends _i1.Mock implements _i4.FpsCounter {
+class MockFpsCounter extends _i1.Mock implements _i5.FpsCounter {
   @override
   int get frames =>
       (super.noSuchMethod(
@@ -1219,6 +1396,15 @@ class MockFpsCounter extends _i1.Mock implements _i4.FpsCounter {
     Invocation.setter(#frames, _frames),
     returnValueForMissingStub: null,
   );
+
+  @override
+  bool timeSingleFrame(double? time) =>
+      (super.noSuchMethod(
+            Invocation.method(#timeSingleFrame, [time]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   bool timeWithFrames(double? time, int? framesPassed) =>
@@ -1248,7 +1434,7 @@ class MockFpsCounter extends _i1.Mock implements _i4.FpsCounter {
 /// A class which mocks [WormWorld].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
+class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -1262,19 +1448,19 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
           as _i2.Logger);
 
   @override
-  _i3.Loader get loader =>
+  _i4.Loader get loader =>
       (super.noSuchMethod(
             Invocation.getter(#loader),
-            returnValue: _FakeLoader_8(this, Invocation.getter(#loader)),
-            returnValueForMissingStub: _FakeLoader_8(
+            returnValue: _FakeLoader_10(this, Invocation.getter(#loader)),
+            returnValueForMissingStub: _FakeLoader_10(
               this,
               Invocation.getter(#loader),
             ),
           )
-          as _i3.Loader);
+          as _i4.Loader);
 
   @override
-  set loader(_i3.Loader? _loader) => super.noSuchMethod(
+  set loader(_i4.Loader? _loader) => super.noSuchMethod(
     Invocation.setter(#loader, _loader),
     returnValueForMissingStub: null,
   );
@@ -1283,11 +1469,11 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   _i10.SpriteIndex get spriteIndex =>
       (super.noSuchMethod(
             Invocation.getter(#spriteIndex),
-            returnValue: _FakeSpriteIndex_9(
+            returnValue: _FakeSpriteIndex_11(
               this,
               Invocation.getter(#spriteIndex),
             ),
-            returnValueForMissingStub: _FakeSpriteIndex_9(
+            returnValueForMissingStub: _FakeSpriteIndex_11(
               this,
               Invocation.getter(#spriteIndex),
             ),
@@ -1301,115 +1487,115 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   );
 
   @override
-  _i4.KeyState get localKeyState =>
+  _i5.KeyState get localKeyState =>
       (super.noSuchMethod(
             Invocation.getter(#localKeyState),
-            returnValue: _FakeKeyState_10(
+            returnValue: _FakeKeyState_12(
               this,
               Invocation.getter(#localKeyState),
             ),
-            returnValueForMissingStub: _FakeKeyState_10(
+            returnValueForMissingStub: _FakeKeyState_12(
               this,
               Invocation.getter(#localKeyState),
             ),
           )
-          as _i4.KeyState);
+          as _i5.KeyState);
 
   @override
-  set localKeyState(_i4.KeyState? _localKeyState) => super.noSuchMethod(
+  set localKeyState(_i5.KeyState? _localKeyState) => super.noSuchMethod(
     Invocation.setter(#localKeyState, _localKeyState),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i4.HudMessages get hudMessages =>
+  _i5.HudMessages get hudMessages =>
       (super.noSuchMethod(
             Invocation.getter(#hudMessages),
-            returnValue: _FakeHudMessages_11(
+            returnValue: _FakeHudMessages_13(
               this,
               Invocation.getter(#hudMessages),
             ),
-            returnValueForMissingStub: _FakeHudMessages_11(
+            returnValueForMissingStub: _FakeHudMessages_13(
               this,
               Invocation.getter(#hudMessages),
             ),
           )
-          as _i4.HudMessages);
+          as _i5.HudMessages);
 
   @override
-  set hudMessages(_i4.HudMessages? _hudMessages) => super.noSuchMethod(
+  set hudMessages(_i5.HudMessages? _hudMessages) => super.noSuchMethod(
     Invocation.setter(#hudMessages, _hudMessages),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i7.Vec2 get viewPoint =>
+  _i8.Vec2 get viewPoint =>
       (super.noSuchMethod(
             Invocation.getter(#viewPoint),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#viewPoint)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#viewPoint)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#viewPoint),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set viewPoint(_i7.Vec2? _viewPoint) => super.noSuchMethod(
+  set viewPoint(_i8.Vec2? _viewPoint) => super.noSuchMethod(
     Invocation.setter(#viewPoint, _viewPoint),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i7.Vec2 get halfWorld =>
+  _i8.Vec2 get halfWorld =>
       (super.noSuchMethod(
             Invocation.getter(#halfWorld),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#halfWorld)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#halfWorld)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#halfWorld),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set halfWorld(_i7.Vec2? _halfWorld) => super.noSuchMethod(
+  set halfWorld(_i8.Vec2? _halfWorld) => super.noSuchMethod(
     Invocation.setter(#halfWorld, _halfWorld),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i3.ByteWorld get byteWorld =>
+  _i4.ByteWorld get byteWorld =>
       (super.noSuchMethod(
             Invocation.getter(#byteWorld),
-            returnValue: _FakeByteWorld_12(this, Invocation.getter(#byteWorld)),
-            returnValueForMissingStub: _FakeByteWorld_12(
+            returnValue: _FakeByteWorld_14(this, Invocation.getter(#byteWorld)),
+            returnValueForMissingStub: _FakeByteWorld_14(
               this,
               Invocation.getter(#byteWorld),
             ),
           )
-          as _i3.ByteWorld);
+          as _i4.ByteWorld);
 
   @override
-  set byteWorld(_i3.ByteWorld? _byteWorld) => super.noSuchMethod(
+  set byteWorld(_i4.ByteWorld? _byteWorld) => super.noSuchMethod(
     Invocation.setter(#byteWorld, _byteWorld),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i7.Vec2 get gravity =>
+  _i8.Vec2 get gravity =>
       (super.noSuchMethod(
             Invocation.getter(#gravity),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#gravity)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#gravity)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#gravity),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set gravity(_i7.Vec2? _gravity) => super.noSuchMethod(
+  set gravity(_i8.Vec2? _gravity) => super.noSuchMethod(
     Invocation.setter(#gravity, _gravity),
     returnValueForMissingStub: null,
   );
@@ -1428,6 +1614,45 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
     Invocation.setter(#explosionFlash, _explosionFlash),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i11.PacketListenerBindings get packetListenerBindings =>
+      (super.noSuchMethod(
+            Invocation.getter(#packetListenerBindings),
+            returnValue: _FakePacketListenerBindings_15(
+              this,
+              Invocation.getter(#packetListenerBindings),
+            ),
+            returnValueForMissingStub: _FakePacketListenerBindings_15(
+              this,
+              Invocation.getter(#packetListenerBindings),
+            ),
+          )
+          as _i11.PacketListenerBindings);
+
+  @override
+  bool get isCommander =>
+      (super.noSuchMethod(
+            Invocation.getter(#isCommander),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i3.LocalStorage get localStorage =>
+      (super.noSuchMethod(
+            Invocation.getter(#localStorage),
+            returnValue: _FakeLocalStorage_16(
+              this,
+              Invocation.getter(#localStorage),
+            ),
+            returnValueForMissingStub: _FakeLocalStorage_16(
+              this,
+              Invocation.getter(#localStorage),
+            ),
+          )
+          as _i3.LocalStorage);
 
   @override
   int get invalidKeysPressed =>
@@ -1550,7 +1775,7 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
       );
 
   @override
-  void checkWinner(_i4.PlayerInfo? info) => super.noSuchMethod(
+  void checkWinner(_i12.PlayerInfoProto? info) => super.noSuchMethod(
     Invocation.method(#checkWinner, [info]),
     returnValueForMissingStub: null,
   );
@@ -1565,7 +1790,7 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
           as bool);
 
   @override
-  void createLocalClient(int? spriteId, _i7.Vec2? position) =>
+  void createLocalClient(int? spriteId, _i8.Vec2? position) =>
       super.noSuchMethod(
         Invocation.method(#createLocalClient, [spriteId, position]),
         returnValueForMissingStub: null,
@@ -1587,15 +1812,16 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   );
 
   @override
-  void addParticlesFromNetworkData(List<int>? data) => super.noSuchMethod(
-    Invocation.method(#addParticlesFromNetworkData, [data]),
-    returnValueForMissingStub: null,
-  );
+  void addParticlesFromNetworkData(_i12.StateUpdate? data) =>
+      super.noSuchMethod(
+        Invocation.method(#addParticlesFromNetworkData, [data]),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void explosionAt({
-    required _i7.Vec2? location,
-    _i7.Vec2? velocity,
+    required _i8.Vec2? location,
+    _i8.Vec2? velocity,
     bool? addParticles = false,
     required int? damage,
     required double? radius,
@@ -1618,8 +1844,8 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
 
   @override
   void fillRectAt(
-    _i7.Vec2? pos,
-    _i7.Vec2? size,
+    _i8.Vec2? pos,
+    _i8.Vec2? size,
     String? colorString, [
     bool? fromNetwork = false,
   ]) => super.noSuchMethod(
@@ -1639,7 +1865,7 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   @override
   void explosionAtSprite({
     required _i10.Sprite? sprite,
-    required _i7.Vec2? velocity,
+    required _i8.Vec2? velocity,
     bool? addpParticles = false,
     required int? damage,
     required double? radius,
@@ -1661,7 +1887,7 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   );
 
   @override
-  void clearWorldArea(_i7.Vec2? location, double? radius) => super.noSuchMethod(
+  void clearWorldArea(_i8.Vec2? location, double? radius) => super.noSuchMethod(
     Invocation.method(#clearWorldArea, [location, radius]),
     returnValueForMissingStub: null,
   );
@@ -1673,15 +1899,16 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
   );
 
   @override
-  dynamic clearFromNetworkUpdate(List<int>? data) => super.noSuchMethod(
-    Invocation.method(#clearFromNetworkUpdate, [data]),
-    returnValueForMissingStub: null,
-  );
+  dynamic clearFromNetworkUpdate(_i12.ByteWorldDestruction? data) =>
+      super.noSuchMethod(
+        Invocation.method(#clearFromNetworkUpdate, [data]),
+        returnValueForMissingStub: null,
+      );
 
   @override
-  List<int> destructionAsNetworkUpdate(
-    _i7.Vec2? pos,
-    _i7.Vec2? velocity,
+  _i12.ByteWorldDestruction destructionAsNetworkUpdate(
+    _i8.Vec2? pos,
+    _i8.Vec2? velocity,
     double? radius,
     int? damage,
   ) =>
@@ -1692,33 +1919,55 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
               radius,
               damage,
             ]),
-            returnValue: <int>[],
-            returnValueForMissingStub: <int>[],
+            returnValue: _FakeByteWorldDestruction_17(
+              this,
+              Invocation.method(#destructionAsNetworkUpdate, [
+                pos,
+                velocity,
+                radius,
+                damage,
+              ]),
+            ),
+            returnValueForMissingStub: _FakeByteWorldDestruction_17(
+              this,
+              Invocation.method(#destructionAsNetworkUpdate, [
+                pos,
+                velocity,
+                radius,
+                damage,
+              ]),
+            ),
           )
-          as List<int>);
+          as _i12.ByteWorldDestruction);
 
   @override
-  dynamic drawFromNetworkUpdate(List<dynamic>? data) => super.noSuchMethod(
+  dynamic drawFromNetworkUpdate(_i12.ByteWorldDraw? data) => super.noSuchMethod(
     Invocation.method(#drawFromNetworkUpdate, [data]),
     returnValueForMissingStub: null,
   );
 
   @override
-  List<dynamic> drawAsNetworkUpdate(
-    _i7.Vec2? pos,
-    _i7.Vec2? size,
+  _i12.ByteWorldDraw drawAsNetworkUpdate(
+    _i8.Vec2? pos,
+    _i8.Vec2? size,
     String? colorString,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#drawAsNetworkUpdate, [pos, size, colorString]),
-            returnValue: <dynamic>[],
-            returnValueForMissingStub: <dynamic>[],
+            returnValue: _FakeByteWorldDraw_18(
+              this,
+              Invocation.method(#drawAsNetworkUpdate, [pos, size, colorString]),
+            ),
+            returnValueForMissingStub: _FakeByteWorldDraw_18(
+              this,
+              Invocation.method(#drawAsNetworkUpdate, [pos, size, colorString]),
+            ),
           )
-          as List<dynamic>);
+          as _i12.ByteWorldDraw);
 
   @override
   void addVelocityFromExplosion(
-    _i7.Vec2? location,
+    _i8.Vec2? location,
     int? damage,
     double? radius,
     bool? doDamage,
@@ -1733,12 +1982,6 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
       damageDoer,
       mod,
     ]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void initByteWorld([String? map = 'world_town.png']) => super.noSuchMethod(
-    Invocation.method(#initByteWorld, [map]),
     returnValueForMissingStub: null,
   );
 
@@ -1791,90 +2034,96 @@ class MockWormWorld extends _i1.Mock implements _i3.WormWorld {
           as num);
 
   @override
-  _i11.Network network() =>
+  _i13.Network network() =>
       (super.noSuchMethod(
             Invocation.method(#network, []),
-            returnValue: _FakeNetwork_13(this, Invocation.method(#network, [])),
-            returnValueForMissingStub: _FakeNetwork_13(
+            returnValue: _FakeNetwork_19(this, Invocation.method(#network, [])),
+            returnValueForMissingStub: _FakeNetwork_19(
               this,
               Invocation.method(#network, []),
             ),
           )
-          as _i11.Network);
+          as _i13.Network);
 
   @override
-  _i12.ImageIndex imageIndex() =>
+  _i14.ImageIndex imageIndex() =>
       (super.noSuchMethod(
             Invocation.method(#imageIndex, []),
-            returnValue: _FakeImageIndex_14(
+            returnValue: _FakeImageIndex_20(
               this,
               Invocation.method(#imageIndex, []),
             ),
-            returnValueForMissingStub: _FakeImageIndex_14(
+            returnValueForMissingStub: _FakeImageIndex_20(
               this,
               Invocation.method(#imageIndex, []),
             ),
           )
-          as _i12.ImageIndex);
+          as _i14.ImageIndex);
 
   @override
-  _i4.FpsCounter drawFps() =>
+  _i5.FpsCounter drawFps() =>
       (super.noSuchMethod(
             Invocation.method(#drawFps, []),
-            returnValue: _FakeFpsCounter_15(
+            returnValue: _FakeFpsCounter_21(
               this,
               Invocation.method(#drawFps, []),
             ),
-            returnValueForMissingStub: _FakeFpsCounter_15(
+            returnValueForMissingStub: _FakeFpsCounter_21(
               this,
               Invocation.method(#drawFps, []),
             ),
           )
-          as _i4.FpsCounter);
-
-  @override
-  bool isCommander() =>
-      (super.noSuchMethod(
-            Invocation.method(#isCommander, []),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
+          as _i5.FpsCounter);
 }
 
 /// A class which mocks [ConnectionFactory].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockConnectionFactory extends _i1.Mock implements _i8.ConnectionFactory {
+class MockConnectionFactory extends _i1.Mock implements _i3.ConnectionFactory {
   @override
-  dynamic connectTo(dynamic wrapper, String? ourPeerId, String? otherPeerId) =>
-      super.noSuchMethod(
-        Invocation.method(#connectTo, [wrapper, ourPeerId, otherPeerId]),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  dynamic createInboundConnection(
-    dynamic wrapper,
-    dynamic sdp,
-    String? otherPeerId,
-    String? ourPeerId,
+  dynamic connectTo(
+    _i9.ConnectionWrapper? wrapper,
+    _i15.Negotiator? negotiator,
   ) => super.noSuchMethod(
-    Invocation.method(#createInboundConnection, [
-      wrapper,
-      sdp,
-      otherPeerId,
-      ourPeerId,
-    ]),
+    Invocation.method(#connectTo, [wrapper, negotiator]),
     returnValueForMissingStub: null,
   );
 
   @override
-  dynamic handleCreateAnswer(dynamic connection, String? src, String? dst) =>
+  dynamic createInboundConnection(
+    _i9.ConnectionWrapper? wrapper,
+    _i15.Negotiator? negotiator,
+    _i12.WebRtcDanceProto? proto,
+  ) => super.noSuchMethod(
+    Invocation.method(#createInboundConnection, [wrapper, negotiator, proto]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  dynamic handleGotAnswer(dynamic connection, _i12.WebRtcDanceProto? proto) =>
       super.noSuchMethod(
-        Invocation.method(#handleCreateAnswer, [connection, src, dst]),
+        Invocation.method(#handleGotAnswer, [connection, proto]),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i17.Future<String> getStats(dynamic connection) =>
+      (super.noSuchMethod(
+            Invocation.method(#getStats, [connection]),
+            returnValue: _i17.Future<String>.value(
+              _i16.dummyValue<String>(
+                this,
+                Invocation.method(#getStats, [connection]),
+              ),
+            ),
+            returnValueForMissingStub: _i17.Future<String>.value(
+              _i16.dummyValue<String>(
+                this,
+                Invocation.method(#getStats, [connection]),
+              ),
+            ),
+          )
+          as _i17.Future<String>);
 }
 
 /// A class which mocks [ConnectionWrapper].
@@ -1897,8 +2146,8 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   String get id =>
       (super.noSuchMethod(
             Invocation.getter(#id),
-            returnValue: _i14.dummyValue<String>(this, Invocation.getter(#id)),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(this, Invocation.getter(#id)),
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.getter(#id),
             ),
@@ -1921,52 +2170,103 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  int get lastRemoteKeyFrame =>
+  int get lastSeenRemoteFrame =>
       (super.noSuchMethod(
-            Invocation.getter(#lastRemoteKeyFrame),
+            Invocation.getter(#lastSeenRemoteFrame),
             returnValue: 0,
             returnValueForMissingStub: 0,
           )
           as int);
 
   @override
-  set lastRemoteKeyFrame(int? _lastRemoteKeyFrame) => super.noSuchMethod(
-    Invocation.setter(#lastRemoteKeyFrame, _lastRemoteKeyFrame),
+  set lastSeenRemoteFrame(int? _lastSeenRemoteFrame) => super.noSuchMethod(
+    Invocation.setter(#lastSeenRemoteFrame, _lastSeenRemoteFrame),
     returnValueForMissingStub: null,
   );
 
   @override
-  int get lastDeliveredKeyFrame =>
+  int get lastSentFrame =>
       (super.noSuchMethod(
-            Invocation.getter(#lastDeliveredKeyFrame),
+            Invocation.getter(#lastSentFrame),
             returnValue: 0,
             returnValueForMissingStub: 0,
           )
           as int);
 
   @override
-  set lastDeliveredKeyFrame(int? _lastDeliveredKeyFrame) => super.noSuchMethod(
-    Invocation.setter(#lastDeliveredKeyFrame, _lastDeliveredKeyFrame),
+  set lastSentFrame(int? _lastSentFrame) => super.noSuchMethod(
+    Invocation.setter(#lastSentFrame, _lastSentFrame),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i6.Random get r =>
+  DateTime get lastSentFrameTime =>
+      (super.noSuchMethod(
+            Invocation.getter(#lastSentFrameTime),
+            returnValue: _FakeDateTime_22(
+              this,
+              Invocation.getter(#lastSentFrameTime),
+            ),
+            returnValueForMissingStub: _FakeDateTime_22(
+              this,
+              Invocation.getter(#lastSentFrameTime),
+            ),
+          )
+          as DateTime);
+
+  @override
+  set lastSentFrameTime(DateTime? _lastSentFrameTime) => super.noSuchMethod(
+    Invocation.setter(#lastSentFrameTime, _lastSentFrameTime),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  int get lastDeliveredFrame =>
+      (super.noSuchMethod(
+            Invocation.getter(#lastDeliveredFrame),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  set lastDeliveredFrame(int? _lastDeliveredFrame) => super.noSuchMethod(
+    Invocation.setter(#lastDeliveredFrame, _lastDeliveredFrame),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i7.Random get r =>
       (super.noSuchMethod(
             Invocation.getter(#r),
-            returnValue: _FakeRandom_16(this, Invocation.getter(#r)),
-            returnValueForMissingStub: _FakeRandom_16(
+            returnValue: _FakeRandom_23(this, Invocation.getter(#r)),
+            returnValueForMissingStub: _FakeRandom_23(
               this,
               Invocation.getter(#r),
             ),
           )
-          as _i6.Random);
+          as _i7.Random);
 
   @override
-  set r(_i6.Random? _r) => super.noSuchMethod(
+  set r(_i7.Random? _r) => super.noSuchMethod(
     Invocation.setter(#r, _r),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i15.Negotiator get negotiator =>
+      (super.noSuchMethod(
+            Invocation.getter(#negotiator),
+            returnValue: _FakeNegotiator_24(
+              this,
+              Invocation.getter(#negotiator),
+            ),
+            returnValueForMissingStub: _FakeNegotiator_24(
+              this,
+              Invocation.getter(#negotiator),
+            ),
+          )
+          as _i15.Negotiator);
 
   @override
   int currentKeyFrame() =>
@@ -1978,9 +2278,18 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as int);
 
   @override
-  bool hasReceivedFirstKeyFrame(Map<dynamic, dynamic>? dataMap) =>
+  int recipientFramesBehind() =>
       (super.noSuchMethod(
-            Invocation.method(#hasReceivedFirstKeyFrame, [dataMap]),
+            Invocation.method(#recipientFramesBehind, []),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  bool hasReceivedFirstKeyFrame() =>
+      (super.noSuchMethod(
+            Invocation.method(#hasReceivedFirstKeyFrame, []),
             returnValue: false,
             returnValueForMissingStub: false,
           )
@@ -1999,9 +2308,9 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  void connectToGame(String? playerName, int? playerSpriteId) =>
+  void connectToGame(String? playerName, int? playerImageId) =>
       super.noSuchMethod(
-        Invocation.method(#connectToGame, [playerName, playerSpriteId]),
+        Invocation.method(#connectToGame, [playerName, playerImageId]),
         returnValueForMissingStub: null,
       );
 
@@ -2014,6 +2323,12 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   @override
   void sendCommandTransfer() => super.noSuchMethod(
     Invocation.method(#sendCommandTransfer, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void collectRtcStats() => super.noSuchMethod(
+    Invocation.method(#collectRtcStats, []),
     returnValueForMissingStub: null,
   );
 
@@ -2084,8 +2399,8 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  void receiveData(dynamic data) => super.noSuchMethod(
-    Invocation.method(#receiveData, [data]),
+  void receiveData(dynamic rawData) => super.noSuchMethod(
+    Invocation.method(#receiveData, [rawData]),
     returnValueForMissingStub: null,
   );
 
@@ -2096,18 +2411,19 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  void tick(
-    double? duration,
-    Map<dynamic, dynamic>? frameData,
-    Map<dynamic, dynamic>? keyFrameData,
-    List<int>? removals,
-  ) => super.noSuchMethod(
-    Invocation.method(#tick, [duration, frameData, keyFrameData, removals]),
+  void tick(double? duration, List<int>? removals) => super.noSuchMethod(
+    Invocation.method(#tick, [duration, removals]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void sendData(Map<dynamic, dynamic>? data) => super.noSuchMethod(
+  void sendSingleUpdate(_i12.StateUpdate? singleUpdate) => super.noSuchMethod(
+    Invocation.method(#sendSingleUpdate, [singleUpdate]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void sendData(_i12.GameStateUpdates? data) => super.noSuchMethod(
     Invocation.method(#sendData, [data]),
     returnValueForMissingStub: null,
   );
@@ -2134,13 +2450,19 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  int keyFramesBehind() =>
+  Duration lastDataReceived() =>
       (super.noSuchMethod(
-            Invocation.method(#keyFramesBehind, []),
-            returnValue: 0,
-            returnValueForMissingStub: 0,
+            Invocation.method(#lastDataReceived, []),
+            returnValue: _FakeDuration_25(
+              this,
+              Invocation.method(#lastDataReceived, []),
+            ),
+            returnValueForMissingStub: _FakeDuration_25(
+              this,
+              Invocation.method(#lastDataReceived, []),
+            ),
           )
-          as int);
+          as Duration);
 
   @override
   bool isActiveConnection() =>
@@ -2188,11 +2510,11 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   Duration expectedLatency() =>
       (super.noSuchMethod(
             Invocation.method(#expectedLatency, []),
-            returnValue: _FakeDuration_17(
+            returnValue: _FakeDuration_25(
               this,
               Invocation.method(#expectedLatency, []),
             ),
-            returnValueForMissingStub: _FakeDuration_17(
+            returnValueForMissingStub: _FakeDuration_25(
               this,
               Invocation.method(#expectedLatency, []),
             ),
@@ -2200,19 +2522,19 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as Duration);
 
   @override
-  _i13.ReliableHelper reliableHelper() =>
+  _i11.ReliableHelper reliableHelper() =>
       (super.noSuchMethod(
             Invocation.method(#reliableHelper, []),
-            returnValue: _FakeReliableHelper_18(
+            returnValue: _FakeReliableHelper_26(
               this,
               Invocation.method(#reliableHelper, []),
             ),
-            returnValueForMissingStub: _FakeReliableHelper_18(
+            returnValueForMissingStub: _FakeReliableHelper_26(
               this,
               Invocation.method(#reliableHelper, []),
             ),
           )
-          as _i13.ReliableHelper);
+          as _i11.ReliableHelper);
 
   @override
   int currentFrameRate() =>
@@ -2227,22 +2549,46 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   String stats() =>
       (super.noSuchMethod(
             Invocation.method(#stats, []),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#stats, []),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#stats, []),
             ),
           )
           as String);
+
+  @override
+  String frameStats() =>
+      (super.noSuchMethod(
+            Invocation.method(#frameStats, []),
+            returnValue: _i16.dummyValue<String>(
+              this,
+              Invocation.method(#frameStats, []),
+            ),
+            returnValueForMissingStub: _i16.dummyValue<String>(
+              this,
+              Invocation.method(#frameStats, []),
+            ),
+          )
+          as String);
+
+  @override
+  int uniqueDataReceiptString(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#uniqueDataReceiptString, [key]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
 }
 
 /// A class which mocks [KeyState].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockKeyState extends _i1.Mock implements _i4.KeyState {
+class MockKeyState extends _i1.Mock implements _i5.KeyState {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -2256,19 +2602,19 @@ class MockKeyState extends _i1.Mock implements _i4.KeyState {
           as _i2.Logger);
 
   @override
-  _i3.WormWorld get world =>
+  _i4.WormWorld get world =>
       (super.noSuchMethod(
             Invocation.getter(#world),
-            returnValue: _FakeWormWorld_1(this, Invocation.getter(#world)),
-            returnValueForMissingStub: _FakeWormWorld_1(
+            returnValue: _FakeWormWorld_2(this, Invocation.getter(#world)),
+            returnValueForMissingStub: _FakeWormWorld_2(
               this,
               Invocation.getter(#world),
             ),
           )
-          as _i3.WormWorld);
+          as _i4.WormWorld);
 
   @override
-  set world(_i3.WormWorld? _world) => super.noSuchMethod(
+  set world(_i4.WormWorld? _world) => super.noSuchMethod(
     Invocation.setter(#world, _world),
     returnValueForMissingStub: null,
   );
@@ -2349,10 +2695,25 @@ class MockKeyState extends _i1.Mock implements _i4.KeyState {
           as double?);
 
   @override
-  void setEnabledKeys(Map<String, bool>? keysDown) => super.noSuchMethod(
-    Invocation.method(#setEnabledKeys, [keysDown]),
+  void setEnabledKeys(_i12.KeyStateProto? proto) => super.noSuchMethod(
+    Invocation.method(#setEnabledKeys, [proto]),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i12.KeyStateProto toKeyStateProto() =>
+      (super.noSuchMethod(
+            Invocation.method(#toKeyStateProto, []),
+            returnValue: _FakeKeyStateProto_27(
+              this,
+              Invocation.method(#toKeyStateProto, []),
+            ),
+            returnValueForMissingStub: _FakeKeyStateProto_27(
+              this,
+              Invocation.method(#toKeyStateProto, []),
+            ),
+          )
+          as _i12.KeyStateProto);
 
   @override
   Map<String, bool> getEnabledState() =>
@@ -2373,11 +2734,11 @@ class MockKeyState extends _i1.Mock implements _i4.KeyState {
   Duration lastUserInput() =>
       (super.noSuchMethod(
             Invocation.method(#lastUserInput, []),
-            returnValue: _FakeDuration_17(
+            returnValue: _FakeDuration_25(
               this,
               Invocation.method(#lastUserInput, []),
             ),
-            returnValueForMissingStub: _FakeDuration_17(
+            returnValueForMissingStub: _FakeDuration_25(
               this,
               Invocation.method(#lastUserInput, []),
             ),
@@ -2388,7 +2749,7 @@ class MockKeyState extends _i1.Mock implements _i4.KeyState {
 /// A class which mocks [GameState].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGameState extends _i1.Mock implements _i4.GameState {
+class MockGameState extends _i1.Mock implements _i5.GameState {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -2402,40 +2763,36 @@ class MockGameState extends _i1.Mock implements _i4.GameState {
           as _i2.Logger);
 
   @override
-  DateTime get startedAt =>
+  _i12.GameStateProto get gameStateProto =>
       (super.noSuchMethod(
-            Invocation.getter(#startedAt),
-            returnValue: _FakeDateTime_19(this, Invocation.getter(#startedAt)),
-            returnValueForMissingStub: _FakeDateTime_19(
+            Invocation.getter(#gameStateProto),
+            returnValue: _FakeGameStateProto_28(
               this,
-              Invocation.getter(#startedAt),
+              Invocation.getter(#gameStateProto),
+            ),
+            returnValueForMissingStub: _FakeGameStateProto_28(
+              this,
+              Invocation.getter(#gameStateProto),
             ),
           )
-          as DateTime);
+          as _i12.GameStateProto);
 
   @override
-  set startedAt(DateTime? _startedAt) => super.noSuchMethod(
-    Invocation.setter(#startedAt, _startedAt),
+  void updateWithLocalKeyState(
+    String? connectionId,
+    _i5.KeyState? localState,
+  ) => super.noSuchMethod(
+    Invocation.method(#updateWithLocalKeyState, [connectionId, localState]),
     returnValueForMissingStub: null,
   );
 
   @override
-  set mapName(String? _mapName) => super.noSuchMethod(
-    Invocation.setter(#mapName, _mapName),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set actingCommanderId(String? _actingCommanderId) => super.noSuchMethod(
-    Invocation.setter(#actingCommanderId, _actingCommanderId),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set winnerPlayerId(String? _winnerPlayerId) => super.noSuchMethod(
-    Invocation.setter(#winnerPlayerId, _winnerPlayerId),
-    returnValueForMissingStub: null,
-  );
+  _i5.KeyState? getKeyStateFor(String? connectionId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getKeyStateFor, [connectionId]),
+            returnValueForMissingStub: null,
+          )
+          as _i5.KeyState?);
 
   @override
   bool retrieveAndResetUrgentData() =>
@@ -2504,75 +2861,69 @@ class MockGameState extends _i1.Mock implements _i4.GameState {
           as bool);
 
   @override
-  List<_i4.PlayerInfo> playerInfoList() =>
+  List<_i12.PlayerInfoProto> playerInfoList() =>
       (super.noSuchMethod(
             Invocation.method(#playerInfoList, []),
-            returnValue: <_i4.PlayerInfo>[],
-            returnValueForMissingStub: <_i4.PlayerInfo>[],
+            returnValue: <_i12.PlayerInfoProto>[],
+            returnValueForMissingStub: <_i12.PlayerInfoProto>[],
           )
-          as List<_i4.PlayerInfo>);
+          as List<_i12.PlayerInfoProto>);
 
   @override
-  void addPlayerInfo(_i4.PlayerInfo? info) => super.noSuchMethod(
+  void addPlayerInfo(_i12.PlayerInfoProto? info) => super.noSuchMethod(
     Invocation.method(#addPlayerInfo, [info]),
     returnValueForMissingStub: null,
   );
 
   @override
-  dynamic updateFromMap(Map<dynamic, dynamic>? map) => super.noSuchMethod(
-    Invocation.method(#updateFromMap, [map]),
+  dynamic updateFromMap(_i12.GameStateProto? gameState) => super.noSuchMethod(
+    Invocation.method(#updateFromMap, [gameState]),
     returnValueForMissingStub: null,
   );
 
   @override
-  Map<dynamic, dynamic> toMap() =>
-      (super.noSuchMethod(
-            Invocation.method(#toMap, []),
-            returnValue: <dynamic, dynamic>{},
-            returnValueForMissingStub: <dynamic, dynamic>{},
-          )
-          as Map<dynamic, dynamic>);
-
-  @override
-  _i4.PlayerInfo? removeByConnectionId(_i3.WormWorld? world, String? id) =>
+  _i12.PlayerInfoProto? removeByConnectionId(
+    _i4.WormWorld? world,
+    String? id,
+  ) =>
       (super.noSuchMethod(
             Invocation.method(#removeByConnectionId, [world, id]),
             returnValueForMissingStub: null,
           )
-          as _i4.PlayerInfo?);
+          as _i12.PlayerInfoProto?);
 
   @override
-  dynamic convertToServer(_i3.WormWorld? world, dynamic selfConnectionId) =>
+  dynamic convertToServer(_i4.WormWorld? world, dynamic selfConnectionId) =>
       super.noSuchMethod(
         Invocation.method(#convertToServer, [world, selfConnectionId]),
         returnValueForMissingStub: null,
       );
 
   @override
-  _i4.PlayerInfo? playerInfoByConnectionId(String? id) =>
+  _i12.PlayerInfoProto? playerInfoByConnectionId(String? id) =>
       (super.noSuchMethod(
             Invocation.method(#playerInfoByConnectionId, [id]),
             returnValueForMissingStub: null,
           )
-          as _i4.PlayerInfo?);
+          as _i12.PlayerInfoProto?);
 
   @override
-  _i4.PlayerInfo playerInfoBySpriteId(int? id) =>
+  _i12.PlayerInfoProto playerInfoBySpriteId(int? id) =>
       (super.noSuchMethod(
             Invocation.method(#playerInfoBySpriteId, [id]),
-            returnValue: _FakePlayerInfo_20(
+            returnValue: _FakePlayerInfoProto_29(
               this,
               Invocation.method(#playerInfoBySpriteId, [id]),
             ),
-            returnValueForMissingStub: _FakePlayerInfo_20(
+            returnValueForMissingStub: _FakePlayerInfoProto_29(
               this,
               Invocation.method(#playerInfoBySpriteId, [id]),
             ),
           )
-          as _i4.PlayerInfo);
+          as _i12.PlayerInfoProto);
 
   @override
-  int getNextUsablePlayerSpriteId(_i3.WormWorld? world) =>
+  int getNextUsablePlayerSpriteId(_i4.WormWorld? world) =>
       (super.noSuchMethod(
             Invocation.method(#getNextUsablePlayerSpriteId, [world]),
             returnValue: 0,
@@ -2601,12 +2952,12 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
   );
 
   @override
-  _i10.MovingSprite CreateSpriteFromNetwork(
-    _i3.WormWorld? world,
+  _i10.MovingSprite? CreateSpriteFromNetwork(
+    _i4.WormWorld? world,
     int? networkId,
     _i10.SpriteConstructor? constructor,
     _i9.ConnectionWrapper? wrapper,
-    List<dynamic>? data,
+    _i12.SpriteUpdate? data,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#CreateSpriteFromNetwork, [
@@ -2616,28 +2967,9 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
               wrapper,
               data,
             ]),
-            returnValue: _FakeMovingSprite_21(
-              this,
-              Invocation.method(#CreateSpriteFromNetwork, [
-                world,
-                networkId,
-                constructor,
-                wrapper,
-                data,
-              ]),
-            ),
-            returnValueForMissingStub: _FakeMovingSprite_21(
-              this,
-              Invocation.method(#CreateSpriteFromNetwork, [
-                world,
-                networkId,
-                constructor,
-                wrapper,
-                data,
-              ]),
-            ),
+            returnValueForMissingStub: null,
           )
-          as _i10.MovingSprite);
+          as _i10.MovingSprite?);
 
   @override
   void addSprite(_i10.Sprite? sprite) => super.noSuchMethod(
@@ -2724,7 +3056,7 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
 /// A class which mocks [ChunkHelper].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChunkHelper extends _i1.Mock implements _i11.ChunkHelper {
+class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
   @override
   _i2.Logger get log =>
       (super.noSuchMethod(
@@ -2738,41 +3070,38 @@ class MockChunkHelper extends _i1.Mock implements _i11.ChunkHelper {
           as _i2.Logger);
 
   @override
-  _i11.DataCounter get counter =>
+  _i13.DataCounter get counter =>
       (super.noSuchMethod(
             Invocation.getter(#counter),
-            returnValue: _FakeDataCounter_22(this, Invocation.getter(#counter)),
-            returnValueForMissingStub: _FakeDataCounter_22(
+            returnValue: _FakeDataCounter_30(this, Invocation.getter(#counter)),
+            returnValueForMissingStub: _FakeDataCounter_30(
               this,
               Invocation.getter(#counter),
             ),
           )
-          as _i11.DataCounter);
+          as _i13.DataCounter);
 
   @override
-  set counter(_i11.DataCounter? _counter) => super.noSuchMethod(
+  set counter(_i13.DataCounter? _counter) => super.noSuchMethod(
     Invocation.setter(#counter, _counter),
     returnValueForMissingStub: null,
   );
 
   @override
   void replyWithImageData(
-    Map<dynamic, dynamic>? imageDataRequest,
-    dynamic connection,
+    _i12.ResourceRequest? request,
+    _i9.ConnectionWrapper? connection,
   ) => super.noSuchMethod(
-    Invocation.method(#replyWithImageData, [imageDataRequest, connection]),
+    Invocation.method(#replyWithImageData, [request, connection]),
     returnValueForMissingStub: null,
   );
 
   @override
   void parseImageChunkResponse(
-    Map<dynamic, dynamic>? imageDataResponse,
+    _i12.ResourceResponse? response,
     dynamic connection,
   ) => super.noSuchMethod(
-    Invocation.method(#parseImageChunkResponse, [
-      imageDataResponse,
-      connection,
-    ]),
+    Invocation.method(#parseImageChunkResponse, [response, connection]),
     returnValueForMissingStub: null,
   );
 
@@ -2800,13 +3129,19 @@ class MockChunkHelper extends _i1.Mock implements _i11.ChunkHelper {
   );
 
   @override
-  Map<dynamic, dynamic> buildImageChunkRequest(int? index) =>
+  _i12.ResourceRequest buildImageChunkRequest(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#buildImageChunkRequest, [index]),
-            returnValue: <dynamic, dynamic>{},
-            returnValueForMissingStub: <dynamic, dynamic>{},
+            returnValue: _FakeResourceRequest_31(
+              this,
+              Invocation.method(#buildImageChunkRequest, [index]),
+            ),
+            returnValueForMissingStub: _FakeResourceRequest_31(
+              this,
+              Invocation.method(#buildImageChunkRequest, [index]),
+            ),
           )
-          as Map<dynamic, dynamic>);
+          as _i12.ResourceRequest);
 
   @override
   double getCompleteRatio(int? index) =>
@@ -2821,11 +3156,11 @@ class MockChunkHelper extends _i1.Mock implements _i11.ChunkHelper {
   String getTransferSpeed() =>
       (super.noSuchMethod(
             Invocation.method(#getTransferSpeed, []),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.method(#getTransferSpeed, []),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.method(#getTransferSpeed, []),
             ),
@@ -2833,13 +3168,13 @@ class MockChunkHelper extends _i1.Mock implements _i11.ChunkHelper {
           as String);
 
   @override
-  _i15.Stream<int> bytesPerSecondSamples() =>
+  _i17.Stream<int> bytesPerSecondSamples() =>
       (super.noSuchMethod(
             Invocation.method(#bytesPerSecondSamples, []),
-            returnValue: _i15.Stream<int>.empty(),
-            returnValueForMissingStub: _i15.Stream<int>.empty(),
+            returnValue: _i17.Stream<int>.empty(),
+            returnValueForMissingStub: _i17.Stream<int>.empty(),
           )
-          as _i15.Stream<int>);
+          as _i17.Stream<int>);
 
   @override
   Map<String, int> failuresByConnection() =>
@@ -2874,19 +3209,19 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as _i2.Logger);
 
   @override
-  _i3.WormWorld get world =>
+  _i4.WormWorld get world =>
       (super.noSuchMethod(
             Invocation.getter(#world),
-            returnValue: _FakeWormWorld_1(this, Invocation.getter(#world)),
-            returnValueForMissingStub: _FakeWormWorld_1(
+            returnValue: _FakeWormWorld_2(this, Invocation.getter(#world)),
+            returnValueForMissingStub: _FakeWormWorld_2(
               this,
               Invocation.getter(#world),
             ),
           )
-          as _i3.WormWorld);
+          as _i4.WormWorld);
 
   @override
-  set world(_i3.WormWorld? _world) => super.noSuchMethod(
+  set world(_i4.WormWorld? _world) => super.noSuchMethod(
     Invocation.setter(#world, _world),
     returnValueForMissingStub: null,
   );
@@ -2907,19 +3242,22 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  _i4.PlayerInfo get info =>
+  _i12.PlayerInfoProto get info =>
       (super.noSuchMethod(
             Invocation.getter(#info),
-            returnValue: _FakePlayerInfo_20(this, Invocation.getter(#info)),
-            returnValueForMissingStub: _FakePlayerInfo_20(
+            returnValue: _FakePlayerInfoProto_29(
+              this,
+              Invocation.getter(#info),
+            ),
+            returnValueForMissingStub: _FakePlayerInfoProto_29(
               this,
               Invocation.getter(#info),
             ),
           )
-          as _i4.PlayerInfo);
+          as _i12.PlayerInfoProto);
 
   @override
-  set info(_i4.PlayerInfo? _info) => super.noSuchMethod(
+  set info(_i12.PlayerInfoProto? _info) => super.noSuchMethod(
     Invocation.setter(#info, _info),
     returnValueForMissingStub: null,
   );
@@ -2931,7 +3269,7 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  set weaponState(_i16.WeaponState? _weaponState) => super.noSuchMethod(
+  set weaponState(_i18.WeaponState? _weaponState) => super.noSuchMethod(
     Invocation.setter(#weaponState, _weaponState),
     returnValueForMissingStub: null,
   );
@@ -2970,8 +3308,8 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   _i10.MovingSprite get gun =>
       (super.noSuchMethod(
             Invocation.getter(#gun),
-            returnValue: _FakeMovingSprite_21(this, Invocation.getter(#gun)),
-            returnValueForMissingStub: _FakeMovingSprite_21(
+            returnValue: _FakeMovingSprite_32(this, Invocation.getter(#gun)),
+            returnValueForMissingStub: _FakeMovingSprite_32(
               this,
               Invocation.getter(#gun),
             ),
@@ -3006,19 +3344,19 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  _i7.Vec2 get velocity =>
+  _i8.Vec2 get velocity =>
       (super.noSuchMethod(
             Invocation.getter(#velocity),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#velocity)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#velocity)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#velocity),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set velocity(_i7.Vec2? _velocity) => super.noSuchMethod(
+  set velocity(_i8.Vec2? _velocity) => super.noSuchMethod(
     Invocation.setter(#velocity, _velocity),
     returnValueForMissingStub: null,
   );
@@ -3039,19 +3377,19 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  _i7.Vec2 get acceleration =>
+  _i8.Vec2 get acceleration =>
       (super.noSuchMethod(
             Invocation.getter(#acceleration),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#acceleration)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#acceleration)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#acceleration),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set acceleration(_i7.Vec2? _acceleration) => super.noSuchMethod(
+  set acceleration(_i8.Vec2? _acceleration) => super.noSuchMethod(
     Invocation.setter(#acceleration, _acceleration),
     returnValueForMissingStub: null,
   );
@@ -3121,37 +3459,49 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  _i7.Vec2 get position =>
+  set owner(_i10.LocalPlayerSprite? _owner) => super.noSuchMethod(
+    Invocation.setter(#owner, _owner),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set baseGravity(double? _baseGravity) => super.noSuchMethod(
+    Invocation.setter(#baseGravity, _baseGravity),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i8.Vec2 get position =>
       (super.noSuchMethod(
             Invocation.getter(#position),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#position)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#position)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#position),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set position(_i7.Vec2? _position) => super.noSuchMethod(
+  set position(_i8.Vec2? _position) => super.noSuchMethod(
     Invocation.setter(#position, _position),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i7.Vec2 get size =>
+  _i8.Vec2 get size =>
       (super.noSuchMethod(
             Invocation.getter(#size),
-            returnValue: _FakeVec2_5(this, Invocation.getter(#size)),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.getter(#size)),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.getter(#size),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
-  set size(_i7.Vec2? _size) => super.noSuchMethod(
+  set size(_i8.Vec2? _size) => super.noSuchMethod(
     Invocation.setter(#size, _size),
     returnValueForMissingStub: null,
   );
@@ -3205,11 +3555,11 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   String get color =>
       (super.noSuchMethod(
             Invocation.getter(#color),
-            returnValue: _i14.dummyValue<String>(
+            returnValue: _i16.dummyValue<String>(
               this,
               Invocation.getter(#color),
             ),
-            returnValueForMissingStub: _i14.dummyValue<String>(
+            returnValueForMissingStub: _i16.dummyValue<String>(
               this,
               Invocation.getter(#color),
             ),
@@ -3368,24 +3718,33 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as bool);
 
   @override
-  bool hasServerToOwnerData() =>
+  bool hasCommanderToOwnerData() =>
       (super.noSuchMethod(
-            Invocation.method(#hasServerToOwnerData, []),
+            Invocation.method(#hasCommanderToOwnerData, []),
             returnValue: false,
             returnValueForMissingStub: false,
           )
           as bool);
 
   @override
-  void addServerToOwnerData(List<dynamic>? data) => super.noSuchMethod(
-    Invocation.method(#addServerToOwnerData, [data]),
-    returnValueForMissingStub: null,
-  );
+  _i12.ExtraSpriteData getCommanderToOwnerData() =>
+      (super.noSuchMethod(
+            Invocation.method(#getCommanderToOwnerData, []),
+            returnValue: _FakeExtraSpriteData_33(
+              this,
+              Invocation.method(#getCommanderToOwnerData, []),
+            ),
+            returnValueForMissingStub: _FakeExtraSpriteData_33(
+              this,
+              Invocation.method(#getCommanderToOwnerData, []),
+            ),
+          )
+          as _i12.ExtraSpriteData);
 
   @override
-  bool parseServerToOwnerData(List<dynamic>? data, int? startAt) =>
+  bool commanderToOwnerData(_i12.ExtraSpriteData? data) =>
       (super.noSuchMethod(
-            Invocation.method(#parseServerToOwnerData, [data, startAt]),
+            Invocation.method(#commanderToOwnerData, [data]),
             returnValue: false,
             returnValueForMissingStub: false,
           )
@@ -3425,7 +3784,7 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as bool);
 
   @override
-  dynamic frame(double? duration, int? frames, [_i7.Vec2? gravity]) =>
+  dynamic frame(double? duration, int? frames, [_i8.Vec2? gravity]) =>
       super.noSuchMethod(
         Invocation.method(#frame, [duration, frames, gravity]),
         returnValueForMissingStub: null,
@@ -3487,6 +3846,21 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
+  _i5.KeyState getKeyState() =>
+      (super.noSuchMethod(
+            Invocation.method(#getKeyState, []),
+            returnValue: _FakeKeyState_12(
+              this,
+              Invocation.method(#getKeyState, []),
+            ),
+            returnValueForMissingStub: _FakeKeyState_12(
+              this,
+              Invocation.method(#getKeyState, []),
+            ),
+          )
+          as _i5.KeyState);
+
+  @override
   bool listenFor(String? key, dynamic f) =>
       (super.noSuchMethod(
             Invocation.method(#listenFor, [key, f]),
@@ -3513,17 +3887,25 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as double?);
 
   @override
-  void addExtraNetworkData(List<dynamic>? data) => super.noSuchMethod(
-    Invocation.method(#addExtraNetworkData, [data]),
-    returnValueForMissingStub: null,
-  );
+  _i12.ExtraSpriteData addExtraNetworkData() =>
+      (super.noSuchMethod(
+            Invocation.method(#addExtraNetworkData, []),
+            returnValue: _FakeExtraSpriteData_33(
+              this,
+              Invocation.method(#addExtraNetworkData, []),
+            ),
+            returnValueForMissingStub: _FakeExtraSpriteData_33(
+              this,
+              Invocation.method(#addExtraNetworkData, []),
+            ),
+          )
+          as _i12.ExtraSpriteData);
 
   @override
-  void parseExtraNetworkData(List<dynamic>? data, int? startAt) =>
-      super.noSuchMethod(
-        Invocation.method(#parseExtraNetworkData, [data, startAt]),
-        returnValueForMissingStub: null,
-      );
+  void parseExtraNetworkData(_i12.ExtraSpriteData? data) => super.noSuchMethod(
+    Invocation.method(#parseExtraNetworkData, [data]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i10.SpriteConstructor remoteRepresentation() =>
@@ -3541,7 +3923,7 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  void setCenter(_i7.Vec2? center) => super.noSuchMethod(
+  void setCenter(_i8.Vec2? center) => super.noSuchMethod(
     Invocation.method(#setCenter, [center]),
     returnValueForMissingStub: null,
   );
@@ -3562,16 +3944,16 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  _i7.Vec2 centerPoint() =>
+  _i8.Vec2 centerPoint() =>
       (super.noSuchMethod(
             Invocation.method(#centerPoint, []),
-            returnValue: _FakeVec2_5(this, Invocation.method(#centerPoint, [])),
-            returnValueForMissingStub: _FakeVec2_5(
+            returnValue: _FakeVec2_7(this, Invocation.method(#centerPoint, [])),
+            returnValueForMissingStub: _FakeVec2_7(
               this,
               Invocation.method(#centerPoint, []),
             ),
           )
-          as _i7.Vec2);
+          as _i8.Vec2);
 
   @override
   bool remoteControlled() =>
@@ -3596,7 +3978,7 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockPlayerWorldSelector extends _i1.Mock
-    implements _i3.PlayerWorldSelector {
+    implements _i4.PlayerWorldSelector {
   @override
   void maybeSelectPlayerOrMap() => super.noSuchMethod(
     Invocation.method(#maybeSelectPlayerOrMap, []),

@@ -112,6 +112,7 @@ class PlayerWorldSelector {
         for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
           if (_onPoint(_mapPositions![i], x, y, scaledWidth)) {
             if (_selectedMap == i) {
+              // This always selects even if already loaded...
               maybeSelectPlayerOrMap();
             } else {
               _selectedMap = i;
@@ -163,6 +164,7 @@ class PlayerWorldSelector {
       _imageIndex.addSingleImage(mapFullName);
       _selectedWorldName = mapFullName;
       _gaReporter.reportEvent(_selectedWorldName!, "WorldSelect");
+      _mapPositions = null;
     }
   }
 

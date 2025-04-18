@@ -35,8 +35,8 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 
 import 'fake_canvas.dart' as _i983;
-import 'test_connection.dart' as _i838;
 import 'test_env.dart' as _i47;
+import 'test_factories.dart' as _i418;
 import 'test_peer.dart' as _i886;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -51,6 +51,9 @@ extension GetItInjectableX on _i174.GetIt {
       environmentFilter,
     );
     final envModule = _$EnvModule();
+    gh.factory<_i418.TestConnectionFactory>(
+        () => envModule.getConnectionFactory);
+    gh.factory<_i983.FakeImageFactory>(() => envModule.getImageFactory);
     gh.factory<int>(
       () => envModule.width,
       instanceName: 'world_width',
@@ -61,6 +64,7 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'touch_supported',
     );
     gh.factory<_i988.WorldCanvas>(() => _i983.FakeCanvas());
+    gh.singleton<_i988.ConnectionFactory>(() => _i418.TestConnectionFactory());
     gh.factory<int>(
       () => envModule.height,
       instanceName: 'world_height',
@@ -69,7 +73,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => envModule.reload,
       instanceName: 'reload_function',
     );
-    gh.singleton<_i988.ConnectionFactory>(() => _i838.TestConnectionFactory());
     gh.factory<_i988.HtmlScreen>(() => _i983.FakeScreen());
     gh.factory<_i988.GaReporter>(() => _i47.FakeGaReporter());
     gh.factory<_i988.CanvasFactory>(() => _i47.FakeCanvasFactory());
@@ -131,6 +134,16 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.CanvasFactory>(),
               gh<_i988.ImageFactory>(),
             ));
+        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
+              gh<_i883.ImageIndex>(),
+              gh<_i401.ByteWorld>(),
+              gh<_i835.PacketListenerBindings>(),
+            ));
+        gh.singleton<_i745.PowerupManager>(() => _i745.PowerupManager(
+              gh<_i899.SpriteIndex>(),
+              gh<_i883.ImageIndex>(),
+              gh<_i401.ByteWorld>(),
+            ));
         gh.singleton<_i64.Network>(() => _i64.Network(
               gh<_i988.GaReporter>(),
               gh<_i988.ConnectionFactory>(),
@@ -142,16 +155,6 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i559.ConfigParams>(),
               gh<_i899.SpriteIndex>(),
               gh<_i559.KeyState>(),
-            ));
-        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
-              gh<_i883.ImageIndex>(),
-              gh<_i401.ByteWorld>(),
-              gh<_i835.PacketListenerBindings>(),
-            ));
-        gh.singleton<_i745.PowerupManager>(() => _i745.PowerupManager(
-              gh<_i899.SpriteIndex>(),
-              gh<_i883.ImageIndex>(),
-              gh<_i401.ByteWorld>(),
             ));
         gh.singleton<_i559.SelfPlayerInfoProvider>(
             () => _i559.SelfPlayerInfoProvider(gh<_i835.Network>()));
@@ -182,6 +185,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i883.ImageIndex>(),
               gh<_i835.Network>(),
               gh<_i835.ChunkHelper>(),
+              gh<_i401.ByteWorld>(),
             ));
         gh.singleton<_i112.WormWorld>(() => _i112.WormWorld(
               gh<_i64.Network>(),

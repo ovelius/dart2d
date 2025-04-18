@@ -39,7 +39,8 @@ class Particles extends MovingSprite {
     Random r = new Random();
     for (int i = 0; i < count; i++) {
       _Particle p = new _Particle();
-      p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime);
+      p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime,
+          particleType == ParticleEffects_ParticleType.CONFETTI);
       particles.add(p);
     }
     this.radius = radius;
@@ -65,7 +66,8 @@ class Particles extends MovingSprite {
     Random r = new Random();
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
-       p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime );
+       p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime,
+           particleType == ParticleEffects_ParticleType.CONFETTI);
        particles.add(p);
     }
     this.world = world;
@@ -101,13 +103,18 @@ class Particles extends MovingSprite {
     }
     for(var i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
+      p.location.x += p.speed.x * duration;
+      p.location.y += p.speed.y * duration;
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
         continue;
       }
-      p.location.x += p.speed.x * duration;
-      p.location.y += p.speed.y * duration;
-      if (g != null && this.particleType != ParticleEffects_ParticleType.FIRE) {
-        p.location += g;
+      if (g != null) {
+        if (this.particleType != ParticleEffects_ParticleType.FIRE) {
+          p.location += g;
+        }
+        if (this.particleType == ParticleEffects_ParticleType.CONFETTI) {
+          p.speed += g.multiply(6.0);
+        }
       }
       p.lifeTimeRemaining--;
       p.radius-=shrinkPerStep;
@@ -124,7 +131,8 @@ class Particles extends MovingSprite {
       _Particle p = particles[i];
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
         if (follow != null && !follow!.remove) {
-          p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime);
+          p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
+             particleType == ParticleEffects_ParticleType.CONFETTI);
         } else {
           dead++;
         }
@@ -132,7 +140,7 @@ class Particles extends MovingSprite {
       }
       
       context.beginPath();
-      setFillStyle(context, p);
+      setFillStyle(context, p, r);
       context.arc(p.location.x, p.location.y, p.radius, 0, pi*2.0);
       context.fill();  
     }
@@ -141,7 +149,7 @@ class Particles extends MovingSprite {
     }
   }
   
-  setFillStyle(dynamic /*CanvasRenderingContext2D*/ context, _Particle p) {
+  setFillStyle(dynamic /*CanvasRenderingContext2D*/ context, _Particle p, Random r) {
     if (this.particleType == ParticleEffects_ParticleType.COLORFUL) {
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
       var /*CanvasGradient*/ gradient = context.createRadialGradient(
@@ -163,6 +171,10 @@ class Particles extends MovingSprite {
       double lifePercentageInverse = 1.0 - lifePercentage;
       String color =
           "rgba(239, 204, 10, ${lifePercentageInverse})";
+      context.fillStyle = color;
+    } else if (this.particleType == ParticleEffects_ParticleType.CONFETTI) {
+     // p.randomColor(r);
+      String color = "rgba(${p.r},${p.g},${p.b},1.0)";
       context.fillStyle = color;
     }
   }
@@ -194,11 +206,16 @@ class _Particle {
   late int lifeTimeRemaining;
   late int r, g, b;
   late double radius;
-  
-  setToRandom(Random ra, double radius, Sprite? follow, Vec2? followOffset, Vec2 location, Vec2 velocityBase, int lifeTime) {
+
+  randomColor(Random ra) {
     r = ra.nextInt(255);
     g = ra.nextInt(255);
     b = ra.nextInt(255);
+  }
+  
+  setToRandom(Random ra, double radius, Sprite? follow, Vec2? followOffset, Vec2 location,
+      Vec2 velocityBase, int lifeTime, bool randomVelocity) {
+    randomColor(ra);
     this.radius = (radius * ra.nextDouble());
     if (follow != null) {
       if (followOffset != null) {
@@ -210,9 +227,22 @@ class _Particle {
       this.location = new Vec2.copy(location);
     }
     double sum = velocityBase.sum();
-    speed = new Vec2(
-        velocityBase.x + sum * ra.nextDouble() * 0.1 - sum * ra.nextDouble() * 0.1,
-        velocityBase.y + sum * ra.nextDouble() * 0.1 - sum * ra.nextDouble() * 0.1);
+    if (randomVelocity) {
+      speed = new Vec2(velocityBase.x * ra.nextDouble(),
+          velocityBase.y * ra.nextDouble());
+      if (ra.nextBool()) {
+        speed.x = -speed.x;
+      }
+      if (ra.nextBool()) {
+        speed.y = -speed.y;
+      }
+    } else {
+      speed = new Vec2(
+          velocityBase.x + sum * ra.nextDouble() * 0.1 -
+              sum * ra.nextDouble() * 0.1,
+          velocityBase.y + sum * ra.nextDouble() * 0.1 -
+              sum * ra.nextDouble() * 0.1);
+    }
     lifeTimeRemaining = ra.nextInt(lifeTime);
   }
 }

@@ -78,7 +78,6 @@ class Hyper extends WorldDamageProjectile {
     this.position.x = ownerCenter.x - size.x / 2;
     this.position.y = ownerCenter.y - size.y / 2;
     this.velocity.x = cos(owner.angle);
-    // this.angle = owner.angle;
     this.velocity.y = sin(owner.angle);
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(150.0);
