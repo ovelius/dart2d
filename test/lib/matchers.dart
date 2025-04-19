@@ -539,7 +539,7 @@ class WorldConnectionMatcher extends Matcher {
       }
       for (String id in connections.keys) {
         if (!_expectedConnections.contains(id)) {
-          matchState[id] = "wasn't expected";
+          matchState[id] = " ${connections[id]} wasn't among ${connections}";
         }
       }
     }

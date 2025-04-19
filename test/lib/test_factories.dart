@@ -24,6 +24,10 @@ class TestConnectionFactory extends ConnectionFactory {
     return this;
   }
 
+  resetFailingConnection() {
+    failConnectionsTo.clear();
+  }
+
   void signalErrorAllConnections(String to) {
     connections[to]?.values.forEach((c) {
       c.internalWrapper?.error("Test error");

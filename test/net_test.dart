@@ -1,7 +1,9 @@
 library dart2d;
 
+import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
+import 'lib/test_factories.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprite.dart';
@@ -697,29 +699,28 @@ void main() {
               .withCommanderId('b'));
     });
 
-    /*
-    test('TestCommanderSpriteForward', () {
-      Injector injectorA = createWorldInjector('a');
-      TestConnectionFactory connectionFactory =
-          injectorA.get(TestConnectionFactory);
+    test('CommanderForwardsSpriteData', () async  {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      WormWorld worldA = await createTestWorld("client1");
+      WormWorld worldB = await createTestWorld("commander");
+      WormWorld worldC = await createTestWorld("client2");
 
-      WormWorld worldA = initTestWorld(injectorA);
-      WormWorld worldB = testWorld("b");
-      WormWorld worldC = testWorld("c");
-
+      TestConnectionFactory connectionFactory = getIt<ConnectionFactory>() as TestConnectionFactory;
       worldB.startAsServer("nameB");
       worldB.frameDraw();
-      connectionFactory.failConnection('c', 'a').failConnection('a', 'c');
+      connectionFactory
+          .failConnection('client1', 'client2')
+          .failConnection('client2', 'client1');
 
-      worldA.connectTo('b');
+      worldA.connectTo('commander');
       worldA.network().getServerConnection()!.sendClientEnter();
-      worldC.connectTo('b');
+      worldC.connectTo('commander');
       worldC.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 8; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT);
-        worldB.frameDraw(KEY_FRAME_DEFAULT);
-        worldC.frameDraw(KEY_FRAME_DEFAULT);
+        worldA.frameDraw(KEY_FRAME_DEFAULT /5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT/5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT/5);
       }
 
       expect(
@@ -733,74 +734,79 @@ void main() {
                 .andNetworkType(NetworkType.REMOTE_FORWARD),
           ]));
 
-      expect(
-          worldA,
-          hasExactSprites([
-            hasSpriteWithNetworkId(playerId(0))
-                .andNetworkType(NetworkType.REMOTE),
-            hasSpriteWithNetworkId(playerId(1))
-                .andNetworkType(NetworkType.LOCAL),
-            hasSpriteWithNetworkId(playerId(2))
-                .andNetworkType(NetworkType.REMOTE),
-          ]));
-
-      expect(
-          worldC,
-          hasExactSprites([
-            hasSpriteWithNetworkId(playerId(0))
-                .andNetworkType(NetworkType.REMOTE),
-            hasSpriteWithNetworkId(playerId(1))
-                .andNetworkType(NetworkType.REMOTE),
-            hasSpriteWithNetworkId(playerId(2))
-                .andNetworkType(NetworkType.LOCAL),
-          ]));
-
       Sprite spriteA = worldA.spriteIndex[playerId(1)] as Sprite;
-      Sprite spriteC = worldC.spriteIndex[playerId(1)] as Sprite;
       spriteA.position.x = 99.0;
-      spriteC.position.x = 88.0;
 
-      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
-
-      // C received the data from A through B.
-      expect(spriteA.position.x, equals(spriteC.position.x));
-
-      // Now commander dies.
-      testConnections['b']!.forEach((e) {
-        e.signalClose();
-      });
-      testConnections['a']!.forEach((e) {
-        e.signalClose();
-      });
-      testConnections['c']!.forEach((e) {
-        e.signalClose();
-      });
-
-      for (int i = 0; i < 8; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT);
-        worldB.frameDraw(KEY_FRAME_DEFAULT);
-        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
       }
 
-      // We ended up with two distinct commanders.
-      expect(worldA.network().isCommander(), isTrue);
-      expect(worldA, hasSpecifiedConnections([]));
-      expect(
-          worldA,
-          hasExactSprites([
-            hasSpriteWithNetworkId(playerId(1))
-                .andNetworkType(NetworkType.LOCAL),
-          ]));
+      expect(worldB,
+          hasSpecifiedConnections(['client1', 'client2'])
+              .isValidGameConnections());
+      expect(worldA.network().safeActiveConnections().containsKey("client1"), isFalse);
+      expect(worldA.network().safeActiveConnections().containsKey("client2"), isFalse);
+      expect(worldC.network().safeActiveConnections().containsKey("client1"), isFalse);
+      expect(worldC.network().safeActiveConnections().containsKey("client2"), isFalse);
 
-      expect(worldC.network().isCommander(), isTrue);
-      expect(worldC, hasSpecifiedConnections([]));
+      // C received the data from A through B.
+      Sprite spriteC = worldC.spriteIndex[playerId(1)] as Sprite;
+      expect(spriteA.position.x, equals(spriteC.position.x));
+    });
+
+    test('SecondaryCommander_OtherJoinsLater', () async {
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+
+      logConnectionData = false;
+      for (int i = 0; i < 100; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      worldB.network().safeActiveConnections().values.first.close("test closure!");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
       expect(
-          worldC,
-          hasExactSprites([
-            hasSpriteWithNetworkId(playerId(2))
-                .andNetworkType(NetworkType.LOCAL),
-          ]));
-    });  */
+          worldB.network().gameState,
+          isGameStateOf({
+            playerId(1): "nameB",
+          }).withCommanderId("b"));
+
+
+      WormWorld worldC = await createTestWorld("c");
+      // 20 keyframes later another player joins.
+      worldC.connectTo("b", "nameC");
+      for (int i = 0; i < 15; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5 );
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldB,
+          hasSpecifiedConnections(['c']).isValidGameConnections());
+      expect(worldC,
+          hasSpecifiedConnections(['b']).isValidGameConnections());
+      // Should work just fine.
+      expect(
+          worldB.network().gameState,
+          isGameStateOf({
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }).withCommanderId("b"));
+      // Should work just fine.
+      expect(
+          worldC.network().gameState,
+          isGameStateOf({
+            playerId(1): "nameB",
+            playerId(2): "nameC"
+          }).withCommanderId("b"));
+    });
+
 
     test('TestThreePlayerOneJoinsLater', () async {
       WormWorld worldA = await createTestWorld("a");
