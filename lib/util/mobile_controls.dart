@@ -1,7 +1,10 @@
+import 'dart:js_interop';
+
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
+import 'package:web/web.dart';
 import 'dart:math';
 import 'util.dart';
 
@@ -15,7 +18,7 @@ class MobileControls {
   late String _botNameIfEnabled;
   ConfigParams _configParams;
   late int _width, _height;
-  late dynamic _canvas;
+  late CanvasRenderingContext2D _canvas;
   late HtmlScreen _screen;
   List<Point<int>> _buttons = [];
   Map<int, int> _buttonToKey = {};
@@ -88,9 +91,9 @@ class MobileControls {
       for (int i = 0; i < _buttons.length; i++) {
         Point<int> btn = _buttons[i];
         if (buttonIsDown(i)) {
-          _canvas.setFillColorRgb(255, 255, 255, 0.3);
+          _canvas.fillStyle = "rgb(255, 255, 255, 0.3)".toJS;
         } else {
-          _canvas.setFillColorRgb(255, 255, 255, 0.5);
+          _canvas.fillStyle = "rgb(255, 255, 255, 0.5)".toJS;
         }
         _canvas.beginPath();
         _canvas.arc(btn.x, btn.y, BUTTON_SIZE, 0, pi * 2);
@@ -106,10 +109,11 @@ class MobileControls {
   }
 
   bool isPortrait() {
-    if (_screen.orientation == null) {
+    ScreenOrientation orientation = _screen.orientation;
+    if (orientation == null) {
       return false;
     }
-    return _screen.orientation.type.contains("portrait");
+    return orientation.type.contains("portrait");
   }
 
   void touchDown(int id, int x, int y) {

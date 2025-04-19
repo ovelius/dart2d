@@ -5,8 +5,8 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/world_data.dart';
 import 'package:injectable/injectable.dart';
-import 'package:mockito/annotations.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:web/web.dart';
 
 // Required for selecting player.
 Set<String> PLAYER_SOURCES = new Set<String>.from([
@@ -42,7 +42,7 @@ Set<String> WORLD_SOURCES = new Set<String>.from(
 // The resources with the highest priority are first in the list here.
 List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(GAME_SOURCES)..addAll(WORLD_SOURCES);
 
-const String _EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
+const String EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
 @Singleton(scope: 'world')
 class ImageIndex {
@@ -50,8 +50,8 @@ class ImageIndex {
   static const int WORLD_IMAGE_INDEX = 1;
   static const String WORLD_NAME = "world";
   static const String EMPTY = "empty";
-  var _EMPTY_IMAGE;
-  var _WORLD_IMAGE;
+  late HTMLImageElement _EMPTY_IMAGE;
+  late HTMLImageElement _WORLD_IMAGE;
   ConfigParams _configParams;
   late CanvasFactory _canvasFactory;
   late ImageFactory _imageFactory;
@@ -62,7 +62,7 @@ class ImageIndex {
   Map<int, bool> loadedImages = new Map<int, bool>();
   // Map ImageIndex
   Map<int, Future> _imagesLoading = new Map<int, Future>();
-  List<dynamic> images = [];
+  List<HTMLImageElement> images = [];
 
   // Keep track of these types in a Set.
   Set<String> _playerImages = new Set.from(PLAYER_SOURCES);
@@ -88,7 +88,7 @@ class ImageIndex {
 
   void _createBaseImages() {
     _EMPTY_IMAGE = _imageFactory.createWithSize(100, 100);
-    _EMPTY_IMAGE.src = _EMPTY_IMAGE_DATA_STRING;
+    _EMPTY_IMAGE.src = EMPTY_IMAGE_DATA_STRING;
     _WORLD_IMAGE = _imageFactory.createWithSize(1, 1);
     images.add(_EMPTY_IMAGE);
     images.add(_WORLD_IMAGE);
@@ -114,6 +114,7 @@ class ImageIndex {
   }
 
   dynamic getImageByName(String name) {
+    assert(imageByName.containsKey(name), "No image called $name");
     assert(imagesIndexed(), "ImageIndex not yet indexed...");
     return images[imageByName[name]!];
   }
@@ -170,8 +171,8 @@ class ImageIndex {
    * Return and an img.src represenation of this image.
    */
   String getImageDataUrl(int index) {
-    var image = images[index];
-    var canvas = _canvasFactory.createCanvas(image.width, image.height);
+    HTMLImageElement image = images[index];
+    HTMLCanvasElement canvas = _canvasFactory.createCanvas(image.width, image.height);
     canvas.context2D.drawImage(image, 0, 0);
     // TODO: Use toBlob here instead! c.toBlob(function (b) {
     //     console.log("b" + b.size);
@@ -215,7 +216,8 @@ class ImageIndex {
     return _imageLoadedFuture(element, index, true);
   }
 
-  Future _imageLoadedFuture(var img, int index, bool allowCaching) {
+  Future _imageLoadedFuture(dynamic i, int index, bool allowCaching) {
+    HTMLImageElement img = i as HTMLImageElement;
     Future loaded = img.onLoad.first;
     loaded.then((e) {
       String imageName = imageNameFromIndex(index);

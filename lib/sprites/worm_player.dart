@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'dart:math';
 import 'package:dart2d/sprites/sprites.dart';
@@ -8,6 +10,7 @@ import 'package:dart2d/util/mobile_controls.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:web/web.dart';
 
 import '../weapons/abstractweapon.dart';
 
@@ -199,7 +202,7 @@ class LocalPlayerSprite extends MovingSprite {
     return info.inGame == true;
   }
 
-  draw(var context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     if (!inGame()) {
       this.velocity.x = 0.0;
       this.velocity.y = 0.0;
@@ -228,7 +231,7 @@ class LocalPlayerSprite extends MovingSprite {
     }
   }
 
-  bool drawHealthBar(var context) {
+  bool drawHealthBar(CanvasRenderingContext2D context) {
     if (!_ownedByThisWorld()) {
       return false;
     }
@@ -241,13 +244,13 @@ class LocalPlayerSprite extends MovingSprite {
     int y = (position.y  + size.y + size.y /3).toInt();
     int width = (size.x * health / MAX_HEALTH).toInt();
     context.globalAlpha = 0.5;
-    context.fillStyle = "#FF0000";
+    context.fillStyle = "#FF0000".toJS;
     context.fillRect(x, y, size.x.toInt() , height);
-    context.fillStyle = "#00FF00";
+    context.fillStyle = "#00FF00".toJS;;
     context.fillRect(x, y, width, height);
     if (_shieldPoints > 0) {
       int shieldWidth = (size.x * _shieldPoints / MAX_SHIELD).toInt();
-      context.fillStyle = "#0000ff";
+      context.fillStyle = "#0000ff".toJS;
       context.fillRect(
           x, y, shieldWidth, height);
     }

@@ -1,8 +1,12 @@
+import 'dart:js_interop';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
+
+import 'package:web/helpers.dart';
 
 
 enum SpriteType {
@@ -68,9 +72,7 @@ class Sprite {
   Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
     this._imageIndex = imageIndex;
     spriteType = SpriteType.IMAGE;
-    assert(imageIndex != null);
-    var image = imageIndex.getImageById(imageId);
-    assert(image != null);
+    HTMLImageElement image = imageIndex.getImageById(imageId);
     size = new Vec2();
     size.x = (image.width).toDouble();
     size.y = (image.height).toDouble();
@@ -86,10 +88,10 @@ class Sprite {
 
   void setImage(int imageId, [int? frameWidth]) {
     this.imageId = imageId;
-    var image = _imageIndex.getImageById(imageId);
+    HTMLImageElement image = _imageIndex.getImageById(imageId);
     if (frameWidth != null) {
       if (image.width == 0 && frameWidth == 0) {
-        throw new ArgumentError("Unable to determine framecount for $imageId");
+        throw new ArgumentError("Unable to determine framecount for $imageId(src=${image.src}) with was ${image.width}");
       }
       frames = image.width ~/ frameWidth;
     } else {
@@ -131,17 +133,17 @@ class Sprite {
     }
   }
 
-  draw(var context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     if (debug) {
-      context.fillStyle = "#ffffff";
+      context.fillStyle = "#ffffff".toJS;
       context.beginPath();
       context.arc(0, 0, getRadius(), 0, 2 * pi, false);
       context.rect(-size.x / 2, -size.y / 2, size.x, size.y);
       context.lineWidth = 1;
-      context.strokeStyle = '#ffffff';
+      context.strokeStyle = '#ffffff'.toJS;
       context.stroke();
-      context.setFillColorRgb(255, 255, 255, 0.7);
+      context.fillStyle = "rgb(255, 255, 255, 0.7)".toJS;
       context.font = "9px Arial";
       String positionText = "x: ${position.x}, y: ${position.y}";
       var metrics = context.measureText(positionText);
@@ -156,14 +158,13 @@ class Sprite {
     if (spriteType == SpriteType.CIRCLE) {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
-      assert(_imageIndex != null);
-      var image = _imageIndex.getImageById(imageId);
+      HTMLImageElement image = _imageIndex.getImageById(imageId);
       num frameWidth = (image.width / frames); 
       if (this.angle > pi * 2) {
         context.scale(-1, 1);
       }
       context.rotate(angle);
-      context.drawImageScaledFromSource(
+      context.drawImage(
           image,
           frameWidth * frameIndex, 0,
           frameWidth, image.height,
@@ -174,8 +175,8 @@ class Sprite {
     }
   }
   
-  setColor(var context) {
-    context.fillStyle = color;
+  setColor(CanvasRenderingContext2D context) {
+    context.fillStyle = color.toJS;
   }
 
   /**
@@ -186,7 +187,7 @@ class Sprite {
         || networkType == NetworkType.REMOTE_FORWARD;
   }
 
-  drawRect(var context) {
+  drawRect(CanvasRenderingContext2D context) {
     context.rotate(angle);
     setColor(context);
     int x2 = size.x ~/ 2;
@@ -194,7 +195,7 @@ class Sprite {
     context.fillRect(-x2, -y2, size.x, size.y);
   }
 
-  drawCircle(var context) {
+  drawCircle(CanvasRenderingContext2D context) {
     setColor(context);
     context.beginPath();
     context.arc(

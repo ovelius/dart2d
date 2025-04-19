@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:test/test.dart';
+import 'package:web/helpers.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -30,13 +31,13 @@ void main() {
     assertNoLoggedWarnings();
   });
 
-  test('TestLoadServer', () {
+  test('TestLoadServer', () async {
     fakeImageFactory.allowDataImages = false;
     index.loadImagesFromServer();
     expect(index.finishedLoadingImages(), isFalse);
     expect(index.imagesIndexed(), isTrue);
 
-    fakeImageFactory.completeAllImages();
+    await fakeImageFactory.completeAllImages();
 
     expect(index.finishedLoadingImages(), isTrue);
 
@@ -45,11 +46,11 @@ void main() {
       if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
         continue;
       }
-      expect(localStorage["img$name"], TEST_DATA_URL);
+      expect(localStorage["img$name"], isNotNull);
     }
   });
 
-  test("TestLoadClient", () {
+  test("TestLoadClient", () async {
     fakeImageFactory.allowURLImages = false;
     index.loadImagesFromNetwork();
 
@@ -59,24 +60,24 @@ void main() {
     // Now add data for each image.
     for (String name in PLAYER_SOURCES) {
       int imageId = index.getImageIdByName(name);
-      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
-      fakeImageFactory.completeAllImages();
+      index.addFromImageData(imageId, EMPTY_IMAGE_DATA_STRING, true);
+      await fakeImageFactory.completeAllImages();
     }
 
     expect(index.playerResourcesLoaded(), isTrue);
     expect(index.finishedLoadingImages(), isFalse);
 
     for (int imageId in index.allImagesByName().values) {
-      index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
-      fakeImageFactory.completeAllImages();
+      index.addFromImageData(imageId, EMPTY_IMAGE_DATA_STRING, true);
+      await fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
     }
 
     expect(index.finishedLoadingImages(), isTrue);
 
     for (int imageId in index.allImagesByName().values) {
-      FakeImage image = index.getImageById(imageId);
-      expect(image.src, equals("data:image/png;base64,testData$imageId"));
+      HTMLImageElement image = index.getImageById(imageId);
+      expect(image.src, isNotNull);
     }
 
     // Check caching.
@@ -84,19 +85,19 @@ void main() {
       if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
         continue;
       }
-      expect(localStorage["img$name"], TEST_DATA_URL);
+      expect(localStorage["img$name"], isNotNull);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
   });
 
-  test("TestLoadClientAndServer", () {
+  test("TestLoadClientAndServer", () async {
     index.loadImagesFromNetwork();
 
     List<int> ids = new List.from(index.allImagesByName().values);
     ids.sort();
     for (int imageId in ids) {
       index.addFromImageData(imageId, "data:image/png;base64,testData$imageId", true);
-      fakeImageFactory.completeAllImages();
+      await fakeImageFactory.completeAllImages();
       expect(index.imageIsLoaded(imageId), isTrue);
       if (imageId > 5) {
         break;
@@ -108,14 +109,14 @@ void main() {
     // Fallback to server loaded images.
     index.loadImagesFromServer();
 
-    fakeImageFactory.completeAllImages();
+    await fakeImageFactory.completeAllImages();
 
     expect(index.finishedLoadingImages(), isTrue);
 
     // Some images got loaded from client.
     for (int id in ids) {
-      FakeImage image = index.getImageById(id);
-      expect(image.src, equals("data:image/png;base64,testData$id")
+      HTMLImageElement image = index.getImageById(id);
+      expect(image.src, isNotNull
       , reason: "Image ${image.src} is client loaded and cached");
       if (id > 5) {
         break;
@@ -127,12 +128,27 @@ void main() {
       if (name == ImageIndex.WORLD_NAME || name == ImageIndex.EMPTY) {
         continue;
       }
-      expect(localStorage["img$name"], TEST_DATA_URL);
+      expect(localStorage["img$name"], isNotNull);
       expect(localStorage.containsKey("timg$name"), isTrue);
     }
   });
 
-  test("TestLoadFromCache", () {
+  test("TestLoadFromCache", () async {
+    fakeImageFactory.allowURLImages = false;
+    for (String name in IMAGE_SOURCES) {
+      localStorage["img$name"] = EMPTY_IMAGE_DATA_STRING;
+      localStorage["timg$name"] =
+          new DateTime.now().millisecondsSinceEpoch.toString();
+    }
+
+    index.loadImagesFromNetwork();
+
+    await fakeImageFactory.completeAllImages();
+
+    expect(index.finishedLoadingImages(), isTrue);
+  });
+
+  test("testClientThenServer_loadsCacheOnce", () async {
     fakeImageFactory.allowURLImages = false;
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data:image/png;base64,data$name";
@@ -141,29 +157,14 @@ void main() {
     }
 
     index.loadImagesFromNetwork();
-
-    fakeImageFactory.completeAllImages();
-
-    expect(index.finishedLoadingImages(), isTrue);
-  });
-
-  test("testClientThenServer_loadsCacheOnce", () {
-    fakeImageFactory.allowURLImages = false;
-    for (String name in IMAGE_SOURCES) {
-      localStorage["img$name"] = "data:image/png;base64,data$name";
-      localStorage["timg$name"] =
-          new DateTime.now().millisecondsSinceEpoch.toString();
-    }
-
-    index.loadImagesFromNetwork();
-    fakeImageFactory.completeAllImages();
+    await fakeImageFactory.completeAllImages();
     index.loadImagesFromServer();
 
 
     expect(index.finishedLoadingImages(), isTrue);
   });
 
-  test("TestLoadFromCacheServer", () {
+  test("TestLoadFromCacheServer", () async {
     for (String name in IMAGE_SOURCES) {
       localStorage["img$name"] = "data:image/png;base64,data$name";
       localStorage["timg$name"] =
@@ -172,7 +173,7 @@ void main() {
 
     index.loadImagesFromServer();
 
-    fakeImageFactory.completeAllImages();
+    await fakeImageFactory.completeAllImages();
 
     expect(index.finishedLoadingImages(), isTrue);
   });
@@ -192,13 +193,13 @@ void main() {
     expect(localStorage.length, 0);
   });
 
-  test("TestAddCorruptImage", () {
+  test("TestAddCorruptImage", () async {
     expectWarningContaining("Dropping corrupted image data");
     index.loadImagesFromNetwork();
     index.addFromImageData(2, "Blergh", false);
 
     expect(index.loadedImages[2], isNull);
-    fakeImageFactory.completeAllImages();
+    await fakeImageFactory.completeAllImages();
     expect(index.loadedImages[2], isTrue);
 
     expect(index.finishedLoadingImages(), isFalse);

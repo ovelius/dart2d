@@ -1,11 +1,12 @@
 
+import 'dart:js_interop';
+
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
-
-import 'fake_canvas.dart';
+import 'package:web/web.dart';
 import 'test_connection.dart';
 import 'test_peer.dart';
 
@@ -46,8 +47,10 @@ class TestConnectionFactory extends ConnectionFactory {
       connections[ourPeerId] = {};
     }
     connections[ourPeerId]![otherPeerId] = c;
-    wrapper.setRtcConnection(c);
-    wrapper.readyDataChannel(c);
+    var jsTestConnection = createJSInteropWrapper<TestConnection>(c) as RTCPeerConnection;
+    var jsTestDataChannel = createJSInteropWrapper<TestConnection>(c) as RTCDataChannel;
+    wrapper.setRtcConnection(jsTestConnection);
+    wrapper.readyDataChannel(jsTestDataChannel);
     TestServerChannel ourChannel = testPeers[ourPeerId]!;
     ourChannel.connections.add(c);
     if (failConnectionsTo.containsKey(ourPeerId) && failConnectionsTo[ourPeerId]!.contains(otherPeerId)) {
@@ -83,8 +86,10 @@ class TestConnectionFactory extends ConnectionFactory {
       connections[ourPeerId] = {};
     }
     connections[ourPeerId]![otherPeerId] = c;
-    wrapper.setRtcConnection(c);
-    wrapper.readyDataChannel(c);
+    var jsTestConnection = createJSInteropWrapper<TestConnection>(c) as RTCPeerConnection;
+    var jsTestDataChannel = createJSInteropWrapper<TestConnection>(c) as RTCDataChannel;
+    wrapper.setRtcConnection(jsTestConnection);
+    wrapper.readyDataChannel(jsTestDataChannel);
     wrapper.open();
     ourChannel.connections.add(c);
   }

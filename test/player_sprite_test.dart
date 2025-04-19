@@ -1,5 +1,6 @@
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
+import 'package:web/helpers.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:mockito/mockito.dart';
@@ -33,8 +34,11 @@ void main() {
     when(mockNetwork.isCommander()).thenReturn(false);
     when(mockNetwork.getGameState()).thenReturn(gameState);
     when(mockCommanderNetwork.isCommander()).thenReturn(true);
-    when(mockImageIndex.getImageById(2)).thenReturn(new FakeImage());
-    when(mockImageIndex.getImageById(3)).thenReturn(new FakeImage());
+    HTMLImageElement image2 = HTMLImageElement();
+    image2.width = 10;
+    image2.height = 10;
+    when(mockImageIndex.getImageById(2)).thenReturn(image2);
+    when(mockImageIndex.getImageById(3)).thenReturn(image2);
     when(mockImageIndex.getImageIdByName("gun.png")).thenReturn(3);
     when(mockImageIndex.getImageIdByName("shield.png")).thenReturn(3);
     commanderSprite = new LocalPlayerSprite(

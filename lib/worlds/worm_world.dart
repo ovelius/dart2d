@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/worlds/powerup_manager.dart';
 import 'package:dart2d/util/util.dart';
@@ -14,6 +16,7 @@ import 'package:dart2d/net/chunk_helper.dart';
 import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/helpers.dart';
 import 'package:dart2d/net/state_updates.dart';
+import 'package:web/web.dart';
 import '../net/state_updates.pb.dart';
 import 'byteworld.dart';
 import 'loader.dart';
@@ -43,7 +46,7 @@ class WormWorld extends World {
   late HudMessages hudMessages;
   late PacketListenerBindings _packetListenerBindings;
   PacketListenerBindings get packetListenerBindings => _packetListenerBindings;
-  dynamic _canvas = null;
+  late CanvasRenderingContext2D _canvas;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld = new Vec2();
   ByteWorld byteWorld;
@@ -255,9 +258,9 @@ class WormWorld extends World {
      }
     }
 
+    _canvas.fillStyle = "rgb(135,206,250)".toJS;
     _canvas
       ..clearRect(0, 0, _width, _height)
-      ..setFillColorRgb(135, 206, 250)
       ..fillRect(0, 0, _width, _height)
       ..save();
 
@@ -300,7 +303,7 @@ class WormWorld extends World {
     }
 
     if (explosionFlash > 0) {
-      _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})";
+      _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})".toJS;
       _canvas.fillRect(0, 0, _width, _height);
       explosionFlash -= duration * 5;
     }
@@ -450,7 +453,7 @@ class WormWorld extends World {
   }
 
   void adjustPlayerSprite(LocalPlayerSprite playerSprite, int playerSpriteId) {
-    var img = _imageIndex.getImageById(playerSpriteId);
+    HTMLImageElement img = _imageIndex.getImageById(playerSpriteId);
     int height = img.height;
     int width = PlayerWorldSelector.playerSpriteWidth(_imageIndex.imageNameFromIndex(playerSpriteId));
     double ratio = height / width;
@@ -664,7 +667,7 @@ class WormWorld extends World {
   void drawFpsCounters() {
     if (localKeyState.debug) {
       var font = _canvas.font;
-      _canvas.fillStyle = "#ff0000";
+      _canvas.fillStyle = "#ff0000".toJS;
       _canvas.font = '16pt Calibri';
       _canvas.fillText("DrawFps: $_drawFps", 0, 20);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);

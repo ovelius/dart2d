@@ -1,14 +1,14 @@
 library hud;
 
+import 'dart:js_interop';
 import 'dart:math';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/world_util.dart';
-import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/net/helpers.dart';
 import 'package:injectable/injectable.dart';
-import 'package:dart2d/net/state_updates.dart';
+import 'package:web/web.dart';
 
 class HudMessage {
   final String message;
@@ -46,12 +46,12 @@ class HudMessages {
         _localKeyState.keyIsDown(KeyCodeDart.ALT);
   }
 
-  void showGameTable(WormWorld world, var /*CanvasRenderingContext2D*/ context) {
+  void showGameTable(WormWorld world, CanvasRenderingContext2D context) {
     bool netIssue = world.network().hasNetworkProblem();
     if (shouldDrawTable() || netIssue) {
       context.save();
       if (netIssue) {
-        context.setFillColorRgb(0, 0, 0, 0.7);
+        context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
         context.fillRect(0, 0, world.width(), world.height());
       }
       drawPlayerStats(context, world, world.width().toInt(), world.height().toInt(), world.spriteIndex, world.imageIndex(), netIssue, true);
@@ -59,7 +59,7 @@ class HudMessages {
     }
   }
 
-  void render(WormWorld world, var /*CanvasRenderingContext2D*/ context, double timeSpent) {
+  void render(WormWorld world, CanvasRenderingContext2D context, double timeSpent) {
     context.font = '16pt Calibri';
     context.resetTransform();
     showGameTable(world, context);
@@ -70,7 +70,7 @@ class HudMessages {
         messages.removeAt(i);
         continue;
       }
-      context.setFillColorRgb(255, 255, 255, m.getAlpha());
+      context.fillStyle = "rgb(255, 255, 255, ${m.getAlpha()})".toJS;
       context.fillText(m.message, 40, 40 + i * 20);
     }
   }

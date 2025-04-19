@@ -1,12 +1,13 @@
 library weapon_state;
 
-import 'package:dart2d/util/keystate.dart';
+import 'dart:js_interop';
+
 import 'package:dart2d/worlds/worm_world.dart';
-import 'package:dart2d/net/net.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'dart:math';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:web/web.dart';
 
 import '../net/state_updates.pb.dart';
 
@@ -192,7 +193,7 @@ class WeaponState {
     weapons[selectedWeaponIndex].think(duration);
   }
 
-  _drawChangeTime(var context, Vec2 center) {
+  _drawChangeTime(CanvasRenderingContext2D context, Vec2 center) {
     double halfTime = SHOW_WEAPON_NAME_TIME / 2;
     double changeTimePercentLeft = changeTime < halfTime ? 0.0 :
     (changeTime - halfTime) / halfTime;
@@ -246,10 +247,10 @@ class WeaponState {
     context.restore();
   }
 
-  draw(var /*CanvasRenderingContext2D*/ context) {
+  draw(CanvasRenderingContext2D context) {
     if (owner.drawWeaponHelpers()) {
       double radius = owner.getRadius();
-      context.fillStyle = "#ffffff";
+      context.fillStyle = "#ffffff".toJS;
       Vec2 center = owner.centerPoint();
       if (changeTime > 0) {
         // TODO make nicer animation!
@@ -266,7 +267,7 @@ class WeaponState {
           context.beginPath();
         }
 
-        context.fillStyle = "#009900";
+        context.fillStyle = "#009900".toJS;
         context.globalAlpha = 0.5;
         context.arc(center.x, center.y, radius + 5,
             - pi/2, circle, false);

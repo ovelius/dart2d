@@ -8,6 +8,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'dart:async';
 import 'package:dart2d/util/gamestate.dart';
+import 'package:web/helpers.dart';
 import 'lib/test_lib.dart';
 import 'lib/test_mocks.mocks.dart';
 import 'world_test.dart';
@@ -88,6 +89,8 @@ void main() {
 
       tickAndAssertState(LoaderState.WORLD_SELECT);
       when(selector.selectedWorldName).thenReturn("something");
+      when(mockImageIndex.getImageByName("something"))
+          .thenReturn(HTMLImageElement());
       tickAndAssertState(LoaderState.WORLD_LOADING);
       when(selector.worldSelectedAndLoaded()).thenReturn(true);
       // Loaded from server, assert we'll start as server.
@@ -185,6 +188,8 @@ void main() {
 
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
           .thenReturn(true);
+      when(mockImageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(HTMLImageElement());
       when(mockGameState.playerInfoByConnectionId('b')).thenReturn(null);
 
       tickAndAssertState(LoaderState.COMPUTING_BYTE_WORLD);
@@ -226,6 +231,8 @@ void main() {
       when(connection1.isValidGameConnection()).thenReturn(true);
       when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
           .thenReturn(true);
+      when(mockImageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(HTMLImageElement());
       PlayerInfoProto info = new PlayerInfoProto()
          ..name = "test"
          ..connectionId = 'b';

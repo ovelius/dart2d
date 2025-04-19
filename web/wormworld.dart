@@ -1,5 +1,10 @@
 library spaceworld;
 
+//import 'package:firebase_dart/core.dart';
+//import 'package:firebase_dart/database.dart';
+
+import 'dart:js_interop_unsafe';
+
 import 'web_bindings.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
@@ -73,9 +78,41 @@ void init() {
   canvasElement.height =
       min(canvasElement.height, min(window.screen.width, window.screen.height));
 
+
   getIt.initWorldScope();
   world = getIt<WormWorld>();
   gaReporter = getIt<GaReporter>();
+
+  /*
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVw7DovZvclhRSyqTTbShcJui5Wtu724U",
+    authDomain: "dart2d-73e64.firebaseapp.com",
+    databaseURL: "https://dart2d-73e64-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dart2d-73e64",
+    storageBucket: "dart2d-73e64.firebasestorage.app",
+    messagingSenderId: "827330473786",
+    appId: "1:827330473786:web:16f850ebf8c32488be2a03",
+    measurementId: "G-S4SYYYEL59"
+  };
+// test
+  var options = FirebaseOptions(
+      appId: "1:827330473786:web:16f850ebf8c32488be2a03",
+      apiKey: "AIzaSyDVw7DovZvclhRSyqTTbShcJui5Wtu724U",
+      projectId: "dart2d-73e64",
+      messagingSenderId: 'ignore',
+      authDomain: "dart2d-73e64.firebaseapp.com");
+
+  Firebase.initializeApp(options: options).then((app) {
+    FirebaseDatabase db = new FirebaseDatabase(app: app,
+        databaseURL: 'https://dart2d-73e64-default-rtdb.europe-west1.firebasedatabase.app/');
+    db
+        .reference()
+        .child("sessions")
+        .onChildAdded
+        .listen((Data) {
+      print("added $Data");
+    });
+  });*/
 
   setKeyListeners(world, canvasElement);
 
@@ -126,8 +163,9 @@ void step() {
   assert(millis >= 0);
   double secs = millis / 1000.0;
 
+
   //try {
-    world.frameDraw(secs);
+  world.frameDraw(secs);
   /*
   } catch (e, s) {
     log.severe("Main loop crash, reloading", e, s);
@@ -138,10 +176,19 @@ void step() {
     return;
   }*/
 
+
   lastStep = startStep;
   int frameTimeMillis = new DateTime.now().millisecondsSinceEpoch -
       startStep.millisecondsSinceEpoch;
-  new Timer(new Duration(milliseconds: TIMEOUT_MILLIS - frameTimeMillis), step);
+
+  int newStepMillis = TIMEOUT_MILLIS - frameTimeMillis;
+  if (frameTimeMillis > 70) {
+    print("Slow frametime of $millis!");
+  }
+  if (newStepMillis > 80) {
+    print("HIGH STEPTIME MILLIS OF ${newStepMillis}");
+  }
+  new Timer(new Duration(milliseconds: newStepMillis), step);
 }
 
 String sanitizeStack(StackTrace s) {
@@ -186,9 +233,13 @@ class RtcConnectionFactory extends ConnectionFactory {
     }.toJS;
 
     _listenForAndSendIceCandidatesToPeer(connection, negotiator);
-    connection.createOffer().toDart.then((dynamic desc) {
-      connection.setLocalDescription(desc).toDart.then((_) {
-        negotiator.sdpReceived(desc.sdp, desc.type);
+    connection.createOffer().toDart.then((desc) {
+      RTCLocalSessionDescriptionInit localInit =
+        RTCLocalSessionDescriptionInit();
+      localInit.sdp = desc!.sdp;
+      localInit.type = desc.type;
+      connection.setLocalDescription(localInit).toDart.then((_) {
+        negotiator.sdpReceived(desc!.sdp, desc.type);
       });
     });
     return connection;
@@ -225,8 +276,11 @@ class RtcConnectionFactory extends ConnectionFactory {
       for (String candidate in proto.candidates) {
         _addIceCandidateReceived(connection, candidate);
       }
-      connection.createAnswer().toDart.then((dynamic desc) {
-        connection.setLocalDescription(desc).toDart.then((_) {
+      connection.createAnswer().toDart.then((desc) {
+        RTCLocalSessionDescriptionInit local = RTCLocalSessionDescriptionInit();
+        local.sdp = desc!.sdp;
+        local.type = desc.type;
+        connection.setLocalDescription(local).toDart.then((_) {
             negotiator.sdpReceived(desc.sdp, desc.type);
           });
         });

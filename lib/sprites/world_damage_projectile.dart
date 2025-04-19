@@ -1,6 +1,9 @@
 
+import 'dart:js_interop';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
+import 'package:web/web.dart';
 
 import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -114,13 +117,13 @@ class Hyper extends WorldDamageProjectile {
     super.frame(duration, frameStep, gravity);
   }
 
-  draw(var context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     Vec2 center = centerPoint();
     for (LocalPlayerSprite sprite in _spritesInDamageArea) {
       if (sprite.inGame() && sprite.takesDamage()) {
         Vec2 targetCenter = sprite.centerPoint();
         context.lineWidth = 4;
-        context.strokeStyle = color;
+        context.strokeStyle = color.toJS;
         context.globalCompositeOperation = "lighter";
         context.beginPath();
         context.moveTo(center.x, center.y);
@@ -132,7 +135,7 @@ class Hyper extends WorldDamageProjectile {
     super.draw(context, debug);
     double r = getRadius() * 4;
     context.translate(-r, -r);
-    context.strokeStyle = this.color;
+    context.strokeStyle = this.color.toJS;
     context.globalCompositeOperation = "lighter";
     context.lineWidth = 2;
     for (var i = 0; i < _quality; i++) {
@@ -143,7 +146,7 @@ class Hyper extends WorldDamageProjectile {
     }
   }
 
-  drawSeed(var ctx, num x,y,r) {
+  drawSeed(CanvasRenderingContext2D ctx, num x,y,r) {
     num fractions = 3;
     num xM = r;
     num yM = r;
@@ -159,7 +162,7 @@ class Hyper extends WorldDamageProjectile {
     }
   }
 
-  drawPath(var ctx, num startX, startY, num destX, destY) {
+  drawPath(CanvasRenderingContext2D ctx, num startX, startY, num destX, destY) {
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(destX, destY);
@@ -327,7 +330,7 @@ class WorldDamageProjectile extends MovingSprite {
   
   draw(var context, bool debug) {
     if (explodeAfter != null && showCounter) {
-      context.fillStyle = "#ffffff";
+      context.fillStyle = "#ffffff".toJS;
       context.fillText(
         explodeAfter!.toInt().toString(), position.x, position.y - size.y);
     }

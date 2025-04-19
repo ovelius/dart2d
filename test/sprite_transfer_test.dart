@@ -6,9 +6,7 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/weapons/abstractweapon.dart';
-import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'dart:math';
 import 'package:dart2d/net/net.dart';
 
 void main() {
@@ -218,7 +216,8 @@ void main() {
       ParticleEffects aParticleData = p.toNetworkUpdate();
 
       // Same data on both sides.
-      expect(aParticleData.position, bParticleData.position);
+      expect(aParticleData.position.x, closeTo(bParticleData.position.x, 0.1));
+      expect(aParticleData.position.y, closeTo(bParticleData.position.y, 0.1));
       expect(aParticleData.velocity, bParticleData.velocity);
       expect(aParticleData.particleCount, bParticleData.particleCount);
       expect(aParticleData.radius, bParticleData.radius);

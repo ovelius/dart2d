@@ -53,7 +53,7 @@ void main() {
       for (int i = 0; i < 5; i++) {
         worldA.frameDraw();
         worldB.frameDraw();
-        fakeImageFactory.completeAllImages();
+        await fakeImageFactory.completeAllImages();
       }
       // TODO: This should be PLAYER_SELECT even if no images completed...
       expect(loaderB.currentState(), equals(LoaderState.PLAYER_SELECT));
@@ -83,7 +83,7 @@ void main() {
       }
       expect(loaderC.currentState(), equals(LoaderState.LOADING_SERVER));
       FakeImageFactory fakeImageFactoryC =  getIt<FakeImageFactory>();
-      fakeImageFactoryC.completeAllImages();
+      await fakeImageFactoryC.completeAllImages();
       worldC.frameDraw(KEY_FRAME_DEFAULT);
       expect(loaderC.currentState(), equals(LoaderState.PLAYER_SELECT));
     });
@@ -95,7 +95,7 @@ void main() {
           initByteWorld: false);
       TestLocalStorage storage = worldC.localStorage as TestLocalStorage;
       for (String name in IMAGE_SOURCES) {
-        storage["img$name"] = "data:image/png;base64,data$name";
+        storage["img$name"] = EMPTY_IMAGE_DATA_STRING;
         storage["timg$name"] =
             new DateTime.now().millisecondsSinceEpoch.toString();
       }
@@ -117,7 +117,7 @@ void main() {
       FakeImageFactory fakeImageFactory = worldC.imageIndex().imageFactory as FakeImageFactory;
       for (int i = 0; i < 10; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
-        fakeImageFactory.completeAllImages();
+        await fakeImageFactory.completeAllImages();
       }
       expect(loaderC.currentState(), equals(LoaderState.PLAYER_SELECT));
       expect(worldC.imageIndex().finishedLoadingImages(), isTrue);

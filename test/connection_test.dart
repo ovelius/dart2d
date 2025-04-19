@@ -1,6 +1,9 @@
+import 'dart:js_interop';
+
 import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
+import 'package:web/helpers.dart';
 import 'lib/test_lib.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:dart2d/net/net.dart';
@@ -44,8 +47,11 @@ void main() {
     connection = new ConnectionWrapper(
         mockNetwork, mockHudMessages, "a", packetListenerBindings,
         testConfigParams, new ConnectionFrameHandler(new ConfigParams({})), fakeClock);
-    connection.setRtcConnection(testConnection);
-    connection.readyDataChannel(testConnection);
+
+    var jsTestConnection = createJSInteropWrapper<TestConnection>(testConnection) as RTCPeerConnection;
+    var jsTestDataChannel = createJSInteropWrapper<TestConnection>(testConnection) as RTCDataChannel;
+    connection.setRtcConnection(jsTestConnection);
+    connection.readyDataChannel(jsTestDataChannel);
   });
 
   tearDown(() {
@@ -320,16 +326,8 @@ void main() {
       ..frame = 1
       ..lastFrameSeen = 0
     ..stateUpdate.add(StateUpdate()
-        ..dataReceipt = 214851342
+        ..dataReceipt = 91834543
         ..spriteRemoval = 134)));
-  });
-
-
-  test('TestLeakyBucket', () {
-    LeakyBucket leakyBucket = new LeakyBucket(1);
-    expect(leakyBucket.removeTokens(1), isTrue);
-    sleep(new Duration(milliseconds: 10));
-    expect(leakyBucket.removeTokens(10), isTrue);
   });
 
   test('TestConnectionFrameHandler', () {

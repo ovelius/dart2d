@@ -983,7 +983,7 @@ void main() {
       expect(worldA, hasSpecifiedConnections(['b']));
       expect(worldB, hasSpecifiedConnections(['a']));
 
-      //logConnectionData = true;
+      // logConnectionData = true;
       for (int i = 0; i < 15; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.1);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.1);

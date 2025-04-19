@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:js_interop';
 
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/net.dart';
@@ -10,6 +11,7 @@ import 'package:dart2d/net/network.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:web/web.dart';
 import 'dart:math';
 import 'dart:core';
 import 'helpers.dart';
@@ -29,8 +31,8 @@ class ConnectionWrapper {
   LeakyBucket? _egressLimit = null;
   PacketListenerBindings _packetListenerBindings;
   final String id;
-  var _dataChannel;
-  var _rtcConnection;
+  RTCDataChannel? _dataChannel;
+  RTCPeerConnection? _rtcConnection;
   int _sendFailures = 0;
   // True if connection was successfully opened.
   bool _opened = false;
@@ -98,6 +100,7 @@ class ConnectionWrapper {
     }
     log.info("Closed connection to ${id} reason: ${reason}");
     closed = true;
+    _rtcConnection?.close();
   }
 
   void open() {
@@ -375,7 +378,6 @@ class ConnectionWrapper {
     _connectionStats.lastSendTime = now;
     _reliableHelper.storeAwayReliableData(data);
 
-    assert(_dataChannel != null);
     data.lastFrameSeen = lastSeenRemoteFrame;
     if (data.hasKeyFrame()) {
       // Check how many keyframes the remote peer is currenlty behind.
@@ -402,7 +404,7 @@ class ConnectionWrapper {
       if (Logger.root.isLoggable(Level.FINE)) {
         log.fine("${id} -> ${_network.getPeer().getId()} data ${data}");
       }
-      _dataChannel.send(dataBytes);
+      _dataChannel?.send(dataBytes.toJS);
       _sendFailures = 0;
     } catch (e, _) {
       if (THROW_SEND_ERRORS_FOR_TEST) {
@@ -429,13 +431,13 @@ class ConnectionWrapper {
     collectRtcStats();
   }
 
-  void readyDataChannel(var dataChannel) {
+  void readyDataChannel(RTCDataChannel dataChannel) {
     _dataChannel = dataChannel;
   }
 
   bool hasReadyDataChannel() => _dataChannel != null;
 
-  void setRtcConnection(var rtcConnection) {
+  void setRtcConnection(RTCPeerConnection rtcConnection) {
     _rtcConnection = rtcConnection;
   }
 

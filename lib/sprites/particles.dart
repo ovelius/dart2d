@@ -1,4 +1,6 @@
 
+import 'dart:js_interop';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -6,6 +8,7 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'dart:math';
+import 'package:web/web.dart';
 
 class Particles extends MovingSprite {
   late double radius;
@@ -149,10 +152,10 @@ class Particles extends MovingSprite {
     }
   }
   
-  setFillStyle(dynamic /*CanvasRenderingContext2D*/ context, _Particle p, Random r) {
+  setFillStyle(CanvasRenderingContext2D context, _Particle p, Random r) {
     if (this.particleType == ParticleEffects_ParticleType.COLORFUL) {
       double opacity = (p.lifeTimeRemaining / this.particleLifeTime * 100).round() / 100.0;
-      var /*CanvasGradient*/ gradient = context.createRadialGradient(
+      CanvasGradient gradient = context.createRadialGradient(
           p.location.x, p.location.y, 0, p.location.x, p.location.y, p.radius);
       String color = "rgba(${p.r},${p.g},${p.b},${opacity})";
       String colorTransparent = "rgba(${p.r},${p.g},${p.b},0)";
@@ -165,17 +168,16 @@ class Particles extends MovingSprite {
       double lifePercentageInverse = 1.0 - lifePercentage;   
       String color = 
           "rgba(${(260 * lifePercentage).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${(10 * lifePercentageInverse).toInt()}, ${lifePercentageInverse})";
-      context.fillStyle = color;
+      context.fillStyle = color.toJS;
     } else if (this.particleType == ParticleEffects_ParticleType.SODA) {
       double lifePercentage = p.lifeTimeRemaining / this.particleLifeTime;
       double lifePercentageInverse = 1.0 - lifePercentage;
       String color =
           "rgba(239, 204, 10, ${lifePercentageInverse})";
-      context.fillStyle = color;
+      context.fillStyle = color.toJS;
     } else if (this.particleType == ParticleEffects_ParticleType.CONFETTI) {
-     // p.randomColor(r);
       String color = "rgba(${p.r},${p.g},${p.b},1.0)";
-      context.fillStyle = color;
+      context.fillStyle = color.toJS;
     }
   }
 

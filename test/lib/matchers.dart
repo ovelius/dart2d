@@ -3,7 +3,6 @@ library matchers;
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:matcher/matcher.dart';
 import 'dart:convert';
-import 'dart:mirrors';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/net/net.dart';
 import 'fake_canvas.dart';
@@ -428,20 +427,6 @@ class MapKeysMatcher extends Matcher {
 
   Description describe(Description description) {
     return description.add("Map/Json string not containing all keys ${_keys}");    
-  }
-}
-
-class TypeMatcher extends Matcher {
-  String _type;
-  TypeMatcher(this._type);
-  
-  bool matches(item, Map matchState) {
-    InstanceMirror mirror = reflect(item);
-    return MirrorSystem.getName(mirror.type.simpleName) == _type;
-  }
-
-  Description describe(Description description) {
-    return description.add("ClassType is ${_type}");    
   }
 }
 

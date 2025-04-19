@@ -1,11 +1,12 @@
+import 'dart:js_interop';
 import 'dart:math';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
+import 'package:web/web.dart';
 
 import '../net/connection.dart';
 import '../net/helpers.dart';
 import '../net/network.dart';
-import '../net/state_updates.dart';
 import 'world_data.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -24,7 +25,7 @@ class PlayerWorldSelector {
     "dra98.png",
     "turtle96.png"
   ];
-  static final List<int> PLAYER_SPRITE_SIZES = [98, 96, 98, 93, 78, 88, 98, 95];
+  static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
 
   static final List<String> AVAILABLE_MAPS = new List.from(WORLDS.keys);
 
@@ -37,7 +38,7 @@ class PlayerWorldSelector {
     throw "No player sprite named $name";
   }
 
-  late var _context;
+  late CanvasRenderingContext2D _context;
   late LocalStorage _localStorage;
   late KeyState _keyState;
   late MobileControls _mobileControls;
@@ -219,24 +220,24 @@ class PlayerWorldSelector {
         50);
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
       Point<int> position = _spritePositions![i];
-      var img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
+      HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
       int imgWidth = PLAYER_SPRITE_SIZES[i];
       int height = img.height;
-
       _context.save();
       if (_selectedPlayerSprite != i) {
         _context.globalAlpha = 0.5;
-        _context.drawImageScaledFromSource(img, 0, 0, imgWidth, height,
+        _context.drawImage(img, 0, 0, imgWidth, height,
             position.x, position.y, imgWidth * _scale, height * _scale);
       } else {
         _frameTime += duration;
         _context.globalAlpha = 1.0;
-        _context.drawImageScaledFromSource(img, _animateX, 0, imgWidth, height,
+        _context.drawImage(img, _animateX, 0, imgWidth, height,
             position.x, position.y, imgWidth * _scale, height * _scale);
         if (_frameTime > 0.25) {
           _frameTime = 0.0;
           _animateX = _animateX + imgWidth;
-          if (_animateX >= img.width) {
+          // Next frame clearly runs outside the image... so +5.
+          if (_animateX + 5 >= img.width) {
             _animateX = 0;
           }
         }
@@ -289,7 +290,7 @@ class PlayerWorldSelector {
     for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
       List<String> otherPlayersSelections = _otherPlayersSelections[i];
       Point<int> position = _mapPositions![i];
-      var img = _imageIndex.getImageByName(AVAILABLE_MAPS[i]);
+      HTMLImageElement img = _imageIndex.getImageByName(AVAILABLE_MAPS[i]);
 
       double selectScale = _mapScale;
       double xOffset = 0.0;
@@ -314,7 +315,7 @@ class PlayerWorldSelector {
         }
         _context.restore();
       }
-      _context.drawImageScaledFromSource(
+      _context.drawImage(
           img,
           0,
           0,
@@ -336,8 +337,7 @@ class PlayerWorldSelector {
   void _partitionMaps() {
     _mapPositions = [];
     for (String miniMap in WORLDS.keys) {
-      var img = _imageIndex.getImageByName(miniMap);
-      assert(img != null);
+      HTMLImageElement img = _imageIndex.getImageByName(miniMap);
       if (_maxMapWidth < img.width) {
         _maxMapWidth = img.width;
       }
@@ -357,7 +357,7 @@ class PlayerWorldSelector {
 
   void drawCenteredText(String text, [int y = 0, int size = 20]) {
     _context.clearRect(0, 0, _width, _height);
-    _context.setFillColorRgb(-0, 0, 0);
+    _context.fillStyle = "rgb(0.0.0)".toJS;
     _context.font = "${size}px Arial";
     var metrics = _context.measureText(text);
     _context.fillText(text, _width / 2 - metrics.width / 2, y);

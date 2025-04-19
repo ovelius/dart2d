@@ -3,6 +3,7 @@ import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
+import 'package:web/helpers.dart';
 import 'test_factories.dart';
 import 'test_injector.config.dart';
 import 'fake_canvas.dart';
@@ -135,9 +136,11 @@ class FakeGaReporter extends GaReporter {
 
 @Injectable(as: CanvasFactory)
 class FakeCanvasFactory implements CanvasFactory {
-  FakeCanvas  fakeCanvas = FakeCanvas();
   @override
   createCanvas(int width, height) {
-    return fakeCanvas;
+    HTMLCanvasElement c = HTMLCanvasElement();
+    c.width = width;
+    c.height = height;
+    return c;
   }
 }

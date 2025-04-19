@@ -86,7 +86,6 @@ class HtmlImageFactory implements ImageFactory {
   }
 }
 
-
 @JS()
 external ImageData createImageData(int w, int h);
 @JS()

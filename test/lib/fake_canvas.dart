@@ -1,19 +1,25 @@
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/res/imageindex.dart';
 import 'dart:async';
 
 import 'package:injectable/injectable.dart';
+import 'package:web/web.dart';
 
 const TEST_DATA_URL = "data:image/png;base64,THIS_IS_TEST_DATA_URL";
 
 @Injectable(as: WorldCanvas)
 class FakeCanvas implements WorldCanvas {
 
-  late FakeContext2D context2D;
+  late HTMLCanvasElement canvas;
+  late CanvasRenderingContext2D context2D;
   int height = 800;
   int width = 800;
 
   FakeCanvas() {
-    context2D = new FakeContext2D(this);
+    canvas = HTMLCanvasElement();
+    canvas.width = width;
+    canvas.height = height;
+    context2D = canvas.context2D;
   }
 
   toDataUrl([String type = ""]) => TEST_DATA_URL;
@@ -113,25 +119,28 @@ class _FakeGradient {
 
 @Singleton(as: ImageFactory, scope:'world')
 class FakeImageFactory extends ImageFactory {
-  List<FakeImage> createdImages = [];
+  List<HTMLImageElement> createdImages = [];
   // Required to avoid deadlock in end2end tests.
   bool completeImagesAsap = false;
   bool allowDataImages = true;
   bool allowURLImages = true;
 
 
-  void completeAllImages() {
-    createdImages.forEach((image) {
-      if (!image.onLoad._completer.isCompleted) {
-        image.onLoad._completer.complete(0);
-        print("Completed fake image ${image.src}");
-      }
+  Future completeAllImages() async {
+    List<Future> imagesLoad = [];
+    createdImages.forEach((image) async {
+      image.src = EMPTY_IMAGE_DATA_STRING;
+      imagesLoad.add(image.onLoad.first);
     });
+    return Future.wait(imagesLoad);
   }
 
   @override
   createWithSize(int x, y) {
-    return addImage(new FakeImage.withHW(x, y));
+    HTMLImageElement i = HTMLImageElement();
+    i.width = x;
+    i.height = y;
+    return addImage(i);
   }
 
   @override
@@ -142,16 +151,17 @@ class FakeImageFactory extends ImageFactory {
     if (!allowURLImages && src.startsWith("./")) {
       throw new ArgumentError("Not allowed to create image from URL ${src}");
     }
-    FakeImage image = new FakeImage.withSrc(src);
-    return addImage(image);
+    HTMLImageElement i = HTMLImageElement();
+    i.src = src;
+    return addImage(i);
   }
 
   @override
   create() {
-    return addImage(FakeImage());
+    return addImage(HTMLImageElement());
   }
 
-  FakeImage addImage(FakeImage img) {
+  HTMLImageElement addImage(HTMLImageElement img) {
     createdImages.add(img);
     if (completeImagesAsap) {
       completeAllImages();
@@ -161,6 +171,7 @@ class FakeImageFactory extends ImageFactory {
 
 }
 
+/*
 class FakeImage {
 
   FakeImage() {}
@@ -182,12 +193,15 @@ class _FakeEvenStream {
   _FakeEvenStream() {
     first = _completer.future;
   }
-}
+} */
 
 @Injectable(as: ImageDataFactory)
 class FakeImageDataFactory implements ImageDataFactory {
   @override
   createWithSize(int x, y) {
-    return null;
+    HTMLCanvasElement c = HTMLCanvasElement();
+    c.height = y;
+    c.width = x;
+    return c.context2D.getImageData(0, 0, x, y);
   }
 }

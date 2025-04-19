@@ -1,5 +1,7 @@
 library test_connection;
 
+import 'dart:js_interop';
+
 import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
@@ -27,6 +29,7 @@ class PacketWrapper {
   }
 }
 
+@JSExport()
 class TestConnection {
   int dropPacketsAfter = 900000000;
   TestConnection? _otherEnd;

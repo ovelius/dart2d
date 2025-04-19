@@ -3,8 +3,9 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i17;
+import 'dart:async' as _i18;
 import 'dart:math' as _i7;
+import 'dart:typed_data' as _i19;
 
 import 'package:dart2d/bindings/annotations.dart' as _i3;
 import 'package:dart2d/net/connection.dart' as _i9;
@@ -17,11 +18,12 @@ import 'package:dart2d/phys/vec2.dart' as _i8;
 import 'package:dart2d/res/imageindex.dart' as _i14;
 import 'package:dart2d/sprites/sprites.dart' as _i10;
 import 'package:dart2d/util/util.dart' as _i5;
-import 'package:dart2d/weapons/weapon_state.dart' as _i18;
+import 'package:dart2d/weapons/weapon_state.dart' as _i20;
 import 'package:dart2d/worlds/worlds.dart' as _i4;
 import 'package:logging/logging.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i16;
+import 'package:mockito/src/dummies.dart' as _i17;
+import 'package:web/web.dart' as _i16;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -266,16 +268,16 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   );
 
   @override
-  List<dynamic> get images =>
+  List<_i16.HTMLImageElement> get images =>
       (super.noSuchMethod(
             Invocation.getter(#images),
-            returnValue: <dynamic>[],
-            returnValueForMissingStub: <dynamic>[],
+            returnValue: <_i16.HTMLImageElement>[],
+            returnValueForMissingStub: <_i16.HTMLImageElement>[],
           )
-          as List<dynamic>);
+          as List<_i16.HTMLImageElement>);
 
   @override
-  set images(List<dynamic>? _images) => super.noSuchMethod(
+  set images(List<_i16.HTMLImageElement>? _images) => super.noSuchMethod(
     Invocation.setter(#images, _images),
     returnValueForMissingStub: null,
   );
@@ -371,11 +373,11 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   String imagesLoadedString() =>
       (super.noSuchMethod(
             Invocation.method(#imagesLoadedString, []),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#imagesLoadedString, []),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#imagesLoadedString, []),
             ),
@@ -389,17 +391,17 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   );
 
   @override
-  _i17.Future<dynamic> addFromImageData(
+  _i18.Future<dynamic> addFromImageData(
     int? index,
     String? data,
     bool? allowCaching,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#addFromImageData, [index, data, allowCaching]),
-            returnValue: _i17.Future<dynamic>.value(),
-            returnValueForMissingStub: _i17.Future<dynamic>.value(),
+            returnValue: _i18.Future<dynamic>.value(),
+            returnValueForMissingStub: _i18.Future<dynamic>.value(),
           )
-          as _i17.Future<dynamic>);
+          as _i18.Future<dynamic>);
 
   @override
   void addImagesFromNetwork() => super.noSuchMethod(
@@ -420,11 +422,11 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   String getImageDataUrl(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#getImageDataUrl, [index]),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#getImageDataUrl, [index]),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#getImageDataUrl, [index]),
             ),
@@ -432,26 +434,26 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
           as String);
 
   @override
-  _i17.Future<dynamic> addSingleImage(
+  _i18.Future<dynamic> addSingleImage(
     String? imgName, [
     String? path = './img/',
   ]) =>
       (super.noSuchMethod(
             Invocation.method(#addSingleImage, [imgName, path]),
-            returnValue: _i17.Future<dynamic>.value(),
-            returnValueForMissingStub: _i17.Future<dynamic>.value(),
+            returnValue: _i18.Future<dynamic>.value(),
+            returnValueForMissingStub: _i18.Future<dynamic>.value(),
           )
-          as _i17.Future<dynamic>);
+          as _i18.Future<dynamic>);
 
   @override
   String imageNameFromIndex(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#imageNameFromIndex, [index]),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#imageNameFromIndex, [index]),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#imageNameFromIndex, [index]),
             ),
@@ -835,18 +837,23 @@ class MockHudMessages extends _i1.Mock implements _i5.HudMessages {
           as bool);
 
   @override
-  void showGameTable(_i4.WormWorld? world, dynamic context) =>
-      super.noSuchMethod(
-        Invocation.method(#showGameTable, [world, context]),
-        returnValueForMissingStub: null,
-      );
+  void showGameTable(
+    _i4.WormWorld? world,
+    _i16.CanvasRenderingContext2D? context,
+  ) => super.noSuchMethod(
+    Invocation.method(#showGameTable, [world, context]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  void render(_i4.WormWorld? world, dynamic context, double? timeSpent) =>
-      super.noSuchMethod(
-        Invocation.method(#render, [world, context, timeSpent]),
-        returnValueForMissingStub: null,
-      );
+  void render(
+    _i4.WormWorld? world,
+    _i16.CanvasRenderingContext2D? context,
+    double? timeSpent,
+  ) => super.noSuchMethod(
+    Invocation.method(#render, [world, context, timeSpent]),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [PacketListenerBindings].
@@ -985,7 +992,7 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
   );
 
   @override
-  set canvas(dynamic _canvas) => super.noSuchMethod(
+  set canvas(_i16.HTMLCanvasElement? _canvas) => super.noSuchMethod(
     Invocation.setter(#canvas, _canvas),
     returnValueForMissingStub: null,
   );
@@ -1009,7 +1016,7 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
           as int);
 
   @override
-  void setWorldImage(dynamic image) => super.noSuchMethod(
+  void setWorldImage(_i16.HTMLImageElement? image) => super.noSuchMethod(
     Invocation.method(#setWorldImage, [image]),
     returnValueForMissingStub: null,
   );
@@ -1066,28 +1073,46 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
           as bool);
 
   @override
-  List<int> getImageData(_i8.Vec2? pos, _i8.Vec2? size) =>
+  _i19.Uint8ClampedList getImageData(_i8.Vec2? pos, _i8.Vec2? size) =>
       (super.noSuchMethod(
             Invocation.method(#getImageData, [pos, size]),
-            returnValue: <int>[],
-            returnValueForMissingStub: <int>[],
+            returnValue: _i17.dummyValue<_i19.Uint8ClampedList>(
+              this,
+              Invocation.method(#getImageData, [pos, size]),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<_i19.Uint8ClampedList>(
+              this,
+              Invocation.method(#getImageData, [pos, size]),
+            ),
           )
-          as List<int>);
+          as _i19.Uint8ClampedList);
 
   @override
-  List<int> getImageDataFor(int? x, dynamic y, dynamic w, dynamic h) =>
+  _i19.Uint8ClampedList getImageDataFor(
+    int? x,
+    dynamic y,
+    dynamic w,
+    dynamic h,
+  ) =>
       (super.noSuchMethod(
             Invocation.method(#getImageDataFor, [x, y, w, h]),
-            returnValue: <int>[],
-            returnValueForMissingStub: <int>[],
+            returnValue: _i17.dummyValue<_i19.Uint8ClampedList>(
+              this,
+              Invocation.method(#getImageDataFor, [x, y, w, h]),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<_i19.Uint8ClampedList>(
+              this,
+              Invocation.method(#getImageDataFor, [x, y, w, h]),
+            ),
           )
-          as List<int>);
+          as _i19.Uint8ClampedList);
 
   @override
-  void drawAt(dynamic canvas, dynamic x, dynamic y) => super.noSuchMethod(
-    Invocation.method(#drawAt, [canvas, x, y]),
-    returnValueForMissingStub: null,
-  );
+  void drawAt(_i16.CanvasRenderingContext2D? canvas, dynamic x, dynamic y) =>
+      super.noSuchMethod(
+        Invocation.method(#drawAt, [canvas, x, y]),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void drawAsMiniMap(
@@ -1121,11 +1146,11 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
   String asDataUrl() =>
       (super.noSuchMethod(
             Invocation.method(#asDataUrl, []),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#asDataUrl, []),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#asDataUrl, []),
             ),
@@ -2107,23 +2132,23 @@ class MockConnectionFactory extends _i1.Mock implements _i3.ConnectionFactory {
       );
 
   @override
-  _i17.Future<String> getStats(dynamic connection) =>
+  _i18.Future<String> getStats(dynamic connection) =>
       (super.noSuchMethod(
             Invocation.method(#getStats, [connection]),
-            returnValue: _i17.Future<String>.value(
-              _i16.dummyValue<String>(
+            returnValue: _i18.Future<String>.value(
+              _i17.dummyValue<String>(
                 this,
                 Invocation.method(#getStats, [connection]),
               ),
             ),
-            returnValueForMissingStub: _i17.Future<String>.value(
-              _i16.dummyValue<String>(
+            returnValueForMissingStub: _i18.Future<String>.value(
+              _i17.dummyValue<String>(
                 this,
                 Invocation.method(#getStats, [connection]),
               ),
             ),
           )
-          as _i17.Future<String>);
+          as _i18.Future<String>);
 }
 
 /// A class which mocks [ConnectionWrapper].
@@ -2146,8 +2171,8 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   String get id =>
       (super.noSuchMethod(
             Invocation.getter(#id),
-            returnValue: _i16.dummyValue<String>(this, Invocation.getter(#id)),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(this, Invocation.getter(#id)),
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.getter(#id),
             ),
@@ -2549,11 +2574,11 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   String stats() =>
       (super.noSuchMethod(
             Invocation.method(#stats, []),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#stats, []),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#stats, []),
             ),
@@ -2564,11 +2589,11 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   String frameStats() =>
       (super.noSuchMethod(
             Invocation.method(#frameStats, []),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#frameStats, []),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#frameStats, []),
             ),
@@ -3156,11 +3181,11 @@ class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
   String getTransferSpeed() =>
       (super.noSuchMethod(
             Invocation.method(#getTransferSpeed, []),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.method(#getTransferSpeed, []),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.method(#getTransferSpeed, []),
             ),
@@ -3168,13 +3193,13 @@ class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
           as String);
 
   @override
-  _i17.Stream<int> bytesPerSecondSamples() =>
+  _i18.Stream<int> bytesPerSecondSamples() =>
       (super.noSuchMethod(
             Invocation.method(#bytesPerSecondSamples, []),
-            returnValue: _i17.Stream<int>.empty(),
-            returnValueForMissingStub: _i17.Stream<int>.empty(),
+            returnValue: _i18.Stream<int>.empty(),
+            returnValueForMissingStub: _i18.Stream<int>.empty(),
           )
-          as _i17.Stream<int>);
+          as _i18.Stream<int>);
 
   @override
   Map<String, int> failuresByConnection() =>
@@ -3269,7 +3294,7 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
-  set weaponState(_i18.WeaponState? _weaponState) => super.noSuchMethod(
+  set weaponState(_i20.WeaponState? _weaponState) => super.noSuchMethod(
     Invocation.setter(#weaponState, _weaponState),
     returnValueForMissingStub: null,
   );
@@ -3555,11 +3580,11 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   String get color =>
       (super.noSuchMethod(
             Invocation.getter(#color),
-            returnValue: _i16.dummyValue<String>(
+            returnValue: _i17.dummyValue<String>(
               this,
               Invocation.getter(#color),
             ),
-            returnValueForMissingStub: _i16.dummyValue<String>(
+            returnValueForMissingStub: _i17.dummyValue<String>(
               this,
               Invocation.getter(#color),
             ),
@@ -3760,13 +3785,14 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as bool);
 
   @override
-  dynamic draw(dynamic context, bool? debug) => super.noSuchMethod(
-    Invocation.method(#draw, [context, debug]),
-    returnValueForMissingStub: null,
-  );
+  dynamic draw(_i16.CanvasRenderingContext2D? context, bool? debug) =>
+      super.noSuchMethod(
+        Invocation.method(#draw, [context, debug]),
+        returnValueForMissingStub: null,
+      );
 
   @override
-  bool drawHealthBar(dynamic context) =>
+  bool drawHealthBar(_i16.CanvasRenderingContext2D? context) =>
       (super.noSuchMethod(
             Invocation.method(#drawHealthBar, [context]),
             returnValue: false,
@@ -3956,6 +3982,13 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as _i8.Vec2);
 
   @override
+  dynamic setColor(_i16.CanvasRenderingContext2D? context) =>
+      super.noSuchMethod(
+        Invocation.method(#setColor, [context]),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   bool remoteControlled() =>
       (super.noSuchMethod(
             Invocation.method(#remoteControlled, []),
@@ -3963,6 +3996,20 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  dynamic drawRect(_i16.CanvasRenderingContext2D? context) =>
+      super.noSuchMethod(
+        Invocation.method(#drawRect, [context]),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  dynamic drawCircle(_i16.CanvasRenderingContext2D? context) =>
+      super.noSuchMethod(
+        Invocation.method(#drawCircle, [context]),
+        returnValueForMissingStub: null,
+      );
 
   @override
   double distanceTo(_i10.Sprite? other) =>

@@ -1,3 +1,4 @@
+import 'dart:js_interop';
 import 'dart:math';
 
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -5,6 +6,7 @@ import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:web/web.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -54,7 +56,7 @@ class Loader {
   late ChunkHelper _chunkHelper;
   late ByteWorld _byteWorld;
   late PlayerWorldSelector _playerWorldSelector;
-  var _context;
+  late CanvasRenderingContext2D _context;
   late int _width;
   late int _height;
   // Capture framerate every 0.5 seconds.
@@ -176,7 +178,7 @@ class Loader {
     if (map.isNotEmpty) {
       _network.getGameState().gameStateProto.mapName = map;
     }
-    var worldImage = map.isNotEmpty
+    HTMLImageElement worldImage = map.isNotEmpty
         ? _imageIndex.getImageByName(map)
         : _imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
     _byteWorld.setWorldImage(worldImage);
@@ -349,8 +351,8 @@ class Loader {
     _context.save();
     _context.globalAlpha = 1.0;
     _context.clearRect(0, 0, _width, _height);
-    _context.setFillColorRgb(0, 0, 0);
-    _context.setStrokeColorRgb(0, 0, 0);
+    _context.fillStyle = "rgb(0, 0, 0)".toJS;
+    _context.strokeStyle = "rgb(0,0,0)".toJS;
     _context.font = "${size}px Arial";
     var metrics = _context.measureText(text);
     _context.fillText(
@@ -383,7 +385,7 @@ class Loader {
     for (_Spinner s in _spinners) {
       _context.save();
       _context.beginPath();
-      _context.fillStyle =  s.colorString;
+      _context.fillStyle =  s.colorString.toJS;
       _context.rotate(s.angle);
       _context
         .rect(-s.width / 15,

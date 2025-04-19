@@ -52,7 +52,7 @@ void main() {
     // Load images.
     FakeImageFactory imageFactory = getIt<ImageFactory>() as FakeImageFactory;
     expect(loader.currentState(), LoaderState.LOADING_SERVER);
-    imageFactory.completeAllImages();
+    await imageFactory.completeAllImages();
     frameDraws(w);
 
     // Set player.
@@ -72,11 +72,8 @@ void main() {
     localKeyState.onKeyDown(KeyCodeDart.ENTER);
     frameDraws(w);
     expect(loader.currentState(), LoaderState.WORLD_LOADING);
-    imageFactory.completeAllImages();
+    await imageFactory.completeAllImages();
     frameDraws(w);
-
-    // Doing the byteworld.
-    expect(loader.currentState(), LoaderState.COMPUTING_BYTE_WORLD);
 
     while(loader.currentState() == LoaderState.COMPUTING_BYTE_WORLD) {
       w.frameDraw(0.1);

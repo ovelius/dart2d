@@ -1,8 +1,11 @@
+import 'dart:js_interop';
+
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/net/connection.dart';
+import 'package:web/web.dart';
 import 'worm_world.dart';
 import 'dart:math';
 import 'package:dart2d/res/imageindex.dart';
@@ -44,7 +47,7 @@ void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelp
 }
 
 void drawPlayerStats(
-    var /*CanvasRenderingContext2D*/ context,
+    CanvasRenderingContext2D context,
     WormWorld world,
     int width, int height,
     SpriteIndex spriteIndex,
@@ -64,9 +67,9 @@ void drawPlayerStats(
 
   int fontSize = 20;
   if (blackText) {
-    context.setFillColorRgb(0, 0, 0, 0.7);
+    context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
   } else {
-    context.setFillColorRgb(255, 255, 255, 0.7);
+    context.fillStyle = "rgb(255, 255, 255, 0.7)".toJS;
   }
   context.font = "${fontSize}px Arial";
 
@@ -78,7 +81,7 @@ void drawPlayerStats(
       log.warning("Not drawing ${info}, sprite is missing");
       continue;
     }
-    var img = imageIndex.getImageById(sprite.imageId);
+    HTMLImageElement img = imageIndex.getImageById(sprite.imageId);
     int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId]!.expectedLatency().inMilliseconds : 0;
     String text;
     if (netIssue && gameState.gameStateProto.actingCommanderId == info.connectionId) {
@@ -91,7 +94,7 @@ void drawPlayerStats(
     double totalWidth = sprite.size.x * spriteScale + metrics.width;
     double x = width / 2 - totalWidth / 2;
     double frameWidth = (img.width / sprite.frames);
-    context.drawImageScaledFromSource(
+    context.drawImage(
         img,
         0, 0,
         frameWidth, img.height,
@@ -104,7 +107,7 @@ void drawPlayerStats(
 
 int _textSize = 40;
 
-void drawWinView(var /*CanvasRenderingContext2D*/ context,
+void drawWinView(CanvasRenderingContext2D context,
     WormWorld world,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
@@ -112,18 +115,18 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
   if (player.inGame()) {
     return;
   }
-  context.setFillColorRgb(0, 0, 0, 0.7);
+  context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   GameState gameState = world.network().getGameState();
   PlayerInfoProto winner = gameState.playerInfoByConnectionId(gameState.gameStateProto.winnerPlayerId)!;
   LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
-  var img = imageIndex.getImageById(killerSprite.imageId);
+  HTMLImageElement img = imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
   String text = "${winner.name} you're winner!";
   var metrics = context.measureText(text);
 
-  context.setFillColorRgb(255, 255, 255, 0.5);
+  context.fillStyle = "rgb(255, 255, 255, 0.5)".toJS;
   double messageLength =  metrics.width + killerSprite.size.x;
   if (messageLength > width) {
     // OOps we are larger than screen. Reduce text size for next frame.
@@ -134,7 +137,7 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
   context.fillText(text, x, y);
 
   double frameWidth = (img.width / killerSprite.frames);
-  context.drawImageScaledFromSource(
+  context.drawImage(
       img,
       0, 0,
       frameWidth, img.height,
@@ -143,7 +146,7 @@ void drawWinView(var /*CanvasRenderingContext2D*/ context,
 
 }
 
-void drawKilledView(var /*CanvasRenderingContext2D*/ context,
+void drawKilledView(CanvasRenderingContext2D context,
     WormWorld world,
     int width, int height,
     LocalPlayerSprite player, SpriteIndex spriteIndex, ImageIndex imageIndex) {
@@ -151,20 +154,21 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   if (player.inGame()) {
     return;
   }
-  context.setFillColorRgb(0, 0, 0, 0.7);
+  context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   PlayerInfoProto? killer = player.killer;
   if (killer == null || killer == player.info) {
     return;
   }
-  LocalPlayerSprite killerSprite = spriteIndex[killer.spriteId] as LocalPlayerSprite;
-  var img = imageIndex.getImageById(killerSprite.imageId);
+  // This can be null.
+  LocalPlayerSprite? killerSprite = spriteIndex[killer.spriteId] as LocalPlayerSprite?;
+  HTMLImageElement img = imageIndex.getImageById(killerSprite!.imageId);
   context.font = "${_textSize}px Arial";
   String text = "You were killed by ${killer.name}";
   var metrics = context.measureText(text);
 
-  context.setFillColorRgb(255, 255, 255, 0.7);
+  context.fillStyle = "rgb(255, 255, 255, 0.7)".toJS;
   double messageLength =  metrics.width + killerSprite.size.x;
   if (messageLength > width) {
     // OOps we are larger than screen. Reduce text size for next frame.
@@ -175,7 +179,7 @@ void drawKilledView(var /*CanvasRenderingContext2D*/ context,
   context.fillText(text, x, y);
 
   double frameWidth = (img.width / killerSprite.frames);
-  context.drawImageScaledFromSource(
+  context.drawImage(
       img,
       0, 0,
       frameWidth, img.height,

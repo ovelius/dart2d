@@ -4,6 +4,7 @@ import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:dart2d/phys/vec2.dart';
+import 'package:web/web.dart';
 
 class Destructoid extends MovingSprite {
   double bounche = 0.1;
@@ -20,7 +21,7 @@ class Destructoid extends MovingSprite {
   }
   
   @override
-  draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     
    // context.translate(position.x + size.x / 2, position.y + size.y / 2);
@@ -31,7 +32,7 @@ class Destructoid extends MovingSprite {
      //context.fiffllRect(-size.x / 2, -size.y / 2, size.x / 2, size.y / 2);
     // print("drawing at ${this.position}");
     // context.resetTransform();
-     context.drawImageScaledFromSource(
+     context.drawImage(
               canvas,
               0, 0,
               canvas.width, canvas.height,
