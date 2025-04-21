@@ -85,11 +85,12 @@ void main() {
   test('Test worlds loads together', () async {
     expectWarningContaining("Duplicate handshake received");
     expectWarningContaining("Got client enter before loading completed");
+    expectWarningContaining("Commander data update for missing");
 
     WormWorld w = await createTestWorld("w", signalPeerOpen: true,
         setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:
         true, initByteWorld: false);
-    FakeImageFactory imageFactory = getIt<ImageFactory>() as FakeImageFactory;
+    FakeImageFactory imageFactory1 = getIt<ImageFactory>() as FakeImageFactory;
 
     // Step through each phase of world loading.
     frameDraws(w);
@@ -103,6 +104,7 @@ void main() {
         setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:
         true, initByteWorld: false);
     Loader loader2 = getIt<Loader>();
+    FakeImageFactory imageFactory2 = getIt<ImageFactory>() as FakeImageFactory;
 
     signalOpen(w2, ["w"]);
     frameDraws(w2);
@@ -118,11 +120,19 @@ void main() {
     // GameState recognized.
     expect(w2.network().getServerConnection(), isNotNull);
 
+    // Complete all images.
+    await imageFactory1.completeAllImages();
+    await imageFactory2.completeAllImages();
 
-    await imageFactory.completeAllImages();
     frameDraws(w);
-    frameDraws(w2);
     expect(loader.currentState(), LoaderState.LOADED_AS_SERVER);
+
+    // A bit more back and forth.
+    for (int i = 0; i < 10; i++) {
+      w.frameDraw(KEY_FRAME_DEFAULT / 5);
+      w2.frameDraw(KEY_FRAME_DEFAULT / 5);
+    }
+
     expect(loader2.currentState(), LoaderState.LOADING_AS_CLIENT_COMPLETED);
   });
 

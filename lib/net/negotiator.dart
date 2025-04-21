@@ -15,6 +15,7 @@ class Negotiator {
   bool _iceCompleted = false;
 
   dynamic _onNegotiationComplete;
+  bool _negotiationCompletedFired = false;
 
   onNegotiationComplete(dynamic f) {
     _onNegotiationComplete = f;
@@ -30,8 +31,13 @@ class Negotiator {
   }
 
   void _checkCompleted() {
+    // Don't fire off this event again.
+    if (_negotiationCompletedFired) {
+      return;
+    }
     if (_iceCompleted && _sdp != null) {
       _onNegotiationComplete(buildProto());
+      _negotiationCompletedFired = true;
     }
   }
 

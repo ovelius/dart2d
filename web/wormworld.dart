@@ -283,7 +283,6 @@ class RtcConnectionFactory extends ConnectionFactory {
     wrapper.setRtcConnection(connection);
 
     connection.oniceconnectionstatechange = (Event _) {
-      log.info("ICE state ${connection.iceConnectionState}");
       if (connection.iceConnectionState == "checking") {
         // Do nothing...
       } else if (connection.iceConnectionState == "connected") {
@@ -322,6 +321,8 @@ class RtcConnectionFactory extends ConnectionFactory {
         negotiator.onIceCandidate(null);
       } else {
         negotiator.onIceCandidate(e.candidate!.candidate);
+        // In the event last candidate signaling isn't supported.
+        new Timer(new Duration(milliseconds: 1500), () {negotiator.onIceCandidate(null);});
       }
     }.toJS;
   }
