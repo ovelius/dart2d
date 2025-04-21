@@ -29,20 +29,10 @@ late DateTime lastStep;
 late WormWorld world;
 late GaReporter gaReporter;
 
-List iceServers = [
-  {'url': 'stun:turn.goog'}
-];
-
-JSArray<RTCIceServer> getIceServers() {
-  JSArray<RTCIceServer> servers = JSArray<RTCIceServer>();
-  iceServers.forEach((string) {
-    servers.add(RTCIceServer(urls: string));
-  });
-  return servers;
-}
+List<RTCIceServer> getIceServers() => [RTCIceServer(urls:'stun:turn.goog'.toJS)];
 
 RTCConfiguration getRtcConfiguration() {
-  return RTCConfiguration(iceServers:  getIceServers());
+  return RTCConfiguration(iceServers:  getIceServers().toJS);
 }
 
 void main() {
@@ -293,6 +283,7 @@ class RtcConnectionFactory extends ConnectionFactory {
     wrapper.setRtcConnection(connection);
 
     connection.oniceconnectionstatechange = (Event _) {
+      log.info("ICE state ${connection.iceConnectionState}");
       if (connection.iceConnectionState == "checking") {
         // Do nothing...
       } else if (connection.iceConnectionState == "connected") {

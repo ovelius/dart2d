@@ -376,7 +376,7 @@ class PeerWrapper {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;
         }
-        log.info("Handling answer from ${src} offer: ${payload}");
+        log.info("Handling answer from ${src} offer: ${proto.toDebugString()}");
         ConnectionWrapper? connection = connections[src];
         if (connection == null) {
           log.warning("Received answer from unknown connection '$src'!");

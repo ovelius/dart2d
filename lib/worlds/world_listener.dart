@@ -93,7 +93,7 @@ class WorldListener {
     StateUpdate updateReply = StateUpdate()
       ..commanderGameReply = reply
       ..attachUniqueDataReceipt(connection);
-    if (!_world.loader.loadedAsServer()) {
+    if (!_world.loader.completed()) {
       log.warning("Got client enter before loading completed, dropping");
       return;
     }
