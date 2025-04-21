@@ -481,7 +481,7 @@ class ConnectionWrapper {
 
   ReliableHelper reliableHelper() => _reliableHelper;
 
-  dynamic rtcConnection() => _rtcConnection;
+  RTCPeerConnection? rtcConnection() => _rtcConnection;
 
   int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
 

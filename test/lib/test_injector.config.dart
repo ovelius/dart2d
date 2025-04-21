@@ -168,8 +168,8 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.WorldCanvas>(),
             ));
         gh.singleton<_i394.PlayerWorldSelector>(() => _i394.PlayerWorldSelector(
-              gh<_i207.PacketListenerBindings>(),
-              gh<_i64.Network>(),
+              gh<_i835.PacketListenerBindings>(),
+              gh<_i835.Network>(),
               gh<_i559.MobileControls>(),
               gh<_i883.ImageIndex>(),
               gh<_i988.GaReporter>(),

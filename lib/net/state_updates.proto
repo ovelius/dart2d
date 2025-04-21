@@ -66,6 +66,8 @@ message StateUpdate {
 
     ResourceRequest resource_request = 19;
     ResourceResponse resource_response = 20;
+
+    string commander_map_selected = 21;
   }
 }
 

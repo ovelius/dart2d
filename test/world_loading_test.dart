@@ -24,8 +24,8 @@ void main() {
     Logger.root.level = Level.INFO;
   });
 
-  void frameDraws(WormWorld w) {
-    for (int i = 0; i < 10; i++) {
+  void frameDraws(WormWorld w,[int count = 10]) {
+    for (int i = 0; i < count; i++) {
       w.frameDraw(KEY_FRAME_DEFAULT / 5);
     }
   }
@@ -80,6 +80,50 @@ void main() {
     }
     // Completed.
     expect(loader.currentState(), LoaderState.LOADED_AS_SERVER);
+  });
+
+  test('Test worlds loads together', () async {
+    expectWarningContaining("Duplicate handshake received");
+    expectWarningContaining("Got client enter before loading completed");
+
+    WormWorld w = await createTestWorld("w", signalPeerOpen: true,
+        setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:
+        true, initByteWorld: false);
+    FakeImageFactory imageFactory = getIt<ImageFactory>() as FakeImageFactory;
+
+    // Step through each phase of world loading.
+    frameDraws(w);
+    Loader loader = getIt<Loader>();
+
+    // Set the name.
+    expect(loader.currentState(), LoaderState.WORLD_SELECT);
+
+
+    WormWorld w2 = await createTestWorld("w2", signalPeerOpen: false,
+        setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:
+        true, initByteWorld: false);
+    Loader loader2 = getIt<Loader>();
+
+    signalOpen(w2, ["w"]);
+    frameDraws(w2);
+
+    expect(loader2.currentState(), LoaderState.WORLD_SELECT);
+
+    w.localKeyState.onKeyDown(KeyCodeDart.ENTER);
+    frameDraws(w, 2);
+    frameDraws(w2, 2);
+    expect(loader.currentState(), LoaderState.WORLD_LOADING);
+    expect(loader2.currentState(), LoaderState.WORLD_LOADING);
+
+    // GameState recognized.
+    expect(w2.network().getServerConnection(), isNotNull);
+
+
+    await imageFactory.completeAllImages();
+    frameDraws(w);
+    frameDraws(w2);
+    expect(loader.currentState(), LoaderState.LOADED_AS_SERVER);
+    expect(loader2.currentState(), LoaderState.LOADING_AS_CLIENT_COMPLETED);
   });
 
 

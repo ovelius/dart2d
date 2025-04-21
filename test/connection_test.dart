@@ -178,6 +178,35 @@ void main() {
           ..keyFrame = 0));
   });
 
+  test('ReliableDataOutsideGame_IsResent', () {
+    StateUpdate reliableUpdate =
+        StateUpdate()
+          ..dataReceipt = 123
+          ..spriteRemoval = 111;
+    connection.sendSingleUpdate(reliableUpdate);
+
+    // Not a valid game connection.
+    expect(connection.isValidGameConnection(), isFalse);
+    expect(testConnection.dataBuffer.length, 1);
+
+    for (int i = 0; i < 20; i++) {
+      connection.tick(KEY_FRAME_DEFAULT / 5, []);
+      if (testConnection.dataBuffer.length > 1) {
+        break;
+      }
+    }
+    expect(testConnection.dataBuffer.length, 2);
+
+    // Data is resent anyway.
+    expect(
+        testConnection.nativeBufferedDataAt(1),
+        equals(GameStateUpdates()
+          ..stateUpdate.add(reliableUpdate)
+          ..frame = 0
+          ..lastFrameSeen = 0
+          ..keyFrame = 0));
+  });
+
   test('ReceivesNewFrames_IncrementsFrameCounters', () {
     PacketWrapper p = PacketWrapper((GameStateUpdates()
       ..lastFrameSeen = 10

@@ -57,6 +57,9 @@ class ByteWorld {
   bool worldImageSet() {
     return _bedrockLine >= 0;
   }
+  void reset() {
+    _bedrockLine = -1;
+  }
   bool bedrockComputed() {
     return (_bedrockLine > _width);
   }

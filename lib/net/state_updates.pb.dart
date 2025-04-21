@@ -137,6 +137,7 @@ enum StateUpdate_Update {
   clientStatusData, 
   resourceRequest, 
   resourceResponse, 
+  commanderMapSelected, 
   notSet
 }
 
@@ -161,6 +162,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ClientStatusData? clientStatusData,
     ResourceRequest? resourceRequest,
     ResourceResponse? resourceResponse,
+    $core.String? commanderMapSelected,
   }) {
     final $result = create();
     if (dataReceipt != null) {
@@ -220,6 +222,9 @@ class StateUpdate extends $pb.GeneratedMessage {
     if (resourceResponse != null) {
       $result.resourceResponse = resourceResponse;
     }
+    if (commanderMapSelected != null) {
+      $result.commanderMapSelected = commanderMapSelected;
+    }
     return $result;
   }
   StateUpdate._() : super();
@@ -245,10 +250,11 @@ class StateUpdate extends $pb.GeneratedMessage {
     18 : StateUpdate_Update.clientStatusData,
     19 : StateUpdate_Update.resourceRequest,
     20 : StateUpdate_Update.resourceResponse,
+    21 : StateUpdate_Update.commanderMapSelected,
     0 : StateUpdate_Update.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StateUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
     ..a<$core.int>(1, _omitFieldNames ? '' : 'dataReceipt', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'userMessage')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'spriteRemoval', $pb.PbFieldType.O3)
@@ -268,6 +274,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ..aOM<ClientStatusData>(18, _omitFieldNames ? '' : 'clientStatusData', subBuilder: ClientStatusData.create)
     ..aOM<ResourceRequest>(19, _omitFieldNames ? '' : 'resourceRequest', subBuilder: ResourceRequest.create)
     ..aOM<ResourceResponse>(20, _omitFieldNames ? '' : 'resourceResponse', subBuilder: ResourceResponse.create)
+    ..aOS(21, _omitFieldNames ? '' : 'commanderMapSelected')
     ..hasRequiredFields = false
   ;
 
@@ -499,6 +506,15 @@ class StateUpdate extends $pb.GeneratedMessage {
   void clearResourceResponse() => clearField(20);
   @$pb.TagNumber(20)
   ResourceResponse ensureResourceResponse() => $_ensure(18);
+
+  @$pb.TagNumber(21)
+  $core.String get commanderMapSelected => $_getSZ(19);
+  @$pb.TagNumber(21)
+  set commanderMapSelected($core.String v) { $_setString(19, v); }
+  @$pb.TagNumber(21)
+  $core.bool hasCommanderMapSelected() => $_has(19);
+  @$pb.TagNumber(21)
+  void clearCommanderMapSelected() => clearField(21);
 }
 
 class ClientStatusData extends $pb.GeneratedMessage {

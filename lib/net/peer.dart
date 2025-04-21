@@ -291,7 +291,7 @@ class PeerWrapper {
     }
     // Close the underlying WebRTC connection.
     try {
-      wrapper?.rtcConnection().close();
+      wrapper?.rtcConnection()?.close();
     } catch (e, s) {
       log.warning("Failed to close RTCConnection ${e}");
     }

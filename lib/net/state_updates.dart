@@ -26,6 +26,9 @@ extension PlayerInfoExtensions on PlayerInfoProto {
 }
 
 extension AttachCaseUniqueDataReceipt on StateUpdate {
+  void attachSingleTonUniqueDataReceipt() {
+    dataReceipt = "${this.whichUpdate()}_single".hashCode;
+  }
   void attachUniqueDataReceipt(ConnectionWrapper c) {
     dataReceipt = "${this.whichUpdate()}_${c.id}".hashCode;
   }

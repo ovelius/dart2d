@@ -3,15 +3,12 @@ import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/worlds/loader.dart';
-import 'package:dart2d/worlds/player_world_selector.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'dart:async';
-import 'package:dart2d/util/gamestate.dart';
-import 'package:web/helpers.dart';
+import 'package:web/web.dart';
 import 'lib/test_lib.dart';
 import 'lib/test_mocks.mocks.dart';
-import 'world_test.dart';
 
 const double TICK_TIME = 0.01;
 
@@ -148,6 +145,32 @@ void main() {
       }
       // Falling back to using server.
       tickAndAssertState(LoaderState.LOADING_SERVER);
+    });
+
+    test('Resends game connect', () {
+      MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      Map<String, ConnectionWrapper> connections = {
+        'a': connection1,
+      };
+      localStorage['playerName'] = "playerA";
+      when(mockPeerWrapper.connectedToServer()).thenReturn(true);
+      when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
+      when(mockNetwork.hasOpenConnection()).thenReturn(true);
+      when(mockImageIndex.imagesIndexed()).thenReturn(true);
+      when(mockNetwork.safeActiveConnections()).thenReturn(connections);
+      when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(true);
+      when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      when(connection1.isValidGameConnection()).thenReturn(false);
+
+      tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
+
+      verify(connection1.connectToGame("playerA", 0));
+
+      loader.loaderTick(CLIENT_CONNECT_RETRY_TIMER + 0.3);
+
+      // Got sent again.
+      verify(connection1.connectToGame("playerA", 0));
     });
 
     test('Base state and load from other client', () {

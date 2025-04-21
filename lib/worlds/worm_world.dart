@@ -328,6 +328,7 @@ class WormWorld extends World {
         if (_winTime < 0) {
           spriteIndex.clear();
           _winTime = 10.0;
+          byteWorld.reset();
           network().getGameState().reset();
           network().resetGameConnections();
           _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
@@ -642,7 +643,6 @@ class WormWorld extends World {
     assert(network().peer.connectedToServer());
     assert(network().peer.id != null);
     assert(loader.selectedWorldName() != null);
-    //initByteWorld(loader.selectedWorldName()!);
     addLocalPlayerSprite(name == null ? _localStorage['playerName'] : name);
     _network.setAsActingCommander();
   }

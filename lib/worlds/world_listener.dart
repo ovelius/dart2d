@@ -93,6 +93,10 @@ class WorldListener {
     StateUpdate updateReply = StateUpdate()
       ..commanderGameReply = reply
       ..attachUniqueDataReceipt(connection);
+    if (!_world.loader.loadedAsServer()) {
+      log.warning("Got client enter before loading completed, dropping");
+      return;
+    }
     if (connection.isValidGameConnection()) {
       log.warning("Duplicate handshake received from ${connection}!");
       return;

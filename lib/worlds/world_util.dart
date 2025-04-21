@@ -29,11 +29,11 @@ String toKey(int code) {
 /**
  * Draws text to help the player with controls.
  */
-void drawControlHelper(var /*CanvasRenderingContext2D*/ context, num controlHelperTime,
+void drawControlHelper(CanvasRenderingContext2D context, num controlHelperTime,
     LocalPlayerSprite playerSprite, int width, height) {
   if (controlHelperTime > 0) {
-    context.setFillColorRgb(0, 0, 0);
-    context.setStrokeColorRgb(0, 0, 0);
+    context.fillStyle = "rgb(0,0,0)".toJS;
+    context.strokeStyle = "rgb(0,0,0)".toJS;
     context.fillText("Controls are:", width ~/ 3, 40);
     int i = playerSprite.getControls().length;
     for (String key in playerSprite.getControls().keys) {

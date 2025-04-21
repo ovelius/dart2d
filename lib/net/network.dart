@@ -16,7 +16,7 @@ import 'helpers.dart';
 
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0 / 2;
-const PROBLEMATIC_FRAMES_BEHIND = 8;
+const PROBLEMATIC_FRAMES_BEHIND = 12;
 
 @Singleton(scope: 'world')
 class Network {
@@ -183,7 +183,7 @@ class Network {
    */
   void convertToCommander(
       Map<String, ConnectionWrapper> connections, PlayerInfoProto? previousCommanderPlayerInfo) {
-    _hudMessages.display("Commander role transfered to you :)");
+    _hudMessages.display("Commander role transferred to you :)");
     String oldCommanderId = gameState.gameStateProto.actingCommanderId;
     gameState.convertToServer(world, this.peer.id);
     List<int> spriteIds = new List.from(_spriteIndex.spriteIds());

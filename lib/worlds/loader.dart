@@ -7,6 +7,7 @@ import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/worlds/byteworld.dart';
 import 'package:web/web.dart';
+import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
@@ -43,6 +44,8 @@ const ACCEPTABLE_TRANSFER_SPEED_BYTES_SECOND = 1024*70;
 const SAMPLES_BEFORE_FALLBACK = 3;
 // How often the FPS is computed.
 const FRAME_SAMPLE_TIME = 0.5;
+// Retry client connect after this time.
+const CLIENT_CONNECT_RETRY_TIMER = 0.5;
 
 @Singleton(scope: 'world')
 class Loader {
@@ -67,6 +70,7 @@ class Loader {
 
   LoaderState _currentState = LoaderState.WEB_RTC_INIT;
   bool _completed = false;
+  double _nextClientConnectSendTime = 0.0;
 
   int _byteWorldComputeSteps = 15;
   // How long until we can adjust _byteWorldComputeSteps again.
@@ -74,6 +78,8 @@ class Loader {
 
   String _currentMessage = "";
   List<_Spinner> _spinners = [];
+
+  late Clock _clock;
 
   Loader(LocalStorage storage,
          WorldCanvas canvasElement,
@@ -288,6 +294,25 @@ class Loader {
     // Maybe trigger resend of reliable data.
     serverConnection.tick(duration, []);
 
+
+    String? selectedWorldName = _playerWorldSelector.selectedWorldName;
+    // A world image has been selected and is currently loading.
+    if (selectedWorldName != null
+      && !_imageIndex.imageNameIsLoaded(selectedWorldName)) {
+      setState(LoaderState.WORLD_LOADING);
+      return;
+    }
+    if (_playerWorldSelector.worldSelectedAndLoaded()) {
+      if (!_byteWorld.byteWorldReady()) {
+        _stepByteWorld(duration);
+        return;
+      } else  if (!serverConnection.isValidGameConnection()) {
+        print("Not valid gamestate: ${_network.getGameState().gameStateProto.toDebugString()}");
+        _connectToGameAndLoadGameState(duration, serverConnection);
+        return;
+      }
+    }
+
     if (_byteWorld.byteWorldReady()) {
       // Actually enter game.
       _enterGame(serverConnection);
@@ -329,12 +354,15 @@ class Loader {
 
   void _connectToGameAndLoadGameState(double duration, ConnectionWrapper serverConnection) {
     if (!serverConnection.isValidGameConnection()) {
-      if (_currentState != LoaderState.CONNECTING_TO_GAME) {
+      _nextClientConnectSendTime -= duration;
+      if (_currentState != LoaderState.CONNECTING_TO_GAME
+         || _nextClientConnectSendTime < 0) {
         int playerSpriteId = _imageIndex.getImageIdByName(_localStorage['playerSprite']);
         serverConnection.connectToGame(_localStorage['playerName'], playerSpriteId);
+        _nextClientConnectSendTime = CLIENT_CONNECT_RETRY_TIMER;
       }
       setState(LoaderState.CONNECTING_TO_GAME);
-    } else {
+    } else if (!_byteWorld.byteWorldReady()) {
       _chunkHelper.requestSpecificNetworkData(
           {serverConnection.id : serverConnection}, duration,
           GAME_STATE_RESOURCES);

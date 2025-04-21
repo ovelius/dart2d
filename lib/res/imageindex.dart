@@ -195,7 +195,7 @@ class ImageIndex {
       if (existingLoading != null) {
         continue;
       }
-      _imagesLoading[index] = addSingleImage(imgName);
+      addSingleImage(imgName);
     }
     return Future.wait(_imagesLoading.values);
   }
@@ -213,7 +213,8 @@ class ImageIndex {
       index = images.length - 1;
       imageByName[imgName] = index;
     }
-    return _imageLoadedFuture(element, index, true);
+    _imagesLoading[index] = _imageLoadedFuture(element, index, true);
+    return _imagesLoading[index]!;
   }
 
   Future _imageLoadedFuture(dynamic i, int index, bool allowCaching) {
@@ -288,7 +289,7 @@ class ImageIndex {
   }
 
   void clearImageLoader(int index) {
-    loadedImages[index] = false;
+    loadedImages.remove(index);
   }
 
   bool imageNameIsLoaded(String name) {

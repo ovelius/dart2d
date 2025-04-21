@@ -56,6 +56,7 @@ const StateUpdate$json = {
     {'1': 'client_status_data', '3': 18, '4': 1, '5': 11, '6': '.dart2d_proto.ClientStatusData', '9': 0, '10': 'clientStatusData'},
     {'1': 'resource_request', '3': 19, '4': 1, '5': 11, '6': '.dart2d_proto.ResourceRequest', '9': 0, '10': 'resourceRequest'},
     {'1': 'resource_response', '3': 20, '4': 1, '5': 11, '6': '.dart2d_proto.ResourceResponse', '9': 0, '10': 'resourceResponse'},
+    {'1': 'commander_map_selected', '3': 21, '4': 1, '5': 9, '9': 0, '10': 'commanderMapSelected'},
   ],
   '8': [
     {'1': 'update'},
@@ -87,8 +88,9 @@ final $typed_data.Uint8List stateUpdateDescriptor = $convert.base64Decode(
     'R1c19kYXRhGBIgASgLMh4uZGFydDJkX3Byb3RvLkNsaWVudFN0YXR1c0RhdGFIAFIQY2xpZW50'
     'U3RhdHVzRGF0YRJKChByZXNvdXJjZV9yZXF1ZXN0GBMgASgLMh0uZGFydDJkX3Byb3RvLlJlc2'
     '91cmNlUmVxdWVzdEgAUg9yZXNvdXJjZVJlcXVlc3QSTQoRcmVzb3VyY2VfcmVzcG9uc2UYFCAB'
-    'KAsyHi5kYXJ0MmRfcHJvdG8uUmVzb3VyY2VSZXNwb25zZUgAUhByZXNvdXJjZVJlc3BvbnNlQg'
-    'gKBnVwZGF0ZUoECAIQAw==');
+    'KAsyHi5kYXJ0MmRfcHJvdG8uUmVzb3VyY2VSZXNwb25zZUgAUhByZXNvdXJjZVJlc3BvbnNlEj'
+    'YKFmNvbW1hbmRlcl9tYXBfc2VsZWN0ZWQYFSABKAlIAFIUY29tbWFuZGVyTWFwU2VsZWN0ZWRC'
+    'CAoGdXBkYXRlSgQIAhAD');
 
 @$core.Deprecated('Use clientStatusDataDescriptor instead')
 const ClientStatusData$json = {

@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 import 'dart:math';
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
 import 'package:web/web.dart';
@@ -135,7 +136,12 @@ class PlayerWorldSelector {
         _otherPlayersSelections[selectedIndex].add(playerName);
       }
     });
-    // TODO Always remove, change this behavior.
+    _packetListenerBindings.bindHandler(StateUpdate_Update.commanderMapSelected,
+            (ConnectionWrapper connection, StateUpdate update) {
+      _selectedWorldName = update.commanderMapSelected;
+      _imageIndex.addSingleImage(_selectedWorldName!);
+    });
+    // Always allow to reselect the player image again.
     _localStorage.remove('playerSprite');
 
     // Bot enabled, let's set things up right away.
@@ -160,12 +166,22 @@ class PlayerWorldSelector {
       String spriteName = PLAYER_SPRITES[_selectedPlayerSprite];
       _localStorage['playerSprite'] = spriteName;
       _gaReporter.reportEvent(spriteName, "PlayerSelect");
-    } else {
+    } else if (_selectedWorldName == null) {
       String mapFullName = WORLDS[AVAILABLE_MAPS[_selectedMap]]!;
       _imageIndex.addSingleImage(mapFullName);
       _selectedWorldName = mapFullName;
       _gaReporter.reportEvent(_selectedWorldName!, "WorldSelect");
       _mapPositions = null;
+
+      StateUpdate mapSelected = StateUpdate()
+        ..attachSingleTonUniqueDataReceipt()
+        ..commanderMapSelected = mapFullName;
+
+      _network.setAsActingCommander();
+
+      _network.getPeer().sendSingleStateUpdate(mapSelected);
+      _network.getPeer().sendSingleStateUpdate(StateUpdate()
+        ..gameState = _network.gameState.gameStateProto);
     }
   }
 

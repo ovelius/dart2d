@@ -1031,6 +1031,12 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
           as bool);
 
   @override
+  void reset() => super.noSuchMethod(
+    Invocation.method(#reset, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   bool bedrockComputed() =>
       (super.noSuchMethod(
             Invocation.method(#bedrockComputed, []),
@@ -2454,7 +2460,7 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
-  void readyDataChannel(dynamic dataChannel) => super.noSuchMethod(
+  void readyDataChannel(_i16.RTCDataChannel? dataChannel) => super.noSuchMethod(
     Invocation.method(#readyDataChannel, [dataChannel]),
     returnValueForMissingStub: null,
   );
@@ -2469,10 +2475,11 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as bool);
 
   @override
-  void setRtcConnection(dynamic rtcConnection) => super.noSuchMethod(
-    Invocation.method(#setRtcConnection, [rtcConnection]),
-    returnValueForMissingStub: null,
-  );
+  void setRtcConnection(_i16.RTCPeerConnection? rtcConnection) =>
+      super.noSuchMethod(
+        Invocation.method(#setRtcConnection, [rtcConnection]),
+        returnValueForMissingStub: null,
+      );
 
   @override
   Duration lastDataReceived() =>
