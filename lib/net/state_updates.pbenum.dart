@@ -38,6 +38,7 @@ class ParticleEffects_ParticleType extends $pb.ProtobufEnum {
   static const ParticleEffects_ParticleType FIRE = ParticleEffects_ParticleType._(2, _omitEnumNames ? '' : 'FIRE');
   static const ParticleEffects_ParticleType SODA = ParticleEffects_ParticleType._(3, _omitEnumNames ? '' : 'SODA');
   static const ParticleEffects_ParticleType CONFETTI = ParticleEffects_ParticleType._(4, _omitEnumNames ? '' : 'CONFETTI');
+  static const ParticleEffects_ParticleType BLOOD = ParticleEffects_ParticleType._(5, _omitEnumNames ? '' : 'BLOOD');
 
   static const $core.List<ParticleEffects_ParticleType> values = <ParticleEffects_ParticleType> [
     UNSET,
@@ -45,6 +46,7 @@ class ParticleEffects_ParticleType extends $pb.ProtobufEnum {
     FIRE,
     SODA,
     CONFETTI,
+    BLOOD,
   ];
 
   static final $core.Map<$core.int, ParticleEffects_ParticleType> _byValue = $pb.ProtobufEnum.initByValue(values);

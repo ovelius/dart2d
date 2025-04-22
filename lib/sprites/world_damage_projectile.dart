@@ -70,18 +70,20 @@ class Hyper extends WorldDamageProjectile {
   Hyper(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
       : super(world, x, y, imageId, imageIndex);
 
-  Hyper.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, [double homingFactor = 0.0])
+  Hyper.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, MovingSprite positionBase)
       : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("cake.png"), world.imageIndex()) {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
     this.color = "#A400AF";
-    Vec2 ownerCenter = owner.centerPoint();
+    double ownerSize = positionBase.size.sum() / 2;
+    Vec2 positionCenter = positionBase.centerPoint();
     this.size = new Vec2(25.0, 25.0);
-    this.position.x = ownerCenter.x - size.x / 2;
-    this.position.y = ownerCenter.y - size.y / 2;
-    this.velocity.x = cos(owner.angle);
-    this.velocity.y = sin(owner.angle);
+    this.position.x = positionCenter.x + cos(positionBase.angle) * ownerSize;
+    this.position.y = positionCenter.y + sin(positionBase.angle) * ownerSize;
+    this.velocity.x = cos(positionBase.angle);
+    this.angle = positionBase.angle;
+    this.velocity.y = sin(positionBase.angle);
     this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(150.0);
     this.velocity = owner.velocity + this.velocity;

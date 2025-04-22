@@ -11,6 +11,8 @@ import 'dart:math';
 import 'package:web/web.dart';
 
 class Particles extends MovingSprite {
+  final Set<ParticleEffects_ParticleType> RANDOM_VELOCITY_PARTICLES =
+      Set.of([ParticleEffects_ParticleType.CONFETTI, ParticleEffects_ParticleType.BLOOD]);
   late double radius;
   late int particleLifeTime;
   List<_Particle> particles = [];
@@ -43,7 +45,7 @@ class Particles extends MovingSprite {
     for (int i = 0; i < count; i++) {
       _Particle p = new _Particle();
       p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime,
-          particleType == ParticleEffects_ParticleType.CONFETTI);
+          RANDOM_VELOCITY_PARTICLES.contains(particleType));
       particles.add(p);
     }
     this.radius = radius;
@@ -70,7 +72,7 @@ class Particles extends MovingSprite {
     for (int i = 0; i < count; i++) {
        _Particle p = new _Particle();
        p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime,
-           particleType == ParticleEffects_ParticleType.CONFETTI);
+           RANDOM_VELOCITY_PARTICLES.contains(particleType));
        particles.add(p);
     }
     this.world = world;
@@ -115,7 +117,7 @@ class Particles extends MovingSprite {
         if (this.particleType != ParticleEffects_ParticleType.FIRE) {
           p.location += g;
         }
-        if (this.particleType == ParticleEffects_ParticleType.CONFETTI) {
+        if (RANDOM_VELOCITY_PARTICLES.contains(particleType)) {
           p.speed += g.multiply(6.0);
         }
       }
@@ -124,10 +126,11 @@ class Particles extends MovingSprite {
     }
     super.frame(duration, frames, Vec2.ZERO);
   }
-  draw(var /*CanvasRenderingContext2D*/ context, bool debug) {
+  draw(CanvasRenderingContext2D context, bool debug) {
     int dead = 0;
     Random r = new Random();
-    if (particleType != ParticleEffects_ParticleType.SODA) {
+    if (particleType != ParticleEffects_ParticleType.SODA
+     && particleType != ParticleEffects_ParticleType.BLOOD) {
       context.globalCompositeOperation = "lighter";
     }
     for(var i = 0; i < particles.length; i++) {
@@ -135,7 +138,7 @@ class Particles extends MovingSprite {
       if(p.lifeTimeRemaining < 0 || p.radius < 0) {
         if (follow != null && !follow!.remove) {
           p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
-             particleType == ParticleEffects_ParticleType.CONFETTI);
+             RANDOM_VELOCITY_PARTICLES.contains(particleType));
         } else {
           dead++;
         }
@@ -177,6 +180,9 @@ class Particles extends MovingSprite {
       context.fillStyle = color.toJS;
     } else if (this.particleType == ParticleEffects_ParticleType.CONFETTI) {
       String color = "rgba(${p.r},${p.g},${p.b},1.0)";
+      context.fillStyle = color.toJS;
+    } else if(this.particleType == ParticleEffects_ParticleType.BLOOD) {
+      String color = "rgba(${80 + r.nextInt(120)},0,0,1.0)";
       context.fillStyle = color.toJS;
     }
   }

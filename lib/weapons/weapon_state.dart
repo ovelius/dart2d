@@ -160,7 +160,7 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     new Weapon("Neon Blaster", 5, 2.5, 1.20, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30);
+      WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30, weaponState.owner.gun);
       sprite.radius = 25.0;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;

@@ -1,7 +1,4 @@
 1) Use Firebase Realtime database for negotiation?
-
-2) Explicit loading state when commander selects world.
-  2b) Also load the same world immediately when commander selects it... no reason to load state from commander.
 3) Disconnect non commanding peers from server - connect via commander.
 7) Handle ICE disconnect instead of failed?
 9) Work I Safari/iOS.

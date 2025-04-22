@@ -9,6 +9,7 @@ enum ConfigParam {
   EGRESS_BANDWIDTH,
   DISABLE_CACHE,
   MAX_NETWORK_FRAMERATE,
+  BLOOD,
 }
 
 @Singleton(scope: 'world')
@@ -23,6 +24,7 @@ class ConfigParams {
     ConfigParam.EGRESS_BANDWIDTH: "egress",
     // Disabled explicit image caching.
     ConfigParam.DISABLE_CACHE: "nocache",
+    ConfigParam.BLOOD: "blood",
     // How often to send data to network.
     ConfigParam.MAX_NETWORK_FRAMERATE: "max_net_frame",
   };
@@ -33,6 +35,7 @@ class ConfigParams {
     ConfigParam.INGRESS_BANDWIDTH: -1,
     ConfigParam.EGRESS_BANDWIDTH: -1,
     ConfigParam.DISABLE_CACHE: false,
+    ConfigParam.BLOOD: -1,
     ConfigParam.MAX_NETWORK_FRAMERATE: -1,
   };
 
@@ -68,7 +71,7 @@ class ConfigParams {
 
   bool getBool(ConfigParam p) {
     List<String>? data = _uriParams[_names[p]];
-    if (data != null && data.length > 0 && data[0].isNotEmpty) {
+    if (data != null && data.length > 0) {
       return true;
     }
     return _defaults[p];

@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'dart:math';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:dart2d/util/config_params.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/keystate.dart';
@@ -20,6 +21,7 @@ import '../weapons/abstractweapon.dart';
 class LocalPlayerSprite extends MovingSprite {
   final Logger log = new Logger('LocalPlayerSprite');
   static const BOUCHYNESS = 0.2;
+  static const WALKABLE_HILL_PIXEL_HEIGHT = 4;
   static const MAX_WALK_SPEED = 150.0;
   static const WALK_ACCELERATION_SPEED = 100.0;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(42.0, 42.0);
@@ -92,7 +94,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.gun = _createGun(imageIndex);
     this._shield = _createShield(imageIndex);
     this.weaponState =
-        new WeaponState(world, /*world.network().gameState.getKeyStateFor(info.connectionId)!, */ this, this.gun);
+        new WeaponState(world, this, this.gun);
     this.listenFor("Next weapon", () {
       weaponState?.nextWeapon();
     });
@@ -171,6 +173,29 @@ class LocalPlayerSprite extends MovingSprite {
         } else {
           velocity.y = 0.0;
         }
+        if (direction != MovingSprite.DIR_BELOW) {
+          // Go back right a bit.
+          if (direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
+            while (world.isCanvasCollide(
+                position.x.toInt(), position.y.toInt(),
+                // Allow a few pixels of incline...
+                1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
+              position.x++;
+            }
+            direction -= MovingSprite.DIR_LEFT;
+          }
+          // Go back left a bit.
+          if (direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
+            while (world.isCanvasCollide(
+                position.x.toInt() + size.x
+                .toInt(), position.y.toInt(),
+                // Allow a few pixels of incline...
+                1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
+              position.x--;
+            }
+            direction -= MovingSprite.DIR_RIGHT;
+          }
+        }
         // Check one more time, but y -1.
         while (world.isCanvasCollide(
             (position.x + 1).toInt(), (position.y + size.y - 1.0).toInt(), (size.x - 1).toInt(), 1)) {
@@ -180,6 +205,13 @@ class LocalPlayerSprite extends MovingSprite {
       if (direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * BOUCHYNESS;
+        }
+        // Check one more time, but more above..
+        while (world.isCanvasCollide(
+            (position.x + 2).toInt(),
+            (position.y - 1).toInt(),
+               (size.x - 4).toInt(), 1)) {
+          position.y++;
         }
       }
 
@@ -548,15 +580,21 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   void _addDeathParticles() {
+    int blood = world.config().getInt(ConfigParam.BLOOD);
+    int countLifeTime = blood > 0 ? blood : 120;
     Particles p = Particles(world, null, centerPoint(), Vec2(200,300),
-        null, 25.0, 120, 120, 0.3,
-        ParticleEffects_ParticleType.CONFETTI);
+        null, 25.0, countLifeTime, countLifeTime, 0.3,
+        blood > 0  ?
+            ParticleEffects_ParticleType.BLOOD :
+            ParticleEffects_ParticleType.CONFETTI);
     p.sendToNetwork = true;
     world.addSprite(p);
   }
 
   void _addDamageParticles() {
     if (_nextDamageAnimation < 0) {
+      int blood = world.config().getInt(ConfigParam.BLOOD);
+      int countLifeTime = blood > 0 ? blood : 120;
       Particles p = Particles(
           world,
           null,
@@ -564,10 +602,12 @@ class LocalPlayerSprite extends MovingSprite {
           Vec2(200, 300),
           null,
           8.0,
-          10,
-          60,
+          (countLifeTime / 10).toInt(),
+          (countLifeTime / 2).toInt(),
           0.3,
-          ParticleEffects_ParticleType.CONFETTI);
+          blood > 0 ?
+              ParticleEffects_ParticleType.BLOOD :
+              ParticleEffects_ParticleType.CONFETTI);
       p.sendToNetwork = true;
       world.addSprite(p);
       _nextDamageAnimation = 0.3;

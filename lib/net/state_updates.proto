@@ -214,6 +214,7 @@ message ParticleEffects {
     SODA = 3;
     // Random confetti stuff.
     CONFETTI = 4;
+    BLOOD = 5;
   }
   optional ParticleType particle_type = 8;
 

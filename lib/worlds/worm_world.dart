@@ -685,6 +685,7 @@ class WormWorld extends World {
   Network network() => _network;
   ImageIndex imageIndex() => _imageIndex;
   FpsCounter drawFps() => _drawFps;
+  ConfigParams config() => _configParams;
   gaReporter() => _gaReporter;
   bool get isCommander => _network.isCommander();
   LocalStorage get localStorage => _localStorage;

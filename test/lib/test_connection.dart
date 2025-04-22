@@ -3,15 +3,11 @@ library test_connection;
 import 'dart:js_interop';
 
 import 'package:clock/clock.dart';
-import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/config_params.dart';
-import 'package:injectable/injectable.dart';
 import 'test_env.dart';
 import 'test_mocks.mocks.dart';
-import 'test_peer.dart';
-import 'dart:convert';
 
 GameStateUpdates recentSentDataTo(id) {
   return GameStateUpdates.fromBuffer(testConnections[id]![0].recentDataSent!);
