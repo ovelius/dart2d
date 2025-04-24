@@ -63,41 +63,9 @@ void init() {
   canvasElement.height =
       min(canvasElement.height, min(window.screen.width, window.screen.height));
 
-
   getIt.initWorldScope();
   world = getIt<WormWorld>();
   gaReporter = getIt<GaReporter>();
-
-  /*
-  const firebaseConfig = {
-    apiKey: "AIzaSyDVw7DovZvclhRSyqTTbShcJui5Wtu724U",
-    authDomain: "dart2d-73e64.firebaseapp.com",
-    databaseURL: "https://dart2d-73e64-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "dart2d-73e64",
-    storageBucket: "dart2d-73e64.firebasestorage.app",
-    messagingSenderId: "827330473786",
-    appId: "1:827330473786:web:16f850ebf8c32488be2a03",
-    measurementId: "G-S4SYYYEL59"
-  };
-// test
-  var options = FirebaseOptions(
-      appId: "1:827330473786:web:16f850ebf8c32488be2a03",
-      apiKey: "AIzaSyDVw7DovZvclhRSyqTTbShcJui5Wtu724U",
-      projectId: "dart2d-73e64",
-      messagingSenderId: 'ignore',
-      authDomain: "dart2d-73e64.firebaseapp.com");
-
-  Firebase.initializeApp(options: options).then((app) {
-    FirebaseDatabase db = new FirebaseDatabase(app: app,
-        databaseURL: 'https://dart2d-73e64-default-rtdb.europe-west1.firebasedatabase.app/');
-    db
-        .reference()
-        .child("sessions")
-        .onChildAdded
-        .listen((Data) {
-      print("added $Data");
-    });
-  });*/
 
   setKeyListeners(world, canvasElement);
 

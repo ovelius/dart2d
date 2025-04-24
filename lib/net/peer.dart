@@ -82,8 +82,7 @@ class PeerWrapper {
    * Re-connect this peer to the server.
    */
   void reconnect() {
-    serverChannel.reconnect(id!)
-        .listen((dynamic data) => _onServerMessage(data));
+    serverChannel.reconnect(id!);
     _connectedToServer = true;
   }
 
@@ -265,6 +264,7 @@ class PeerWrapper {
             _network.gameState.markAsUrgent();
           }
         } else {
+          // crash here..
           PlayerInfoProto info = _network.gameState.playerInfoByConnectionId(commanderId)!;
           // Start treating the other peer as server.
           _network.gameState.gameStateProto.actingCommanderId = commanderId;
@@ -303,7 +303,6 @@ class PeerWrapper {
    * and should retort to being server ourselves.
    */
   bool connectionsExhausted() {
-    print("${_activeIds} exhausted ${_closedConnectionPeers}");
     if (_activeIds == null) {
       return false;
     }

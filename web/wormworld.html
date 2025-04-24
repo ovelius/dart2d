@@ -63,7 +63,7 @@
 
 
       function sendSignalingMessage(src, dst, type,  payload) {
-        firebase.database().ref('/messages/' + dst).child('signaling').set({
+        firebase.database().ref('/messages/' + dst).child(src).set({
           src: src,
           dst: dst,
           type: type,
@@ -71,10 +71,15 @@
         });
       }
 
-      var selfFBID = "";
+      function setFireBaseConnection(online) {
+        if (online) {
+          firebase.database().goOnline();
+        } else {
+          firebase.database().goOffline();
+        }
+      }
 
       function openFirebaseChannel(selfId, existingPeersCallback, messageCallback) {
-        selfFBID = selfId;
         firebase.initializeApp(firebaseConfig);
         var isOnlineForDatabase = {
           state: 'online',
@@ -118,14 +123,6 @@
         measurementId: "G-S4SYYYEL59"
       };
           $(function() {
-
-
-            $("#sendMsg").click(function() {
-             firebase.database().ref('/messages/' + selfFBID).child('msg-dst').set({
-                payload: 'test',
-              });
-            });
-
             var ua = navigator.userAgent.toLowerCase();
             var isAndroid = ua.indexOf('android') > -1;
             var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -151,7 +148,7 @@
           function checkOrientation() {
            if (screen.orientation.type.indexOf("portrait") == -1) {
              $('#or').hide();
-             if (!document.webkitFullscreenElement) {
+             if (!document.fullscreenElement) {
                $('#fs').show();
              }
            } else {
@@ -192,8 +189,8 @@
 
           function fullscreen() {
             $('#canvas').show();
-            if (!document.webkitFullscreenElement) {
-              canvas.webkitRequestFullscreen();
+            if (!document.fullscreenElement) {
+              canvas.requestFullscreen();
               $('#fs').hide();
             }
           }

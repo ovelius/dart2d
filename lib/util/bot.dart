@@ -87,6 +87,26 @@ class Bot {
         _currentTargetSprite = null;
       }
     }
+    if (_currentTargetSprite == null) {
+      LocalPlayerSprite? selectedSprite = null;
+      double shortestDistance = double.infinity;
+      for (PlayerInfoProto info in _gameState.playerInfoList()) {
+        LocalPlayerSprite? candidate = _spriteIndex[info.spriteId] as LocalPlayerSprite?;
+        if (candidate == null || !candidate.inGame()
+            || candidate.networkId == _controlledSprite!.networkId) {
+          continue;
+        }
+        double dst = _controlledSprite!.distanceTo(candidate);
+        if (dst < shortestDistance) {
+          shortestDistance = dst;
+          selectedSprite = candidate;
+        }
+      }
+      if (selectedSprite != null) {
+        log.info("Selected target ${selectedSprite}");
+        _currentTargetSprite = selectedSprite;
+      }
+    }
   }
 
   void _aimAndWalkToTarget() {

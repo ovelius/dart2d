@@ -18,6 +18,8 @@ external void sendSignalingMessage(String src, String dst,String type, String pa
 external void openFirebaseChannel(String id,
     JSFunction existingPeersCallback,
     JSFunction messageCallback);
+@JS()
+external void setFireBaseConnection(bool online);
 
 @Injectable(as : GaReporter)
 class RealGaReporter extends GaReporter {
@@ -40,7 +42,7 @@ class WebSocketServerChannel extends ServerChannel {
   Completer<List<String>> _existingPeers = Completer();
 
   WebSocketServerChannel() {
-    id = "testid-${Random().nextInt(10000)}";
+    id = "testid-${Random().nextInt(100000)}";
   }
 
   Future<List<String>> openAndReadExistingPeers() {
@@ -70,15 +72,18 @@ class WebSocketServerChannel extends ServerChannel {
   }
 
   Stream<Map<String,String>> dataStream() {
-    return _eventStream.stream;// _socket.onMessage.map((MessageEvent e) => jsonDecode(e.data.toString()));
+    return _eventStream.stream;
   }
 
   void disconnect() {
-    print("IMPLEMENTE ME");
+    setFireBaseConnection(false);
   }
 
-  Stream<dynamic> reconnect(String id) {
-    throw ("IMPLEMENTE ME");
+  void reconnect(String id) {
+    setFireBaseConnection(true);
+    openFirebaseChannel(id,
+        this.existingPeersCallback.toJS,
+        this.signalingMessageReceived.toJS);
   }
 
   bool ready() => _ready;

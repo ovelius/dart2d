@@ -67,7 +67,7 @@ abstract class ServerChannel {
   Stream<Map<String, String>> dataStream();
 
   void disconnect();
-  Stream<dynamic> reconnect(String id);
+  void reconnect(String id);
 }
 
 abstract class ConnectionFactory {
