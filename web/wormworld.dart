@@ -1,10 +1,5 @@
 library spaceworld;
 
-//import 'package:firebase_dart/core.dart';
-//import 'package:firebase_dart/database.dart';
-
-import 'dart:js_interop_unsafe';
-
 import 'web_bindings.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
@@ -174,9 +169,6 @@ void step() {
   int newStepMillis = TIMEOUT_MILLIS - frameTimeMillis;
   if (frameTimeMillis > 70) {
     print("Slow frametime of $millis!");
-  }
-  if (newStepMillis > 80) {
-    print("HIGH STEPTIME MILLIS OF ${newStepMillis}");
   }
   new Timer(new Duration(milliseconds: newStepMillis), step);
 }

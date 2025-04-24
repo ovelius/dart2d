@@ -33,7 +33,11 @@ class PeerWrapper {
   Set<String> _closedConnectionPeers = new Set();
 
   PeerWrapper(this._connectionFactory, this._network, this._hudMessages, this._configParams, this.serverChannel, this._packetListenerBindings, this._gaReporter) {
-    serverChannel.dataStream().listen((dynamic data) => _onServerMessage(data));
+    serverChannel.dataStream().listen((data) => _onServerMessage(data));
+    serverChannel.openAndReadExistingPeers().then((peers) {
+      _openPeer(peers[0]);
+      _receivePeers(peers);
+    });
   }
 
   /**
@@ -63,13 +67,7 @@ class PeerWrapper {
 
   void _sendNegotiatorPayload(Negotiator negotiator, WebRtcDanceProto proto, String type) {
     String base64Proto = base64Encode(negotiator.buildProto().writeToBuffer());
-    Map<String, String> data = {
-      'src': negotiator.ourId,
-      'dst': negotiator.otherId,
-      'type': type,
-      'payload': base64Proto
-    };
-    serverChannel.sendData(data);
+    serverChannel.sendData(negotiator.otherId, type, base64Proto);
   }
 
   /**
@@ -108,11 +106,12 @@ class PeerWrapper {
   void _receivePeers(List<String> ids) {
     List<String> configIds = _configParams.getStringList(ConfigParam.EXPLICIT_PEERS);
     if (configIds.isEmpty) {
-      ids.remove(this.id);
-      log.info("Received active peers of $ids");
-      _activeIds = ids;
+      Set<String> idSets = Set.from(ids);
+      idSets.remove(this.id);
+      log.info("Received active peers of $idSets");
+      _activeIds = List.of(idSets);
     } else {
-      log.info("Using peersIds from URL parameters $configIds");
+      log.info("Using peerIds from URL parameters $configIds");
       _activeIds = configIds;
     }
     autoConnectToPeers();
@@ -304,6 +303,7 @@ class PeerWrapper {
    * and should retort to being server ourselves.
    */
   bool connectionsExhausted() {
+    print("${_activeIds} exhausted ${_closedConnectionPeers}");
     if (_activeIds == null) {
       return false;
     }
@@ -326,9 +326,9 @@ class PeerWrapper {
   /**
    * Callback for receiving a message from signaling server.
    */
-  _onServerMessage(Map<dynamic, dynamic> json) {
+  _onServerMessage(Map<String, String> json) {
     log.fine("Got ServerChannel data ${json}");
-    String type = json['type'];
+    String? type = json['type']!;
     String? payload = json['payload'];
     String? src = json['src'];
     String? dst = json['dst'];
@@ -339,10 +339,6 @@ class PeerWrapper {
     }
 
     switch (type) {
-      case 'ACTIVE_IDS':
-        _openPeer(json['id']);
-        _receivePeers(List<String>.from(json['ids']));
-        break;
       case 'ERROR':
         log.severe("Got error from server ${payload}");
         break;

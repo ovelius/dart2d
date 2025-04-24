@@ -46,7 +46,7 @@ void main() {
 
     // PeerId assigned.
     expect(loader.currentState(), LoaderState.WEB_RTC_INIT);
-    signalOpen(w);
+    await signalOpen(w);
     frameDraws(w);
 
     // Load images.
@@ -106,7 +106,7 @@ void main() {
     Loader loader2 = getIt<Loader>();
     FakeImageFactory imageFactory2 = getIt<ImageFactory>() as FakeImageFactory;
 
-    signalOpen(w2, ["w"]);
+    await signalOpen(w2, ["w"]);
     frameDraws(w2);
 
     expect(loader2.currentState(), LoaderState.WORLD_SELECT);

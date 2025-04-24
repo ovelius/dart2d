@@ -94,8 +94,8 @@ class Hyper extends WorldDamageProjectile {
     List<LocalPlayerSprite> spritesInDamageArea = [];
     for (PlayerInfoProto inf in world.network().gameState.playerInfoList()) {
       if (inf.spriteId != owner?.networkId) {
-        LocalPlayerSprite sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite;
-        if (sprite.inGame() && sprite.takesDamage()) {
+        LocalPlayerSprite? sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite?;
+        if (sprite != null && sprite.inGame() && sprite.takesDamage()) {
           double dst = distanceTo(sprite);
           if (dst < EFFECTIVE_DISTANCE) {
             spritesInDamageArea.add(sprite);

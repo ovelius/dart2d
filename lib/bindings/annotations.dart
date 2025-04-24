@@ -59,8 +59,12 @@ abstract class GaReporter {
 }
 
 abstract class ServerChannel {
-  sendData(Map<dynamic, dynamic> data);
-  Stream<dynamic> dataStream();
+  /*
+   The first item returned is expected to be our own PeerId.
+   */
+  Future<List<String>> openAndReadExistingPeers();
+  sendData(String dst, String type, String payload);
+  Stream<Map<String, String>> dataStream();
 
   void disconnect();
   Stream<dynamic> reconnect(String id);

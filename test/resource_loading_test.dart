@@ -43,7 +43,7 @@ void main() {
           initByteWorld: false);
 
       Loader loaderB = worldB.loader;
-      signalOpen(worldB, ['a', 'b']);
+      await signalOpen(worldB, ['a', 'b']);
       worldB.frameDraw();
 
       expect(loaderB.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
@@ -74,7 +74,7 @@ void main() {
 
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
-      peerC.sendOpenMessage(['a', 'b', 'c']);
+      await peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       connectionFactoryC.signalErrorAllConnections('c');
@@ -109,7 +109,7 @@ void main() {
 
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
-      peerC.sendOpenMessage(['a', 'b', 'c']);
+      await peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
       expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
       connectionFactoryC.signalErrorAllConnections('c');

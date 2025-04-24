@@ -1,9 +1,23 @@
 import 'dart:convert';
 import 'dart:js_interop';
+import 'dart:math';
+import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:web/web.dart';
 
+@JS()
+external ImageData createImageData(int w, int h);
+@JS()
+external bool isTouchDevice();
+@JS()
+external String getRtcConnectionStats(RTCStatsReport stats);
+@JS()
+external void sendSignalingMessage(String src, String dst,String type, String payload);
+@JS()
+external void openFirebaseChannel(String id,
+    JSFunction existingPeersCallback,
+    JSFunction messageCallback);
 
 @Injectable(as : GaReporter)
 class RealGaReporter extends GaReporter {
@@ -20,44 +34,51 @@ class RealGaReporter extends GaReporter {
 
 @Singleton(as: ServerChannel)
 class WebSocketServerChannel extends ServerChannel {
-  late WebSocket _socket;
+  late String id;
   bool _ready = false;
+  StreamController<Map<String, String>> _eventStream = StreamController();
+  Completer<List<String>> _existingPeers = Completer();
 
   WebSocketServerChannel() {
-    _socket = new WebSocket(_socketUrl());
-    _socket.onOpen.listen((_) => _ready = true);
-    _socket.onClose.listen((_) => _ready = false);
+    id = "testid-${Random().nextInt(10000)}";
   }
 
-  sendData(Map<dynamic, dynamic> data) {
-    if (!_ready) {
-      throw new StateError("Socket not read! State is ${_socket.readyState}");
+  Future<List<String>> openAndReadExistingPeers() {
+    openFirebaseChannel(id,
+      this.existingPeersCallback.toJS,
+      this.signalingMessageReceived.toJS);
+    return _existingPeers.future;
+  }
+
+  void existingPeersCallback(JSString json) {
+    List<dynamic> existing = JsonCodec().decoder.convert(json.toDart);
+    List<String> peers = [id];
+    for (dynamic d in existing) {
+      peers.add(Map<String, String>.from(d)["id"]!);
     }
-    _socket.send(jsonEncode(data).toJS);
+    _ready = true;
+    _existingPeers.complete(peers);
   }
 
-  Stream<dynamic> dataStream() {
-    return _socket.onMessage.map((MessageEvent e) => jsonDecode(e.data.toString()));
+  void signalingMessageReceived(JSString json) {
+    Map<dynamic, dynamic> message = JsonCodec().decoder.convert(json.toDart);
+    _eventStream.sink.add(Map<String, String>.from(message));
+  }
+
+  sendData(String dst, String type, String payload) {
+    sendSignalingMessage(id, dst, type, payload);
+  }
+
+  Stream<Map<String,String>> dataStream() {
+    return _eventStream.stream;// _socket.onMessage.map((MessageEvent e) => jsonDecode(e.data.toString()));
   }
 
   void disconnect() {
-    _socket.close();
+    print("IMPLEMENTE ME");
   }
 
   Stream<dynamic> reconnect(String id) {
-    if (_socket.readyState == 1) {
-      throw new StateError("Socket still open!");
-    }
-    _socket = new WebSocket(_socketUrl(id));
-    _socket.onOpen.listen((_) => _ready = true);
-    _socket.onClose.listen((_) => _ready = false);
-    return dataStream();
-  }
-
-  String _socketUrl([String? id = null]) {
-    return id == null ?
-    'ws://anka.locutus.se:8089/peerjs' :
-    'ws://anka.locutus.se:8089/peerjs?id=$id';
+    throw ("IMPLEMENTE ME");
   }
 
   bool ready() => _ready;
@@ -85,13 +106,6 @@ class HtmlImageFactory implements ImageFactory {
     return image;
   }
 }
-
-@JS()
-external ImageData createImageData(int w, int h);
-@JS()
-external bool isTouchDevice();
-@JS()
-external String getRtcConnectionStats(RTCStatsReport stats);
 
 @Injectable(as : ImageDataFactory)
 class HtmlImageDataFactory implements ImageDataFactory {

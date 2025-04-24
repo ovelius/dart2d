@@ -22,8 +22,9 @@ class TestServerChannel extends ServerChannel {
   late String id;
   List<TestConnection> connections = [];
   bool connectedToServer = false;
+  Completer<List<String>> _existingPeers = Completer();
 
-  late StreamController<Map> _streamController;
+  late StreamController<Map<String, String>> _streamController;
 
   TestServerChannel() : this.withExplicitId(serverChannelPeerId);
 
@@ -35,17 +36,20 @@ class TestServerChannel extends ServerChannel {
       throw "A TestPeer with id $id already exists in ${testPeers.keys}";
     }
     testPeers[id] = this;
-    _streamController = new StreamController<Map>(sync: true);
+    _streamController = new StreamController(sync: true);
   }
 
-  sendData(Map<dynamic, dynamic> data) {
-    assert(data.containsKey('dst'), "Missing destination in server message?");
-    assert(data.containsKey('src'), "Missing destination in server message?");
-    TestServerChannel otherChannel = testPeers[data['dst']]!;
+  sendData(String dst, String type, String payload) {
+    TestServerChannel otherChannel = testPeers[dst]!;
+    Map<String, String> data = {};
     otherChannel._streamController.add(data);
   }
 
-  Stream<dynamic> dataStream() {
+  Future<List<String>> openAndReadExistingPeers() {
+    return _existingPeers.future;
+  }
+
+  Stream<Map<String, String>> dataStream() {
     return _streamController.stream;
   }
 
@@ -53,7 +57,7 @@ class TestServerChannel extends ServerChannel {
     this.connectedToServer = false;
   }
   Stream<dynamic> reconnect(String id) {
-    _streamController = new StreamController<Map>(sync: true);
+    _streamController = new StreamController(sync: true);
     assert(this.id == id);
     this.connectedToServer = true;
     return _streamController.stream;
@@ -71,13 +75,15 @@ class TestServerChannel extends ServerChannel {
       'dst': id});
   }
 
-  void sendOpenMessage([List otherIds = const []]) {
-    Map data = {
-      'type':'ACTIVE_IDS',
-      'id': id,
-      'ids': new List.from(otherIds),
-    };
-    _streamController.add(data);
+  Future sendOpenMessage([List<String> otherIds = const []]) async {
+    Completer<void> done = Completer();
+    List<String> ids = [id];
+    ids.addAll(otherIds);
+    _existingPeers.complete(ids);
+    _existingPeers.future.then((_){
+      done.complete(null);
+    });
+    done.future;
   }
 
   String toString() => "TestServerChannel(${id}) ${connections}";

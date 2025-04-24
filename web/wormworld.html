@@ -29,6 +29,8 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js" type="text/javascript"></script>
     <script src="https://apis.google.com/js/client.js"></script>
     <script src="https://apis.google.com/js/platform.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
     <link rel="manifest" href="manifest.json">
     <script>
@@ -58,115 +60,179 @@
       <input type="button" id="sendMsg" value="Send" />
     </div>
     <script type="text/javascript">
-      $(function() {
 
-        var ua = navigator.userAgent.toLowerCase();
-        var isAndroid = ua.indexOf('android') > -1;
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (!window.localStorage.playerName) {
-          nameDialog();
-        } else {
-          $('#name-change').text(window.localStorage.playerName);
-        }
-        if (!isAndroid && !isIOS) {
-          $('#fs').hide();
-          $('#or').hide();
-        } else {
-          $('#name-change').hide();
-          $('#canvas').hide();
-          $('#chat').hide();
-          checkOrientation();
-          window.addEventListener("orientationchange", function() {
-            checkOrientation();
-          });
-        }
-      });
 
-      function checkOrientation() {
-       if (screen.orientation.type.indexOf("portrait") == -1) {
-         $('#or').hide();
-         if (!document.webkitFullscreenElement) {
-           $('#fs').show();
-         }
-       } else {
-         $('#or').show();
-         $('#fs').hide();
-       }
-      }
-      function randomizeName() {
-        $("#name").val(randomName());
-      }
-
-      function nameDialog() {
-        if (!window.localStorage.playerName) {
-          $.getScript("name.js", function(){
-            randomizeName();
-          });
-        } else {
-          $("#name").val(window.localStorage.playerName);
-        }
-        $("#name-dialog").dialog({
-          open: function(event, ui) {
-            //hide close button.
-            $(this).parent().children().children('.ui-dialog-titlebar-close').hide();
-          },
-          modal: true,
-          closeOnEscape: false,
-          buttons: {
-            'OK': function() {
-              updateName($("#name").val());
-              $(this).dialog("close");
-            }
-          }
+      function sendSignalingMessage(src, dst, type,  payload) {
+        firebase.database().ref('/messages/' + dst).child('signaling').set({
+          src: src,
+          dst: dst,
+          type: type,
+          payload: payload,
         });
       }
 
-  	  var canvas = document.querySelector("#canvas");
-  	  var playerName;
+      var selfFBID = "";
 
-      function fullscreen() {
-        $('#canvas').show();
-        if (!document.webkitFullscreenElement) {
-          canvas.webkitRequestFullscreen();
-          $('#fs').hide();
-        }
+      function openFirebaseChannel(selfId, existingPeersCallback, messageCallback) {
+        selfFBID = selfId;
+        firebase.initializeApp(firebaseConfig);
+        var isOnlineForDatabase = {
+          state: 'online',
+          last_changed: firebase.database.ServerValue.TIMESTAMP,
+        };
+        var userStatusDatabaseRef = firebase.database().ref('/status/' + selfId);
+        firebase.database().ref('.info/connected').on('value', function(snapshot) {
+            // If we're not currently connected, don't do anything.
+            if (snapshot.val() == false) {
+                return;
+            };
+            userStatusDatabaseRef.onDisconnect().remove().then(function() {
+                userStatusDatabaseRef.set(isOnlineForDatabase);
+            });
+        });
+
+        firebase.database().ref('/messages/' + selfId).on('child_added', (data) => {
+          messageCallback(JSON.stringify(data.val()));
+          data.ref.remove();
+        });
+
+        firebase.database().ref('/status/').once('value', (snapshot) => {
+          activePeers = [];
+          snapshot.forEach((childSnapshot) => {
+            var childKey = childSnapshot.key;
+            var childData = childSnapshot.val();
+            activePeers.push({id: childSnapshot.key});
+          });
+          existingPeersCallback(JSON.stringify(activePeers));
+        });
       }
 
-      function updateName(name) {
-        $('#name-change').text(name);
-        window.localStorage.playerName = name;
-      }
+      const firebaseConfig = {
+        apiKey: "AIzaSyDVw7DovZvclhRSyqTTbShcJui5Wtu724U",
+        authDomain: "dart2d-73e64.firebaseapp.com",
+        databaseURL: "https://dart2d-73e64-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "dart2d-73e64",
+        storageBucket: "dart2d-73e64.firebasestorage.app",
+        messagingSenderId: "827330473786",
+        appId: "1:827330473786:web:16f850ebf8c32488be2a03",
+        measurementId: "G-S4SYYYEL59"
+      };
+          $(function() {
 
-      function createImageData(w, h) {
-        return new ImageData(w,h);
-      }
 
-      function getRtcConnectionStats(stats) {
-        let data = {bytesReceived: 0,
-           bytesSent: 0, currentRoundTripTime: 0,
-           packetsReceived: 0, packetsSent: 0};
+            $("#sendMsg").click(function() {
+             firebase.database().ref('/messages/' + selfFBID).child('msg-dst').set({
+                payload: 'test',
+              });
+            });
 
-        let iter = stats.values();
-        let result = iter.next();
-        while (!result.done) {
-          let stat = result.value;
-          if (stat.type == "candidate-pair" && stat.nominated == true) {
-            for (key in data) {
-              if (stat[key]) {
-                data[key] = stat[key];
+            var ua = navigator.userAgent.toLowerCase();
+            var isAndroid = ua.indexOf('android') > -1;
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (!window.localStorage.playerName) {
+              nameDialog();
+            } else {
+              $('#name-change').text(window.localStorage.playerName);
+            }
+            if (!isAndroid && !isIOS) {
+              $('#fs').hide();
+              $('#or').hide();
+            } else {
+              $('#name-change').hide();
+              $('#canvas').hide();
+              $('#chat').hide();
+              checkOrientation();
+              window.addEventListener("orientationchange", function() {
+                checkOrientation();
+              });
+            }
+          });
+
+          function checkOrientation() {
+           if (screen.orientation.type.indexOf("portrait") == -1) {
+             $('#or').hide();
+             if (!document.webkitFullscreenElement) {
+               $('#fs').show();
+             }
+           } else {
+             $('#or').show();
+             $('#fs').hide();
+           }
+          }
+          function randomizeName() {
+            $("#name").val(randomName());
+          }
+
+          function nameDialog() {
+            if (!window.localStorage.playerName) {
+              $.getScript("name.js", function(){
+                randomizeName();
+              });
+            } else {
+              $("#name").val(window.localStorage.playerName);
+            }
+            $("#name-dialog").dialog({
+              open: function(event, ui) {
+                //hide close button.
+                $(this).parent().children().children('.ui-dialog-titlebar-close').hide();
+              },
+              modal: true,
+              closeOnEscape: false,
+              buttons: {
+                'OK': function() {
+                  updateName($("#name").val());
+                  $(this).dialog("close");
+                }
               }
+            });
+          }
+
+            var canvas = document.querySelector("#canvas");
+            var playerName;
+
+          function fullscreen() {
+            $('#canvas').show();
+            if (!document.webkitFullscreenElement) {
+              canvas.webkitRequestFullscreen();
+              $('#fs').hide();
             }
           }
-          result = iter.next();
-        }
-        return JSON.stringify(data);
-      }
 
-      function isTouchDevice() {
-        return (('ontouchstart' in window) ||
-           (navigator.maxTouchPoints > 0) ||
-           (navigator.msMaxTouchPoints > 0));
-      }
+          function updateName(name) {
+            $('#name-change').text(name);
+            window.localStorage.playerName = name;
+          }
+
+          function createImageData(w, h) {
+            return new ImageData(w,h);
+          }
+
+          function getRtcConnectionStats(stats) {
+            let data = {bytesReceived: 0,
+               bytesSent: 0, currentRoundTripTime: 0,
+               packetsReceived: 0, packetsSent: 0};
+
+            let iter = stats.values();
+            let result = iter.next();
+            while (!result.done) {
+              let stat = result.value;
+              if (stat.type == "candidate-pair" && stat.nominated == true) {
+                for (key in data) {
+                  if (stat[key]) {
+                    data[key] = stat[key];
+                  }
+                }
+              }
+              result = iter.next();
+            }
+            return JSON.stringify(data);
+          }
+
+          function isTouchDevice() {
+            return (('ontouchstart' in window) ||
+               (navigator.maxTouchPoints > 0) ||
+               (navigator.msMaxTouchPoints > 0));
+          }
     </script>
     <script src="wormworld.dart.js"></script>
 

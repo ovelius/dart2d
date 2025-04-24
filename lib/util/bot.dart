@@ -44,7 +44,7 @@ class Bot {
     _verifyTarget();
 
     _aimAndWalkToTarget();
-      _localKeyState.onKeyDown(KeyCodeDart.F);
+    _localKeyState.onKeyDown(KeyCodeDart.F);
   
     _weaponChangeTime -= duration;
     if (_weaponChangeTime < 0.0) {
@@ -90,7 +90,11 @@ class Bot {
   }
 
   void _aimAndWalkToTarget() {
-    Vec2 dir = _currentTargetSprite!.position - _controlledSprite!.position;
+    LocalPlayerSprite? target = _currentTargetSprite;
+    if (target == null) {
+      return;
+    }
+    Vec2 dir = target.position - _controlledSprite!.position;
     double angle = dir.toAngle();
     double gunAngle = _controlledSprite!.gun.angle;
     if (_controlledSprite!.angle > 0.002) {

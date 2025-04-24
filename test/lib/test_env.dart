@@ -68,7 +68,7 @@ Future<WormWorld> createTestWorld(String id,  {
   bool completeLoader = true,
   bool loadImages = true,
   bool initByteWorld = true}) async {
-  return getIt.popScopesTill('world').then((_) {
+  return getIt.popScopesTill('world').then((_) async {
     serverChannelPeerId = id;
     getIt.initWorldScope();
 
@@ -77,7 +77,7 @@ Future<WormWorld> createTestWorld(String id,  {
     ImageIndex imageIndex = getIt<ImageIndex>();
 
     if (signalPeerOpen) {
-      signalOpen(world);
+      await signalOpen(world);
     }
     if (loadImages) {
       world.imageIndex().useEmptyImagesForTest();
@@ -121,9 +121,9 @@ setMap() {
   selector.setMapForTest("lion88.png");
 }
 
-signalOpen(WormWorld w, [List<String> existingPeers = const[]]) {
+Future signalOpen(WormWorld w, [List<String> existingPeers = const[]]) {
   TestServerChannel channel = w.network().peer.serverChannel as TestServerChannel;
-  channel.sendOpenMessage(existingPeers);
+  return channel.sendOpenMessage(existingPeers);
 }
 
 
