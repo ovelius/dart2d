@@ -116,7 +116,7 @@ void main() {
               hasSpriteWithNetworkId(playerId(1))
                   .andNetworkType(NetworkType.LOCAL),
               hasSpriteWithNetworkId(playerId(2))
-                  .andNetworkType(NetworkType.REMOTE_FORWARD),
+                  .andNetworkType(NetworkType.REMOTE),
           ]));
       expect(worldB.spriteIndex[playerId(1)],
           hasType('LocalPlayerSprite'));
@@ -134,7 +134,7 @@ void main() {
         hasPlayerSpriteWithNetworkId(playerId(1))
             .andNetworkType(NetworkType.LOCAL),
         hasPlayerSpriteWithNetworkId(playerId(2))
-            .andNetworkType(NetworkType.REMOTE_FORWARD)
+            .andNetworkType(NetworkType.REMOTE)
             .andRemoteKeyState(),
         hasSpriteWithNetworkId(sprite.networkId)
             .andNetworkType(NetworkType.LOCAL),
@@ -174,7 +174,7 @@ void main() {
       ]));
       expect(worldC, hasExactSprites([
           hasSpriteWithNetworkId(playerId(1))
-              .andNetworkType(NetworkType.REMOTE_FORWARD),
+              .andNetworkType(NetworkType.REMOTE),
           hasSpriteWithNetworkId(playerId(2))
               .andNetworkType(NetworkType.LOCAL),
       ]));

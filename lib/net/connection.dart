@@ -53,8 +53,6 @@ class ConnectionWrapper {
   late DateTime lastSentFrameTime;
 
   int lastDeliveredFrame = 0;
-  // Time from sending to remote saying frame increased.
-  Duration _frameIncrementLatencyTime = Duration.zero;
 
   late ConnectionStats _connectionStats;
   late ReliableHelper _reliableHelper;
@@ -215,17 +213,15 @@ class ConnectionWrapper {
     if (Logger.root.isLoggable(Level.FINE)) {
       log.fine("${id} -> ${_network.getPeer().getId()} data ${dataMap.toDebugString()}");
     }
-    bool oldData = false;
+    // Basic check that we're not about to handle old data.
+    // This should be 0 or higher or the data is old.
+    int frameDeltaFromLastSeen = dataMap.frame - lastSeenRemoteFrame;
     if (dataMap.frame > lastSeenRemoteFrame) {
       lastSeenRemoteFrame = dataMap.frame;
-    } else if (dataMap.frame < lastSeenRemoteFrame) {
-      // Basic check that we're not about to handle old data...
-      oldData = true;
     }
 
     if (dataMap.lastFrameSeen > lastDeliveredFrame) {
       // How long time passed since we sent the keyframe?
-      _frameIncrementLatencyTime = Duration(milliseconds: now.millisecondsSinceEpoch - lastSentFrameTime.millisecondsSinceEpoch);
       lastDeliveredFrame = dataMap.lastFrameSeen;
     }
 
@@ -291,8 +287,10 @@ class ConnectionWrapper {
       }
     }
 
-    if (!oldData) {
+    if (frameDeltaFromLastSeen >= 0) {
       _network.parseBundle(this, dataMap);
+    } else {
+      log.warning("Dropping old data ${frameDeltaFromLastSeen} frames behind!");
     }
   }
 
@@ -304,6 +302,8 @@ class ConnectionWrapper {
       return;
     }
   }
+
+  int getCurrentFrame() => _connectionFrameHandler.currentFrame();
 
   /**
    * Advance connection time. Maybe send data. Maybe send keyframe.

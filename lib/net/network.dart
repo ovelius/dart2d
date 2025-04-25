@@ -280,6 +280,14 @@ class Network {
     // Command transfer successful.
     if (_pendingCommandTransfer != null &&
        gameState.gameStateProto.actingCommanderId == _pendingCommandTransfer) {
+
+      // Change sprite types. We are no longer commander.
+      for (PlayerInfoProto info in gameState.gameStateProto.playerInfo) {
+        Sprite? sprite = _spriteIndex[info.spriteId];
+        if (sprite?.networkType == NetworkType.REMOTE_FORWARD) {
+          sprite?.networkType = NetworkType.REMOTE;
+        }
+      }
       log.info("Succcesfully transfered command to ${gameState.gameStateProto.actingCommanderId}");
       _pendingCommandTransfer = null;
     }
@@ -521,7 +529,7 @@ class Network {
             if (!gameState.isConnected(
                 connection.id, receipientConnection.id)) {
               GameStateUpdates g = GameStateUpdates()
-                ..spriteUpdates.add(update);
+                 ..spriteUpdates.add(update);
               peer.sendDataWithKeyFramesToAll(
                   g, null, receipientConnection.id);
             }

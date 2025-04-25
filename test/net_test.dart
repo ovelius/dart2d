@@ -649,9 +649,27 @@ void main() {
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
       expect(
+          worldB,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.LOCAL),
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.REMOTE)
+                .andOwnerId("a"),
+          ]));
+      expect(
           worldA.network().gameState,
           isGameStateOf({playerId(1): "nameA", playerId(0): "nameB"})
               .withCommanderId('a'));
+      expect(
+          worldA,
+          hasExactSprites([
+            hasSpriteWithNetworkId(playerId(0))
+                .andNetworkType(NetworkType.REMOTE_FORWARD)
+                  .andOwnerId('b'),
+            hasSpriteWithNetworkId(playerId(1))
+                .andNetworkType(NetworkType.LOCAL),
+          ]));
 
       // Because worldB is only doing 2 Fps!
       expect(worldB.network().getGameState().playerInfoByConnectionId('b')!.fps,
@@ -703,7 +721,6 @@ void main() {
               .withCommanderId('b'));
     });
 
-    /*
     test('CommanderForwardsSpriteData', () async  {
       ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
       WormWorld worldA = await createTestWorld("client1");
@@ -741,7 +758,6 @@ void main() {
 
       LocalPlayerSprite spriteA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       expect(spriteA.networkType, NetworkType.LOCAL);
-      print("BEFORE UPDATE ${spriteA.networkId} -${spriteA.networkType} - ${spriteA.position} - ${spriteA.velocity}");
       spriteA.position.x = 33.0;
       spriteA.velocity = Vec2();
 
@@ -750,13 +766,9 @@ void main() {
 
       LocalPlayerSprite spriteC = worldC.spriteIndex[playerId(1)] as LocalPlayerSprite;
       logConnectionData = true;
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 2; i++) {
         print("${spriteA.networkId} -${spriteA.networkType} - ${spriteA.position} - ${spriteA.velocity}");
         worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
-        print("AFTER FRAME ${spriteA.networkId} -${spriteA.networkType} - ${spriteA.position} - ${spriteA.velocity}");
-        print("AFTER FRAMECCC ${spriteC.networkId} -${spriteC.networkType} - ${spriteC.position} - ${spriteC.velocity}");
-        //  worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
-//        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
       }
 
       expect(worldB,
@@ -768,9 +780,8 @@ void main() {
       expect(worldC.network().safeActiveConnections().containsKey("client2"), isFalse);
 
       // C received the data from A through B.
-
       expect(spriteA.position.x, equals(spriteC.position.x));
-    }); */
+    });
 
     test('SecondaryCommander_OtherJoinsLater', () async {
       WormWorld worldA = await createTestWorld("a");

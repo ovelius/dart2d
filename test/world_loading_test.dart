@@ -86,6 +86,7 @@ void main() {
     expectWarningContaining("Duplicate handshake received");
     expectWarningContaining("Got client enter before loading completed");
     expectWarningContaining("Commander data update for missing");
+    expectWarningContaining("Dropping old data");
 
     WormWorld w = await createTestWorld("w", signalPeerOpen: true,
         setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:

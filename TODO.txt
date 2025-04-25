@@ -1,13 +1,10 @@
-1) Use Firebase Realtime database for negotiation?
 3) Disconnect non commanding peers from server - connect via commander.
 7) Handle ICE disconnect instead of failed?
 9) Work I Safari/iOS.
 
 Gameplay:
- - Mobile controls fine tuning
  - Icon weapon switching.
  - Blowtorch weapon
  - Space world
- - Better world collision, no going through walls.
  - zoom out when killed, zoom in when re-spawning (hint!)
  - Sounds!

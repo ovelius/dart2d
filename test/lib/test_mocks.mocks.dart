@@ -2462,6 +2462,15 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
   );
 
   @override
+  int getCurrentFrame() =>
+      (super.noSuchMethod(
+            Invocation.method(#getCurrentFrame, []),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
   void tick(double? duration, List<int>? removals) => super.noSuchMethod(
     Invocation.method(#tick, [duration, removals]),
     returnValueForMissingStub: null,

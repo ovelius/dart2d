@@ -220,6 +220,7 @@ class PeerWrapper {
       if (!connection.isActiveConnection()) {
         continue;
       }
+      data.frame = connection.getCurrentFrame();
       connection.sendData(data);
     }
     if (closedConnections.length > 0) {
