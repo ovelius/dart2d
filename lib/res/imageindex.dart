@@ -32,7 +32,10 @@ List<String> GAME_SOURCES = [
   "zooka.png",
   "box.png",
   "gun.png",
+  "shark.png",
 ];
+
+const LOADER_SPRITE = "shark.png";
 
 // Required for selecting world.
 Set<String> WORLD_SOURCES = new Set<String>.from(

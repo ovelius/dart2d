@@ -82,6 +82,10 @@ class Vec2 {
   Vec2 add(Vec2 other) {
     return new Vec2(x + other.x, y + other.y);
   }
+
+  Vec2 subtract(Vec2 other) {
+    return new Vec2(x - other.x, y - other.y);
+  }
   
   String toString() {
     return "x: ${x.toStringAsFixed(2)} y: ${y.toStringAsFixed(2)}";

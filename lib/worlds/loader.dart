@@ -407,18 +407,34 @@ class Loader {
   }
 
   void _drawSpinner() {
+    HTMLImageElement? image = null;
+    if (_imageIndex.imagesIndexed() && _imageIndex.imageNameIsLoaded(LOADER_SPRITE)) {
+      image = _imageIndex.getImageByName(LOADER_SPRITE);
+    }
     int height = 4;
     _context.translate(_width / 2,  _height ~/ 2  + _height ~/ 8);
-    _context.globalCompositeOperation = "overlay";
-    for (_Spinner s in _spinners) {
+    _context.globalCompositeOperation = image != null ? "source-over": "overlay";
+    num numSpinners = image != null ? _spinners.length / 2 : _spinners.length;
+    for (int i = 0; i < numSpinners; i++) {
+      _Spinner s = _spinners[i];
       _context.save();
-      _context.beginPath();
-      _context.fillStyle =  s.colorString.toJS;
-      _context.rotate(s.angle);
-      _context
-        .rect(-s.width / 15,
+      if (image == null) {
+        _context.rotate(s.angle);
+        _context.beginPath();
+        _context.fillStyle = s.colorString.toJS;
+        _context
+            .rect(-s.width / 15,
             _height ~/ 15, s.width, height);
-      _context.fill();
+        _context.fill();
+      } else {
+        num width = image.width/5;
+        num height = image.height/5;
+        _context.scale(-1, 1);
+        _context.translate(sin(s.angle) * 70 - width/2,
+            cos(s.angle) * 70+height/2);
+        _context.drawImage(image, 0, 0, width, height);
+
+      }
       _context.restore();
     }
   }
