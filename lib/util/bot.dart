@@ -109,6 +109,17 @@ class Bot {
     }
   }
 
+  void _aimUp() {
+    _localKeyState.onKeyUp(KeyCodeDart.DOWN);
+    _localKeyState.onKeyDown(KeyCodeDart.UP);
+  }
+
+  void _aimDown() {
+    _localKeyState.onKeyUp(KeyCodeDart.UP);
+    _localKeyState.onKeyDown(KeyCodeDart.DOWN);
+  }
+
+
   void _aimAndWalkToTarget() {
     LocalPlayerSprite? target = _currentTargetSprite;
     if (target == null) {
@@ -119,22 +130,21 @@ class Bot {
     double gunAngle = _controlledSprite!.gun.angle;
     if (_controlledSprite!.angle > 0.002) {
       gunAngle += 2*pi;
+      if (angle < 0) {
+        angle += 2*pi;
+      }
     }
     if (_controlledSprite!.angle < 0.002) {
       if (angle < gunAngle) {
-        _localKeyState.onKeyUp(KeyCodeDart.DOWN);
-        _localKeyState.onKeyDown(KeyCodeDart.UP);
+        _aimUp();
       } else {
-        _localKeyState.onKeyUp(KeyCodeDart.UP);
-        _localKeyState.onKeyDown(KeyCodeDart.DOWN);
+        _aimDown();
       }
     } else {
       if (angle > gunAngle) {
-        _localKeyState.onKeyUp(KeyCodeDart.DOWN);
-        _localKeyState.onKeyDown(KeyCodeDart.UP);
+        _aimUp();
       } else {
-        _localKeyState.onKeyUp(KeyCodeDart.UP);
-        _localKeyState.onKeyDown(KeyCodeDart.DOWN);
+        _aimDown();
       }
     }
 
