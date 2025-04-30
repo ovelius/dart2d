@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 
 import 'package:dart2d/net/connection.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'package:dart2d/worlds/powerup_manager.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/world.dart';
@@ -47,6 +48,7 @@ class WormWorld extends World {
   late PacketListenerBindings _packetListenerBindings;
   PacketListenerBindings get packetListenerBindings => _packetListenerBindings;
   late CanvasRenderingContext2D _canvas;
+  late Sounds _sounds;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld = new Vec2();
   ByteWorld byteWorld;
@@ -68,6 +70,7 @@ class WormWorld extends World {
       this._configParams,
       this._powerupManager,
       this._gaReporter,
+      this._sounds,
       ChunkHelper chunkHelper,
       this.byteWorld,
       HudMessages hudMessages,
@@ -297,7 +300,7 @@ class WormWorld extends World {
         sprite.draw(_canvas, localKeyState.debug);
       collisionCheck(networkId, duration);
       if (sprite.remove) {
-        spriteIndex.removeSprite(sprite.networkId!);
+        removeSprite(sprite.networkId!);
       }
       _canvas.restore();
     }
@@ -411,6 +414,20 @@ class WormWorld extends World {
         return false;
     }
     return true;
+  }
+
+  void playSound(Sound sound,{double volume = 1.0, bool multiPlay = false, String? playId = null}) {
+    _sounds.playSound(sound, volume:volume, multiPlay:multiPlay, playId:playId);
+  }
+
+  void playSoundAtSprite(Sprite sprite, Sound sound, {multiPlay = false, playSpriteId = false}) {
+    if (playerSprite != null) {
+      double distance = (sprite.position.subtract(playerSprite!.position)).sum();
+      double volume = 1.0 - (distance / 1000.0);
+      if (volume > 0.01) {
+        playSound(sound, volume: volume, multiPlay: multiPlay, playId:  playSpriteId ? sprite.networkId.toString() : null);
+      }
+    }
   }
 
   void createLocalClient(int spriteId,  Vec2 position) {
@@ -543,6 +560,7 @@ class WormWorld extends World {
         Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(sprite.centerPoint(), radius);
     if (radius > 3 && addpParticles) {
+      playSoundAtSprite(sprite, Sound.EXPLOSION, multiPlay:true);
       addSprite(
           new Particles(this, null, sprite.position, velocity, null, radius * 1.5, _particleCountFromFps()));
       addVelocityFromExplosion(
@@ -649,10 +667,15 @@ class WormWorld extends World {
 
 
   void addSprite(Sprite sprite) {
+    if (sprite.spawn_sound != null) {
+      playSoundAtSprite(sprite, sprite.spawn_sound!);
+    }
     spriteIndex.addSprite(sprite);
   }
 
   void removeSprite(int networkId) {
+    // Remove any associated sound.
+    _sounds.stopPlayId(networkId.toString());
     spriteIndex.removeSprite(networkId);
   }
 

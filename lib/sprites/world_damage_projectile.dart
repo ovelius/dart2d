@@ -5,6 +5,7 @@ import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:web/web.dart';
 
+import '../res/sounds.dart';
 import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -62,10 +63,13 @@ class BananaCake extends WorldDamageProjectile {
 class Hyper extends WorldDamageProjectile {
   static const int EFFECTIVE_DISTANCE = 300;
   static const int DPS_BEAM = 30;
+  static const double SOUND_LOOP = 1.0;
   int _quality = 40;
 
   List<LocalPlayerSprite> _spritesInDamageArea = [];
   double _time = 0.0;
+
+  double _nextSound = 0.0;
 
   Hyper(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
       : super(world, x, y, imageId, imageIndex);
@@ -108,9 +112,14 @@ class Hyper extends WorldDamageProjectile {
 
   frame(double duration, int frameStep, [Vec2? gravity]) {
     _time += duration;
+    _nextSound -= duration;
     int damage = (_time * DPS_BEAM).toInt();
     _time -= (damage / DPS_BEAM);
     _collectDamageSprites();
+    if (_nextSound < 0) {
+      _nextSound += SOUND_LOOP;
+      world.playSoundAtSprite(this, Sound.BUZZ, playSpriteId: true);
+    }
     for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
       if (damageSprite.takesDamage()) {
         damageSprite.takeDamage(damage, owner!, Mod.HYPER);
@@ -135,7 +144,7 @@ class Hyper extends WorldDamageProjectile {
     }
 
     super.draw(context, debug);
-    double r = getRadius() * 4;
+    double r = getRadius() * 6;
     context.translate(-r, -r);
     context.strokeStyle = this.color.toJS;
     context.globalCompositeOperation = "lighter";
@@ -213,7 +222,7 @@ class BrickBuilder extends WorldDamageProjectile {
   }
 
   explode() {
-    Vec2 brickSize = new Vec2(40, 14);
+    Vec2 brickSize = new Vec2(80, 28);
     Vec2 center = centerPoint();
     center.x -= brickSize.x / 2;
     Vec2 outerPosition = new Vec2.copy(center);

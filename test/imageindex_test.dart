@@ -1,12 +1,9 @@
-import 'dart:math';
-
 import 'package:test/test.dart';
-import 'package:web/helpers.dart';
+import 'package:web/web.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:dart2d/bindings/annotations.dart';
 
 void main() {
   late TestLocalStorage localStorage;

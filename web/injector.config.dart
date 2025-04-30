@@ -15,6 +15,7 @@ import 'package:dart2d/net/helpers.dart' as _i207;
 import 'package:dart2d/net/net.dart' as _i835;
 import 'package:dart2d/net/network.dart' as _i64;
 import 'package:dart2d/res/imageindex.dart' as _i883;
+import 'package:dart2d/res/sounds.dart' as _i254;
 import 'package:dart2d/sprites/sprite_index.dart' as _i577;
 import 'package:dart2d/sprites/sprites.dart' as _i899;
 import 'package:dart2d/util/bot.dart' as _i481;
@@ -78,6 +79,7 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'uri_params_map',
     );
     gh.factory<_i988.ImageFactory>(() => _i1028.HtmlImageFactory());
+    gh.factory<_i988.SoundFactory>(() => _i1028.HtmlSoundFactory());
     gh.factory<_i481.Bot>(() => _i481.Bot(
           gh<_i559.GameState>(),
           gh<_i899.SpriteIndex>(),
@@ -115,6 +117,8 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.ImageDataFactory>(),
               gh<_i988.CanvasFactory>(),
             ));
+        gh.singleton<_i254.Sounds>(
+            () => _i254.Sounds(gh<_i988.SoundFactory>()));
         gh.singleton<_i106.HudMessages>(() => _i106.HudMessages(
               gh<_i906.KeyState>(),
               gh<_i207.PacketListenerBindings>(),
@@ -195,6 +199,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i559.ConfigParams>(),
               gh<_i745.PowerupManager>(),
               gh<_i988.GaReporter>(),
+              gh<_i254.Sounds>(),
               gh<_i600.ChunkHelper>(),
               gh<_i401.ByteWorld>(),
               gh<_i559.HudMessages>(),

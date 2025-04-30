@@ -15,6 +15,7 @@ import 'package:dart2d/net/helpers.dart' as _i207;
 import 'package:dart2d/net/net.dart' as _i835;
 import 'package:dart2d/net/network.dart' as _i64;
 import 'package:dart2d/res/imageindex.dart' as _i883;
+import 'package:dart2d/res/sounds.dart' as _i254;
 import 'package:dart2d/sprites/sprite_index.dart' as _i577;
 import 'package:dart2d/sprites/sprites.dart' as _i899;
 import 'package:dart2d/util/bot.dart' as _i481;
@@ -74,6 +75,7 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'reload_function',
     );
     gh.factory<_i988.HtmlScreen>(() => _i983.FakeScreen());
+    gh.singleton<_i988.SoundFactory>(() => _i418.FakeSoundFactory());
     gh.factory<_i988.GaReporter>(() => _i47.FakeGaReporter());
     gh.factory<_i988.CanvasFactory>(() => _i47.FakeCanvasFactory());
     gh.factory<_i988.ServerChannel>(() => _i886.TestServerChannel());
@@ -120,6 +122,8 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.CanvasFactory>(),
             ));
         gh.singleton<_i988.LocalStorage>(() => _i47.TestLocalStorage());
+        gh.singleton<_i254.Sounds>(
+            () => _i254.Sounds(gh<_i988.SoundFactory>()));
         gh.singleton<_i106.HudMessages>(() => _i106.HudMessages(
               gh<_i906.KeyState>(),
               gh<_i207.PacketListenerBindings>(),
@@ -200,6 +204,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i559.ConfigParams>(),
               gh<_i745.PowerupManager>(),
               gh<_i988.GaReporter>(),
+              gh<_i254.Sounds>(),
               gh<_i600.ChunkHelper>(),
               gh<_i401.ByteWorld>(),
               gh<_i559.HudMessages>(),

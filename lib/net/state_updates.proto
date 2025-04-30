@@ -68,7 +68,14 @@ message StateUpdate {
     ResourceResponse resource_response = 20;
 
     string commander_map_selected = 21;
+
+    PlaySound play_sound = 22;
   }
+}
+
+message PlaySound {
+  optional int32 sound = 1;
+  optional Vec2Proto location = 2;
 }
 
 message ClientStatusData {
@@ -241,6 +248,8 @@ message SpriteUpdate {
 
   // The Sprite constructor to run.
   optional int32 remote_representation = 6;
+  // Play this sound when sprite is added to world.
+  optional int32 spawn_sound = 15;
   // What type of ImageSprite this is.
   optional int32 sprite_type = 7;
 

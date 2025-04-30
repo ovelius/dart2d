@@ -64,6 +64,9 @@ SpriteUpdate toSpriteUpdate(MovingSprite sprite, bool keyFrame) {
   update.velocity = sprite.velocity.toProto();
   if (keyFrame) {
     update.remoteRepresentation = sprite.remoteRepresentation().index;
+    if (sprite.spawn_sound != null) {
+      update.spawnSound = sprite.spawn_sound!.index;
+    }
     update.spriteType = sprite.spriteType.index;
     if (sprite.spriteType == SpriteType.IMAGE) {
       update.imageId = sprite.imageId;

@@ -8,6 +8,8 @@ import 'dart:math';
 
 import 'package:web/helpers.dart';
 
+import '../res/sounds.dart';
+
 
 enum SpriteType {
   IMAGE,
@@ -43,6 +45,7 @@ class Sprite {
   late int imageId;
   double angle = 0.0;
   SpriteType spriteType = SpriteType.RECT;
+  Sound? spawn_sound = null;
   // Color
   String color = "rgba(255, 255, 255, 1.0)";
   //True if sprite doesn't have to be drawn when outside of canvas.

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:web/web.dart';
+import 'package:dart2d/res/sounds.dart';
 
 
 const WORLD_WIDTH = "world_width";
@@ -52,6 +54,11 @@ abstract class ImageFactory {
   dynamic create();
   dynamic createWithSrc(String src);
   dynamic createWithSize(int x,y);
+}
+
+abstract class SoundFactory {
+  HTMLAudioElement clone(HTMLAudioElement other, Sound s);
+  HTMLAudioElement createWithSrc(String src, Sound s);
 }
 
 abstract class GaReporter {

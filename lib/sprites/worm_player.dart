@@ -13,6 +13,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:web/web.dart';
 
+import '../res/sounds.dart';
 import '../weapons/abstractweapon.dart';
 
 /**
@@ -24,6 +25,7 @@ class LocalPlayerSprite extends MovingSprite {
   static const WALKABLE_HILL_PIXEL_HEIGHT = 4;
   static const MAX_WALK_SPEED = 150.0;
   static const WALK_ACCELERATION_SPEED = 100.0;
+  static const JUMP_VELOCITY = -300;
   static final Vec2 DEFAULT_PLAYER_SIZE = new Vec2(42.0, 42.0);
   static int MAX_HEALTH = 100;
   static int MAX_SHIELD = 200;
@@ -384,7 +386,8 @@ class LocalPlayerSprite extends MovingSprite {
           world.addSprite(_jetParticles!);
         }
       } else if (onGround) {
-        velocity.y -= 200.0;
+        velocity.y += JUMP_VELOCITY;
+        world.playSound(Sound.JUMP);
         onGround = false;
       }
     }
@@ -528,6 +531,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   void _fireRope() {
+    world.playSoundAtSprite(this, Sound.WHIP);
     if (rope != null) {
       world.removeSprite(rope!.networkId!);
     }
@@ -573,6 +577,7 @@ class LocalPlayerSprite extends MovingSprite {
         spawnIn = RESPAWN_TIME;
         _deathMessage(mod);
         _addDeathParticles();
+        world.playSound(Sound.DEATH);
       } else if (_shieldPoints <= 0) {
         _addDamageParticles();
       }

@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'dart:math';
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'package:injectable/injectable.dart';
 import 'package:web/web.dart';
 
@@ -42,7 +43,7 @@ class WebSocketServerChannel extends ServerChannel {
   Completer<List<String>> _existingPeers = Completer();
 
   WebSocketServerChannel() {
-    id = "testid-${Random().nextInt(100000)}";
+    id = "testid-${Random().nextInt(1000000)}";
   }
 
   Future<List<String>> openAndReadExistingPeers() {
@@ -109,6 +110,20 @@ class HtmlImageFactory implements ImageFactory {
     image.width = x;
     image.height = y;
     return image;
+  }
+}
+
+@Injectable(as: SoundFactory)
+class HtmlSoundFactory implements SoundFactory {
+  @override
+  HTMLAudioElement createWithSrc(String src, _) {
+    HTMLAudioElement audioElement = HTMLAudioElement();
+    audioElement.src = src;
+    return audioElement;
+  }
+  @override
+  HTMLAudioElement clone(HTMLAudioElement other, _) {
+    return other.cloneNode() as HTMLAudioElement;
   }
 }
 

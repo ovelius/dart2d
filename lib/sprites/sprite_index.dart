@@ -8,6 +8,8 @@ import 'package:injectable/injectable.dart';
 
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 
+import '../res/sounds.dart';
+
 enum SpriteConstructor {
   DO_NOT_CREATE,
   MOVING_SPRITE,
@@ -76,13 +78,17 @@ class SpriteIndex {
     if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
       world.adjustPlayerSprite(sprite as LocalPlayerSprite, data.imageId);
     }
+    int spawnSound = data.spawnSound;
+    if (spawnSound >= 0 && spawnSound < Sound.values.length) {
+      sprite.spawn_sound = Sound.values[spawnSound];
+    }
     sprite.networkType = NetworkType.REMOTE;
     sprite.networkId = networkId;
     // This might not be 100% accurate, since onwer might be:
     // Client -> Server -> Client.
     // But if that is the case it will be updated when we parse the GameState.
     sprite.ownerId = wrapper.id;
-    addSprite(sprite);
+    world.addSprite(sprite);
     return sprite;
   }
 

@@ -1,1 +1,6 @@
 platforms: [chrome]
+
+override_platforms:
+  chrome:
+    settings:
+      arguments: --autoplay-policy=no-user-gesture-required

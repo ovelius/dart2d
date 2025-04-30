@@ -1,7 +1,7 @@
 name: dart2d
 description: Dart2d WebRTC Game
 environment:
-  sdk: '>=2.18.0'
+  sdk: '>=3.3.0'
 dependencies:
   web: '>=1.1.1'
   convert: 3.1.2

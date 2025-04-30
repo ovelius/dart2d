@@ -3,7 +3,7 @@ import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
-import 'package:web/helpers.dart';
+import 'package:web/web.dart';
 import 'test_factories.dart';
 import 'test_injector.config.dart';
 import 'fake_canvas.dart';

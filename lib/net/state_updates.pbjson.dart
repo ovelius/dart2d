@@ -57,6 +57,7 @@ const StateUpdate$json = {
     {'1': 'resource_request', '3': 19, '4': 1, '5': 11, '6': '.dart2d_proto.ResourceRequest', '9': 0, '10': 'resourceRequest'},
     {'1': 'resource_response', '3': 20, '4': 1, '5': 11, '6': '.dart2d_proto.ResourceResponse', '9': 0, '10': 'resourceResponse'},
     {'1': 'commander_map_selected', '3': 21, '4': 1, '5': 9, '9': 0, '10': 'commanderMapSelected'},
+    {'1': 'play_sound', '3': 22, '4': 1, '5': 11, '6': '.dart2d_proto.PlaySound', '9': 0, '10': 'playSound'},
   ],
   '8': [
     {'1': 'update'},
@@ -89,8 +90,23 @@ final $typed_data.Uint8List stateUpdateDescriptor = $convert.base64Decode(
     'U3RhdHVzRGF0YRJKChByZXNvdXJjZV9yZXF1ZXN0GBMgASgLMh0uZGFydDJkX3Byb3RvLlJlc2'
     '91cmNlUmVxdWVzdEgAUg9yZXNvdXJjZVJlcXVlc3QSTQoRcmVzb3VyY2VfcmVzcG9uc2UYFCAB'
     'KAsyHi5kYXJ0MmRfcHJvdG8uUmVzb3VyY2VSZXNwb25zZUgAUhByZXNvdXJjZVJlc3BvbnNlEj'
-    'YKFmNvbW1hbmRlcl9tYXBfc2VsZWN0ZWQYFSABKAlIAFIUY29tbWFuZGVyTWFwU2VsZWN0ZWRC'
-    'CAoGdXBkYXRlSgQIAhAD');
+    'YKFmNvbW1hbmRlcl9tYXBfc2VsZWN0ZWQYFSABKAlIAFIUY29tbWFuZGVyTWFwU2VsZWN0ZWQS'
+    'OAoKcGxheV9zb3VuZBgWIAEoCzIXLmRhcnQyZF9wcm90by5QbGF5U291bmRIAFIJcGxheVNvdW'
+    '5kQggKBnVwZGF0ZUoECAIQAw==');
+
+@$core.Deprecated('Use playSoundDescriptor instead')
+const PlaySound$json = {
+  '1': 'PlaySound',
+  '2': [
+    {'1': 'sound', '3': 1, '4': 1, '5': 5, '10': 'sound'},
+    {'1': 'location', '3': 2, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'location'},
+  ],
+};
+
+/// Descriptor for `PlaySound`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List playSoundDescriptor = $convert.base64Decode(
+    'CglQbGF5U291bmQSFAoFc291bmQYASABKAVSBXNvdW5kEjMKCGxvY2F0aW9uGAIgASgLMhcuZG'
+    'FydDJkX3Byb3RvLlZlYzJQcm90b1IIbG9jYXRpb24=');
 
 @$core.Deprecated('Use clientStatusDataDescriptor instead')
 const ClientStatusData$json = {
@@ -377,6 +393,7 @@ const SpriteUpdate$json = {
     {'1': 'angle', '3': 4, '4': 1, '5': 2, '10': 'angle'},
     {'1': 'velocity', '3': 5, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'velocity'},
     {'1': 'remote_representation', '3': 6, '4': 1, '5': 5, '10': 'remoteRepresentation'},
+    {'1': 'spawn_sound', '3': 15, '4': 1, '5': 5, '10': 'spawnSound'},
     {'1': 'sprite_type', '3': 7, '4': 1, '5': 5, '10': 'spriteType'},
     {'1': 'image_id', '3': 8, '4': 1, '5': 5, '10': 'imageId'},
     {'1': 'frames', '3': 9, '4': 1, '5': 5, '10': 'frames'},
@@ -394,13 +411,14 @@ final $typed_data.Uint8List spriteUpdateDescriptor = $convert.base64Decode(
     'EoBVIFZmxhZ3MSMwoIcG9zaXRpb24YAyABKAsyFy5kYXJ0MmRfcHJvdG8uVmVjMlByb3RvUghw'
     'b3NpdGlvbhIUCgVhbmdsZRgEIAEoAlIFYW5nbGUSMwoIdmVsb2NpdHkYBSABKAsyFy5kYXJ0Mm'
     'RfcHJvdG8uVmVjMlByb3RvUgh2ZWxvY2l0eRIzChVyZW1vdGVfcmVwcmVzZW50YXRpb24YBiAB'
-    'KAVSFHJlbW90ZVJlcHJlc2VudGF0aW9uEh8KC3Nwcml0ZV90eXBlGAcgASgFUgpzcHJpdGVUeX'
-    'BlEhkKCGltYWdlX2lkGAggASgFUgdpbWFnZUlkEhYKBmZyYW1lcxgJIAEoBVIGZnJhbWVzEhQK'
-    'BWNvbG9yGAogASgJUgVjb2xvchIrCgRzaXplGAsgASgLMhcuZGFydDJkX3Byb3RvLlZlYzJQcm'
-    '90b1IEc2l6ZRIrChFyb3RhdGlvbl92ZWxvY2l0eRgMIAEoAlIQcm90YXRpb25WZWxvY2l0eRJJ'
-    'ChFleHRyYV9zcHJpdGVfZGF0YRgNIAEoCzIdLmRhcnQyZF9wcm90by5FeHRyYVNwcml0ZURhdG'
-    'FSD2V4dHJhU3ByaXRlRGF0YRJUChdjb21tYW5kZXJfdG9fb3duZXJfZGF0YRgOIAEoCzIdLmRh'
-    'cnQyZF9wcm90by5FeHRyYVNwcml0ZURhdGFSFGNvbW1hbmRlclRvT3duZXJEYXRh');
+    'KAVSFHJlbW90ZVJlcHJlc2VudGF0aW9uEh8KC3NwYXduX3NvdW5kGA8gASgFUgpzcGF3blNvdW'
+    '5kEh8KC3Nwcml0ZV90eXBlGAcgASgFUgpzcHJpdGVUeXBlEhkKCGltYWdlX2lkGAggASgFUgdp'
+    'bWFnZUlkEhYKBmZyYW1lcxgJIAEoBVIGZnJhbWVzEhQKBWNvbG9yGAogASgJUgVjb2xvchIrCg'
+    'RzaXplGAsgASgLMhcuZGFydDJkX3Byb3RvLlZlYzJQcm90b1IEc2l6ZRIrChFyb3RhdGlvbl92'
+    'ZWxvY2l0eRgMIAEoAlIQcm90YXRpb25WZWxvY2l0eRJJChFleHRyYV9zcHJpdGVfZGF0YRgNIA'
+    'EoCzIdLmRhcnQyZF9wcm90by5FeHRyYVNwcml0ZURhdGFSD2V4dHJhU3ByaXRlRGF0YRJUChdj'
+    'b21tYW5kZXJfdG9fb3duZXJfZGF0YRgOIAEoCzIdLmRhcnQyZF9wcm90by5FeHRyYVNwcml0ZU'
+    'RhdGFSFGNvbW1hbmRlclRvT3duZXJEYXRh');
 
 @$core.Deprecated('Use extraSpriteDataDescriptor instead')
 const ExtraSpriteData$json = {

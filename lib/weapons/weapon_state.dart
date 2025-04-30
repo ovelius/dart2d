@@ -10,6 +10,7 @@ import 'package:dart2d/phys/vec2.dart';
 import 'package:web/web.dart';
 
 import '../net/state_updates.pb.dart';
+import '../res/sounds.dart';
 
 class WeaponState {
   static Random random = new Random();
@@ -38,24 +39,28 @@ class WeaponState {
   Weapon getSelectedWeapon() => weapons[selectedWeaponIndex];
 
   List<Weapon> weapons = [
-    new Weapon("Banana pancake", 2, 5.0, 1.0, (WeaponState weaponState) {
+    new Weapon("Banana pancake", 2, 5.0, 1.0,  (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world,  weaponState.owner, 50, weaponState.owner.gun);
       sprite.explodeAfter = 4.0;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
+      sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.owner, 2, weaponState.owner.gun);
       sprite.mod = Mod.BRICK;
+      sprite.spawn_sound = Sound.THUD;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
+      weaponState.world.playSoundAtSprite(weaponState.owner, Sound.SHOTGUN);
       for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, weaponState.owner.gun);
         sprite.mod = Mod.SHOTGUN;
+        sprite.particlesOnExplode = false;
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
@@ -82,6 +87,7 @@ class WeaponState {
       sprite.gravityAffect = 0.3;
       sprite.size = new Vec2(5.0, 5.0);
       sprite.radius = 2.0;
+      sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
@@ -148,6 +154,7 @@ class WeaponState {
     new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, weaponState.owner.gun);
       sprite.mod = Mod.ZOOKA;
+      sprite.spawn_sound = Sound.ZOOKA;
       sprite.radius = 40.0;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.05;
@@ -162,6 +169,7 @@ class WeaponState {
     new Weapon("Neon Blaster", 5, 2.5, 1.20, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30, weaponState.owner.gun);
       sprite.radius = 25.0;
+      sprite.spawn_sound = Sound.HYPER;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;
       weaponState.world.addSprite(sprite);

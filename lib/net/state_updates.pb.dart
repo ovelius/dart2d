@@ -138,6 +138,7 @@ enum StateUpdate_Update {
   resourceRequest, 
   resourceResponse, 
   commanderMapSelected, 
+  playSound, 
   notSet
 }
 
@@ -163,6 +164,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ResourceRequest? resourceRequest,
     ResourceResponse? resourceResponse,
     $core.String? commanderMapSelected,
+    PlaySound? playSound,
   }) {
     final $result = create();
     if (dataReceipt != null) {
@@ -225,6 +227,9 @@ class StateUpdate extends $pb.GeneratedMessage {
     if (commanderMapSelected != null) {
       $result.commanderMapSelected = commanderMapSelected;
     }
+    if (playSound != null) {
+      $result.playSound = playSound;
+    }
     return $result;
   }
   StateUpdate._() : super();
@@ -251,10 +256,11 @@ class StateUpdate extends $pb.GeneratedMessage {
     19 : StateUpdate_Update.resourceRequest,
     20 : StateUpdate_Update.resourceResponse,
     21 : StateUpdate_Update.commanderMapSelected,
+    22 : StateUpdate_Update.playSound,
     0 : StateUpdate_Update.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StateUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
+    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22])
     ..a<$core.int>(1, _omitFieldNames ? '' : 'dataReceipt', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'userMessage')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'spriteRemoval', $pb.PbFieldType.O3)
@@ -275,6 +281,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ..aOM<ResourceRequest>(19, _omitFieldNames ? '' : 'resourceRequest', subBuilder: ResourceRequest.create)
     ..aOM<ResourceResponse>(20, _omitFieldNames ? '' : 'resourceResponse', subBuilder: ResourceResponse.create)
     ..aOS(21, _omitFieldNames ? '' : 'commanderMapSelected')
+    ..aOM<PlaySound>(22, _omitFieldNames ? '' : 'playSound', subBuilder: PlaySound.create)
     ..hasRequiredFields = false
   ;
 
@@ -515,6 +522,83 @@ class StateUpdate extends $pb.GeneratedMessage {
   $core.bool hasCommanderMapSelected() => $_has(19);
   @$pb.TagNumber(21)
   void clearCommanderMapSelected() => clearField(21);
+
+  @$pb.TagNumber(22)
+  PlaySound get playSound => $_getN(20);
+  @$pb.TagNumber(22)
+  set playSound(PlaySound v) { setField(22, v); }
+  @$pb.TagNumber(22)
+  $core.bool hasPlaySound() => $_has(20);
+  @$pb.TagNumber(22)
+  void clearPlaySound() => clearField(22);
+  @$pb.TagNumber(22)
+  PlaySound ensurePlaySound() => $_ensure(20);
+}
+
+class PlaySound extends $pb.GeneratedMessage {
+  factory PlaySound({
+    $core.int? sound,
+    Vec2Proto? location,
+  }) {
+    final $result = create();
+    if (sound != null) {
+      $result.sound = sound;
+    }
+    if (location != null) {
+      $result.location = location;
+    }
+    return $result;
+  }
+  PlaySound._() : super();
+  factory PlaySound.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PlaySound.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PlaySound', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'sound', $pb.PbFieldType.O3)
+    ..aOM<Vec2Proto>(2, _omitFieldNames ? '' : 'location', subBuilder: Vec2Proto.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PlaySound clone() => PlaySound()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PlaySound copyWith(void Function(PlaySound) updates) => super.copyWith((message) => updates(message as PlaySound)) as PlaySound;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlaySound create() => PlaySound._();
+  PlaySound createEmptyInstance() => create();
+  static $pb.PbList<PlaySound> createRepeated() => $pb.PbList<PlaySound>();
+  @$core.pragma('dart2js:noInline')
+  static PlaySound getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PlaySound>(create);
+  static PlaySound? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get sound => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set sound($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSound() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSound() => clearField(1);
+
+  @$pb.TagNumber(2)
+  Vec2Proto get location => $_getN(1);
+  @$pb.TagNumber(2)
+  set location(Vec2Proto v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLocation() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLocation() => clearField(2);
+  @$pb.TagNumber(2)
+  Vec2Proto ensureLocation() => $_ensure(1);
 }
 
 class ClientStatusData extends $pb.GeneratedMessage {
@@ -1825,6 +1909,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     $core.double? rotationVelocity,
     ExtraSpriteData? extraSpriteData,
     ExtraSpriteData? commanderToOwnerData,
+    $core.int? spawnSound,
   }) {
     final $result = create();
     if (spriteId != null) {
@@ -1869,6 +1954,9 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     if (commanderToOwnerData != null) {
       $result.commanderToOwnerData = commanderToOwnerData;
     }
+    if (spawnSound != null) {
+      $result.spawnSound = spawnSound;
+    }
     return $result;
   }
   SpriteUpdate._() : super();
@@ -1890,6 +1978,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     ..a<$core.double>(12, _omitFieldNames ? '' : 'rotationVelocity', $pb.PbFieldType.OF)
     ..aOM<ExtraSpriteData>(13, _omitFieldNames ? '' : 'extraSpriteData', subBuilder: ExtraSpriteData.create)
     ..aOM<ExtraSpriteData>(14, _omitFieldNames ? '' : 'commanderToOwnerData', subBuilder: ExtraSpriteData.create)
+    ..a<$core.int>(15, _omitFieldNames ? '' : 'spawnSound', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -2058,6 +2147,16 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   void clearCommanderToOwnerData() => clearField(14);
   @$pb.TagNumber(14)
   ExtraSpriteData ensureCommanderToOwnerData() => $_ensure(13);
+
+  /// Play this sound when sprite is added to world.
+  @$pb.TagNumber(15)
+  $core.int get spawnSound => $_getIZ(14);
+  @$pb.TagNumber(15)
+  set spawnSound($core.int v) { $_setSignedInt32(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasSpawnSound() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearSpawnSound() => clearField(15);
 }
 
 class ExtraSpriteData extends $pb.GeneratedMessage {
