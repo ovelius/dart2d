@@ -23,6 +23,8 @@ enum Sound {
   WHIP("whip.mp3"),
   // https://freesound.org/people/kwahmah_02/
   SWOSH("swosh.mp3"),
+  // Oh comes from https://freesound.org/people/balloonhead/
+  OW("ow.ogg"),
   JUMP("jump.mp3");
 
   const Sound(this.url);

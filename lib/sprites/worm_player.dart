@@ -615,6 +615,7 @@ class LocalPlayerSprite extends MovingSprite {
               ParticleEffects_ParticleType.CONFETTI);
       p.sendToNetwork = true;
       world.addSprite(p);
+      world.playSoundAtSprite(this, Sound.OW);
       _nextDamageAnimation = 0.3;
     }
   }
