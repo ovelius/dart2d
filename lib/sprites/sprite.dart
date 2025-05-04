@@ -5,8 +5,7 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
-
-import 'package:web/helpers.dart';
+import 'package:web/web.dart';
 
 import '../res/sounds.dart';
 

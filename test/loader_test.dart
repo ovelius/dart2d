@@ -1,6 +1,7 @@
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -21,6 +22,7 @@ void main() {
   late MockGameState mockGameState;
   late MockPlayerWorldSelector selector;
   late MockByteWorld byteWorld;
+  late MockWormWorld wormWorld;
   late LocalStorage localStorage;
   late StreamController<int> streamController;
   void tickAndAssertState(LoaderState state) {
@@ -232,6 +234,59 @@ void main() {
       tickAndAssertState(LoaderState.LOADING_AS_CLIENT_COMPLETED);
 
       expect(loader.hasGameState(), isTrue);
+    });
+
+    test('Loads from other client and buffers world updates', () {
+      MockConnectionWrapper connection1 = new MockConnectionWrapper();
+      when(connection1.initialPongReceived()).thenReturn(false);
+      Map<String, ConnectionWrapper> connections = {
+        'a': connection1,
+      };
+      tickAndAssertState(LoaderState.WAITING_FOR_NAME);
+      localStorage['playerName'] = "playerA";
+      when(mockPeerWrapper.connectedToServer()).thenReturn(true);
+      when(mockPeerWrapper.hasReceivedActiveIds()).thenReturn(true);
+      tickAndAssertState(LoaderState.CONNECTING_TO_PEER);
+      when(mockNetwork.hasOpenConnection()).thenReturn(true);
+      when(mockImageIndex.imagesIndexed()).thenReturn(true);
+      when(mockNetwork.safeActiveConnections()).thenReturn(connections);
+      when(mockImageIndex.finishedLoadingImages()).thenReturn(true);
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(false);
+      when(mockNetwork.findActiveGameConnection()).thenReturn(true);
+      when(mockNetwork.getServerConnection()).thenReturn(connection1);
+      when(connection1.isValidGameConnection()).thenReturn(false);
+      tickAndAssertState(LoaderState.CONNECTING_TO_GAME);
+
+      when(connection1.isValidGameConnection()).thenReturn(true);
+      when(mockChunkHelper.getCompleteRatio(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(0.5);
+      tickAndAssertState(LoaderState.LOADING_GAMESTATE);
+
+      ByteWorldDraw draw = ByteWorldDraw()
+        ..position = Vec2Proto(x: 2, y: 2)
+        ..size = Vec2Proto(x: 4, y:6);
+      loader.bufferDraws.add(draw);
+      loader.bufferDestruction.add(ByteWorldDestruction()
+        ..position = Vec2Proto(x: 10, y: 10)
+        ..radius = 3);
+
+      when(mockImageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(true);
+      when(mockImageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX))
+          .thenReturn(HTMLImageElement());
+      when(mockGameState.playerInfoByConnectionId('b')).thenReturn(null);
+
+      tickAndAssertState(LoaderState.COMPUTING_BYTE_WORLD);
+      when(byteWorld.byteWorldReady()).thenReturn(true);
+
+      tickAndAssertState(LoaderState.LOADING_ENTERING_GAME);
+
+      verify(byteWorld.drawFromNetworkUpdate(draw));
+      verify(byteWorld.clearAt(Vec2(10,10), 3));
+
+      expect(loader.bufferDestruction, hasLength(0));
+      expect(loader.bufferDraws, hasLength(0));
     });
 
     test('server disconnect start as server', () {

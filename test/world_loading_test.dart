@@ -1,16 +1,20 @@
 library dart2d;
 
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
+import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/net/net.dart';
+
+import 'lib/test_mocks.mocks.dart';
 
 void main() {
   setUpAll(() {
@@ -135,6 +139,33 @@ void main() {
     }
 
     expect(loader2.currentState(), LoaderState.LOADING_AS_CLIENT_COMPLETED);
+  });
+
+
+  test('Buffers byteworld data while loading', () async {
+    expectWarningContaining("Dropping old data");
+    WormWorld w = await createTestWorld("w");
+    w.startAsServer("w");
+    // Step through each phase of world loading.
+    frameDraws(w);
+
+    WormWorld w2 = await createTestWorld("w2", signalPeerOpen: false,
+        setPlayer:true, setPlayerImage: true, selectMap: false, completeLoader:false, loadImages:
+        true, initByteWorld: false);
+    Loader loader2 = getIt<Loader>();
+
+    await signalOpen(w2, ["w"]);
+    frameDraws(w2, 4);
+
+    expect(loader2.currentState(), LoaderState.LOADING_GAMESTATE);
+
+    // Thing happen while loading.
+    w.explosionAt(location: Vec2(1, 1), damage: 0, radius: 2);
+    w.fillRectAt(Vec2(2,2), Vec2(1,2), "#00FF00");
+
+    // It got buffered in the loader.
+    expect(w2.loader.bufferDestruction, hasLength(1));
+    expect(w2.loader.bufferDraws, hasLength(1));
   });
 
 

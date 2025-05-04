@@ -1,10 +1,7 @@
-import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/sounds.dart';
 import 'package:test/test.dart';
 import 'lib/logging_helper.dart';
 import 'lib/test_factories.dart';
-import 'lib/test_injector.dart';
-import 'lib/test_injector.config.dart';
 
 void main() {
 

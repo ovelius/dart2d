@@ -31,19 +31,21 @@ class WorldListener {
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.byteWorldDestruction, (ConnectionWrapper c, StateUpdate update) {
       if (c.isValidGameConnection()) {
-        if (_world.byteWorld.initialized()) {
+        if (_world.byteWorld.byteWorldReady()) {
           _world.clearFromNetworkUpdate(update.byteWorldDestruction);
         } else {
-          log.warning("TODO buffer byteworld data sent when world is loading!");
+          log.info("Buffering byteworld destruction");
+          _world.loader.bufferDestruction.add(update.byteWorldDestruction);
         }
       }
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.byteWorldDraw, (ConnectionWrapper c, StateUpdate data) {
       if (c.isValidGameConnection()) {
-        if (_world.byteWorld.initialized()) {
-          _world.drawFromNetworkUpdate(data.byteWorldDraw);
+        if (_world.byteWorld.byteWorldReady()) {
+          _byteWorld.drawFromNetworkUpdate(data.byteWorldDraw);
         } else {
-          log.warning("TODO buffer byteworld data sent when world is loading!");
+          _world.loader.bufferDraws.add(data.byteWorldDraw);
+          log.info("Buffering byteworld draw");
         }
       }
     });

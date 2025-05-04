@@ -2,10 +2,12 @@ import 'dart:js_interop';
 import 'dart:math';
 
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/fps_counter.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/worlds.dart';
 import 'package:web/web.dart';
 import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
@@ -65,6 +67,10 @@ class Loader {
   // Capture framerate every 0.5 seconds.
   FpsCounter _loaderFrameCounter = FpsCounter.withPeriod(FRAME_SAMPLE_TIME);
 
+  // Buffered byteworld data.
+  final List<ByteWorldDestruction> bufferDestruction = [];
+  final List<ByteWorldDraw> bufferDraws = [];
+
   // How many samples we have that indicates a slow data transfer.
   int _slowDownloadRateSamples = 0;
 
@@ -79,25 +85,18 @@ class Loader {
   String _currentMessage = "";
   List<_Spinner> _spinners = [];
 
-  late Clock _clock;
-
-  Loader(LocalStorage storage,
+  Loader(
+         this._localStorage,
          WorldCanvas canvasElement,
-         PlayerWorldSelector playerWorldSelector,
-         ImageIndex imageIndex,
-         Network network,
-         ChunkHelper chunkHelper,
-         ByteWorld byteWorld) {
-    this._localStorage = storage;
-    this._playerWorldSelector = playerWorldSelector;
-    this._network = network;
-    this._peerWrapper = network.getPeer();
-    this._chunkHelper = chunkHelper;
+         this._playerWorldSelector,
+         this._imageIndex,
+         this._network,
+         this._chunkHelper,
+         this._byteWorld) {
+    this._peerWrapper = _network.getPeer();
     _context = canvasElement.context2D;
     _width = canvasElement.width;
     _height = canvasElement.height;
-    this._imageIndex = imageIndex;
-    this._byteWorld = byteWorld;
     for (int i = 0; i < 20; i++) {
       _spinners.add(_Spinner());
     }
@@ -173,7 +172,8 @@ class Loader {
       // This counter is ever 0.5s so we need to double it to get per second.
       double fps = _loaderFrameCounter.fps() * 2.0;
       if (fps > GAME_TARGET_FPS * 0.7) {
-        _byteWorldComputeSteps = _byteWorldComputeSteps + (_byteWorldComputeSteps * 0.5).toInt();
+        // Increase at least by one..
+        _byteWorldComputeSteps = _byteWorldComputeSteps + max(1, (_byteWorldComputeSteps * 0.5).toInt());
       } else if (fps < GAME_TARGET_FPS / 2 ) {
         _byteWorldComputeSteps = _byteWorldComputeSteps - (_byteWorldComputeSteps * 0.5).toInt();
       }
@@ -192,6 +192,7 @@ class Loader {
 
   void _advanceConnectionStage(double duration) {
     if (!_peerWrapper.connectedToServer()) {
+      print("not connnceted ${_peerWrapper.id}!");
       if (_peerWrapper.getLastError() != null) {
         this._currentState =  LoaderState.ERROR;
         this._currentMessage = "ERROR: ${_peerWrapper.getLastError()}";
@@ -362,6 +363,9 @@ class Loader {
         _nextClientConnectSendTime = CLIENT_CONNECT_RETRY_TIMER;
       }
       setState(LoaderState.CONNECTING_TO_GAME);
+      // Keep buffers empty, we're not loading world yet.
+      bufferDestruction.clear();
+      bufferDraws.clear();
     } else if (!_byteWorld.byteWorldReady()) {
       _chunkHelper.requestSpecificNetworkData(
           {serverConnection.id : serverConnection}, duration,
@@ -445,12 +449,30 @@ class Loader {
 
   bool completed() => _completed;
 
+  _applyBufferedByteWorldOperations() {
+    // It became ready.
+    if (_byteWorld.byteWorldReady()) {
+      for (ByteWorldDraw buffered in bufferDraws) {
+        _byteWorld.drawFromNetworkUpdate(buffered);
+      }
+      bufferDraws.clear();
+      for (ByteWorldDestruction buffered in bufferDestruction) {
+        _byteWorld.clearAt(Vec2.fromProto(buffered.position), buffered.radius);
+      }
+      bufferDestruction.clear();
+    }
+  }
+
   setState(LoaderState state, [String? message = null]) {
     if (_STATE_PRECONDITIONS.containsKey(state)) {
       _STATE_PRECONDITIONS[state](_localStorage);
     }
     if (_currentState != state) {
       log.info("Loader state changes from $_currentState to $state");
+      if (_currentState == LoaderState.COMPUTING_BYTE_WORLD &&
+         state == LoaderState.LOADING_ENTERING_GAME) {
+          _applyBufferedByteWorldOperations();
+      }
     }
     this._currentState = state;
     if (message == null) {

@@ -1,3 +1,4 @@
+import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -15,14 +16,16 @@ import 'dart:math';
 class Bot {
   static const WEAPON_CHANGE_TIME = 3.0;
   static const WEAPON_CHANGE_SKEW = 4.0;
+  static const CHANGE_TARGET_TIME = 3.0;
 
   final Logger log = new Logger('Bot');
-  GameState _gameState;
+  Network _network;
   SpriteIndex _spriteIndex;
   SelfPlayerInfoProvider _selfPlayerInfoProvider;
   late KeyState _localKeyState;
 
   double _weaponChangeTime = WEAPON_CHANGE_TIME;
+  double _changeTargetTime = CHANGE_TARGET_TIME;
   Random _random = new Random();
 
   LocalPlayerSprite? _controlledSprite = null;
@@ -31,7 +34,7 @@ class Bot {
   int _stuckFrames = 0;
   Vec2? _stuckAt = null;
 
-  Bot(this._gameState, this._spriteIndex, this._selfPlayerInfoProvider, KeyState localKeyState) {
+  Bot(this._network, this._spriteIndex, this._selfPlayerInfoProvider, KeyState localKeyState) {
     this._localKeyState = localKeyState;
   }
 
@@ -47,6 +50,7 @@ class Bot {
     _localKeyState.onKeyDown(KeyCodeDart.F);
   
     _weaponChangeTime -= duration;
+    _changeTargetTime -= duration;
     if (_weaponChangeTime < 0.0) {
       _localKeyState.onKeyDown(KeyCodeDart.Q);
       _localKeyState.onKeyUp(KeyCodeDart.Q);
@@ -67,11 +71,12 @@ class Bot {
 
   void _maybeJump() {
     Vec2 stuck = _stuckAt! - _controlledSprite!.position;
-    if (stuck.sum() < 3) {
+    if (stuck.sum() < 10) {
       _stuckFrames++;
     } else {
       _stuckFrames = 0;
       _localKeyState.onKeyUp(KeyCodeDart.W);
+      _stuckAt = _controlledSprite!.position;
     }
 
     if (_stuckFrames > 7) {
@@ -88,25 +93,33 @@ class Bot {
       }
     }
     if (_currentTargetSprite == null) {
-      LocalPlayerSprite? selectedSprite = null;
-      double shortestDistance = double.infinity;
-      for (PlayerInfoProto info in _gameState.playerInfoList()) {
-        LocalPlayerSprite? candidate = _spriteIndex[info.spriteId] as LocalPlayerSprite?;
-        if (candidate == null || !candidate.inGame()
-            || candidate.networkId == _controlledSprite!.networkId) {
-          continue;
-        }
-        double dst = _controlledSprite!.distanceTo(candidate);
-        if (dst < shortestDistance) {
-          shortestDistance = dst;
-          selectedSprite = candidate;
-        }
+      _currentTargetSprite = _findNewTarget();
+      if (_currentTargetSprite != null) {
+        log.info("Selected target ${_currentTargetSprite}");
       }
-      if (selectedSprite != null) {
-        log.info("Selected target ${selectedSprite}");
-        _currentTargetSprite = selectedSprite;
+    } else if (_changeTargetTime < 0) {
+      _changeTargetTime += CHANGE_TARGET_TIME;
+      _currentTargetSprite = _findNewTarget();
+    }
+  }
+
+  LocalPlayerSprite? _findNewTarget() {
+    LocalPlayerSprite? selectedSprite = null;
+    double shortestDistance = double.infinity;
+    for (PlayerInfoProto info in _network.getGameState().playerInfoList()) {
+      LocalPlayerSprite? candidate = _spriteIndex[info
+          .spriteId] as LocalPlayerSprite?;
+      if (candidate == null || !candidate.inGame()
+          || candidate.networkId == _controlledSprite!.networkId) {
+        continue;
+      }
+      double dst = _controlledSprite!.distanceTo(candidate);
+      if (dst < shortestDistance) {
+        shortestDistance = dst;
+        selectedSprite = candidate;
       }
     }
+    return selectedSprite;
   }
 
   void _aimUp() {

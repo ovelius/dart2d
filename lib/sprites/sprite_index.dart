@@ -79,7 +79,7 @@ class SpriteIndex {
       world.adjustPlayerSprite(sprite as LocalPlayerSprite, data.imageId);
     }
     int spawnSound = data.spawnSound;
-    if (spawnSound >= 0 && spawnSound < Sound.values.length) {
+    if (spawnSound > 0 && spawnSound < Sound.values.length) {
       sprite.spawn_sound = Sound.values[spawnSound];
     }
     sprite.networkType = NetworkType.REMOTE;

@@ -2,11 +2,11 @@ import 'dart:js_interop';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart';
-import 'package:web/helpers.dart';
+import 'package:web/web.dart';
+import 'package:dart2d/net/state_updates.pb.dart';
 
 /**
  * Represents the destructable world.
@@ -145,10 +145,6 @@ class ByteWorld {
     bedrockCanvas.context2D.putImageData(newData, startX, 0);
   }
 
-  bool initialized() {
-    return canvas != null;
-  }
-
   Uint8ClampedList getImageData(Vec2 pos, Vec2 size) {
     return canvas!.context2D.getImageData(pos.x.toInt(), pos.y.toInt(), size.x.toInt(), size.y.toInt()).data.toDart;
   }
@@ -195,6 +191,13 @@ class ByteWorld {
     return canvas!.toDataUrl("image/png");
   }
 
+  drawFromNetworkUpdate(ByteWorldDraw data) {
+    Vec2 pos = Vec2.fromProto(data.position);
+    Vec2 size = Vec2.fromProto(data.size);
+    String colorString = data.color;
+    fillRectAt(pos, size, colorString);
+  }
+
   fillRectAt(Vec2 pos, Vec2 size, String colorString) {
     canvas!.context2D
       ..save();
@@ -222,7 +225,7 @@ class ByteWorld {
   }
 
   Vec2 randomNotSolidPoint(Vec2 sizeOffset) {
-    assert(initialized());
+    assert(byteWorldReady());
     Vec2? point = null;
     Random r = Random();
     for (int i = 0; i < 50; i++) {

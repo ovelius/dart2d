@@ -22,6 +22,12 @@ class PowerupManager {
     log.info("Created PowerupManager spawning every ${POWERUP_SPAWN_TIME} seconds");
   }
 
+  void reset() {
+    for (Powerup p in activePowerups) {
+      p.remove = true;
+    }
+  }
+
   void frame(double duration) {
     _nextPowerupin -= duration;
     if (_nextPowerupin < 0) {
@@ -41,8 +47,7 @@ class PowerupManager {
   }
 
   void addNewRandomPowerup() {
-    PowerUpType type =
-        PowerUpType.values[new Random().nextInt(PowerUpType.values.length)];
+    PowerUpType type = PowerUpType.values[new Random().nextInt(PowerUpType.values.length)];
     Powerup p = new Powerup(_byteWorld.randomNotSolidPoint(
         Powerup.SIZE_OFFSET), type, _imageIndex);
     _spriteIndex.addSprite(p);

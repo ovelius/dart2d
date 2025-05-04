@@ -223,10 +223,10 @@ class WormWorld extends World {
       if (loader.loadedAsServer()) {
         startAsServer();
         loader.markCompleted();
-        _gaReporter.reportEvent("server", "StartType");
+        _gaReporter.reportEvent("new game", "StartType");
       } else if (loader.hasGameState()) {
         loader.markCompleted();
-        _gaReporter.reportEvent("client", "StartType");
+        _gaReporter.reportEvent("join game", "StartType");
       } else {
         // Tick the loader.
         loader.loaderTick(duration);
@@ -240,7 +240,7 @@ class WormWorld extends World {
       restart = false;
     }
 
-    assert(byteWorld.initialized());
+    assert(byteWorld.byteWorldReady());
 
     // Count the draw FPS before adjusting the duration.
     if (duration >= 0.041 && slowDown) {
@@ -250,6 +250,7 @@ class WormWorld extends World {
     int frames = advanceFrames(duration);
 
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
+      // TODO move out of the loop.
       List<StateUpdate> particles = [];
      if (sprite is Particles && sprite.sendToNetwork) {
        particles.add(StateUpdate()..particleEffects = sprite.toNetworkUpdate());
@@ -332,6 +333,7 @@ class WormWorld extends World {
           spriteIndex.clear();
           _winTime = 10.0;
           byteWorld.reset();
+          _powerupManager.reset();
           network().getGameState().reset();
           network().resetGameConnections();
           _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
@@ -620,13 +622,6 @@ class WormWorld extends World {
       ..velocity = velocity.toProto()
       ..radius = radius
       ..damage = damage;
-  }
-
-  drawFromNetworkUpdate(ByteWorldDraw data) {
-    Vec2 pos = Vec2.fromProto(data.position);
-    Vec2 size = Vec2.fromProto(data.size);
-    String colorString = data.color;
-    fillRectAt(pos, size, colorString, true);
   }
 
   ByteWorldDraw drawAsNetworkUpdate(Vec2 pos, Vec2 size, String colorString) {
