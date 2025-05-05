@@ -192,7 +192,6 @@ class Loader {
 
   void _advanceConnectionStage(double duration) {
     if (!_peerWrapper.connectedToServer()) {
-      print("not connnceted ${_peerWrapper.id}!");
       if (_peerWrapper.getLastError() != null) {
         this._currentState =  LoaderState.ERROR;
         this._currentMessage = "ERROR: ${_peerWrapper.getLastError()}";

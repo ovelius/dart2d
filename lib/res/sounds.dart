@@ -25,6 +25,10 @@ enum Sound {
   SWOSH("swosh.mp3"),
   // Oh comes from https://freesound.org/people/balloonhead/
   OW("ow.ogg"),
+  // Coin sound from https://freesound.org/people/Phenala/.
+  POWERUP("powerup.mp3"),
+  // This is a version of the powerup sound from
+  // https://freesound.org/people/AbbasGamez/
   JUMP("jump.mp3");
 
   const Sound(this.url);
@@ -39,9 +43,13 @@ class Sounds {
   Map<String, HTMLAudioElement> _uniquePlays = {};
   SoundFactory _soundFactory;
 
+  bool soundEnabled = true;
+
   Sounds(this._soundFactory);
 
   Future playSound(Sound sound, {double volume = 1.0, bool multiPlay = false, String? playId = null}) {
+    if (!soundEnabled) return Future.value(null);
+
     HTMLAudioElement? audioElement = _getSound(sound, multiPlay);
     if (audioElement != null) {
       if (playId != null) {
@@ -58,6 +66,8 @@ class Sounds {
   }
 
   stopPlayId(String playId) {
+    if (!soundEnabled) return;
+
     HTMLAudioElement? existing = _uniquePlays[playId];
     if (existing != null) {
       if (!existing.paused) {

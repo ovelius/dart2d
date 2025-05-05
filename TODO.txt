@@ -1,10 +1,13 @@
+1) TURN support
+2) Chunk helper max size 2 kB..
 3) Disconnect non commanding peers from server - connect via commander.
 7) Handle ICE disconnect instead of failed?
 9) Work I Safari/iOS.
 
 Gameplay:
- - Icon weapon switching.
+ - Icon wheel weapon switching.
  - Blowtorch weapon
  - Space world
  - zoom out when killed, zoom in when re-spawning (hint!)
- - Sounds!
+ - Sounds complete...
+ - Random powerups

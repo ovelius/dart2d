@@ -41,6 +41,18 @@ void main() {
     expect(fakeSoundFactory.getCreatedAudioElements(Sound.BUZZ), 1);
   });
 
+  test('soundDisabled_nothingPlays', () async {
+    sounds.preloadSounds();
+    await fakeSoundFactory.loadAllAudio();
+    sounds.soundEnabled = false;
+
+    await sounds.playSound(Sound.BUZZ);
+    await sounds.playSound(Sound.BUZZ);
+
+    expect(fakeSoundFactory.getTotalPlayOuts(Sound.BUZZ), 0);
+    expect(fakeSoundFactory.getCreatedAudioElements(Sound.BUZZ), 1);
+  });
+
 
   test('playMultipleSounds_playsDifferentElement', () async {
     sounds.preloadSounds();

@@ -5,16 +5,19 @@ import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:injectable/injectable.dart';
 import 'package:web/web.dart';
+import 'package:logging/logging.dart' show Logger;
 import 'dart:math';
-import 'util.dart';
+import 'package:dart2d/res/sounds.dart';
 
 @Singleton(scope: 'world')
 class MobileControls {
+  final Logger log = new Logger('MobileControls');
   static const int BUTTON_SIZE = 50;
   static const int NO_BUTTON_TOUCH = -1;
   late bool _isTouchSupported;
   late KeyState _localKeyState;
   Bot _bot;
+  Sounds sounds;
   late String _botNameIfEnabled;
   ConfigParams _configParams;
   late int _width, _height;
@@ -34,6 +37,7 @@ class MobileControls {
       this._selfPlayerInfoProvider,
       this._configParams,
       this._bot,
+      this.sounds,
       HtmlScreen screen,
       KeyState localKeyState,
       @Named(TOUCH_SUPPORTED) bool touchSupported,
@@ -66,6 +70,9 @@ class MobileControls {
 
     _buttons.add(new Point(thirdX * 2 + xDiff + xDiff, BUTTON_SIZE));
     _buttonToKey[4] = KeyCodeDart.Q;
+
+    // Sound button!
+    _buttons.add(new Point((_width / 2).toInt(), _height - 20));
   }
 
   draw(double duration) {
@@ -88,7 +95,8 @@ class MobileControls {
         }
       }
       _canvas.save();
-      for (int i = 0; i < _buttons.length; i++) {
+      // Don't draw last button.
+      for (int i = 0; i < _buttons.length -1; i++) {
         Point<int> btn = _buttons[i];
         if (buttonIsDown(i)) {
           _canvas.fillStyle = "rgb(255, 255, 255, 0.3)".toJS;
@@ -101,6 +109,11 @@ class MobileControls {
         _canvas.fill();
       }
       _canvas.restore();
+
+      _canvas.font = '24pt Calibri';
+      String sound = sounds.soundEnabled ? "🔊" : "🔇";
+      TextMetrics metrics = _canvas.measureText(sound);
+      _canvas.fillText(sound, _width / 2 - metrics.width/2, _height - 20);
     }
   }
 
@@ -125,9 +138,15 @@ class MobileControls {
       Point<int> btn = _buttons[i];
       if (x >= btn.x - BUTTON_SIZE && x <= btn.x + BUTTON_SIZE) {
         if (y >= btn.y - BUTTON_SIZE && y <= btn.y + BUTTON_SIZE) {
-          _touchIdToButtonDown[id] = i;
-          _buttonIdToTouchId[i] = id;
-          _localKeyState.onKeyDown(_buttonToKey[i]!);
+          if (_buttonToKey.containsKey(i)) {
+            _buttonIdToTouchId[i] = id;
+            _touchIdToButtonDown[id] = i;
+            _localKeyState.onKeyDown(_buttonToKey[i]!);
+          } else {
+            // Special sound button.
+            sounds.soundEnabled = !sounds.soundEnabled;
+            log.info("Sound enabled ${sounds.soundEnabled}");
+          }
           buttonFound = true;
         }
       }
@@ -142,7 +161,7 @@ class MobileControls {
 
   void touchUp(int id) {
     int? index = _touchIdToButtonDown.remove(id);
-    if (index != NO_BUTTON_TOUCH) {
+    if (index != NO_BUTTON_TOUCH && _buttonToKey.containsKey(index)) {
       _localKeyState.onKeyUp(_buttonToKey[index]!);
     }
     _buttonIdToTouchId.remove(index);
