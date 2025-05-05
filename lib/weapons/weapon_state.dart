@@ -16,7 +16,6 @@ class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = .9;
   WormWorld world;
-  //KeyState keyState;
   LocalPlayerSprite owner;
   Sprite gun;
   
@@ -64,8 +63,8 @@ class WeaponState {
         sprite.spriteType = SpriteType.RECT;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
-        sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
-        sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
+        sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 4;
+        sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 4;
         // Add recoil in y axis only.
         weaponState.owner.velocity.y -= sprite.velocity.y * 0.1;
 
@@ -117,8 +116,8 @@ class WeaponState {
       position.y += sin(weaponState.gun.angle) * gunRadius;
       Particles p = new Particles(
           weaponState.world,
-          null, position, vel.multiply(200.0),
-          null, 8.0, 5, 45, -0.3, ParticleEffects_ParticleType.FIRE);
+          null, position, vel.multiply(300.0),
+          null, 10.0, 5, 65, -0.3, ParticleEffects_ParticleType.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;

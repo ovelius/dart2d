@@ -383,6 +383,7 @@ class LocalPlayerSprite extends MovingSprite {
               this, new Vec2.copy(this.position), new Vec2(0, velocity.y + 50),
               new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, ParticleEffects_ParticleType.SODA);
           _jetParticles!.sendToNetwork = true;
+          _jetParticles!.spawn_sound = Sound.FIZZ;
           world.addSprite(_jetParticles!);
         }
       } else if (onGround) {
