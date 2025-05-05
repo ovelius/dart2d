@@ -147,6 +147,7 @@ const ResourceRequest$json = {
     {'1': 'resource_index', '3': 1, '4': 1, '5': 5, '10': 'resourceIndex'},
     {'1': 'start_byte', '3': 2, '4': 1, '5': 5, '10': 'startByte'},
     {'1': 'end_byte', '3': 3, '4': 1, '5': 5, '10': 'endByte'},
+    {'1': 'multiply', '3': 4, '4': 1, '5': 5, '10': 'multiply'},
   ],
 };
 
@@ -154,7 +155,7 @@ const ResourceRequest$json = {
 final $typed_data.Uint8List resourceRequestDescriptor = $convert.base64Decode(
     'Cg9SZXNvdXJjZVJlcXVlc3QSJQoOcmVzb3VyY2VfaW5kZXgYASABKAVSDXJlc291cmNlSW5kZX'
     'gSHQoKc3RhcnRfYnl0ZRgCIAEoBVIJc3RhcnRCeXRlEhkKCGVuZF9ieXRlGAMgASgFUgdlbmRC'
-    'eXRl');
+    'eXRlEhoKCG11bHRpcGx5GAQgASgFUghtdWx0aXBseQ==');
 
 @$core.Deprecated('Use byteWorldDestructionDescriptor instead')
 const ByteWorldDestruction$json = {

@@ -100,6 +100,8 @@ message ResourceRequest {
   optional int32 resource_index = 1;
   optional int32 start_byte = 2;
   optional int32 end_byte = 3;
+  // Consider this request multiple times.
+  optional int32 multiply = 4;
 }
 
 // Clear part of the ByteWorld.

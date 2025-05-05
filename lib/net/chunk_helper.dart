@@ -9,6 +9,8 @@ import 'package:dart2d/res/imageindex.dart';
 import 'dart:math';
 import 'dart:async';
 
+import 'package:protobuf/protobuf.dart';
+
 @Singleton(scope:'world')
 class ChunkHelper {
   final Logger log = new Logger('ChunkHelper');
@@ -85,6 +87,17 @@ class ChunkHelper {
       ..size = data.length;
 
     connection.sendSingleUpdate(StateUpdate()..resourceResponse = response);
+
+    // Send more data immediately.
+    if (request.multiply > 0 && end < data.length) {
+      int size = (request.endByte - request.startByte);
+      ResourceRequest newRequest = ResourceRequest()
+        ..resourceIndex = request.resourceIndex
+        ..multiply = request.multiply -1
+        ..startByte = request.endByte
+        ..endByte = request.endByte + size;
+      replyWithImageData(newRequest, connection);
+    }
   }
 
   String _getData(int index, var connection) {

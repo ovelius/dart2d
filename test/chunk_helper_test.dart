@@ -100,6 +100,48 @@ void main() {
             ..stateUpdate.add(StateUpdate()..resourceResponse = response2)));
     });
 
+    test('Reply with multiple responses', () {
+      int requestedIndex = 5;
+      when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+      when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
+      helper.replyWithImageData(ResourceRequest()
+        ..resourceIndex = requestedIndex
+          ..startByte = 0
+          ..endByte = 1
+          ..multiply = 2
+          , connection1);
+      // Default chunk size.
+
+      ResourceResponse req1 = ResourceResponse()
+        ..resourceIndex = 5
+        ..startByte = 0
+        ..data = utf8.encode(IMAGE_DATA.substring(0, 1))
+        ..size = 50;
+      ResourceResponse req2 = ResourceResponse()
+        ..resourceIndex = 5
+        ..startByte = 1
+        ..data = utf8.encode(IMAGE_DATA.substring(1, 2))
+        ..size = 50;
+      ResourceResponse req3 = ResourceResponse()
+        ..resourceIndex = 5
+        ..startByte = 2
+        ..data = utf8.encode(IMAGE_DATA.substring(2, 3))
+        ..size = 50;
+      expect(
+          connection1.dataSent,
+          equals([
+              GameStateUpdates()
+                ..stateUpdate.add(
+                    StateUpdate()..resourceResponse = req1),
+            GameStateUpdates()
+              ..stateUpdate.add(
+                  StateUpdate()..resourceResponse = req2),
+            GameStateUpdates()
+              ..stateUpdate.add(
+                  StateUpdate()..resourceResponse = req3)]
+          ));
+    });
+
     test('Test single load', () {
       int requestedIndex = 6;
       when(imageIndex.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
@@ -217,6 +259,7 @@ void main() {
       expect(connection1.sendCount, equals(9));
       expect(helper.failuresByConnection(), equals({"a": 6}));
     });
+
     test('Test with byteworld state', () {
       int requestedIndex = ImageIndex.WORLD_IMAGE_INDEX;
       Map<String, ConnectionWrapper> connections = {"1": connection1};

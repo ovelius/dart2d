@@ -761,6 +761,7 @@ class ResourceRequest extends $pb.GeneratedMessage {
     $core.int? resourceIndex,
     $core.int? startByte,
     $core.int? endByte,
+    $core.int? multiply,
   }) {
     final $result = create();
     if (resourceIndex != null) {
@@ -772,6 +773,9 @@ class ResourceRequest extends $pb.GeneratedMessage {
     if (endByte != null) {
       $result.endByte = endByte;
     }
+    if (multiply != null) {
+      $result.multiply = multiply;
+    }
     return $result;
   }
   ResourceRequest._() : super();
@@ -782,6 +786,7 @@ class ResourceRequest extends $pb.GeneratedMessage {
     ..a<$core.int>(1, _omitFieldNames ? '' : 'resourceIndex', $pb.PbFieldType.O3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'startByte', $pb.PbFieldType.O3)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'endByte', $pb.PbFieldType.O3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'multiply', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -833,6 +838,16 @@ class ResourceRequest extends $pb.GeneratedMessage {
   $core.bool hasEndByte() => $_has(2);
   @$pb.TagNumber(3)
   void clearEndByte() => clearField(3);
+
+  /// Consider this request multiple times.
+  @$pb.TagNumber(4)
+  $core.int get multiply => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set multiply($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasMultiply() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMultiply() => clearField(4);
 }
 
 /// Clear part of the ByteWorld.
