@@ -1,5 +1,6 @@
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
@@ -115,6 +116,9 @@ class Powerup extends MovingSprite {
     if (other is LocalPlayerSprite) {
       dynamic action = _ACTIONS[_type];
       action(this, other);
+      if (remove) {
+        other.world.playSoundAtSprite(this, Sound.POWERUP);
+      }
     }
     if (direction != null) {
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {

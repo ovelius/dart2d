@@ -120,9 +120,11 @@ class Hyper extends WorldDamageProjectile {
       _nextSound += SOUND_LOOP;
       world.playSoundAtSprite(this, Sound.BUZZ, playSpriteId: true);
     }
-    for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
-      if (damageSprite.takesDamage()) {
-        damageSprite.takeDamage(damage, owner!, Mod.HYPER);
+    if (owner != null) {
+      for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
+        if (damageSprite.takesDamage()) {
+          damageSprite.takeDamage(damage, owner!, Mod.HYPER);
+        }
       }
     }
     super.frame(duration, frameStep, gravity);

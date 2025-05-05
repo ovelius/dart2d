@@ -56,6 +56,7 @@ class WormWorld extends World {
 
   late int _width, _height;
   double explosionFlash = 0.0;
+  bool soundEnabled = true;
 
   WormWorld(
       this._network,
@@ -249,17 +250,17 @@ class WormWorld extends World {
     }
     int frames = advanceFrames(duration);
 
+    List<StateUpdate> particles = [];
+
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
-      // TODO move out of the loop.
-      List<StateUpdate> particles = [];
      if (sprite is Particles && sprite.sendToNetwork) {
        particles.add(StateUpdate()..particleEffects = sprite.toNetworkUpdate());
      }
-     if (particles.isNotEmpty) {
-       // TODO: Make part of main network loop instead.
-       _network.peer.sendDataWithKeyFramesToAll(GameStateUpdates()
-           ..stateUpdate.addAll(particles));
-     }
+    }
+    if (particles.isNotEmpty) {
+      // TODO: Make part of main network loop instead.
+      _network.peer.sendDataWithKeyFramesToAll(GameStateUpdates()
+        ..stateUpdate.addAll(particles));
     }
 
     _canvas.fillStyle = "rgb(135,206,250)".toJS;
@@ -288,7 +289,7 @@ class WormWorld extends World {
     }
   
    byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
-    _canvas.restore();
+   _canvas.restore();
 
     for (int networkId in spriteIndex.spriteIds()) {
       MovingSprite sprite = spriteIndex[networkId] as MovingSprite;
@@ -311,7 +312,6 @@ class WormWorld extends World {
       _canvas.fillRect(0, 0, _width, _height);
       explosionFlash -= duration * 5;
     }
-
     if (playerSprite != null) {
       if (controlHelperTime > 0) {
         drawControlHelper(

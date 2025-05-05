@@ -119,7 +119,11 @@ void drawWinView(CanvasRenderingContext2D context,
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   GameState gameState = world.network().getGameState();
-  PlayerInfoProto winner = gameState.playerInfoByConnectionId(gameState.gameStateProto.winnerPlayerId)!;
+  PlayerInfoProto? winner = gameState.playerInfoByConnectionId(gameState.gameStateProto.winnerPlayerId);
+  if (winner == null) {
+    log.warning("Winner no longer in game, can't render scorescreen");
+    return;
+  }
   LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
   HTMLImageElement img = imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
@@ -163,13 +167,13 @@ void drawKilledView(CanvasRenderingContext2D context,
   }
   // This can be null.
   LocalPlayerSprite? killerSprite = spriteIndex[killer.spriteId] as LocalPlayerSprite?;
-  HTMLImageElement img = imageIndex.getImageById(killerSprite!.imageId);
+  HTMLImageElement? img = killerSprite == null ? null : imageIndex.getImageById(killerSprite.imageId);
   context.font = "${_textSize}px Arial";
   String text = "You were killed by ${killer.name}";
   var metrics = context.measureText(text);
 
   context.fillStyle = "rgb(255, 255, 255, 0.7)".toJS;
-  double messageLength =  metrics.width + killerSprite.size.x;
+  double messageLength =  metrics.width + (killerSprite == null ? 0 : killerSprite.size.x);
   if (messageLength > width) {
     // OOps we are larger than screen. Reduce text size for next frame.
     _textSize -= 2;
@@ -178,13 +182,19 @@ void drawKilledView(CanvasRenderingContext2D context,
   double y = height / 3;
   context.fillText(text, x, y);
 
-  double frameWidth = (img.width / killerSprite.frames);
-  context.drawImage(
-      img,
-      0, 0,
-      frameWidth, img.height,
-      x + metrics.width,  y - killerSprite.size.y - _textSize / 2,
-      killerSprite.size.x * 2, killerSprite.size.y * 2);
+  if (img != null && killerSprite != null) {
+    double frameWidth = (img.width / killerSprite.frames);
+    context.drawImage(
+        img,
+        0,
+        0,
+        frameWidth,
+        img.height,
+        x + metrics.width,
+        y - killerSprite.size.y - _textSize / 2,
+        killerSprite.size.x * 2,
+        killerSprite.size.y * 2);
+  }
 
 }
 
