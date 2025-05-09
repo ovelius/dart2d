@@ -29,6 +29,7 @@ List<String> GAME_SOURCES = [
   "powerup.png",
   "powerup_swiwel.png",
   "soda.png",
+  "snails.png",
   "shieldi02.png",
   "health02.png",
   "zooka.png",
