@@ -139,6 +139,7 @@ enum StateUpdate_Update {
   resourceResponse, 
   commanderMapSelected, 
   playSound, 
+  negotiation, 
   notSet
 }
 
@@ -165,6 +166,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ResourceResponse? resourceResponse,
     $core.String? commanderMapSelected,
     PlaySound? playSound,
+    WebRtcNegotiationProto? negotiation,
   }) {
     final $result = create();
     if (dataReceipt != null) {
@@ -230,6 +232,9 @@ class StateUpdate extends $pb.GeneratedMessage {
     if (playSound != null) {
       $result.playSound = playSound;
     }
+    if (negotiation != null) {
+      $result.negotiation = negotiation;
+    }
     return $result;
   }
   StateUpdate._() : super();
@@ -257,10 +262,11 @@ class StateUpdate extends $pb.GeneratedMessage {
     20 : StateUpdate_Update.resourceResponse,
     21 : StateUpdate_Update.commanderMapSelected,
     22 : StateUpdate_Update.playSound,
+    23 : StateUpdate_Update.negotiation,
     0 : StateUpdate_Update.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StateUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22])
+    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23])
     ..a<$core.int>(1, _omitFieldNames ? '' : 'dataReceipt', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'userMessage')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'spriteRemoval', $pb.PbFieldType.O3)
@@ -282,6 +288,7 @@ class StateUpdate extends $pb.GeneratedMessage {
     ..aOM<ResourceResponse>(20, _omitFieldNames ? '' : 'resourceResponse', subBuilder: ResourceResponse.create)
     ..aOS(21, _omitFieldNames ? '' : 'commanderMapSelected')
     ..aOM<PlaySound>(22, _omitFieldNames ? '' : 'playSound', subBuilder: PlaySound.create)
+    ..aOM<WebRtcNegotiationProto>(23, _omitFieldNames ? '' : 'negotiation', subBuilder: WebRtcNegotiationProto.create)
     ..hasRequiredFields = false
   ;
 
@@ -533,6 +540,111 @@ class StateUpdate extends $pb.GeneratedMessage {
   void clearPlaySound() => clearField(22);
   @$pb.TagNumber(22)
   PlaySound ensurePlaySound() => $_ensure(20);
+
+  @$pb.TagNumber(23)
+  WebRtcNegotiationProto get negotiation => $_getN(21);
+  @$pb.TagNumber(23)
+  set negotiation(WebRtcNegotiationProto v) { setField(23, v); }
+  @$pb.TagNumber(23)
+  $core.bool hasNegotiation() => $_has(21);
+  @$pb.TagNumber(23)
+  void clearNegotiation() => clearField(23);
+  @$pb.TagNumber(23)
+  WebRtcNegotiationProto ensureNegotiation() => $_ensure(21);
+}
+
+class WebRtcNegotiationProto extends $pb.GeneratedMessage {
+  factory WebRtcNegotiationProto({
+    WebRtcDanceProto? danceProto,
+    $core.String? src,
+    $core.String? dst,
+    $core.String? type,
+  }) {
+    final $result = create();
+    if (danceProto != null) {
+      $result.danceProto = danceProto;
+    }
+    if (src != null) {
+      $result.src = src;
+    }
+    if (dst != null) {
+      $result.dst = dst;
+    }
+    if (type != null) {
+      $result.type = type;
+    }
+    return $result;
+  }
+  WebRtcNegotiationProto._() : super();
+  factory WebRtcNegotiationProto.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WebRtcNegotiationProto.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WebRtcNegotiationProto', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
+    ..aOM<WebRtcDanceProto>(1, _omitFieldNames ? '' : 'danceProto', subBuilder: WebRtcDanceProto.create)
+    ..aOS(2, _omitFieldNames ? '' : 'src')
+    ..aOS(3, _omitFieldNames ? '' : 'dst')
+    ..aOS(4, _omitFieldNames ? '' : 'type')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WebRtcNegotiationProto clone() => WebRtcNegotiationProto()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WebRtcNegotiationProto copyWith(void Function(WebRtcNegotiationProto) updates) => super.copyWith((message) => updates(message as WebRtcNegotiationProto)) as WebRtcNegotiationProto;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WebRtcNegotiationProto create() => WebRtcNegotiationProto._();
+  WebRtcNegotiationProto createEmptyInstance() => create();
+  static $pb.PbList<WebRtcNegotiationProto> createRepeated() => $pb.PbList<WebRtcNegotiationProto>();
+  @$core.pragma('dart2js:noInline')
+  static WebRtcNegotiationProto getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WebRtcNegotiationProto>(create);
+  static WebRtcNegotiationProto? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WebRtcDanceProto get danceProto => $_getN(0);
+  @$pb.TagNumber(1)
+  set danceProto(WebRtcDanceProto v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDanceProto() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDanceProto() => clearField(1);
+  @$pb.TagNumber(1)
+  WebRtcDanceProto ensureDanceProto() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get src => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set src($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSrc() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSrc() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get dst => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set dst($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDst() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDst() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get type => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set type($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearType() => clearField(4);
 }
 
 class PlaySound extends $pb.GeneratedMessage {
@@ -1925,6 +2037,8 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     ExtraSpriteData? extraSpriteData,
     ExtraSpriteData? commanderToOwnerData,
     $core.int? spawnSound,
+    $core.int? removeSound,
+    $core.int? lockedFrame,
   }) {
     final $result = create();
     if (spriteId != null) {
@@ -1972,6 +2086,12 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     if (spawnSound != null) {
       $result.spawnSound = spawnSound;
     }
+    if (removeSound != null) {
+      $result.removeSound = removeSound;
+    }
+    if (lockedFrame != null) {
+      $result.lockedFrame = lockedFrame;
+    }
     return $result;
   }
   SpriteUpdate._() : super();
@@ -1994,6 +2114,8 @@ class SpriteUpdate extends $pb.GeneratedMessage {
     ..aOM<ExtraSpriteData>(13, _omitFieldNames ? '' : 'extraSpriteData', subBuilder: ExtraSpriteData.create)
     ..aOM<ExtraSpriteData>(14, _omitFieldNames ? '' : 'commanderToOwnerData', subBuilder: ExtraSpriteData.create)
     ..a<$core.int>(15, _omitFieldNames ? '' : 'spawnSound', $pb.PbFieldType.O3)
+    ..a<$core.int>(16, _omitFieldNames ? '' : 'removeSound', $pb.PbFieldType.O3)
+    ..a<$core.int>(17, _omitFieldNames ? '' : 'lockedFrame', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -2164,6 +2286,7 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   ExtraSpriteData ensureCommanderToOwnerData() => $_ensure(13);
 
   /// Play this sound when sprite is added to world.
+  /// Will be paused when sprite is removed.
   @$pb.TagNumber(15)
   $core.int get spawnSound => $_getIZ(14);
   @$pb.TagNumber(15)
@@ -2172,6 +2295,27 @@ class SpriteUpdate extends $pb.GeneratedMessage {
   $core.bool hasSpawnSound() => $_has(14);
   @$pb.TagNumber(15)
   void clearSpawnSound() => clearField(15);
+
+  /// Play this sound when sprite is removed from the world.
+  @$pb.TagNumber(16)
+  $core.int get removeSound => $_getIZ(15);
+  @$pb.TagNumber(16)
+  set removeSound($core.int v) { $_setSignedInt32(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasRemoveSound() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearRemoveSound() => clearField(16);
+
+  /// If set, the image will be locked to only showing
+  /// this frame and not animate.
+  @$pb.TagNumber(17)
+  $core.int get lockedFrame => $_getIZ(16);
+  @$pb.TagNumber(17)
+  set lockedFrame($core.int v) { $_setSignedInt32(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasLockedFrame() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearLockedFrame() => clearField(17);
 }
 
 class ExtraSpriteData extends $pb.GeneratedMessage {

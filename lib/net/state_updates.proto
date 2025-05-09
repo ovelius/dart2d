@@ -70,7 +70,16 @@ message StateUpdate {
     string commander_map_selected = 21;
 
     PlaySound play_sound = 22;
+
+    WebRtcNegotiationProto negotiation = 23;
   }
+}
+
+message WebRtcNegotiationProto {
+  optional  WebRtcDanceProto dance_proto = 1;
+  optional string src = 2;
+  optional string dst = 3;
+  optional string type = 4;
 }
 
 message PlaySound {
@@ -251,7 +260,10 @@ message SpriteUpdate {
   // The Sprite constructor to run.
   optional int32 remote_representation = 6;
   // Play this sound when sprite is added to world.
+  // Will be paused when sprite is removed.
   optional int32 spawn_sound = 15;
+  // Play this sound when sprite is removed from the world.
+  optional int32 remove_sound = 16;
   // What type of ImageSprite this is.
   optional int32 sprite_type = 7;
 
@@ -259,6 +271,9 @@ message SpriteUpdate {
   optional int32 image_id = 8;
   // Animation frames of above image.
   optional int32 frames = 9;
+  // If set, the image will be locked to only showing
+  // this frame and not animate.
+  optional int32 locked_frame = 17;
 
   // Or color.
   optional string color = 10;
