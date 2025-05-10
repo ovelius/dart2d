@@ -29,6 +29,8 @@ enum Sound {
   POWERUP("powerup.mp3"),
   // From https://freesound.org/people/jwsoundfoley/
   FIZZ("fizz.ogg"),
+  // From https://freesound.org/people/kyles/.
+  BURN("burn.ogg"),
   // This is a version of the powerup sound from
   // https://freesound.org/people/AbbasGamez/
   JUMP("jump.mp3");

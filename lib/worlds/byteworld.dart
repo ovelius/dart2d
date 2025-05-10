@@ -105,6 +105,8 @@ class ByteWorld {
     Uint8ClampedList newDataArr = newData.data.toDart;
     for (int i = 0; i < (data.length ~/ 4); i++) {
       int p = i * 4;
+      // Brownish color.
+      // #3b2e01
       if (data[p] == 59 && data[p + 1] == 46 && data[p + 2] == 1) {
         newDataArr[p] = data[p];
         newDataArr[p + 1] = data[p + 1];

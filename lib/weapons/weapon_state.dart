@@ -117,12 +117,36 @@ class WeaponState {
       Particles p = new Particles(
           weaponState.world,
           null, position, vel.multiply(300.0),
-          null, 10.0, 5, 65, -0.3, ParticleEffects_ParticleType.FIRE);
+          radius: 10.0, count: 5, lifeTime: 65, shrinkPerStep:-0.3, particleType: ParticleEffects_ParticleType.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;
       p.damage = 5;
+      p.spawn_sound = Sound.BURN;
       p.owner = weaponState.owner;
+      weaponState.world.addSprite(p);
+    }),
+    new Weapon("Snailgun", 4, 1.0, 0.3, (WeaponState weaponState) {
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 12, weaponState.owner.gun);
+      sprite.mod = Mod.SNAIL;
+      sprite.radius = 8.0;
+      sprite.owner = weaponState.owner;
+      sprite.worldCollide = false;
+      sprite.removeOutOfBounds = true;
+      sprite.gravityAffect = 0;
+      sprite.particlesOnExplode = false;
+      sprite.size = new Vec2(200.0/ 3, 130/5);
+      sprite.removeOnCollision = false;
+     // sprite.angle = 0.0;
+      sprite.velocity = sprite.velocity.multiply(1.0);
+      int frame = Random().nextInt(3);
+      sprite.setImageWithLockedFrame(weaponState.world.imageIndex().getImageIdByName("snails.png"), 3, frame);
+
+      Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2),
+          count: 60, lifeTime: 80);
+      p.sendToNetwork = true;
+      // The order is important here.
+      weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }),
     new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
@@ -134,7 +158,7 @@ class WeaponState {
       sprite.size = new Vec2(140.0 * 0.3, 129.0 * 0.3);
       sprite.angle = 0.0;
       sprite.velocity = sprite.velocity.multiply(0.2);
-      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 140);
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 2);
       weaponState.world.addSprite(sprite);
     }),
     /*
@@ -158,7 +182,7 @@ class WeaponState {
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.05;
       // sprite.velocity = sprite.velocity.multiply(0.2);
-      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("zooka.png"));
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("zooka.png"), 1);
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2));
       p.sendToNetwork = true;
       // The order is important here.

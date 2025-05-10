@@ -75,6 +75,7 @@ abstract class ServerChannel {
 
   void disconnect();
   void reconnect(String id);
+  bool isConnected();
 }
 
 abstract class ConnectionFactory {

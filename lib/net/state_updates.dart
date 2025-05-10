@@ -3,9 +3,6 @@ import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/movingsprite.dart';
 import 'package:dart2d/phys/vec2.dart';
-import 'package:dart2d/net/state_updates.dart';
-import 'package:dart2d/sprites/worm_player.dart';
-import 'dart:math';
 
 extension FindUpdate on GameStateUpdates {
   hasStateUpdate(StateUpdate_Update type) {
@@ -31,6 +28,9 @@ extension AttachCaseUniqueDataReceipt on StateUpdate {
   }
   void attachUniqueDataReceipt(ConnectionWrapper c) {
     dataReceipt = "${this.whichUpdate()}_${c.id}".hashCode;
+  }
+  void attachDataReceipt(String id) {
+    dataReceipt = "${this.whichUpdate()}_${id}".hashCode;
   }
 }
 
@@ -75,6 +75,9 @@ SpriteUpdate toSpriteUpdate(MovingSprite sprite, bool keyFrame) {
     }
     update.size = sprite.size.toProto();
     update.frames = sprite.frames;
+    if (sprite.lockFrame) {
+      update.lockedFrame = sprite.frameIndex;
+    }
     update.rotationVelocity = sprite.rotationVelocity;
   }
   update.extraSpriteData = sprite.addExtraNetworkData();
@@ -97,12 +100,16 @@ void intListToSpriteProperties(SpriteUpdate update, MovingSprite sprite) {
 void _addFullFrameData(MovingSprite sprite, SpriteUpdate data) {
   SpriteType type = SpriteType.values[data.spriteType];
   sprite.spriteType = type;
+  sprite.size = Vec2.fromProto(data.size);
+  sprite.frames = data.frames;
   if (type == SpriteType.IMAGE) {
-    sprite.setImage(data.imageId);
+    if (data.hasLockedFrame()) {
+      sprite.setImageWithLockedFrame(data.imageId, data.frames, data.lockedFrame);
+    } else {
+      sprite.setImage(data.imageId, data.frames);
+    }
   } else if (_colorSpriteTypes.contains(type)) {
     sprite.color = data.color;
   }
-  sprite.size = Vec2.fromProto(data.size);
-  sprite.frames = data.frames;
   sprite.rotationVelocity = data.rotationVelocity;
 }

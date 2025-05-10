@@ -102,11 +102,16 @@ class ConnectionWrapper {
   }
 
   void open() {
-    _hudMessages.display("Connection to ${id} open :)");
-    // Set the connection to current keyframe.
-    // A faulty connection will be dropped quite fast if it lags behind in keyframes.
-    _opened = true;
-    _connectionStats.open();
+    if (rtcConnection() == null) {
+      throw "Can't open connection if null";
+    }
+    if (!_opened) {
+      _hudMessages.display("Connection to ${id} open :)");
+      // Set the connection to current keyframe.
+      // A faulty connection will be dropped quite fast if it lags behind in keyframes.
+      _opened = true;
+      _connectionStats.open();
+    }
   }
 
   void connectToGame(String playerName, int playerImageId) {

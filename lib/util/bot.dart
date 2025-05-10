@@ -95,7 +95,7 @@ class Bot {
     if (_currentTargetSprite == null) {
       _currentTargetSprite = _findNewTarget();
       if (_currentTargetSprite != null) {
-        log.info("Selected target ${_currentTargetSprite}");
+        log.info("Selected target ${_currentTargetSprite} delta position: ${_controlledSprite!.position - _currentTargetSprite!.position}");
       }
     } else if (_changeTargetTime < 0) {
       _changeTargetTime += CHANGE_TARGET_TIME;

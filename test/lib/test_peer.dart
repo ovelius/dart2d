@@ -40,17 +40,33 @@ class TestServerChannel extends ServerChannel {
   }
 
   sendData(String dst, String type, String payload) {
+    if (!connectedToServer) {
+      throw "Trying to send data on $id which is not connected";
+    }
     TestServerChannel otherChannel = testPeers[dst]!;
-    Map<String, String> data = {};
+    if (!otherChannel.connectedToServer) {
+      throw "Trying to send data to $dst which is not connected";
+    }
+    Map<String, String> data = {
+      "src": id,
+      "dst": dst,
+      "type": type,
+      "payload": payload,
+    };
     otherChannel._streamController.add(data);
   }
 
   Future<List<String>> openAndReadExistingPeers() {
+    connectedToServer = true;
     return _existingPeers.future;
   }
 
   Stream<Map<String, String>> dataStream() {
     return _streamController.stream;
+  }
+
+  bool isConnected() {
+    return connectedToServer;
   }
 
   void disconnect() {
@@ -63,7 +79,7 @@ class TestServerChannel extends ServerChannel {
     return _streamController.stream;
   }
 
-  fakeIncomingConnection(String fromId) {
+  fakeIncomingConnection2(String fromId) {
     WebRtcDanceProto proto = WebRtcDanceProto()
        ..sdp = "fake sdp"
        ..candidates.add("fake candidate");

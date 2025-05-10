@@ -253,7 +253,7 @@ class RtcConnectionFactory extends ConnectionFactory {
         wrapper.error("ICE failed!");
       } else if (connection.iceConnectionState == 'disconnected') {
         // This technically not a final state...
-        wrapper.close("ICE disconnected");
+        log.warning("Got ICE disconnected on ${wrapper.id} ");
       } else {
         log.warning(
             "Unhandled ICE connection state ${connection.iceConnectionState}");

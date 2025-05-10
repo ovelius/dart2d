@@ -38,7 +38,7 @@ class RealGaReporter extends GaReporter {
 @Singleton(as: ServerChannel)
 class WebSocketServerChannel extends ServerChannel {
   late String id;
-  bool _ready = false;
+  bool _isConnected = false;
   StreamController<Map<String, String>> _eventStream = StreamController();
   Completer<List<String>> _existingPeers = Completer();
 
@@ -59,7 +59,7 @@ class WebSocketServerChannel extends ServerChannel {
     for (dynamic d in existing) {
       peers.add(Map<String, String>.from(d)["id"]!);
     }
-    _ready = true;
+    _isConnected = true;
     _existingPeers.complete(peers);
   }
 
@@ -78,6 +78,7 @@ class WebSocketServerChannel extends ServerChannel {
 
   void disconnect() {
     setFireBaseConnection(false);
+    _isConnected = false;
   }
 
   void reconnect(String id) {
@@ -87,7 +88,7 @@ class WebSocketServerChannel extends ServerChannel {
         this.signalingMessageReceived.toJS);
   }
 
-  bool ready() => _ready;
+  bool isConnected() => _isConnected;
 }
 
 @Injectable(as: ImageFactory)

@@ -30,7 +30,9 @@ class TestConnectionFactory extends ConnectionFactory {
   }
 
   void signalErrorAllConnections(String to) {
+    print("Object connections ${connections}");
     connections[to]?.values.forEach((c) {
+      print("Signaling error on ${c}");
       c.internalWrapper?.error("Test error");
     });
   }
@@ -68,15 +70,19 @@ class TestConnectionFactory extends ConnectionFactory {
     }
     if (expectPeerToExist) {
       TestServerChannel otherChannel = testPeers[otherPeerId]!;
-      otherChannel.fakeIncomingConnection(ourPeerId);
-      for (TestConnection otherEndConnection in otherChannel.connections) {
-        if (otherEndConnection.id == ourPeerId) {
-          c.setOtherEnd(otherEndConnection);
-          otherEndConnection.setOtherEnd(c);
-        }
-      }
+        //otherChannel.fakeIncomingConnection(ourPeerId);
+        /*
+        for (TestConnection otherEndConnection in otherChannel.connections) {
+          if (otherEndConnection.id == ourPeerId) {
+            c.setOtherEnd(otherEndConnection);
+            otherEndConnection.setOtherEnd(c);
+          }
+        } */
+      negotiator.sdpReceived("sdp_${ourPeerId}_${otherPeerId}", "offer");
+      negotiator.onIceCandidate("candidate1");
+      negotiator.onIceCandidate(null);
     }
-    wrapper.open();
+   // wrapper.open();
   }
   /**
    * Callback for someone trying to connection to us.
@@ -95,27 +101,44 @@ class TestConnectionFactory extends ConnectionFactory {
     var jsTestDataChannel = createJSInteropWrapper<TestConnection>(c) as RTCDataChannel;
     wrapper.setRtcConnection(jsTestConnection);
     wrapper.readyDataChannel(jsTestDataChannel);
-    wrapper.open();
     ourChannel.connections.add(c);
-  }
-  /**
-   * Create and answer for our inbound connection.
-   */
-  handleCreateAnswer(dynamic connection, String src, String dst) {
 
+    negotiator.sdpReceived("sdp_${ourPeerId}_${otherPeerId}", "answer");
+    negotiator.onIceCandidate("candidate1");
+    negotiator.onIceCandidate(null);
   }
   /**
    * Handle receiving that answer.
    */
-  handleGotAnswer(dynamic connection, dynamic sdp) {
+  handleGotAnswer(dynamic connection, WebRtcDanceProto sdp) {
+    String otherPeerId = sdp.sdp.split("_")[1];
+    String ourPeerId = sdp.sdp.split("_")[2];
 
-  }
+    print("Handle got answer from ${otherPeerId} to ${ourPeerId}");
 
-  /**
-   * Handle receiving ICE candidates.
-   */
-  handleIceCandidateReceived(dynamic connection, dynamic iceCandidate) {
-
+    if (!connections.containsKey(ourPeerId)) {
+      throw "No connections for ${ourPeerId} among ${connections.keys}";
+    }
+    if (!connections[ourPeerId]!.containsKey(otherPeerId)) {
+      throw "No connection to ${otherPeerId} among ${connections[ourPeerId]!}";
+    }
+    TestConnection connection = connections[ourPeerId]![otherPeerId]!;
+    TestServerChannel otherChannel = testPeers[otherPeerId]!;
+    bool found = false;
+    for (TestConnection otherEndConnection in otherChannel.connections) {
+      if (otherEndConnection.id == ourPeerId) {
+        connection.setOtherEnd(otherEndConnection);
+        otherEndConnection.setOtherEnd(connection);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      throw "Peer $otherPeerId doesn't have a connection for us among ${otherChannel.connections}";
+    }
+    // Handshake completed so mark both connections open.
+    connection.internalWrapper!.open();
+    connection.getOtherEnd()!.internalWrapper?.open();
   }
 
   @override

@@ -76,7 +76,7 @@ message StateUpdate {
 }
 
 message WebRtcNegotiationProto {
-  optional  WebRtcDanceProto dance_proto = 1;
+  optional WebRtcDanceProto dance_proto = 1;
   optional string src = 2;
   optional string dst = 3;
   optional string type = 4;

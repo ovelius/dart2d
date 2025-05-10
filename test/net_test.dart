@@ -445,6 +445,73 @@ void main() {
               .withActiveMethod(PlayerControlMethods.LISTEN_FOR_WEAPON_SWITCH));
     });
 
+    test('TestThreeWorlds connectsOverCommanderConnection', () async {
+      print("Testing connecting with three players");
+      WormWorld worldA = await createTestWorld("a");
+      worldA.startAsServer("nameA");
+      worldA.frameDraw();
+
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+
+      // b connects to a.
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Disconnect signaling channel of C.
+      worldC.network().peer.disconnect();
+
+      /// World B connects.
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      // This also sets up CLIENT_TO_CLIENT connections.
+      expect(
+          worldB, hasSpecifiedConnections(['c', 'a']).isValidGameConnections());
+      expect(
+          worldC, hasSpecifiedConnections(['b', 'a']).isValidGameConnections());
+      // We could create a client to client connection even with signaling
+      // server disconnected.
+      expect(
+          worldA, hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
+
+      worldA.frameDraw(0.01);
+      worldB.frameDraw(0.01);
+      worldC.frameDraw(0.01);
+
+      // Final GameState should be consitent.
+      expect(
+          worldA,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameC",
+            playerId(2): "nameB"
+          }).withCommanderId('a'));
+      expect(
+          worldB,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameC",
+            playerId(2): "nameB"
+          }).withCommanderId('a'));
+      expect(
+          worldC,
+          isGameStateOf({
+            playerId(0): "nameA",
+            playerId(1): "nameC",
+            playerId(2): "nameB"
+          }).withCommanderId('a'));
+
+    });
+
     test('FourWorldsCommanderDies elects new commander', () async {
       logConnectionData = false;
       WormWorld worldA = await createTestWorld("a");
@@ -904,7 +971,13 @@ void main() {
       worldC.connectTo("a", "nameC");
       worldD.connectTo("a", "nameD");
 
+      // At max players signaling server is disconnected.
+      expect(worldA.network().peer.connectedToServer(), isFalse);
+      // Explicitly reconnect.
+      worldA.network().peer.reconnect();
+
       worldE.connectTo("a", "nameE", false);
+      logConnectionData = true;
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
       expect(worldE.network().gameState.playerInfoList(), hasLength(4));

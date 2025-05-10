@@ -132,20 +132,29 @@ class WormWorld extends World {
         }
         
         // Out of bounds check.
+        bool outOfBounds = false;
         if (sprite.position.x + sprite.size.x > byteWorld.width) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_RIGHT);
           sprite.position.x = byteWorld.width - sprite.size.x;
+          outOfBounds = true;
         }
         if (sprite.position.x < 0) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_LEFT);
           sprite.position.x = 0.0;
+          outOfBounds = true;
         }
         if (sprite.position.y + sprite.size.y > byteWorld.height) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_BELOW);
           sprite.position.y = byteWorld.height - sprite.size.y;
+          outOfBounds = true;
         }
         if (sprite.position.y - sprite.size.y < 0) {
           sprite.collide(null, byteWorld, MovingSprite.DIR_ABOVE);
+          outOfBounds = true;
+        }
+
+        if (sprite.removeOutOfBounds && outOfBounds) {
+          sprite.remove = true;
         }
       }
     }
@@ -478,7 +487,7 @@ class WormWorld extends World {
     int width = PlayerWorldSelector.playerSpriteWidth(_imageIndex.imageNameFromIndex(playerSpriteId));
     double ratio = height / width;
     playerSprite.size = new Vec2.copy(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
-    playerSprite.setImage(playerSpriteId, width);
+    playerSprite.setImage(playerSpriteId, 4);
     playerSprite.size.y *= ratio;
   }
   
@@ -507,9 +516,8 @@ class WormWorld extends World {
             null,
             location,
             velocity == null ? Vec2.ZERO : velocity,
-            null,
-            radius,
-            particleCount));
+            radius: radius,
+            count: particleCount));
       }
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
@@ -564,7 +572,10 @@ class WormWorld extends World {
     if (radius > 3 && addpParticles) {
       playSoundAtSprite(sprite, Sound.EXPLOSION, multiPlay:true);
       addSprite(
-          new Particles(this, null, sprite.position, velocity, null, radius * 1.5, _particleCountFromFps()));
+          new Particles(this, null, sprite.position, velocity, radius: radius * 1.5, count: _particleCountFromFps()));
+
+    }
+    if (damage > 0) {
       addVelocityFromExplosion(
           sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer, mod);
     }

@@ -18,7 +18,7 @@ class MovingSprite extends Sprite {
 
   double gravityAffect = 1.0;
   bool collision = true;
-  int outOfBoundsMovesRemaining = -1;
+  bool removeOutOfBounds = false;
   
   // Set from network. See static FLAG_ fields above.
   int flags = 0;

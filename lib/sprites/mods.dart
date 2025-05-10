@@ -10,6 +10,7 @@ enum Mod {
   HYPER,
   COFFEE,
   LITTER,
+  SNAIL,
   BRICK,
   SHOTGUN,
   UNKNOWN,
@@ -24,7 +25,9 @@ Map<Mod, dynamic> _killedMessages = {
   Mod.LITTER: (String killed, String killer) => "$killed took a dive in ${killer}'s cat litter box",
   Mod.BRICK: (String killed, String killer) => "$killed got hit by a ${killer}'s bricks",
   Mod.HYPER: (String killed, String killer) => "$killed neon neon neon ${killer}'s blaster bream",
+  Mod.SNAIL: (String killed, String killer) => "$killed was too slow for ${killer}'s snails",
   Mod.SHOTGUN: (String killed, String killer) => "$killed went on a date with ${killer}'s Old Betsy",
+  Mod.UNKNOWN: (String killed, String killer) => "$killed died"
 };
 
 String killedMessage(String killed, String killer, Mod mod) {

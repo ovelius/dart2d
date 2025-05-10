@@ -38,6 +38,26 @@ class PeerWrapper {
       _openPeer(peers[0]);
       _receivePeers(peers);
     });
+    _packetListenerBindings.bindHandler(StateUpdate_Update.negotiation, (_, StateUpdate update) {
+
+      WebRtcNegotiationProto proto = update.negotiation;
+      if (proto.dst != this.id) {
+        if (hasConnectionTo(proto.dst)) {
+          log.info("Forwarding signaling message ${proto}");
+          sendSingleStateUpdate(update, null, proto.dst);
+        } else {
+          log.warning("Received signaling message to ${proto.dst} which we aren't connected to!");
+        }
+      } else {
+        log.info("Received channel signaling message of ${proto}");
+        Map<String, String> data = {
+          'src': proto.src,
+          'dst': proto.dst,
+          'type': proto.type
+        };
+        _onServerMessage(data, explicitPayload: proto.danceProto);
+      }
+    });
   }
 
   /**
@@ -60,14 +80,30 @@ class PeerWrapper {
     connectionWrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto){
       _sendNegotiatorPayload(connectionWrapper.negotiator, proto, 'OFFER');
     });
-    _connectionFactory.connectTo(connectionWrapper, connectionWrapper.negotiator);
     connections[id] = connectionWrapper;
+    _connectionFactory.connectTo(connectionWrapper, connectionWrapper.negotiator);
     return connectionWrapper;
   }
 
   void _sendNegotiatorPayload(Negotiator negotiator, WebRtcDanceProto proto, String type) {
-    String base64Proto = base64Encode(negotiator.buildProto().writeToBuffer());
-    serverChannel.sendData(negotiator.otherId, type, base64Proto);
+    // Check if commander can route us.
+    String commanderId = _network.getGameState().gameStateProto.actingCommanderId;
+    if (_network.getGameState().isConnected(commanderId, negotiator.otherId)
+      || !serverChannel.isConnected()) {
+      WebRtcNegotiationProto negotiationProto = WebRtcNegotiationProto()
+        ..type = type
+        ..danceProto = proto
+        ..src = this.id!
+        ..dst = negotiator.otherId;
+      sendSingleStateUpdate(StateUpdate()
+          ..negotiation = negotiationProto
+          ..attachDataReceipt(negotiator.otherId)
+          , null, commanderId);
+    } else {
+      String base64Proto = base64Encode(
+          negotiator.buildProto().writeToBuffer());
+      serverChannel.sendData(negotiator.otherId, type, base64Proto);
+    }
   }
 
   /**
@@ -292,7 +328,7 @@ class PeerWrapper {
     // Close the underlying WebRTC connection.
     try {
       wrapper?.rtcConnection()?.close();
-    } catch (e, s) {
+    } catch (e, _) {
       log.warning("Failed to close RTCConnection ${e}");
     }
     // Assign back.
@@ -326,27 +362,21 @@ class PeerWrapper {
   /**
    * Callback for receiving a message from signaling server.
    */
-  _onServerMessage(Map<String, String> json) {
-    log.fine("Got ServerChannel data ${json}");
+  _onServerMessage(Map<String, String> json, {WebRtcDanceProto? explicitPayload = null}) {
+    log.info("Got ServerChannel data ${json}");
     String? type = json['type']!;
     String? payload = json['payload'];
     String? src = json['src'];
     String? dst = json['dst'];
 
-    WebRtcDanceProto? proto = null;
-    if (payload != null) {
+    WebRtcDanceProto? proto = explicitPayload;
+    if (proto == null && payload != null) {
       proto = WebRtcDanceProto.fromBuffer(base64Decode(payload));
     }
 
     switch (type) {
       case 'ERROR':
         log.severe("Got error from server ${payload}");
-        break;
-      case 'LEAVE':
-      // Someone left, fixme...
-        break;
-      case 'EXPIRE': // The offer sent to a peer has expired without response.
-        log.warning("Could not connect to peer ${src}");
         break;
       case 'OFFER':
         if (src == null || dst == null || proto == null) {
@@ -372,11 +402,11 @@ class PeerWrapper {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;
         }
-        log.info("Handling answer from ${src} offer: ${proto.toDebugString()}");
         ConnectionWrapper? connection = connections[src];
         if (connection == null) {
-          log.warning("Received answer from unknown connection '$src'!");
+          log.warning("Received answer from unknown connection '$src'! Connections: ${connections.keys}");
         } else {
+          log.info("Handling answer from ${src} offer: ${proto.toDebugString()}");
           _connectionFactory.handleGotAnswer(connection.rtcConnection(), proto);
         }
         break;

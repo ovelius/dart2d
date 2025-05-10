@@ -76,8 +76,8 @@ void main() {
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
       await peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
-      expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
-      connectionFactoryC.signalErrorAllConnections('c');
+      expect(loaderC.currentState(), equals(LoaderState.CONNECTING_TO_PEER));
+      connectionFactoryC.signalErrorAllConnections('b');
       for (int i = 0; i < 100; i++) {
         worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
       }
@@ -111,8 +111,8 @@ void main() {
       expect(loaderC.currentState(), equals(LoaderState.WEB_RTC_INIT));
       await peerC.sendOpenMessage(['a', 'b', 'c']);
       worldC.frameDraw();
-      expect(loaderC.currentState(), equals(LoaderState.LOADING_OTHER_CLIENT));
-      connectionFactoryC.signalErrorAllConnections('c');
+      expect(loaderC.currentState(), equals(LoaderState.CONNECTING_TO_PEER));
+      connectionFactoryC.signalErrorAllConnections('b');
       // All loaded from cache!
       FakeImageFactory fakeImageFactory = worldC.imageIndex().imageFactory as FakeImageFactory;
       for (int i = 0; i < 10; i++) {

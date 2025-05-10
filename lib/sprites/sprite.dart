@@ -53,6 +53,8 @@ class Sprite {
   // Animation data computed in constructor.
   int frameIndex = 0;
   int frames = 1;
+  num frameWidth = 0;
+  bool lockFrame = false;
 
   int lifeTime = UNLIMITED_LIFETIME;
 
@@ -73,12 +75,8 @@ class Sprite {
 
   Sprite.imageBasedSprite(this.position, imageId, ImageIndex imageIndex) {
     this._imageIndex = imageIndex;
+    this.setImage(imageId, 1);
     spriteType = SpriteType.IMAGE;
-    HTMLImageElement image = imageIndex.getImageById(imageId);
-    size = new Vec2();
-    size.x = (image.width).toDouble();
-    size.y = (image.height).toDouble();
-    setImage(imageId, size.x.toInt());
   }
 
   Sprite(this.position, Vec2 size, SpriteType spriteType) {
@@ -88,17 +86,30 @@ class Sprite {
     assert(size.y > 0);
   }
 
-  void setImage(int imageId, [int? frameWidth]) {
+  void setImage(int imageId, int frames) {
     this.imageId = imageId;
     HTMLImageElement image = _imageIndex.getImageById(imageId);
-    if (frameWidth != null) {
-      if (image.width == 0 && frameWidth == 0) {
-        throw new ArgumentError("Unable to determine framecount for $imageId(src=${image.src}) with was ${image.width}");
-      }
-      frames = image.width ~/ frameWidth;
-    } else {
-      frames = 1;
+    if (image.width == 0) {
+      throw "Invalid image width $imageId(src=${image.src}) - ${image.width}";
     }
+    this.frames = frames;
+    this.frameWidth = image.width / frames;
+  }
+
+  /**
+   * Configure the sprite to show exactly one frame from the image.
+   */
+  void setImageWithLockedFrame(int imageId, int frames, int lockedFrame) {
+    this.imageId = imageId;
+    HTMLImageElement image = _imageIndex.getImageById(imageId);
+    this.frameWidth = image.width / frames;
+    // Only show a single frame.
+    this.frames = 1;
+    this.frameIndex = lockedFrame;
+    if (frameIndex * frameWidth + frameWidth > image.width) {
+      throw "Can't draw frame ${frameIndex} with frameWidth ${frameWidth}, image size only ${image.width}";
+    }
+    this.lockFrame = true;
   }
   
   void setCenter(Vec2 center) {
@@ -161,7 +172,6 @@ class Sprite {
       drawCircle(context); 
     } else if (spriteType == SpriteType.IMAGE) {
       HTMLImageElement image = _imageIndex.getImageById(imageId);
-      num frameWidth = (image.width / frames); 
       if (this.angle > pi * 2) {
         context.scale(-1, 1);
       }

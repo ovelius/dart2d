@@ -15,7 +15,7 @@ import 'package:protobuf/protobuf.dart';
 class ChunkHelper {
   final Logger log = new Logger('ChunkHelper');
   static const int DEFAULT_CHUNK_SIZE = 1400;
-  static const int MAX_CHUNK_SIZE = 65000;
+  static const int MAX_CHUNK_SIZE = 30000;
   // To fit nice inside your typical MTU.
   static const int MIN_CHUNK_SIZE = 1300;
   static const int IMAGE_RETRY_DURATION_MILLIS = 1500;
@@ -26,13 +26,14 @@ class ChunkHelper {
 
   DataCounter counter = new DataCounter(3);
   int _chunkSize = DEFAULT_CHUNK_SIZE;
+  int _chunkMultiplier = 0;
   double _chunkSizeIncrementFactor = 1.25;
   double _chunkDecrementFactor = 0.3;
   Map<int, double> _retryTimer = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
   // Connection we requested image from.
-  Map<int, String> _imageToConnection = new Map();
+  Map<int, String> _outstandingImageRequests = new Map();
 
   // Buffer partially completed images in this map.
   Map<int, String> _imageBuffer = new Map();
@@ -151,7 +152,7 @@ class ChunkHelper {
     }
     if (start == _imageBuffer[index]!.length) {
       _imageBuffer[index] = _imageBuffer[index]! + data;
-      _imageToConnection.remove(index);
+      _outstandingImageRequests.remove(index);
     } else {
       log.warning("Dropping data for ${index}, out of order??");
     }
@@ -193,7 +194,7 @@ class ChunkHelper {
   bool _maybeRequestImageLoad(
       int index, Map<String, ConnectionWrapper> connections, double duration) {
     List<ConnectionWrapper> connectionList = new List.from(connections.values);
-    String? connectionId = _imageToConnection[index];
+    String? connectionId = _outstandingImageRequests[index];
     if (connectionId == null) {
       // Request larger chunk.
       if (_chunkSize == MIN_CHUNK_SIZE) {
@@ -209,7 +210,7 @@ class ChunkHelper {
     ConnectionWrapper? connection = connections[connectionId];
     if (connection == null) {
       // Connection removed?
-      _imageToConnection.remove(index);
+      _outstandingImageRequests.remove(index);
       return false;
     }
     double? lastRequestTimeout = _retryTimer[index];
@@ -218,6 +219,10 @@ class ChunkHelper {
       _trackFailingConnection(index);
       connection.sendPing();
       this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * _chunkDecrementFactor).toInt());
+      this._chunkMultiplier--;
+      if (_chunkMultiplier <= 0) {
+        _chunkMultiplier = 0;
+      }
       return _requestImageData(index, connectionList);
     }
     // return true if image is not loaded. False otherwise.
@@ -225,7 +230,7 @@ class ChunkHelper {
   }
 
   void _trackFailingConnection(int index) {
-    String? failingConnection = _imageToConnection[index];
+    String? failingConnection = _outstandingImageRequests[index];
     if (failingConnection != null) {
       if (_failures.containsKey(failingConnection)) {
         _failures[failingConnection] = _failures[failingConnection]! + 1;
@@ -249,8 +254,7 @@ class ChunkHelper {
   /**
    * Request image data from a random connection.
    */
-  bool _requestImageData(int index, List<dynamic> connections,
-      [bool retry = false]) {
+  bool _requestImageData(int index, List<dynamic> connections) {
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
     if (connections.length > 0) {
@@ -261,7 +265,7 @@ class ChunkHelper {
       int millis = min(IMAGE_RETRY_DURATION_MILLIS,
           connectionLatency.inMilliseconds * 2);
       _retryTimer[index] = millis / 1000.0;
-      _imageToConnection[index] = connection.id;
+      _outstandingImageRequests[index] = connection.id;
       return true;
     }
     return false;

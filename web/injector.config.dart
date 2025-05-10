@@ -31,6 +31,7 @@ import 'package:dart2d/worlds/loader.dart' as _i537;
 import 'package:dart2d/worlds/player_world_selector.dart' as _i394;
 import 'package:dart2d/worlds/powerup_manager.dart' as _i745;
 import 'package:dart2d/worlds/world_listener.dart' as _i241;
+import 'package:dart2d/worlds/worlds.dart' as _i114;
 import 'package:dart2d/worlds/worm_world.dart' as _i112;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
@@ -81,7 +82,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i988.ImageFactory>(() => _i1028.HtmlImageFactory());
     gh.factory<_i988.SoundFactory>(() => _i1028.HtmlSoundFactory());
     gh.factory<_i481.Bot>(() => _i481.Bot(
-          gh<_i559.GameState>(),
+          gh<_i835.Network>(),
           gh<_i899.SpriteIndex>(),
           gh<_i559.SelfPlayerInfoProvider>(),
           gh<_i559.KeyState>(),
@@ -161,6 +162,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i559.SelfPlayerInfoProvider>(),
               gh<_i559.ConfigParams>(),
               gh<_i559.Bot>(),
+              gh<_i254.Sounds>(),
               gh<_i988.HtmlScreen>(),
               gh<_i559.KeyState>(),
               gh<bool>(instanceName: 'touch_supported'),
@@ -180,7 +182,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh.singleton<_i537.Loader>(() => _i537.Loader(
               gh<_i988.LocalStorage>(),
               gh<_i988.WorldCanvas>(),
-              gh<_i394.PlayerWorldSelector>(),
+              gh<_i114.PlayerWorldSelector>(),
               gh<_i883.ImageIndex>(),
               gh<_i835.Network>(),
               gh<_i835.ChunkHelper>(),

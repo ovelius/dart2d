@@ -110,7 +110,7 @@ class TestConnection {
       print("Data ${drop ? "DROPPED" : ""} ${_otherEnd} -> ${id}: ${update.toDebugString()}");
     }
     if (_otherEnd?.internalWrapper == null) {
-      throw "No connection wrapper at other end, can't send data!";
+      throw "${id}: No connection wrapper at other end ${_otherEnd}, can't send data $update!";
     }
     if (!drop) {
       recentDataSent = data;

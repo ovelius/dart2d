@@ -1476,16 +1476,6 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
       ) as double);
 
   @override
-  bool initialized() => (super.noSuchMethod(
-        Invocation.method(
-          #initialized,
-          [],
-        ),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
-
-  @override
   _i19.Uint8ClampedList getImageData(
     _i8.Vec2? pos,
     _i8.Vec2? size,
@@ -1665,6 +1655,15 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
           ),
         ),
       ) as String);
+
+  @override
+  dynamic drawFromNetworkUpdate(_i12.ByteWorldDraw? data) => super.noSuchMethod(
+        Invocation.method(
+          #drawFromNetworkUpdate,
+          [data],
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   dynamic fillRectAt(
@@ -2201,6 +2200,13 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
       ) as double);
 
   @override
+  bool get soundEnabled => (super.noSuchMethod(
+        Invocation.getter(#soundEnabled),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   _i11.PacketListenerBindings get packetListenerBindings => (super.noSuchMethod(
         Invocation.getter(#packetListenerBindings),
         returnValue: _FakePacketListenerBindings_15(
@@ -2310,6 +2316,15 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
         Invocation.setter(
           #explosionFlash,
           _explosionFlash,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  set soundEnabled(bool? _soundEnabled) => super.noSuchMethod(
+        Invocation.setter(
+          #soundEnabled,
+          _soundEnabled,
         ),
         returnValueForMissingStub: null,
       );
@@ -2756,15 +2771,6 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
           ),
         ),
       ) as _i12.ByteWorldDestruction);
-
-  @override
-  dynamic drawFromNetworkUpdate(_i12.ByteWorldDraw? data) => super.noSuchMethod(
-        Invocation.method(
-          #drawFromNetworkUpdate,
-          [data],
-        ),
-        returnValueForMissingStub: null,
-      );
 
   @override
   _i12.ByteWorldDraw drawAsNetworkUpdate(
@@ -4700,11 +4706,11 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
       ) as bool);
 
   @override
-  int get outOfBoundsMovesRemaining => (super.noSuchMethod(
-        Invocation.getter(#outOfBoundsMovesRemaining),
-        returnValue: 0,
-        returnValueForMissingStub: 0,
-      ) as int);
+  bool get removeOutOfBounds => (super.noSuchMethod(
+        Invocation.getter(#removeOutOfBounds),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
 
   @override
   int get flags => (super.noSuchMethod(
@@ -4759,11 +4765,10 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
       );
 
   @override
-  set outOfBoundsMovesRemaining(int? _outOfBoundsMovesRemaining) =>
-      super.noSuchMethod(
+  set removeOutOfBounds(bool? _removeOutOfBounds) => super.noSuchMethod(
         Invocation.setter(
-          #outOfBoundsMovesRemaining,
-          _outOfBoundsMovesRemaining,
+          #removeOutOfBounds,
+          _removeOutOfBounds,
         ),
         returnValueForMissingStub: null,
       );
@@ -4875,6 +4880,20 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
         returnValue: 0,
         returnValueForMissingStub: 0,
       ) as int);
+
+  @override
+  num get frameWidth => (super.noSuchMethod(
+        Invocation.getter(#frameWidth),
+        returnValue: 0,
+        returnValueForMissingStub: 0,
+      ) as num);
+
+  @override
+  bool get lockFrame => (super.noSuchMethod(
+        Invocation.getter(#lockFrame),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
 
   @override
   int get lifeTime => (super.noSuchMethod(
@@ -4991,6 +5010,24 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
         Invocation.setter(
           #frames,
           _frames,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  set frameWidth(num? _frameWidth) => super.noSuchMethod(
+        Invocation.setter(
+          #frameWidth,
+          _frameWidth,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  set lockFrame(bool? _lockFrame) => super.noSuchMethod(
+        Invocation.setter(
+          #lockFrame,
+          _lockFrame,
         ),
         returnValueForMissingStub: null,
       );
@@ -5362,15 +5399,33 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
 
   @override
   void setImage(
-    int? imageId, [
-    int? frameWidth,
-  ]) =>
+    int? imageId,
+    int? frames,
+  ) =>
       super.noSuchMethod(
         Invocation.method(
           #setImage,
           [
             imageId,
-            frameWidth,
+            frames,
+          ],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void setImageWithLockedFrame(
+    int? imageId,
+    int? frames,
+    int? lockedFrame,
+  ) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #setImageWithLockedFrame,
+          [
+            imageId,
+            frames,
+            lockedFrame,
           ],
         ),
         returnValueForMissingStub: null,

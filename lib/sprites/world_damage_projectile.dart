@@ -31,7 +31,6 @@ class BananaCake extends WorldDamageProjectile {
       this.spriteType = SpriteType.IMAGE;
       this.velocity.x = cos(positionBase.angle);
       this.velocity.y = sin(positionBase.angle);
-      this.outOfBoundsMovesRemaining = 2;
       this.velocity = this.velocity.multiply(200.0);
       this.velocity = owner.velocity + this.velocity;
     }
@@ -45,7 +44,8 @@ class BananaCake extends WorldDamageProjectile {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world,
           this.owner!, 30, this);
       sprite.mod = Mod.BANANA;
-      sprite.setImage(world.imageIndex().getImageIdByName("banana.png"));
+      sprite.setImage(world.imageIndex().getImageIdByName("banana.png"), 1);
+      sprite.position = Vec2.copy(this.position);
       sprite.velocity.x = -pi * 2; 
       sprite.velocity.y = -pi * 2; 
       sprite.velocity.x += WorldDamageProjectile.random.nextDouble() * pi * 4;
@@ -88,7 +88,6 @@ class Hyper extends WorldDamageProjectile {
     this.velocity.x = cos(positionBase.angle);
     this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);
-    this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(150.0);
     this.velocity = owner.velocity + this.velocity;
     this.spriteType = SpriteType.CUSTOM;
@@ -218,7 +217,6 @@ class BrickBuilder extends WorldDamageProjectile {
     this.color = COLOR;
     this.velocity.x = cos(positionBase.angle);
     this.velocity.y = sin(positionBase.angle);
-    this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);
     this.velocity = owner.velocity + this.velocity;
   }
@@ -231,7 +229,8 @@ class BrickBuilder extends WorldDamageProjectile {
     Vec2 brickPosition = new Vec2.copy(center);
     outerPosition.x -= 1;
     outerPosition.y -= 1;
-    // TODO Make this work better.
+
+    bool aligned = false;
     // Try and align brick with other bricks.
     int alignBelow = 0;
     List<int> existingBrick = world.byteWorld.getImageData(center, new Vec2(1, brickSize.y));
@@ -247,8 +246,31 @@ class BrickBuilder extends WorldDamageProjectile {
       outerPosition.y -= brickSize.y.toInt();
       brickPosition.y += alignBelow;
       outerPosition.y += alignBelow;
+      aligned = true;
     }
-    // TODO merge into one call.
+
+    if (!aligned) {
+      // Try and align brick with other bricks.
+      int alignAbove = 0;
+      List<int> existingBrick = world.byteWorld.getImageData(
+          center, new Vec2(1, brickSize.y));
+      for (int i = (existingBrick.length ~/ 4) -1; i >= 0; i--) {
+        if (existingBrick[i * 4] == COLOR_R &&
+            existingBrick[i * 4 + 1] == COLOR_G &&
+            existingBrick[i * 4 + 2] == COLOR_B) {
+          break;
+        } else {
+          alignAbove--;
+        }
+      }
+      if (alignAbove < 0) {
+        brickPosition.y += brickSize.y.toInt();
+        outerPosition.y += brickSize.y.toInt();
+        brickPosition.y += alignAbove;
+        outerPosition.y += alignAbove;
+      }
+    }
+
     world.fillRectAt(outerPosition, new Vec2(brickSize.x + 2, brickSize.y + 2), "#ffffff");
     world.fillRectAt(brickPosition, brickSize, COLOR);
     this.remove = true;
@@ -266,11 +288,20 @@ class WorldDamageProjectile extends MovingSprite {
   
   double radius = 15.0;
 
+  // Counter until explode.
   double? explodeAfter = null;
 
+  // Draw the counter?
   bool showCounter = true;
 
+  // Create particles when exploding.
   bool particlesOnExplode = true;
+
+  // Remove when colliding with something.
+  bool removeOnCollision = true;
+
+  // Can collide with world ?
+  bool worldCollide = true;
 
   Mod mod = Mod.UNKNOWN;
   
@@ -285,7 +316,9 @@ class WorldDamageProjectile extends MovingSprite {
     }
     if (other != null && owner != null && other.networkId != owner!.networkId && other.takesDamage()) {
       other.takeDamage(damage, owner!, mod);
-      explode();
+      if (removeOnCollision) {
+        explode();
+      }
     }
     if (world != null && direction != null) {
       handleWorldCollide(world, direction);
@@ -295,7 +328,7 @@ class WorldDamageProjectile extends MovingSprite {
   handleWorldCollide(ByteWorld world, int direction) {
     if (explodeAfter == null) {
       explode();
-    } else {
+    } else if (worldCollide) {
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         if (velocity.y > 0) {
           velocity.y = -velocity.y * bounche;
@@ -326,7 +359,9 @@ class WorldDamageProjectile extends MovingSprite {
         addpParticles: particlesOnExplode,
         damage: damage, radius: radius, damageDoer: owner!, mod:mod);
     }
-    this.remove = true;
+    if (removeOnCollision) {
+      this.remove = true;
+    }
   }
   
   frame(double duration, int frameStep, [Vec2? gravity]) {
@@ -359,7 +394,8 @@ class WorldDamageProjectile extends MovingSprite {
      ..extraFloat.add(radius)
      ..extraInt.add(damage)
      ..extraInt.add(owner == null ? -1 : owner!.networkId!)
-     ..extraBool.add(showCounter);
+     ..extraBool.add(showCounter)
+     ..extraBool.add(removeOnCollision);
     if (explodeAfter != null) {
       data.extraFloat.add(explodeAfter!);
     }
@@ -370,6 +406,7 @@ class WorldDamageProjectile extends MovingSprite {
     radius = data.extraFloat[0];
     damage = data.extraInt[0];
     showCounter = data.extraBool[0];
+    removeOnCollision = data.extraBool[1];
     int ownerId = data.extraInt[1];
     this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite?;
     if (data.extraFloat.length > 1) {
@@ -386,14 +423,13 @@ class WorldDamageProjectile extends MovingSprite {
     this.owner = owner;
     this.damage = damage;
     this.size = new Vec2(15.0, 7.0);
-    double ownerSize = positionBase.size.sum() / 2;
-    Vec2 positionCenter = positionBase.centerPoint();
+    double ownerSize = owner.size.sum() / 2;
+    Vec2 positionCenter = owner.centerPoint();
     this.position.x = positionCenter.x + cos(positionBase.angle) * ownerSize;
     this.position.y = positionCenter.y + sin(positionBase.angle) * ownerSize;
     this.velocity.x = cos(positionBase.angle);
     this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);
-    this.outOfBoundsMovesRemaining = 2;
     this.velocity = this.velocity.multiply(500.0);
     this.velocity = positionBase.velocity + this.velocity;
   }

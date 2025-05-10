@@ -118,7 +118,7 @@ class LocalPlayerSprite extends MovingSprite {
         index, Sprite.UNLIMITED_LIFETIME);
     shield.size = LocalPlayerSprite.DEFAULT_PLAYER_SIZE.multiply(1.5);
     shield.rotationVelocity = 200.0;
-    shield.setImage(index.getImageIdByName("shield.png"), 80);
+    shield.setImage(index.getImageIdByName("shield.png"), 2);
     return shield;
   }
 
@@ -381,7 +381,8 @@ class LocalPlayerSprite extends MovingSprite {
         if (_jetParticles == null) {
           _jetParticles = new Particles(weaponState!.world,
               this, new Vec2.copy(this.position), new Vec2(0, velocity.y + 50),
-              new Vec2(0, size.y / 2), 10.0, 10, 10, 0.8, ParticleEffects_ParticleType.SODA);
+              followOffset: new Vec2(0, size.y / 2), radius: 10.0, count: 10, lifeTime: 10,
+              shrinkPerStep: 0.8, particleType:  ParticleEffects_ParticleType.SODA);
           _jetParticles!.sendToNetwork = true;
           _jetParticles!.spawn_sound = Sound.FIZZ;
           world.addSprite(_jetParticles!);
@@ -589,7 +590,8 @@ class LocalPlayerSprite extends MovingSprite {
     int blood = world.config().getInt(ConfigParam.BLOOD);
     int countLifeTime = blood > 0 ? blood : 120;
     Particles p = Particles(world, null, centerPoint(), Vec2(200,300),
-        null, 25.0, countLifeTime, countLifeTime, 0.3,
+        radius: 25.0, count:countLifeTime, lifeTime: countLifeTime, shrinkPerStep: 0.3,
+        particleType:
         blood > 0  ?
             ParticleEffects_ParticleType.BLOOD :
             ParticleEffects_ParticleType.CONFETTI);
@@ -606,12 +608,11 @@ class LocalPlayerSprite extends MovingSprite {
           null,
           centerPoint(),
           Vec2(200, 300),
-          null,
-          8.0,
-          (countLifeTime / 10).toInt(),
-          (countLifeTime / 2).toInt(),
-          0.3,
-          blood > 0 ?
+          radius: 8.0,
+          count: (countLifeTime / 10).toInt(),
+          lifeTime: (countLifeTime / 2).toInt(),
+          shrinkPerStep: 0.3,
+          particleType: blood > 0 ?
               ParticleEffects_ParticleType.BLOOD :
               ParticleEffects_ParticleType.CONFETTI);
       p.sendToNetwork = true;

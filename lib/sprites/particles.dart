@@ -30,7 +30,7 @@ class Particles extends MovingSprite {
   LocalPlayerSprite? owner;
 
   Particles(WormWorld world, Sprite? follow, Vec2 position, Vec2 velocityBase,
-      [Vec2? followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, ParticleEffects_ParticleType particleType = ParticleEffects_ParticleType.COLORFUL]) :
+  {Vec2? followOffset, double radius = 10.0, int count = 30, int lifeTime = 35, shrinkPerStep = 1.0, ParticleEffects_ParticleType particleType = ParticleEffects_ParticleType.COLORFUL}) :
       super(position, new Vec2(1, 1), SpriteType.CUSTOM) {
     this.follow = follow;
     this.velocity = velocityBase;
