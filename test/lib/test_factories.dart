@@ -69,20 +69,10 @@ class TestConnectionFactory extends ConnectionFactory {
       throw "No such test peer $otherPeerId among ${testPeers.keys}";
     }
     if (expectPeerToExist) {
-      TestServerChannel otherChannel = testPeers[otherPeerId]!;
-        //otherChannel.fakeIncomingConnection(ourPeerId);
-        /*
-        for (TestConnection otherEndConnection in otherChannel.connections) {
-          if (otherEndConnection.id == ourPeerId) {
-            c.setOtherEnd(otherEndConnection);
-            otherEndConnection.setOtherEnd(c);
-          }
-        } */
       negotiator.sdpReceived("sdp_${ourPeerId}_${otherPeerId}", "offer");
       negotiator.onIceCandidate("candidate1");
       negotiator.onIceCandidate(null);
     }
-   // wrapper.open();
   }
   /**
    * Callback for someone trying to connection to us.

@@ -72,23 +72,11 @@ class TestServerChannel extends ServerChannel {
   void disconnect() {
     this.connectedToServer = false;
   }
+
   Stream<dynamic> reconnect(String id) {
-    _streamController = new StreamController(sync: true);
     assert(this.id == id);
     this.connectedToServer = true;
     return _streamController.stream;
-  }
-
-  fakeIncomingConnection2(String fromId) {
-    WebRtcDanceProto proto = WebRtcDanceProto()
-       ..sdp = "fake sdp"
-       ..candidates.add("fake candidate");
-    
-    _streamController.add({
-      'type': 'OFFER',
-      'payload': base64Encode(proto.writeToBuffer()),
-      'src': fromId,
-      'dst': id});
   }
 
   Future sendOpenMessage([List<String> otherIds = const []]) async {

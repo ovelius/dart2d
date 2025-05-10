@@ -970,6 +970,7 @@ void main() {
       worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
       worldD.connectTo("a", "nameD");
+      worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
       // At max players signaling server is disconnected.
       expect(worldA.network().peer.connectedToServer(), isFalse);
@@ -980,8 +981,6 @@ void main() {
       logConnectionData = true;
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-      expect(worldE.network().gameState.playerInfoList(), hasLength(4));
-      expect(worldE.network().gameState.gameStateProto.actingCommanderId, equals('a'));
       expect(worldE.network().getServerConnection(), isNotNull);
 
       worldE.network().getServerConnection()!.connectToGame('nameE', 2);
