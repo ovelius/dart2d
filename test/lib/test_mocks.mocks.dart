@@ -2667,7 +2667,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
   void explosionAtSprite({
     required _i10.Sprite? sprite,
     required _i8.Vec2? velocity,
-    bool? addpParticles = false,
+    bool? addParticles = false,
     required int? damage,
     required double? radius,
     required _i10.LocalPlayerSprite? damageDoer,
@@ -2681,7 +2681,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
           {
             #sprite: sprite,
             #velocity: velocity,
-            #addpParticles: addpParticles,
+            #addParticles: addParticles,
             #damage: damage,
             #radius: radius,
             #damageDoer: damageDoer,
@@ -2733,6 +2733,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
     _i8.Vec2? velocity,
     double? radius,
     int? damage,
+    bool? addParticles,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -2742,6 +2743,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
             velocity,
             radius,
             damage,
+            addParticles,
           ],
         ),
         returnValue: _FakeByteWorldDestruction_17(
@@ -2753,6 +2755,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
               velocity,
               radius,
               damage,
+              addParticles,
             ],
           ),
         ),
@@ -2765,6 +2768,7 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
               velocity,
               radius,
               damage,
+              addParticles,
             ],
           ),
         ),
@@ -5309,10 +5313,10 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
       ) as bool);
 
   @override
-  bool takesDamage() => (super.noSuchMethod(
+  bool takesDamage(_i10.Mod? mod) => (super.noSuchMethod(
         Invocation.method(
           #takesDamage,
-          [],
+          [mod],
         ),
         returnValue: false,
         returnValueForMissingStub: false,

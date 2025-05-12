@@ -57,7 +57,7 @@ class WeaponState {
     new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
       weaponState.world.playSoundAtSprite(weaponState.owner, Sound.SHOTGUN);
       for (int i = 0; i < 8; i++) {
-        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, weaponState.owner.gun);
+        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, positionBase:weaponState.owner.gun);
         sprite.mod = Mod.SHOTGUN;
         sprite.particlesOnExplode = false;
         sprite.spriteType = SpriteType.RECT;
@@ -76,7 +76,7 @@ class WeaponState {
       }
     }),
     new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.DARTGUN;
       sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
@@ -90,13 +90,14 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.TV;
       sprite.spriteType = SpriteType.CIRCLE;
       double a = random.nextDouble() + 0.2;
       sprite.color = "rgba(${random.nextInt(255)}, ${random.nextInt(255)}, ${random.nextInt(255)}, $a)";
       sprite.owner = weaponState.owner;
       sprite.explodeAfter = 15.0;
+      sprite.health = 5;
       sprite.velocity = sprite.velocity.multiply(0.2);
       double sum = sprite.velocity.sum();
       sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
@@ -127,30 +128,34 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     new Weapon("Snailgun", 4, 1.0, 0.3, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 12, weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 12,
+          positionBase: weaponState.owner.gun, size: new Vec2(180.0/ 4, 130/6));
       sprite.mod = Mod.SNAIL;
-      sprite.radius = 8.0;
+      sprite.radius = 19.0;
       sprite.owner = weaponState.owner;
       sprite.worldCollide = false;
       sprite.removeOutOfBounds = true;
       sprite.gravityAffect = 0;
       sprite.particlesOnExplode = false;
-      sprite.size = new Vec2(200.0/ 3, 130/5);
       sprite.removeOnCollision = false;
-     // sprite.angle = 0.0;
-      sprite.velocity = sprite.velocity.multiply(1.0);
+      sprite.maxSpeed = sprite.velocity.multiply(1.0);
+      sprite.velocity = sprite.velocity.multiply(0.1);
+      sprite.acceleration = sprite.velocity.multiply(10.0);
       int frame = Random().nextInt(3);
       sprite.setImageWithLockedFrame(weaponState.world.imageIndex().getImageIdByName("snails.png"), 3, frame);
 
+      Vec2 offset = Vec2(-sprite.size.x * cos(sprite.angle),
+          -sprite.size.y * sin(sprite.angle)).multiply(0.3);
+
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2),
-          count: 60, lifeTime: 80);
+          count: 60, lifeTime: 160, shrinkPerStep: 0.2, followOffset: offset);
       p.sendToNetwork = true;
       // The order is important here.
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }),
     new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.LITTER;
       sprite.radius = 150.0;
       sprite.owner = weaponState.owner;
@@ -175,7 +180,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }), */
     new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.ZOOKA;
       sprite.spawn_sound = Sound.ZOOKA;
       sprite.radius = 40.0;

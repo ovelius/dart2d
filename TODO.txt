@@ -1,7 +1,5 @@
 1) TURN support
 2) Chunk helper max size 2 kB..
-3) Disconnect non commanding peers from server - connect via commander.
-7) Handle ICE disconnect instead of failed?
 9) Work I Safari/iOS.
 
 Gameplay:

@@ -130,6 +130,9 @@ message ByteWorldDestruction {
   optional int32  damage = 3;
   // Velocity of explosion.
   optional Vec2Proto velocity = 4;
+  
+  // Add explosion particles.
+  optional bool addParticles = 5;
 }
 
 // Draw something on the ByteWorld.

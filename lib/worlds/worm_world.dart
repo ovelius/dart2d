@@ -524,7 +524,7 @@ class WormWorld extends World {
     if (!fromNetwork) {
       _network.peer.sendSingleStateUpdate(StateUpdate()
         ..byteWorldDestruction = destructionAsNetworkUpdate(
-            location, velocity == null ? Vec2.ZERO : velocity, radius, damage));
+            location, velocity == null ? Vec2.ZERO : velocity, radius, damage, addParticles));
     }
   }
 
@@ -562,14 +562,14 @@ class WormWorld extends World {
   void explosionAtSprite({
         required Sprite sprite,
         required Vec2 velocity,
-        bool addpParticles = false,
+        bool addParticles = false,
         required int damage,
         required double radius,
         required LocalPlayerSprite damageDoer,
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
     clearWorldArea(sprite.centerPoint(), radius);
-    if (radius > 3 && addpParticles) {
+    if (radius > 3 && addParticles) {
       playSoundAtSprite(sprite, Sound.EXPLOSION, multiPlay:true);
       addSprite(
           new Particles(this, null, sprite.position, velocity, radius: radius * 1.5, count: _particleCountFromFps()));
@@ -583,7 +583,7 @@ class WormWorld extends World {
       // TODO: Buffer here instead ?
       _network.peer.sendSingleStateUpdate(StateUpdate()..
           byteWorldDestruction = destructionAsNetworkUpdate(
-              sprite.centerPoint(), velocity, radius, damage));
+              sprite.centerPoint(), velocity, radius, damage, addParticles));
     }
   }
 
@@ -623,15 +623,17 @@ class WormWorld extends World {
     Vec2 velocity = Vec2.fromProto(data.velocity);
     explosionAt(
         location:pos, velocity:velocity,
-        addParticles:data.hasVelocity(), damage:damage,
+        addParticles:data.addParticles, damage:damage,
         radius:radius, fromNetwork:true);
   }
 
-  ByteWorldDestruction destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage) {
+  ByteWorldDestruction destructionAsNetworkUpdate(Vec2 pos, Vec2 velocity, double radius, int damage,
+      bool addParticles) {
     return ByteWorldDestruction()
       ..position = pos.toProto()
       ..velocity = velocity.toProto()
       ..radius = radius
+      ..addParticles = addParticles
       ..damage = damage;
   }
 
@@ -648,7 +650,7 @@ class WormWorld extends World {
       Sprite? sprite = spriteIndex[networkId];
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage);
-        if (doDamage && damageTaken > 0 && sprite.takesDamage()) {
+        if (doDamage && damageTaken > 0 && sprite.takesDamage(mod)) {
           if (damageDoer == null) {
             log.warning("Can't take damager $damageTaken - not inflicted by player!");
           } else {

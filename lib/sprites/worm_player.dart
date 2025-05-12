@@ -541,7 +541,7 @@ class LocalPlayerSprite extends MovingSprite {
     world.addSprite(rope!);
   }
 
-  bool takesDamage() {
+  bool takesDamage(Mod mod) {
     return collision;
   }
 

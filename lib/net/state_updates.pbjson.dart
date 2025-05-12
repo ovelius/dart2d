@@ -189,6 +189,7 @@ const ByteWorldDestruction$json = {
     {'1': 'radius', '3': 2, '4': 1, '5': 2, '10': 'radius'},
     {'1': 'damage', '3': 3, '4': 1, '5': 5, '10': 'damage'},
     {'1': 'velocity', '3': 4, '4': 1, '5': 11, '6': '.dart2d_proto.Vec2Proto', '10': 'velocity'},
+    {'1': 'addParticles', '3': 5, '4': 1, '5': 8, '10': 'addParticles'},
   ],
 };
 
@@ -197,7 +198,7 @@ final $typed_data.Uint8List byteWorldDestructionDescriptor = $convert.base64Deco
     'ChRCeXRlV29ybGREZXN0cnVjdGlvbhIzCghwb3NpdGlvbhgBIAEoCzIXLmRhcnQyZF9wcm90by'
     '5WZWMyUHJvdG9SCHBvc2l0aW9uEhYKBnJhZGl1cxgCIAEoAlIGcmFkaXVzEhYKBmRhbWFnZRgD'
     'IAEoBVIGZGFtYWdlEjMKCHZlbG9jaXR5GAQgASgLMhcuZGFydDJkX3Byb3RvLlZlYzJQcm90b1'
-    'IIdmVsb2NpdHk=');
+    'IIdmVsb2NpdHkSIgoMYWRkUGFydGljbGVzGAUgASgIUgxhZGRQYXJ0aWNsZXM=');
 
 @$core.Deprecated('Use byteWorldDrawDescriptor instead')
 const ByteWorldDraw$json = {

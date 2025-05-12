@@ -1006,6 +1006,7 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
     $core.double? radius,
     $core.int? damage,
     Vec2Proto? velocity,
+    $core.bool? addParticles,
   }) {
     final $result = create();
     if (position != null) {
@@ -1020,6 +1021,9 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
     if (velocity != null) {
       $result.velocity = velocity;
     }
+    if (addParticles != null) {
+      $result.addParticles = addParticles;
+    }
     return $result;
   }
   ByteWorldDestruction._() : super();
@@ -1031,6 +1035,7 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
     ..a<$core.double>(2, _omitFieldNames ? '' : 'radius', $pb.PbFieldType.OF)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'damage', $pb.PbFieldType.O3)
     ..aOM<Vec2Proto>(4, _omitFieldNames ? '' : 'velocity', subBuilder: Vec2Proto.create)
+    ..aOB(5, _omitFieldNames ? '' : 'addParticles', protoName: 'addParticles')
     ..hasRequiredFields = false
   ;
 
@@ -1098,6 +1103,16 @@ class ByteWorldDestruction extends $pb.GeneratedMessage {
   void clearVelocity() => clearField(4);
   @$pb.TagNumber(4)
   Vec2Proto ensureVelocity() => $_ensure(3);
+
+  /// Add explosion particles.
+  @$pb.TagNumber(5)
+  $core.bool get addParticles => $_getBF(4);
+  @$pb.TagNumber(5)
+  set addParticles($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasAddParticles() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAddParticles() => clearField(5);
 }
 
 /// Draw something on the ByteWorld.

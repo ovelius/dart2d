@@ -680,7 +680,7 @@ Weapon findBananaWeapons(LocalPlayerSprite sprite) {
 
 class _TestDamageProjectile extends WorldDamageProjectile {
   _TestDamageProjectile(WormWorld world, LocalPlayerSprite owner, int damage, [MovingSprite? positionBase])
-      : super.createWithOwner(world, owner, damage, positionBase) {
+      : super.createWithOwner(world, owner, damage, positionBase: positionBase) {
     radius = 99.0;
   }
 

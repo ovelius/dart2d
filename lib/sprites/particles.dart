@@ -192,7 +192,7 @@ class Particles extends MovingSprite {
       return;
     }
     if (owner != null) {
-      if (other != null && damage != null && other.takesDamage() &&
+      if (other != null && damage != null && other.takesDamage(Mod.COFFEE) &&
           other.networkId != owner!.networkId) {
         other.takeDamage(damage!, owner!, Mod.COFFEE);
         lifeTime = 0;

@@ -100,16 +100,19 @@ class Sprite {
    * Configure the sprite to show exactly one frame from the image.
    */
   void setImageWithLockedFrame(int imageId, int frames, int lockedFrame) {
+    if (lockedFrame >= frames) {
+      throw "Locked frame higher then available frames, was $lockedFrame frames $frames";
+    }
     this.imageId = imageId;
     HTMLImageElement image = _imageIndex.getImageById(imageId);
     this.frameWidth = image.width / frames;
     // Only show a single frame.
-    this.frames = 1;
     this.frameIndex = lockedFrame;
     if (frameIndex * frameWidth + frameWidth > image.width) {
       throw "Can't draw frame ${frameIndex} with frameWidth ${frameWidth}, image size only ${image.width}";
     }
     this.lockFrame = true;
+    this.frames = frames;
   }
   
   void setCenter(Vec2 center) {
@@ -135,8 +138,10 @@ class Sprite {
   }
 
   frame(double duration, int frameStep, [Vec2? gravity]) {
-    if (frameStep > 0 && frames > 1) {
-      frameIndex = (frameIndex +  frameStep) % frames;
+    if (!lockFrame) {
+      if (frameStep > 0 && frames > 1) {
+        frameIndex = (frameIndex + frameStep) % frames;
+      }
     }
     if (lifeTime != UNLIMITED_LIFETIME) {
       lifeTime -= frameStep;
@@ -225,11 +230,10 @@ class Sprite {
     return (center - otherCenter).sum();
   }
   
-  bool takesDamage() {
+  bool takesDamage(Mod mod) {
     return false;
   }
 
-  // TODO: Make methods below abstract?
   void takeDamage(int damage, LocalPlayerSprite inflictor, Mod mod) {
 
   }

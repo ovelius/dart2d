@@ -2,7 +2,6 @@
 import 'dart:js_interop';
 
 import 'package:dart2d/net/state_updates.pb.dart';
-import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:web/web.dart';
 
 import '../res/sounds.dart';
@@ -10,7 +9,6 @@ import 'movingsprite.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/worlds/byteworld.dart';
-import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'dart:math';
@@ -38,11 +36,11 @@ class BananaCake extends WorldDamageProjectile {
   explode() {
     world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
-        addpParticles: particlesOnExplode,
+        addParticles: particlesOnExplode,
         damage: damage, radius: radius, damageDoer: owner!, mod:Mod.BANANA);
     for (int i = 0; i < 9; i++) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(world,
-          this.owner!, 30, this);
+          this.owner!, 30, positionBase: this);
       sprite.mod = Mod.BANANA;
       sprite.setImage(world.imageIndex().getImageIdByName("banana.png"), 1);
       sprite.position = Vec2.copy(this.position);
@@ -98,7 +96,7 @@ class Hyper extends WorldDamageProjectile {
     for (PlayerInfoProto inf in world.network().gameState.playerInfoList()) {
       if (inf.spriteId != owner?.networkId) {
         LocalPlayerSprite? sprite = world.spriteIndex[inf.spriteId] as LocalPlayerSprite?;
-        if (sprite != null && sprite.inGame() && sprite.takesDamage()) {
+        if (sprite != null && sprite.inGame() && sprite.takesDamage(Mod.HYPER)) {
           double dst = distanceTo(sprite);
           if (dst < EFFECTIVE_DISTANCE) {
             spritesInDamageArea.add(sprite);
@@ -121,7 +119,7 @@ class Hyper extends WorldDamageProjectile {
     }
     if (owner != null) {
       for (LocalPlayerSprite damageSprite in _spritesInDamageArea) {
-        if (damageSprite.takesDamage()) {
+        if (damageSprite.takesDamage(Mod.HYPER)) {
           damageSprite.takeDamage(damage, owner!, Mod.HYPER);
         }
       }
@@ -132,7 +130,7 @@ class Hyper extends WorldDamageProjectile {
   draw(CanvasRenderingContext2D context, bool debug) {
     Vec2 center = centerPoint();
     for (LocalPlayerSprite sprite in _spritesInDamageArea) {
-      if (sprite.inGame() && sprite.takesDamage()) {
+      if (sprite.inGame() && sprite.takesDamage(Mod.HYPER)) {
         Vec2 targetCenter = sprite.centerPoint();
         context.lineWidth = 4;
         context.strokeStyle = color.toJS;
@@ -185,7 +183,7 @@ class Hyper extends WorldDamageProjectile {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (owner != null && other != null && other.networkId != owner!.networkId && other.takesDamage()) {
+    if (owner != null && other != null && other.networkId != owner!.networkId && other.takesDamage(Mod.HYPER)) {
       other.takeDamage(damage, owner!, Mod.HYPER);
       remove = true;
     }
@@ -303,6 +301,11 @@ class WorldDamageProjectile extends MovingSprite {
   // Can collide with world ?
   bool worldCollide = true;
 
+  // If this can be take damage/be destroyed.
+  int health = -1;
+
+  Vec2? maxSpeed = null;
+
   Mod mod = Mod.UNKNOWN;
   
   WorldDamageProjectile(WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
@@ -310,11 +313,22 @@ class WorldDamageProjectile extends MovingSprite {
     this.world = world;
   }
 
+  bool takesDamage(Mod mod) {
+    return health > 0 && mod != Mod.TV;
+  }
+
+  void takeDamage(int damage, LocalPlayerSprite inflictor, Mod mod) {
+    health -= damage;
+    if (health < 0) {
+      remove = true;
+    }
+  }
+
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (other != null && owner != null && other.networkId != owner!.networkId && other.takesDamage()) {
+    if (other != null && owner != null && other.networkId != owner!.networkId && other.takesDamage(mod)) {
       other.takeDamage(damage, owner!, mod);
       if (removeOnCollision) {
         explode();
@@ -356,7 +370,7 @@ class WorldDamageProjectile extends MovingSprite {
     if (radius > 0.0) {
       world.explosionAtSprite(
         sprite: this, velocity: velocity.multiply(0.2),
-        addpParticles: particlesOnExplode,
+        addParticles: particlesOnExplode,
         damage: damage, radius: radius, damageDoer: owner!, mod:mod);
     }
     if (removeOnCollision) {
@@ -371,6 +385,25 @@ class WorldDamageProjectile extends MovingSprite {
         if (explodeAfter! < 0) {
           explode();
         }
+      }
+    }
+    Vec2? maxSpeed = this.maxSpeed;
+    if (maxSpeed != null) {
+      if (maxSpeed.x > 0 && velocity.x > maxSpeed.x) {
+        this.velocity.x = maxSpeed.x;
+        this.acceleration.x = 0;
+      }
+      if (maxSpeed.x < 0 && velocity.x < maxSpeed.x) {
+        this.velocity.x = maxSpeed.x;
+        this.acceleration.x = 0;
+      }
+      if (maxSpeed.y > 0 && velocity.y > maxSpeed.y) {
+        this.velocity.y = maxSpeed.y;
+        this.acceleration.y = 0;
+      }
+      if (maxSpeed.y < 0 && velocity.y < maxSpeed.y) {
+        this.velocity.y = maxSpeed.y;
+        this.acceleration.y = 0;
       }
     }
     super.frame(duration, frameStep, gravity);
@@ -394,6 +427,7 @@ class WorldDamageProjectile extends MovingSprite {
      ..extraFloat.add(radius)
      ..extraInt.add(damage)
      ..extraInt.add(owner == null ? -1 : owner!.networkId!)
+     ..extraInt.add(health)
      ..extraBool.add(showCounter)
      ..extraBool.add(removeOnCollision);
     if (explodeAfter != null) {
@@ -408,13 +442,14 @@ class WorldDamageProjectile extends MovingSprite {
     showCounter = data.extraBool[0];
     removeOnCollision = data.extraBool[1];
     int ownerId = data.extraInt[1];
+    health = data.extraInt[2];
     this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite?;
     if (data.extraFloat.length > 1) {
       this.explodeAfter = data.extraFloat[1];
     }
   }
 
-  WorldDamageProjectile.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, [MovingSprite? positionBase = null])
+  WorldDamageProjectile.createWithOwner(WormWorld world, LocalPlayerSprite owner, int damage, {MovingSprite? positionBase = null, Vec2? size = null})
      : super.imageBasedSprite(new Vec2(), world.imageIndex().getImageIdByName("zooka.png"), world.imageIndex()) {
     if (positionBase == null) {
       positionBase = owner;
@@ -422,11 +457,11 @@ class WorldDamageProjectile extends MovingSprite {
     this.world = world;
     this.owner = owner;
     this.damage = damage;
-    this.size = new Vec2(15.0, 7.0);
+    this.size = size == null? new Vec2(15.0, 7.0) : size;
     double ownerSize = owner.size.sum() / 2;
     Vec2 positionCenter = owner.centerPoint();
-    this.position.x = positionCenter.x + cos(positionBase.angle) * ownerSize;
-    this.position.y = positionCenter.y + sin(positionBase.angle) * ownerSize;
+    this.setCenter(Vec2(positionCenter.x + cos(positionBase.angle) * ownerSize,
+        positionCenter.y + sin(positionBase.angle) * ownerSize));
     this.velocity.x = cos(positionBase.angle);
     this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);

@@ -60,6 +60,7 @@ class Powerup extends MovingSprite {
   };
 
   late PowerUpType _type;
+  PowerUpType get type => _type;
 
   StickySprite? _swiwel;
 
@@ -74,8 +75,8 @@ class Powerup extends MovingSprite {
     }
     if (_type == PowerUpType.POWERUP) {
       _swiwel = _createSwivel(imageIndex);
-      size = SIZE_OFFSET;
     }
+    size = SIZE_OFFSET;
   }
 
   StickySprite _createSwivel(ImageIndex index) {
