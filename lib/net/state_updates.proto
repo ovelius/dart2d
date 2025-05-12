@@ -58,6 +58,13 @@ message StateUpdate {
     // Other side tells us to become game commander.
     bool transfer_command = 14;
 
+    // The other side switched to this commander.
+    string commander_switch_from_closed_connection = 24;
+
+    // The other side suggest it should become commander.
+    // Provides the ClientStatusData as motiviation.
+    ClientStatusData suggest_self_commander = 25;
+
     ByteWorldDestruction byte_world_destruction = 15;
     ByteWorldDraw byte_world_draw = 16;
     ParticleEffects particle_effects = 17;

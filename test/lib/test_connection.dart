@@ -102,7 +102,7 @@ class TestConnection {
       }
     }
     if (closed) {
-      throw new StateError("TestConnection is closed, can't send!");
+      throw new StateError("TestConnection ${this} is closed, can't send!");
     }
     bool drop = dropPacketsAfter <=0;
     dropPacketsAfter--;

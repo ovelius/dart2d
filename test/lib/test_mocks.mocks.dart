@@ -871,16 +871,14 @@ class MockNetwork extends _i1.Mock implements _i13.Network {
 
   @override
   String? findNewCommander(
-    Map<dynamic, dynamic>? connections, [
+    Map<dynamic, dynamic>? connections, {
     bool? ignoreSelf = false,
-  ]) =>
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #findNewCommander,
-          [
-            connections,
-            ignoreSelf,
-          ],
+          [connections],
+          {#ignoreSelf: ignoreSelf},
         ),
         returnValueForMissingStub: null,
       ) as String?);
@@ -1911,36 +1909,36 @@ class MockPeerWrapper extends _i1.Mock implements _i6.PeerWrapper {
 
   @override
   void sendSingleStateUpdate(
-    _i12.StateUpdate? data, [
-    String? dontSendTo,
-    String? onlySendTo,
-  ]) =>
+    _i12.StateUpdate? data, {
+    String? dontSendTo = null,
+    String? onlySendTo = null,
+  }) =>
       super.noSuchMethod(
         Invocation.method(
           #sendSingleStateUpdate,
-          [
-            data,
-            dontSendTo,
-            onlySendTo,
-          ],
+          [data],
+          {
+            #dontSendTo: dontSendTo,
+            #onlySendTo: onlySendTo,
+          },
         ),
         returnValueForMissingStub: null,
       );
 
   @override
   void sendDataWithKeyFramesToAll(
-    _i12.GameStateUpdates? data, [
+    _i12.GameStateUpdates? data, {
     String? dontSendTo,
     String? onlySendTo,
-  ]) =>
+  }) =>
       super.noSuchMethod(
         Invocation.method(
           #sendDataWithKeyFramesToAll,
-          [
-            data,
-            dontSendTo,
-            onlySendTo,
-          ],
+          [data],
+          {
+            #dontSendTo: dontSendTo,
+            #onlySendTo: onlySendTo,
+          },
         ),
         returnValueForMissingStub: null,
       );
@@ -3246,6 +3244,16 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
       ) as int);
 
   @override
+  bool isProblematicFramesBehind() => (super.noSuchMethod(
+        Invocation.method(
+          #isProblematicFramesBehind,
+          [],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   bool hasReceivedFirstKeyFrame() => (super.noSuchMethod(
         Invocation.method(
           #hasReceivedFirstKeyFrame,
@@ -3982,6 +3990,17 @@ class MockGameState extends _i1.Mock implements _i5.GameState {
       ) as bool);
 
   @override
+  Set<_i12.ConnectionInfoProto> playerConnections(String? a) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #playerConnections,
+          [a],
+        ),
+        returnValue: <_i12.ConnectionInfoProto>{},
+        returnValueForMissingStub: <_i12.ConnectionInfoProto>{},
+      ) as Set<_i12.ConnectionInfoProto>);
+
+  @override
   void reset() => super.noSuchMethod(
         Invocation.method(
           #reset,
@@ -4101,6 +4120,15 @@ class MockGameState extends _i1.Mock implements _i5.GameState {
       ) as _i12.PlayerInfoProto?);
 
   @override
+  _i12.PlayerInfoProto? getRemovedPlayerInfo(String? id) => (super.noSuchMethod(
+        Invocation.method(
+          #getRemovedPlayerInfo,
+          [id],
+        ),
+        returnValueForMissingStub: null,
+      ) as _i12.PlayerInfoProto?);
+
+  @override
   _i12.PlayerInfoProto playerInfoBySpriteId(int? id) => (super.noSuchMethod(
         Invocation.method(
           #playerInfoBySpriteId,
@@ -4183,6 +4211,16 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i10.LocalPlayerSprite? maybeResurrectPlayerSprite(int? id) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #maybeResurrectPlayerSprite,
+          [id],
+        ),
+        returnValueForMissingStub: null,
+      ) as _i10.LocalPlayerSprite?);
 
   @override
   List<_i10.Sprite> putPendingSpritesInWorld() => (super.noSuchMethod(

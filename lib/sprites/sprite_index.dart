@@ -100,6 +100,8 @@ class SpriteIndex {
   List<int> _networkRemovals = [];
   // Sprites that will be removed from the world next frame;
   List<int> _removeSprites = [];
+  // Store away player sprites in case the need to be ressurected.
+  Map<int, LocalPlayerSprite> _removedPlayerSprites = {};
   // Sprites that will replace the current world sprites next frame.
   Map<int, Sprite> _replaceSprite = {};
 
@@ -115,10 +117,20 @@ class SpriteIndex {
     if (sprite.networkId != null) {
       if (_sprites.containsKey(sprite.networkId)) {
         throw new StateError(
-            "Network controlled sprite ${sprite}[${sprite.networkId}] would overwrite existing sprite ${_sprites[sprite.networkId]}");
+            "Network controlled sprite ${sprite}[${sprite.networkId}] ${sprite.networkType} would overwrite existing sprite ${_sprites[sprite.networkId]} ${sprite.networkType}");
       }
     }
     _waitingSprites.add(sprite);
+  }
+
+  LocalPlayerSprite? maybeResurrectPlayerSprite(int id) {
+    LocalPlayerSprite? deletedPlayerSprite = _removedPlayerSprites[id];
+    if (deletedPlayerSprite != null) {
+      log.info("Resurrected player sprite ${deletedPlayerSprite}");
+      deletedPlayerSprite.remove = false;
+      addSprite(deletedPlayerSprite);
+    }
+    return deletedPlayerSprite;
   }
 
   List<Sprite> putPendingSpritesInWorld() {
@@ -135,8 +147,8 @@ class SpriteIndex {
       }
       if (_sprites.containsKey(newSprite.networkId)) {
         log.severe(
-            "Network controlled sprite ${newSprite}[${newSprite.networkId}]" +
-                "would overwrite existing sprite ${_sprites[newSprite.networkId]} not adding it!");
+            "Network controlled sprite ${newSprite}[${newSprite.networkId}] ${newSprite.networkType} " +
+                "would overwrite existing sprite ${_sprites[newSprite.networkId]} ${_sprites[newSprite.networkId]?.networkType} not adding it!");
         continue;
       }
       _sprites[newSprite.networkId!] = newSprite;
@@ -178,6 +190,10 @@ class SpriteIndex {
       int id = _removeSprites.removeAt(0);
       Sprite? sprite = _sprites[id];
       _sprites.remove(id);
+      // Store away player sprites.
+      if (sprite is LocalPlayerSprite) {
+        _removedPlayerSprites[id] = sprite;
+      }
       log.fine("Removing sprite ${id} from world");
       if (sprite != null) {
         sprite.remove = true;

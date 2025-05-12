@@ -140,6 +140,8 @@ enum StateUpdate_Update {
   commanderMapSelected, 
   playSound, 
   negotiation, 
+  commanderSwitchFromClosedConnection, 
+  suggestSelfCommander, 
   notSet
 }
 
@@ -167,6 +169,8 @@ class StateUpdate extends $pb.GeneratedMessage {
     $core.String? commanderMapSelected,
     PlaySound? playSound,
     WebRtcNegotiationProto? negotiation,
+    $core.String? commanderSwitchFromClosedConnection,
+    ClientStatusData? suggestSelfCommander,
   }) {
     final $result = create();
     if (dataReceipt != null) {
@@ -235,6 +239,12 @@ class StateUpdate extends $pb.GeneratedMessage {
     if (negotiation != null) {
       $result.negotiation = negotiation;
     }
+    if (commanderSwitchFromClosedConnection != null) {
+      $result.commanderSwitchFromClosedConnection = commanderSwitchFromClosedConnection;
+    }
+    if (suggestSelfCommander != null) {
+      $result.suggestSelfCommander = suggestSelfCommander;
+    }
     return $result;
   }
   StateUpdate._() : super();
@@ -263,10 +273,12 @@ class StateUpdate extends $pb.GeneratedMessage {
     21 : StateUpdate_Update.commanderMapSelected,
     22 : StateUpdate_Update.playSound,
     23 : StateUpdate_Update.negotiation,
+    24 : StateUpdate_Update.commanderSwitchFromClosedConnection,
+    25 : StateUpdate_Update.suggestSelfCommander,
     0 : StateUpdate_Update.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StateUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'dart2d_proto'), createEmptyInstance: create)
-    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23])
+    ..oo(0, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
     ..a<$core.int>(1, _omitFieldNames ? '' : 'dataReceipt', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'userMessage')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'spriteRemoval', $pb.PbFieldType.O3)
@@ -289,6 +301,8 @@ class StateUpdate extends $pb.GeneratedMessage {
     ..aOS(21, _omitFieldNames ? '' : 'commanderMapSelected')
     ..aOM<PlaySound>(22, _omitFieldNames ? '' : 'playSound', subBuilder: PlaySound.create)
     ..aOM<WebRtcNegotiationProto>(23, _omitFieldNames ? '' : 'negotiation', subBuilder: WebRtcNegotiationProto.create)
+    ..aOS(24, _omitFieldNames ? '' : 'commanderSwitchFromClosedConnection')
+    ..aOM<ClientStatusData>(25, _omitFieldNames ? '' : 'suggestSelfCommander', subBuilder: ClientStatusData.create)
     ..hasRequiredFields = false
   ;
 
@@ -551,6 +565,29 @@ class StateUpdate extends $pb.GeneratedMessage {
   void clearNegotiation() => clearField(23);
   @$pb.TagNumber(23)
   WebRtcNegotiationProto ensureNegotiation() => $_ensure(21);
+
+  /// The other side switched to this commander.
+  @$pb.TagNumber(24)
+  $core.String get commanderSwitchFromClosedConnection => $_getSZ(22);
+  @$pb.TagNumber(24)
+  set commanderSwitchFromClosedConnection($core.String v) { $_setString(22, v); }
+  @$pb.TagNumber(24)
+  $core.bool hasCommanderSwitchFromClosedConnection() => $_has(22);
+  @$pb.TagNumber(24)
+  void clearCommanderSwitchFromClosedConnection() => clearField(24);
+
+  /// The other side suggest it should become commander.
+  /// Provides the ClientStatusData as motiviation.
+  @$pb.TagNumber(25)
+  ClientStatusData get suggestSelfCommander => $_getN(23);
+  @$pb.TagNumber(25)
+  set suggestSelfCommander(ClientStatusData v) { setField(25, v); }
+  @$pb.TagNumber(25)
+  $core.bool hasSuggestSelfCommander() => $_has(23);
+  @$pb.TagNumber(25)
+  void clearSuggestSelfCommander() => clearField(25);
+  @$pb.TagNumber(25)
+  ClientStatusData ensureSuggestSelfCommander() => $_ensure(23);
 }
 
 class WebRtcNegotiationProto extends $pb.GeneratedMessage {

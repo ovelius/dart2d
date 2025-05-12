@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:dart2d/net/peer.dart';
 import 'package:dart2d/net/state_updates.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -10,13 +8,12 @@ import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
-import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:logging/logging.dart' show Logger;
 
 import 'helpers.dart';
 
 // Network has 2 keyframes per second.
 const KEY_FRAME_DEFAULT = 1.0 / 2;
-const PROBLEMATIC_FRAMES_BEHIND = 12;
 
 @Singleton(scope: 'world')
 class Network {
@@ -82,11 +79,54 @@ class Network {
             "Can not transfer command to us before loading has completed. Dropping request.");
         return;
       }
-      // Server wants us to take command.
+      // Commander wants us to take command.
       log.info("Converting self ${peer.id} to commander");
       this.convertToCommander(this.safeActiveConnections(), null);
       _gaReporter.reportEvent(
           "convert_self_to_commander_on_request", "Commander");
+    });
+
+    _packetListenerBindings.bindHandler(StateUpdate_Update.commanderSwitchFromClosedConnection,
+            (ConnectionWrapper connection, StateUpdate update) {
+      String ourCommanderId = getGameState().gameStateProto.actingCommanderId;
+      if (ourCommanderId == update.commanderSwitchFromClosedConnection) {
+        // We have the same view of the world, nothing to do here.
+        return;
+      }
+      if (update.commanderSwitchFromClosedConnection == peer.id) {
+        // Someone elected us a commander.
+        log.info("${connection.id} elected us ${peer.id} as commander but we have ${getGameState().gameStateProto.actingCommanderId}");
+        if (hasNetworkProblem()) {
+          // This is transient, we'll probably also switch commander soon.
+          // Probably it's going to be us.
+          // Ignore this.
+          return;
+        }
+        // Suggest to commander we should be the commander.
+        peer.sendSingleStateUpdate(StateUpdate()
+          ..suggestSelfCommander = _createClientStatusData()
+          ..attachSingleTonUniqueDataReceipt(), onlySendTo: ourCommanderId);
+      }
+    });
+    _packetListenerBindings.bindHandler(StateUpdate_Update.suggestSelfCommander,
+            (ConnectionWrapper connection, StateUpdate update) {
+      if (!isCommander()) {
+        log.warning("Got suggested command transfer from ${connection.id} without being commander");
+      }
+      ClientStatusData clientStatusData = update.suggestSelfCommander;
+
+      int stableConnections = 0;
+      for (ConnectionWrapper connection in safeActiveConnections().values) {
+        if (!connection.isProblematicFramesBehind()) {
+          stableConnections++;
+        }
+      }
+
+      log.info("Command transfer request by ${connection.id} with ${clientStatusData.connectionInfo.length} connections we have ${stableConnections}");
+
+      if (stableConnections < clientStatusData.connectionInfo.length) {
+        _sendPendingCommandTransfer(connection, "better connections");
+      }
     });
   }
 
@@ -105,7 +145,7 @@ class Network {
    * returns the id of the new commander, or null if no new commander was needed.
    *  peers.
    */
-  String? findNewCommander(Map connections, [bool ignoreSelf = false]) {
+  String? findNewCommander(Map connections, {bool ignoreSelf = false}) {
     if (!isCommander()) {
       if (!gameState.isInGame(peer.id!)) {
         log.info("No active game found for us, no commander role to transfer.");
@@ -114,9 +154,10 @@ class Network {
     }
     List<String> validKeys = [];
     for (String key in connections.keys) {
+      // Someone not in GameState is not valid...
       ConnectionWrapper connection = connections[key];
       if (connection.id == gameState.gameStateProto.actingCommanderId) {
-        log.info("${peer.id} has a client to server connection using ${key}");
+        log.info("${peer.id} has a commander connection using ${key}");
         return null;
       }
       if (connection.isValidGameConnection()) {
@@ -134,7 +175,7 @@ class Network {
   /**
    * When the commander dies unexpectedly we need to make a collective decision on
    * who will be the next commander. The peer ID should be the most consistent item
-   * so we pick the remaining host with the highest naturual order peerId.
+   * so we pick the remaining host with the highest natural order peerId.
    * Should this turn out to be unsuitable, it will automatically select a better
    * commander in time.
    */
@@ -204,16 +245,27 @@ class Network {
         sprite.collision = false;
       }
     }
-
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id]!;
       connection.sendPing();
       if (connection.isValidGameConnection()) {
-        PlayerInfoProto info = gameState.playerInfoByConnectionId(id)!;
+        PlayerInfoProto? info = gameState.playerInfoByConnectionId(id);
+        if (info == null) {
+          info = gameState.getRemovedPlayerInfo(id);
+          if (info != null) {
+            log.info("Recycling player ${id} back into GameState");
+            gameState.addPlayerInfo(info);
+          }
+        }
         // Make it our responsibility to forward data from other players.
-        Sprite? sprite = _spriteIndex[info.spriteId];
-        if (sprite?.networkType == NetworkType.REMOTE) {
-          sprite?.networkType = NetworkType.REMOTE_FORWARD;
+        if (info != null) {
+          Sprite? sprite = _spriteIndex[info.spriteId];
+          if (sprite == null) {
+            sprite = world.spriteIndex.maybeResurrectPlayerSprite(info.spriteId);
+          }
+          if (sprite?.networkType == NetworkType.REMOTE) {
+            sprite?.networkType = NetworkType.REMOTE_FORWARD;
+          }
         }
       }
     }
@@ -288,7 +340,7 @@ class Network {
           sprite?.networkType = NetworkType.REMOTE;
         }
       }
-      log.info("Succcesfully transfered command to ${gameState.gameStateProto.actingCommanderId}");
+      log.info("Successfully command transfer to ${gameState.gameStateProto.actingCommanderId}");
       _pendingCommandTransfer = null;
     }
 
@@ -331,7 +383,7 @@ class Network {
           // TODO close by some heuristic here?
           if (i > 1) break;
           ConnectionWrapper connection = connections[closeAbleNotServer[i]]!;
-          log.info("Closing connection $connection in search for server.");
+          log.info("Closing connection $connection in search for game.");
           connection.close("No game found");
 
           // Remove right away, so autoConnectToPeers doesn't count this connection.
@@ -341,7 +393,7 @@ class Network {
           if (!peer.autoConnectToPeers()) {
             // We didn't add any new peers. Bail.
             log.warning(
-                "didn't find any servers, and not able to connect to any more peers. Giving up.");
+                "didn't find any commanders, and not able to connect to any more peers. Giving up.");
             return true;
           }
         }
@@ -361,10 +413,10 @@ class Network {
   }
 
   /**
-   * Returns true if the network is in such a problemetic state we should notify the user.
+   * Returns true if the network is in such a problematic state we should notify the user.
    */
   bool hasNetworkProblem() {
-    return commanderFramesBehind >= PROBLEMATIC_FRAMES_BEHIND && !isCommander();
+    return commanderFramesBehind >= ConnectionWrapper.PROBLEMATIC_FRAMES_BEHIND && !isCommander();
   }
 
   void sendMessage(String message, [String? dontSendTo]) {
@@ -373,7 +425,7 @@ class Network {
       ..userMessage = message;
     GameStateUpdates state = GameStateUpdates()
       ..stateUpdate.add(update);
-    peer.sendDataWithKeyFramesToAll(state, dontSendTo);
+    peer.sendDataWithKeyFramesToAll(state, dontSendTo: dontSendTo);
   }
 
   void maybeSendLocalKeyStateUpdate() {
@@ -414,16 +466,18 @@ class Network {
     if (isCommander() && isTooSlowForCommanding()) {
       log.info("Self framerate is too low ${_slowCommandingFrames} attempting to transfer command role");
       Map connections = safeActiveConnections();
-      String? newCommander = findNewCommander(connections, true);
+      String? newCommander = findNewCommander(connections, ignoreSelf: true);
       if (newCommander != null) {
-        ConnectionWrapper connection = connections[newCommander];
-        connection.sendCommandTransfer();
-        _slowCommandingFrames = 0;
-        log.info(
-            "Attempting to transfer command rule due to slow framerate from us");
-        _pendingCommandTransfer = newCommander;
+        _sendPendingCommandTransfer(connections[newCommander], "slow self framerate");
       }
     }
+  }
+
+  _sendPendingCommandTransfer(ConnectionWrapper connection, String reason) {
+    connection.sendCommandTransfer();
+    _slowCommandingFrames = 0;
+    log.info("Attempting to transfer command rule due to $reason");
+    _pendingCommandTransfer = connection.id;
   }
 
   String? pendingCommandTransfer() => _pendingCommandTransfer;
@@ -531,7 +585,7 @@ class Network {
               GameStateUpdates g = GameStateUpdates()
                  ..spriteUpdates.add(update);
               peer.sendDataWithKeyFramesToAll(
-                  g, null, receipientConnection.id);
+                  g, onlySendTo: receipientConnection.id);
             }
           }
         }
@@ -564,15 +618,7 @@ class Network {
         ..gameState = gameState.gameStateProto);
     }
     if (keyFrame) {
-      ClientStatusData clientData = ClientStatusData()
-        ..fps = _drawFps.fps();
-      for (ConnectionWrapper c in safeActiveConnections().values) {
-        clientData.connectionInfo.add(ConnectionInfoProto()
-          ..id = c.id
-          ..latencyMillis = c
-              .expectedLatency()
-              .inMilliseconds);
-      }
+      ClientStatusData clientData = _createClientStatusData();
       if (isCommander()) {
         _handleClientStatusData(peer.id!, clientData);
       } else {
@@ -580,5 +626,18 @@ class Network {
           ..clientStatusData = clientData);
       }
     }
+  }
+
+  ClientStatusData _createClientStatusData() {
+    ClientStatusData clientStatusData = ClientStatusData()
+      ..fps = _drawFps.fps();
+    for (ConnectionWrapper c in safeActiveConnections().values) {
+      clientStatusData.connectionInfo.add(ConnectionInfoProto()
+        ..id = c.id
+        ..latencyMillis = c
+            .expectedLatency()
+            .inMilliseconds);
+    }
+    return clientStatusData;
   }
 }

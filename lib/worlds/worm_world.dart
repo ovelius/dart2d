@@ -680,6 +680,10 @@ class WormWorld extends World {
   }
 
   void removeSprite(int networkId) {
+    if (networkId == playerSprite?.networkId) {
+      log.severe("Removal of playerSprite is not allowed!");
+      return;
+    }
     // Remove any associated sound.
     _sounds.stopPlayId(networkId.toString());
     spriteIndex.removeSprite(networkId);

@@ -956,6 +956,89 @@ void main() {
       }
     });
 
+    test('ThreeWorlds oneCommanderConnectionDies ElectsNewCommander', () async {
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      logConnectionData = false;
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldA,
+          hasSpecifiedConnections(['b', 'c']).isValidGameConnections());
+      expect(worldB,
+          hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
+      expect(worldC,
+          hasSpecifiedConnections(['a', 'b']).isValidGameConnections());
+
+      // Kill 'c's commander connection.
+      testConnections['a']!.forEach((e) {
+         if (e.getOtherEnd()?.id == 'c') {
+          e.signalClose();
+        }
+      });
+
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      //  We manage to save the gameState by converting 'b' to commander.
+      expect(worldA, isGameStateOf(
+          {playerId(0): "nameA", playerId(1): "nameB", playerId(2):"nameC"}).withCommanderId('b'));
+      expect(worldB, isGameStateOf(
+          {playerId(0): "nameA", playerId(1): "nameB", playerId(2):"nameC"}).withCommanderId('b'));
+      expect(worldC, isGameStateOf(
+          {playerId(0): "nameA", playerId(1): "nameB", playerId(2):"nameC"}).withCommanderId('b'));
+
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldC,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.LOCAL));
+
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.REMOTE_FORWARD));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldB,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.REMOTE_FORWARD));
+
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(0))
+              .andNetworkType(NetworkType.LOCAL));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(1))
+              .andNetworkType(NetworkType.REMOTE));
+      expect(
+          worldA,
+          hasSpriteWithNetworkId(playerId(2))
+              .andNetworkType(NetworkType.REMOTE));
+
+    });
+
     test('TestMaxPlayers', () async {
       logConnectionData = false;
       WormWorld worldA = await createTestWorld("a");
@@ -1001,6 +1084,7 @@ void main() {
     });
 
     test('TwoConnectionsDropped_findsNewStableGameState', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
       logConnectionData = false;
       WormWorld worldA = await createTestWorld("a");
       worldA.startAsServer("nameA");
@@ -1077,6 +1161,7 @@ void main() {
     });
 
     test('TestCloseCommanderToCommanderConnection', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
       logConnectionData = false;
       ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
       WormWorld worldA = await createTestWorld("a");

@@ -44,7 +44,7 @@ class PeerWrapper {
       if (proto.dst != this.id) {
         if (hasConnectionTo(proto.dst)) {
           log.info("Forwarding signaling message ${proto}");
-          sendSingleStateUpdate(update, null, proto.dst);
+          sendSingleStateUpdate(update, onlySendTo:proto.dst);
         } else {
           log.warning("Received signaling message to ${proto.dst} which we aren't connected to!");
         }
@@ -98,7 +98,7 @@ class PeerWrapper {
       sendSingleStateUpdate(StateUpdate()
           ..negotiation = negotiationProto
           ..attachDataReceipt(negotiator.otherId)
-          , null, commanderId);
+          , onlySendTo: commanderId);
     } else {
       String base64Proto = base64Encode(
           negotiator.buildProto().writeToBuffer());
@@ -234,14 +234,14 @@ class PeerWrapper {
   }
 
   void sendSingleStateUpdate(StateUpdate data,
-      [String? dontSendTo, String? onlySendTo]) {
+      {String? dontSendTo = null, String? onlySendTo = null}) {
     GameStateUpdates g = GameStateUpdates();
     g.stateUpdate.add(data);
-    sendDataWithKeyFramesToAll(g, dontSendTo, onlySendTo);
+    sendDataWithKeyFramesToAll(g, dontSendTo:dontSendTo, onlySendTo:onlySendTo);
   }
 
   void sendDataWithKeyFramesToAll(GameStateUpdates data,
-      [String? dontSendTo, String? onlySendTo]) {
+      {String? dontSendTo, String? onlySendTo}) {
     List<String> closedConnections = [];
     for (String key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
       ConnectionWrapper? connection = connections[key];
@@ -303,10 +303,13 @@ class PeerWrapper {
         } else {
           // crash here..
           PlayerInfoProto info = _network.gameState.playerInfoByConnectionId(commanderId)!;
-          // Start treating the other peer as server.
+          // Start treating the other peer as commander.
           _network.gameState.gameStateProto.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
           _hudMessages.display("Elected new commander ${info.name}");
+          sendSingleStateUpdate(StateUpdate()
+            ..commanderSwitchFromClosedConnection = commanderId
+            ..attachSingleTonUniqueDataReceipt());
         }
       } else {
         log.info("Not switching commander after dropping ${id}");

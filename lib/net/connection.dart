@@ -17,6 +17,7 @@ import 'dart:core';
 import 'helpers.dart';
 
 class ConnectionWrapper {
+  static const PROBLEMATIC_FRAMES_BEHIND = 12;
   static bool THROW_SEND_ERRORS_FOR_TEST = false;
   final Logger log = new Logger('Connection');
   // Close connection due to inactivity.
@@ -86,6 +87,7 @@ class ConnectionWrapper {
   int currentKeyFrame() => _connectionFrameHandler.currentKeyFrame();
 
   int recipientFramesBehind() => (_connectionFrameHandler.currentFrame() - lastDeliveredFrame);
+  bool isProblematicFramesBehind() => recipientFramesBehind() > PROBLEMATIC_FRAMES_BEHIND;
 
   bool hasReceivedFirstKeyFrame() {
     // The server does not need to wait for keyframes.
@@ -262,8 +264,8 @@ class ConnectionWrapper {
         for (dynamic handler in _packetListenerBindings.handlerFor(updateType)) {
           try {
             handler(this, update);
-          } catch (e) {
-            log.severe("Error handling type ${updateType} data ${update.toDebugString()}, error: $e");
+          } catch (e,s) {
+            log.severe("'${this.id}': Error handling type ${updateType} data ${update.toDebugString()}, error: $e");
             if (THROW_SEND_ERRORS_FOR_TEST) {
               throw e;
             }
@@ -411,7 +413,7 @@ class ConnectionWrapper {
       }
       _dataChannel?.send(dataBytes.toJS);
       _sendFailures = 0;
-    } catch (e, _) {
+    } catch (e, s) {
       if (THROW_SEND_ERRORS_FOR_TEST) {
         log.severe("Error sending ${data}!");
         throw e;

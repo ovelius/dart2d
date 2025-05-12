@@ -26,6 +26,7 @@ class GameState {
   GameStateProto _gameStateProto = GameStateProto();
   GameStateProto get gameStateProto => _gameStateProto;
   Map<String, PlayerInfoProto> _playerInfoById = {};
+  Map<String, PlayerInfoProto> _removedPlayers = {};
   Map<String, KeyState> _playerKeyStateById = {};
 
   // True if we have urgent data for the network.
@@ -60,6 +61,9 @@ class GameState {
   }
 
   bool isConnected(String a, String b) =>  _playerInfoById.containsKey(a) ? _playerInfoById[a]!.isConnectedTo(b) : false;
+
+  Set<ConnectionInfoProto> playerConnections(String a) => _playerInfoById.containsKey(a) ?
+       Set.from(_playerInfoById[a]!.connectionInfo) : Set.identity();
 
   void reset() {
     _gameStateProto = GameStateProto();
@@ -118,6 +122,12 @@ class GameState {
         _playerKeyStateById[info.connectionId] = KeyState.remote();
       }
     }
+    // If something is removed, store it away.
+    for (String existingPlayer in _playerInfoById.keys) {
+      if (!byId.containsKey(existingPlayer)) {
+        _removedPlayers[existingPlayer] = _playerInfoById[existingPlayer]!;
+      }
+    }
     _playerInfoById = byId;
     _gameStateProto = gameState;
   }
@@ -165,6 +175,10 @@ class GameState {
 
   PlayerInfoProto? playerInfoByConnectionId(String id) {
     return _playerInfoById[id];
+  }
+
+  PlayerInfoProto? getRemovedPlayerInfo(String id) {
+    return _removedPlayers[id];
   }
 
   PlayerInfoProto playerInfoBySpriteId(int id) {

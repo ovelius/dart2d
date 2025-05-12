@@ -50,6 +50,8 @@ const StateUpdate$json = {
     {'1': 'pong', '3': 12, '4': 1, '5': 3, '9': 0, '10': 'pong'},
     {'1': 'other_player_world_select', '3': 13, '4': 1, '5': 11, '6': '.dart2d_proto.OtherPlayerWorldSelect', '9': 0, '10': 'otherPlayerWorldSelect'},
     {'1': 'transfer_command', '3': 14, '4': 1, '5': 8, '9': 0, '10': 'transferCommand'},
+    {'1': 'commander_switch_from_closed_connection', '3': 24, '4': 1, '5': 9, '9': 0, '10': 'commanderSwitchFromClosedConnection'},
+    {'1': 'suggest_self_commander', '3': 25, '4': 1, '5': 11, '6': '.dart2d_proto.ClientStatusData', '9': 0, '10': 'suggestSelfCommander'},
     {'1': 'byte_world_destruction', '3': 15, '4': 1, '5': 11, '6': '.dart2d_proto.ByteWorldDestruction', '9': 0, '10': 'byteWorldDestruction'},
     {'1': 'byte_world_draw', '3': 16, '4': 1, '5': 11, '6': '.dart2d_proto.ByteWorldDraw', '9': 0, '10': 'byteWorldDraw'},
     {'1': 'particle_effects', '3': 17, '4': 1, '5': 11, '6': '.dart2d_proto.ParticleEffects', '9': 0, '10': 'particleEffects'},
@@ -82,19 +84,22 @@ final $typed_data.Uint8List stateUpdateDescriptor = $convert.base64Decode(
     'B0cxIUCgRwaW5nGAsgASgDSABSBHBpbmcSFAoEcG9uZxgMIAEoA0gAUgRwb25nEmEKGW90aGVy'
     'X3BsYXllcl93b3JsZF9zZWxlY3QYDSABKAsyJC5kYXJ0MmRfcHJvdG8uT3RoZXJQbGF5ZXJXb3'
     'JsZFNlbGVjdEgAUhZvdGhlclBsYXllcldvcmxkU2VsZWN0EisKEHRyYW5zZmVyX2NvbW1hbmQY'
-    'DiABKAhIAFIPdHJhbnNmZXJDb21tYW5kEloKFmJ5dGVfd29ybGRfZGVzdHJ1Y3Rpb24YDyABKA'
-    'syIi5kYXJ0MmRfcHJvdG8uQnl0ZVdvcmxkRGVzdHJ1Y3Rpb25IAFIUYnl0ZVdvcmxkRGVzdHJ1'
-    'Y3Rpb24SRQoPYnl0ZV93b3JsZF9kcmF3GBAgASgLMhsuZGFydDJkX3Byb3RvLkJ5dGVXb3JsZE'
-    'RyYXdIAFINYnl0ZVdvcmxkRHJhdxJKChBwYXJ0aWNsZV9lZmZlY3RzGBEgASgLMh0uZGFydDJk'
-    'X3Byb3RvLlBhcnRpY2xlRWZmZWN0c0gAUg9wYXJ0aWNsZUVmZmVjdHMSTgoSY2xpZW50X3N0YX'
-    'R1c19kYXRhGBIgASgLMh4uZGFydDJkX3Byb3RvLkNsaWVudFN0YXR1c0RhdGFIAFIQY2xpZW50'
-    'U3RhdHVzRGF0YRJKChByZXNvdXJjZV9yZXF1ZXN0GBMgASgLMh0uZGFydDJkX3Byb3RvLlJlc2'
-    '91cmNlUmVxdWVzdEgAUg9yZXNvdXJjZVJlcXVlc3QSTQoRcmVzb3VyY2VfcmVzcG9uc2UYFCAB'
-    'KAsyHi5kYXJ0MmRfcHJvdG8uUmVzb3VyY2VSZXNwb25zZUgAUhByZXNvdXJjZVJlc3BvbnNlEj'
-    'YKFmNvbW1hbmRlcl9tYXBfc2VsZWN0ZWQYFSABKAlIAFIUY29tbWFuZGVyTWFwU2VsZWN0ZWQS'
-    'OAoKcGxheV9zb3VuZBgWIAEoCzIXLmRhcnQyZF9wcm90by5QbGF5U291bmRIAFIJcGxheVNvdW'
-    '5kEkgKC25lZ290aWF0aW9uGBcgASgLMiQuZGFydDJkX3Byb3RvLldlYlJ0Y05lZ290aWF0aW9u'
-    'UHJvdG9IAFILbmVnb3RpYXRpb25CCAoGdXBkYXRlSgQIAhAD');
+    'DiABKAhIAFIPdHJhbnNmZXJDb21tYW5kElYKJ2NvbW1hbmRlcl9zd2l0Y2hfZnJvbV9jbG9zZW'
+    'RfY29ubmVjdGlvbhgYIAEoCUgAUiNjb21tYW5kZXJTd2l0Y2hGcm9tQ2xvc2VkQ29ubmVjdGlv'
+    'bhJWChZzdWdnZXN0X3NlbGZfY29tbWFuZGVyGBkgASgLMh4uZGFydDJkX3Byb3RvLkNsaWVudF'
+    'N0YXR1c0RhdGFIAFIUc3VnZ2VzdFNlbGZDb21tYW5kZXISWgoWYnl0ZV93b3JsZF9kZXN0cnVj'
+    'dGlvbhgPIAEoCzIiLmRhcnQyZF9wcm90by5CeXRlV29ybGREZXN0cnVjdGlvbkgAUhRieXRlV2'
+    '9ybGREZXN0cnVjdGlvbhJFCg9ieXRlX3dvcmxkX2RyYXcYECABKAsyGy5kYXJ0MmRfcHJvdG8u'
+    'Qnl0ZVdvcmxkRHJhd0gAUg1ieXRlV29ybGREcmF3EkoKEHBhcnRpY2xlX2VmZmVjdHMYESABKA'
+    'syHS5kYXJ0MmRfcHJvdG8uUGFydGljbGVFZmZlY3RzSABSD3BhcnRpY2xlRWZmZWN0cxJOChJj'
+    'bGllbnRfc3RhdHVzX2RhdGEYEiABKAsyHi5kYXJ0MmRfcHJvdG8uQ2xpZW50U3RhdHVzRGF0YU'
+    'gAUhBjbGllbnRTdGF0dXNEYXRhEkoKEHJlc291cmNlX3JlcXVlc3QYEyABKAsyHS5kYXJ0MmRf'
+    'cHJvdG8uUmVzb3VyY2VSZXF1ZXN0SABSD3Jlc291cmNlUmVxdWVzdBJNChFyZXNvdXJjZV9yZX'
+    'Nwb25zZRgUIAEoCzIeLmRhcnQyZF9wcm90by5SZXNvdXJjZVJlc3BvbnNlSABSEHJlc291cmNl'
+    'UmVzcG9uc2USNgoWY29tbWFuZGVyX21hcF9zZWxlY3RlZBgVIAEoCUgAUhRjb21tYW5kZXJNYX'
+    'BTZWxlY3RlZBI4CgpwbGF5X3NvdW5kGBYgASgLMhcuZGFydDJkX3Byb3RvLlBsYXlTb3VuZEgA'
+    'UglwbGF5U291bmQSSAoLbmVnb3RpYXRpb24YFyABKAsyJC5kYXJ0MmRfcHJvdG8uV2ViUnRjTm'
+    'Vnb3RpYXRpb25Qcm90b0gAUgtuZWdvdGlhdGlvbkIICgZ1cGRhdGVKBAgCEAM=');
 
 @$core.Deprecated('Use webRtcNegotiationProtoDescriptor instead')
 const WebRtcNegotiationProto$json = {
