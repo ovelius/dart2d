@@ -11,9 +11,10 @@ class Weapon {
   double untilReload = 0.0;
   double untilNextFire = 0.0;
   int shotsLeft = 0;
+
+  int iconIndex = 0;
   
-  Weapon(this.name, this.shotsPerClip, this.reloadTime, this.fireDelay, this.fire) {
-    shotsLeft = shotsPerClip;
+  Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime, this.fireDelay, this.fire) {
   }
   
   void fireButton(WeaponState weaponState) {

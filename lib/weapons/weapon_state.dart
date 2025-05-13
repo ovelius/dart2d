@@ -14,18 +14,17 @@ import '../res/sounds.dart';
 
 class WeaponState {
   static Random random = new Random();
-  static const double SHOW_WEAPON_NAME_TIME = .9;
+  static const double SHOW_WEAPON_NAME_TIME = 1.3;
+  static const int ICON_TILE_SIZE = 80;
   WormWorld world;
   LocalPlayerSprite owner;
   Sprite gun;
   
   double changeTime = 0.0;
-  bool _forwardChange = true;
   String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
 
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
-
 
   WeaponState(this.world, this.owner, this.gun) {
     for (Weapon w in weapons) {
@@ -38,7 +37,7 @@ class WeaponState {
   Weapon getSelectedWeapon() => weapons[selectedWeaponIndex];
 
   List<Weapon> weapons = [
-    new Weapon("Banana pancake", 2, 5.0, 1.0,  (WeaponState weaponState) {
+    new Weapon("Banana pancake", 4, 2, 5.0, 1.0,  (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world,  weaponState.owner, 50, weaponState.owner.gun);
       sprite.explodeAfter = 4.0;
       sprite.owner = weaponState.owner;
@@ -46,7 +45,7 @@ class WeaponState {
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Brick builder", 20, 5.0, 0.3, (WeaponState weaponState) {
+    new Weapon("Brick builder", 8, 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.owner, 2, weaponState.owner.gun);
       sprite.mod = Mod.BRICK;
       sprite.spawn_sound = Sound.THUD;
@@ -54,7 +53,7 @@ class WeaponState {
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Shotgun", 4, 2.0, .8, (WeaponState weaponState) {
+    new Weapon("Shotgun",0, 4, 2.0, .8, (WeaponState weaponState) {
       weaponState.world.playSoundAtSprite(weaponState.owner, Sound.SHOTGUN);
       for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, positionBase:weaponState.owner.gun);
@@ -75,7 +74,7 @@ class WeaponState {
         weaponState.world.addSprite(sprite);
       }
     }),
-    new Weapon("Dart gun", 120, 6.0, .07, (WeaponState weaponState) {
+    new Weapon("Dart gun", 1, 120, 6.0, .07, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.DARTGUN;
       sprite.spriteType = SpriteType.RECT;
@@ -89,7 +88,7 @@ class WeaponState {
       sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("TV Commercial", 40, 9.0, .11, (WeaponState weaponState) {
+    new Weapon("TV Commercial",8, 40, 9.0, .11, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.TV;
       sprite.spriteType = SpriteType.CIRCLE;
@@ -109,7 +108,7 @@ class WeaponState {
       sprite.showCounter = false;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Coffee Burn", 150, 2.0, .05, (WeaponState weaponState) {
+    new Weapon("Coffee Burn",2, 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
       Vec2 position = weaponState.gun.centerPoint();
       double gunRadius = weaponState.gun.size.sum() / 2;
@@ -117,17 +116,17 @@ class WeaponState {
       position.y += sin(weaponState.gun.angle) * gunRadius;
       Particles p = new Particles(
           weaponState.world,
-          null, position, vel.multiply(300.0),
+          null, position, vel.multiply(400.0),
           radius: 10.0, count: 5, lifeTime: 65, shrinkPerStep:-0.3, particleType: ParticleEffects_ParticleType.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;
-      p.damage = 5;
+      p.damage = 7;
       p.spawn_sound = Sound.BURN;
       p.owner = weaponState.owner;
       weaponState.world.addSprite(p);
     }),
-    new Weapon("Snailgun", 4, 1.0, 0.3, (WeaponState weaponState) {
+    new Weapon("Snailgun",3, 4, 1.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 12,
           positionBase: weaponState.owner.gun, size: new Vec2(180.0/ 4, 130/6));
       sprite.mod = Mod.SNAIL;
@@ -154,7 +153,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }),
-    new Weapon("Cat litter box", 1, 5.0, 0.01, (WeaponState weaponState) {
+    new Weapon("Cat litter box", 5, 1, 5.0, 0.01, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.LITTER;
       sprite.radius = 150.0;
@@ -179,7 +178,7 @@ class WeaponState {
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("sheep_black58.png"), 58);
       weaponState.world.addSprite(sprite);
     }), */
-    new Weapon("Zooka", 5, 2.5, 0.8, (WeaponState weaponState) {
+    new Weapon("Zooka",6, 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.ZOOKA;
       sprite.spawn_sound = Sound.ZOOKA;
@@ -194,7 +193,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }),
-    new Weapon("Neon Blaster", 5, 2.5, 1.20, (WeaponState weaponState) {
+    new Weapon("Neon Blaster",7, 5, 2.5, 1.20, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30, weaponState.owner.gun);
       sprite.radius = 25.0;
       sprite.spawn_sound = Sound.HYPER;
@@ -205,14 +204,12 @@ class WeaponState {
   ];
   
   nextWeapon() {
-    _forwardChange = true;
     selectedWeaponIndex++;
     selectedWeaponIndex = selectedWeaponIndex % weapons.length;
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
   
   prevWeapon() {
-    _forwardChange = false;
     selectedWeaponIndex--;
     if (selectedWeaponIndex < 0) {
       selectedWeaponIndex = weapons.length - 1;
@@ -230,56 +227,42 @@ class WeaponState {
   }
 
   _drawChangeTime(CanvasRenderingContext2D context, Vec2 center) {
-    double halfTime = SHOW_WEAPON_NAME_TIME / 2;
-    double changeTimePercentLeft = changeTime < halfTime ? 0.0 :
-    (changeTime - halfTime) / halfTime;
-    double changeTimePercenLeftInverse = 1.0 - changeTimePercentLeft;
+    HTMLImageElement iconImages = world.imageIndex().getImageByName("weapon_icons.png");
     context.save();
-    context.font = '16pt Calibri';
-    var metrics = context.measureText(_longestWeaponName);
-    double baseX = center.x - metrics.width / 2;
-    double baseY = center.y - owner.size.y;
-    int textDistance = 20;
-    double nextPrevY = baseY + textDistance;
-    int next = ((selectedWeaponIndex + 1) % weapons.length);
-    int prev = ((selectedWeaponIndex - 1 + weapons.length) % weapons.length);
-    if (_forwardChange) {
-      int prevPrev = ((selectedWeaponIndex - 2 + weapons.length) % weapons.length);
+    double baseX = center.x - ICON_TILE_SIZE / 2;
+    double baseY = center.y - ICON_TILE_SIZE / 2;
 
-      double nextXTravel =  (metrics.width + textDistance) * changeTimePercentLeft;
+    int weaponCount = weapons.length;
 
-      context.fillText(weapons[selectedWeaponIndex].name, baseX + nextXTravel, baseY + (textDistance * changeTimePercentLeft));
+    double anglePerWeapon = (pi * 2)/weaponCount;
+    double wheelRadius = 145;
+    double currentAngle = 0.0;
 
-      context.fillText(
-          weapons[prev].name, baseX - (metrics.width - textDistance) * changeTimePercenLeftInverse,  baseY + textDistance * changeTimePercenLeftInverse);
-      context.globalAlpha = changeTimePercenLeftInverse;
-      context.fillText(
-          weapons[next].name, baseX + metrics.width + textDistance,
-          nextPrevY + (textDistance + textDistance) * changeTimePercentLeft);
-      context.globalAlpha = changeTimePercentLeft;
-      context.fillText(
-          weapons[prevPrev].name, baseX - metrics.width - textDistance,
-          nextPrevY + (textDistance + textDistance) * changeTimePercenLeftInverse);
-    } else {
-      int nextNext = ((selectedWeaponIndex + 2) % weapons.length);
-
-      double nextXTravel =  (metrics.width + textDistance) * changeTimePercentLeft;
-
-      context.fillText(weapons[selectedWeaponIndex].name, baseX - nextXTravel, baseY + (textDistance * changeTimePercentLeft));
-
-      context.fillText(
-          weapons[next].name, baseX + (metrics.width - textDistance) * changeTimePercenLeftInverse,  baseY + textDistance * changeTimePercenLeftInverse);
-
-      context.globalAlpha = changeTimePercenLeftInverse;
-      context.fillText(
-          weapons[prev].name, baseX - metrics.width - textDistance,
-          nextPrevY + (textDistance + textDistance) * changeTimePercentLeft);
-      context.globalAlpha = changeTimePercentLeft;
-      context.fillText(
-          weapons[nextNext].name, baseX + metrics.width + textDistance,
-          nextPrevY + (textDistance + textDistance) * changeTimePercenLeftInverse);
+    for (int i = 0; i < weaponCount; i++) {
+      double x = sin(currentAngle) * wheelRadius;
+      double y = cos(currentAngle) * wheelRadius;
+      if (selectedWeaponIndex == i) {
+        context.globalAlpha = 1.0;
+      } else {
+        context.globalAlpha = 0.5;
+      }
+      context.drawImage(iconImages,
+          weapons[i].iconIndex * 128, 0, 128, 128,
+          baseX + x, baseY + y
+          ,ICON_TILE_SIZE, ICON_TILE_SIZE);
+      currentAngle += anglePerWeapon;
     }
-
+    // Draw the weapon name.
+    context.font = '16pt Calibri';
+    context.fillStyle = "rgb(255,255,255)".toJS;
+    String selectedWeaponName = weapons[selectedWeaponIndex].name;
+    TextMetrics metrics = context.measureText(selectedWeaponName);
+    context.globalAlpha = 1.0;
+    double textY = center.y - wheelRadius * 1.5;
+    if (textY < 0) {
+      textY = center.y + wheelRadius * 1.5;
+    }
+    context.fillText(selectedWeaponName, center.x - metrics.width /2, textY);
     context.restore();
   }
 
@@ -289,7 +272,6 @@ class WeaponState {
       context.fillStyle = "#ffffff".toJS;
       Vec2 center = owner.centerPoint();
       if (changeTime > 0) {
-        // TODO make nicer animation!
         _drawChangeTime(context, center);
       }
       if (reloading()) {

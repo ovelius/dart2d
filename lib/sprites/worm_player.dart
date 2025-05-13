@@ -40,8 +40,8 @@ class LocalPlayerSprite extends MovingSprite {
     "Jump": KeyCodeDart.W,
     "Fire": KeyCodeDart.F,
     "Rope": KeyCodeDart.S,
-    "Next weapon": KeyCodeDart.E,
-    "Prev weapon": KeyCodeDart.Q,
+    "Next weapon": KeyCodeDart.Q,
+    "Prev weapon": KeyCodeDart.E,
   };
 
   static Set<int> _mappedControls = new Set.from(_default_controls.values);

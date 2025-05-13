@@ -183,8 +183,10 @@ class Sprite {
       context.rotate(angle);
       context.drawImage(
           image,
+          // Source.
           frameWidth * frameIndex, 0,
           frameWidth, image.height,
+          // Destination.
           -size.x / 2,  -size.y / 2,
           size.x, size.y);
     } else if (spriteType == SpriteType.RECT) {
