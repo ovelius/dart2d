@@ -45,7 +45,7 @@ class WeaponState {
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Brick builder", 8, 20, 5.0, 0.3, (WeaponState weaponState) {
+    new Weapon("Brick builder", 9, 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.owner, 2, weaponState.owner.gun);
       sprite.mod = Mod.BRICK;
       sprite.spawn_sound = Sound.THUD;
@@ -88,7 +88,7 @@ class WeaponState {
       sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("TV Commercial",8, 40, 9.0, .11, (WeaponState weaponState) {
+    new Weapon("Jellybean Jet", 8, 40, 9.0, .11, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.TV;
       sprite.spriteType = SpriteType.CIRCLE;
@@ -97,11 +97,11 @@ class WeaponState {
       sprite.owner = weaponState.owner;
       sprite.explodeAfter = 15.0;
       sprite.health = 5;
-      sprite.velocity = sprite.velocity.multiply(0.2);
+      sprite.velocity = sprite.velocity.multiply(0.8);
       double sum = sprite.velocity.sum();
       sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
       sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
-      sprite.gravityAffect = 1.5;
+      sprite.gravityAffect = 0.1;
       sprite.bounche = 0.99;
       sprite.size = new Vec2(4.0, 4.0);
       sprite.radius = -1.0;
