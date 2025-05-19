@@ -96,7 +96,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.gun = _createGun(imageIndex);
     this._shield = _createShield(imageIndex);
     this.weaponState =
-        new WeaponState(world, this, this.gun);
+        new WeaponState(world, this, this.gun, this._mobileControls);
     this.listenFor("Next weapon", () {
       weaponState?.nextWeapon();
     });
@@ -415,6 +415,12 @@ class LocalPlayerSprite extends MovingSprite {
       }
     } else {
       _gunAngleTouchLock = null;
+    }
+    if (_mobileControls!.buttonIsDown(MobileControls.WEAPON_SELECT_BUTTON)) {
+      Point<int>? delta = _mobileControls!.getTouchDeltaForButton(MobileControls.WEAPON_SELECT_BUTTON);
+      if (delta != null) {
+        weaponState?.weaponStateSelector(delta);
+      }
     }
     return true;
   }

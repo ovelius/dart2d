@@ -23,7 +23,7 @@ class ConnectionWrapper {
   // Close connection due to inactivity.
   static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
   static const Duration KEEP_ALIVE_DURATION = Duration(seconds: 2);
-  static const int PING_EVERY_N_FRAMES = 20;
+  static const int COLLECT_STATS_EVERY_N_FRAMES = 20;
 
   Network _network;
   ConfigParams _configParams;
@@ -429,10 +429,7 @@ class ConnectionWrapper {
     if (!initialPongReceived()) {
       return;
     }
-    if (data.frame <= 0 || data.frame % PING_EVERY_N_FRAMES != 0) {
-      return;
-    }
-    if (data.stateUpdate.isNotEmpty && data.stateUpdate[0].hasPing()) {
+    if (data.frame <= 0 || data.frame % COLLECT_STATS_EVERY_N_FRAMES != 0) {
       return;
     }
     collectRtcStats();

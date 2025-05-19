@@ -11,27 +11,32 @@ import 'package:web/web.dart';
 
 import '../net/state_updates.pb.dart';
 import '../res/sounds.dart';
+import '../util/mobile_controls.dart';
 
 class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = 1.3;
   static const int ICON_TILE_SIZE = 80;
+  static const int ICON_SIZE_HALF = ICON_TILE_SIZE ~/ 2;
   WormWorld world;
   LocalPlayerSprite owner;
   Sprite gun;
+  MobileControls? mobileControls;
   
   double changeTime = 0.0;
   String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
+  double _anglePerWeapon = 0.0;
 
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
 
-  WeaponState(this.world, this.owner, this.gun) {
+  WeaponState(this.world, this.owner, this.gun,  this.mobileControls) {
     for (Weapon w in weapons) {
       if (w.name.length > _longestWeaponName.length) {
         _longestWeaponName = w.name;
       }
     }
+    _anglePerWeapon =  (pi * 2)/weapons.length;
   }
 
   Weapon getSelectedWeapon() => weapons[selectedWeaponIndex];
@@ -64,8 +69,6 @@ class WeaponState {
         double sum = sprite.velocity.sum();
         sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 4;
         sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 4;
-        // Add recoil in y axis only.
-        weaponState.owner.velocity.y -= sprite.velocity.y * 0.1;
 
         sprite.gravityAffect = 0.5;
         
@@ -226,15 +229,45 @@ class WeaponState {
     weapons[selectedWeaponIndex].think(duration);
   }
 
-  _drawChangeTime(CanvasRenderingContext2D context, Vec2 center) {
-    HTMLImageElement iconImages = world.imageIndex().getImageByName("weapon_icons.png");
+  weaponStateSelector(Point<int> delta) {
+    changeTime = SHOW_WEAPON_NAME_TIME;
+
+
+    double wheelRadius = 145;
+    double currentAngle = 0.0;
+    int weaponCount = weapons.length;
+    int closestWeapon = 0;
+    double closest = 9999999.0;
+
+    for (int i = 0; i < weaponCount; i++) {
+      double deltaX = ((sin(currentAngle) * wheelRadius) - ICON_SIZE_HALF) + delta.x;
+      double deltaY = ((cos(currentAngle) * wheelRadius) - ICON_SIZE_HALF) + delta.y;
+      double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distance < closest) {
+        closestWeapon = i;
+        closest = distance;
+      }
+      currentAngle += _anglePerWeapon;
+    }
+    selectedWeaponIndex = closestWeapon;
+  }
+
+  _drawIconImageAt(CanvasRenderingContext2D context,
+      HTMLImageElement iconImages, int index, num x, num y) {
+    context.drawImage(iconImages,
+        index * 128, 0, 128, 128,
+        x, y
+        ,ICON_TILE_SIZE, ICON_TILE_SIZE);
+  }
+
+  _drawChangeTime(CanvasRenderingContext2D context,
+      HTMLImageElement iconImages, Point<int> center) {
     context.save();
-    double baseX = center.x - ICON_TILE_SIZE / 2;
-    double baseY = center.y - ICON_TILE_SIZE / 2;
+    int baseX = center.x - ICON_SIZE_HALF;
+    int baseY = center.y - ICON_SIZE_HALF;
 
     int weaponCount = weapons.length;
 
-    double anglePerWeapon = (pi * 2)/weaponCount;
     double wheelRadius = 145;
     double currentAngle = 0.0;
 
@@ -246,11 +279,9 @@ class WeaponState {
       } else {
         context.globalAlpha = 0.5;
       }
-      context.drawImage(iconImages,
-          weapons[i].iconIndex * 128, 0, 128, 128,
-          baseX + x, baseY + y
-          ,ICON_TILE_SIZE, ICON_TILE_SIZE);
-      currentAngle += anglePerWeapon;
+      _drawIconImageAt(context, iconImages,
+          weapons[i].iconIndex,  baseX + x,  baseY + y);
+      currentAngle += _anglePerWeapon;
     }
     // Draw the weapon name.
     context.font = '16pt Calibri';
@@ -258,12 +289,28 @@ class WeaponState {
     String selectedWeaponName = weapons[selectedWeaponIndex].name;
     TextMetrics metrics = context.measureText(selectedWeaponName);
     context.globalAlpha = 1.0;
-    double textY = center.y - wheelRadius * 1.5;
+    num textY = center.y - WeaponState.ICON_SIZE_HALF;
     if (textY < 0) {
-      textY = center.y + wheelRadius * 1.5;
+      textY = center.y + WeaponState.ICON_SIZE_HALF;
     }
     context.fillText(selectedWeaponName, center.x - metrics.width /2, textY);
     context.restore();
+  }
+
+
+  drawWeaponHelper(CanvasRenderingContext2D context, Point<int> center, bool drawCurrentWeapon) {
+    HTMLImageElement iconImages = world.imageIndex().getImageByName("weapon_icons.png");
+    if (changeTime > 0 && owner.drawWeaponHelpers()) {
+      _drawChangeTime(context, iconImages, center);
+    }
+    if (drawCurrentWeapon) {
+      if (changeTime <= 0) {
+        context.globalAlpha = 0.3;
+      }
+      _drawIconImageAt(context, iconImages,
+          weapons[selectedWeaponIndex].iconIndex,  center.x  -ICON_SIZE_HALF,  center.y -ICON_SIZE_HALF);
+      context.globalAlpha = 1.0;
+    }
   }
 
   draw(CanvasRenderingContext2D context) {
@@ -271,9 +318,6 @@ class WeaponState {
       double radius = owner.getRadius();
       context.fillStyle = "#ffffff".toJS;
       Vec2 center = owner.centerPoint();
-      if (changeTime > 0) {
-        _drawChangeTime(context, center);
-      }
       if (reloading()) {
         double percentInverse = (100 - reloadPercent()) / 100.0;
         double circle = pi * 2 * percentInverse - pi/2;

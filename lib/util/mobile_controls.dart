@@ -11,6 +11,7 @@ import 'package:dart2d/res/sounds.dart';
 
 @Singleton(scope: 'world')
 class MobileControls {
+  static const int WEAPON_SELECT_BUTTON = 3;
   final Logger log = new Logger('MobileControls');
   static const int BUTTON_SIZE = 50;
   static const int NO_BUTTON_TOUCH = -1;
@@ -20,7 +21,7 @@ class MobileControls {
   Sounds sounds;
   late String _botNameIfEnabled;
   ConfigParams _configParams;
-  late int _width, _height;
+  late int width, height;
   late CanvasRenderingContext2D _canvas;
   late HtmlScreen _screen;
   List<Point<int>> _buttons = [];
@@ -47,11 +48,11 @@ class MobileControls {
     var canvasHack = canvasElement;
     this._canvas = canvasHack.context2D;
     this._screen = screen;
-    this._width = canvasHack.width;
-    this._height = canvasHack.height;
+    this.width = canvasHack.width;
+    this.height = canvasHack.height;
     this._botNameIfEnabled = _configParams.getString(ConfigParam.BOT_ENABLED);
-    int thirdX = (_width / 3).toInt();
-    int halfY = (_height / 2 + BUTTON_SIZE + BUTTON_SIZE).toInt();
+    int thirdX = (width / 3).toInt();
+    int halfY = (height / 2 + BUTTON_SIZE + BUTTON_SIZE).toInt();
     int yDiff = 50;
     int xDiff = 90;
 
@@ -65,14 +66,18 @@ class MobileControls {
     _buttons.add(new Point(thirdX * 2 + xDiff + xDiff, halfY - yDiff));
     _buttonToKey[2] = KeyCodeDart.S;
 
-    _buttons.add(new Point(thirdX * 2, BUTTON_SIZE));
-    _buttonToKey[3] = KeyCodeDart.E;
+    _buttons.add(new Point((thirdX - thirdX/4).toInt(), (halfY - halfY/3).toInt()));
+    _buttonToKey[WEAPON_SELECT_BUTTON] = KeyCodeDart.E;
 
-    _buttons.add(new Point(thirdX * 2 + xDiff + xDiff, BUTTON_SIZE));
-    _buttonToKey[4] = KeyCodeDart.Q;
+    //_buttons.add(new Point(thirdX * 2 + xDiff + xDiff, BUTTON_SIZE));
+    //_buttonToKey[4] = KeyCodeDart.Q;
 
     // Sound button!
-    _buttons.add(new Point((_width / 2).toInt(), _height - 20));
+    _buttons.add(new Point((width / 2).toInt(), height - 20));
+  }
+
+  Point<int> buttonLocation(int index) {
+    return _buttons[index];
   }
 
   draw(double duration) {
@@ -98,7 +103,9 @@ class MobileControls {
       // Don't draw last button.
       for (int i = 0; i < _buttons.length -1; i++) {
         Point<int> btn = _buttons[i];
-        if (buttonIsDown(i)) {
+        if (i == WEAPON_SELECT_BUTTON) {
+          _canvas.fillStyle = "rgb(255, 255, 255, 0)".toJS;
+        } else if (buttonIsDown(i)) {
           _canvas.fillStyle = "rgb(255, 255, 255, 0.3)".toJS;
         } else {
           _canvas.fillStyle = "rgb(255, 255, 255, 0.5)".toJS;
@@ -113,7 +120,7 @@ class MobileControls {
       _canvas.font = '24pt Calibri';
       String sound = sounds.soundEnabled ? "🔊" : "🔇";
       TextMetrics metrics = _canvas.measureText(sound);
-      _canvas.fillText(sound, _width / 2 - metrics.width/2, _height - 20);
+      _canvas.fillText(sound, width / 2 - metrics.width/2, height - 20);
     }
   }
 
@@ -123,9 +130,6 @@ class MobileControls {
 
   bool isPortrait() {
     ScreenOrientation orientation = _screen.orientation;
-    if (orientation == null) {
-      return false;
-    }
     return orientation.type.contains("portrait");
   }
 

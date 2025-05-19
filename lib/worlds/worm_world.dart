@@ -374,6 +374,8 @@ class WormWorld extends World {
     hudMessages.render(this, _canvas, duration);
 
     _mobileControls.draw(duration);
+    playerSprite?.weaponState?.drawWeaponHelper(_canvas,
+        _mobileControls.buttonLocation(MobileControls.WEAPON_SELECT_BUTTON), true);
 
     _canvas.restore();
 
