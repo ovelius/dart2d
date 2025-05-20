@@ -10,6 +10,7 @@ dependencies:
   injectable: any
   protobuf: 3.1.0
   clock: any
+  uuid: ^4.4.2
 dev_dependencies:
   test: '>=0.12.9'
   mockito: any

@@ -3,7 +3,6 @@
 9) Work I Safari/iOS.
 
 Gameplay:
- - Icon wheel weapon switching.
  - Blowtorch weapon
  - Space world
  - zoom out when killed, zoom in when re-spawning (hint!)
