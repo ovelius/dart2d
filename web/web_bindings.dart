@@ -333,7 +333,11 @@ class RtcConnectionFactory extends ConnectionFactory {
   handleGotAnswer(dynamic connection,  WebRtcDanceProto proto) {
     RTCPeerConnection rtcPeerConnection = connection as RTCPeerConnection;
     RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: proto.sdpType, sdp:proto.sdp);
-    rtcPeerConnection.setRemoteDescription(init).toDart;
+    rtcPeerConnection.setRemoteDescription(init).toDart.then((_){
+      for (String candidate in proto.candidates) {
+        _addIceCandidateReceived(connection, candidate);
+      }
+    });
   }
 
   Future<String> getStats(dynamic connection) {

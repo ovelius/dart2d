@@ -36,27 +36,27 @@ class ConnectionStats {
 
   int rxBytes = 0;
   int txBytes = 0;
-  // Keep track of how long connection has been open.
-  Stopwatch _connectionOpenTimer = new Stopwatch();
   // The monitored latency of the connection.
   Duration latency = OPEN_TIMEOUT;
 
   Clock _clock;
+  late DateTime _attemptOpenTime;
+  DateTime? _openTime = null;
   DateTime lastSendTime = clock.now();
   DateTime lastReceiveTime = clock.now();
 
   ConnectionStats(this._clock) {
-    _connectionOpenTimer.start();
+    _attemptOpenTime = _clock.now();
   }
 
   bool keepAlive() => receiveSentDiffMillis() > (RESPONSE_TIMEOUT.inMilliseconds / 4);
 
   void open() {
-    _connectionOpenTimer.stop();
+    _openTime = _clock.now();
   }
 
   bool OpenTimeout() {
-    return _connectionOpenTimer.elapsedMilliseconds > ConnectionStats.OPEN_TIMEOUT.inMilliseconds;
+    return _attemptOpenTime.add(ConnectionStats.OPEN_TIMEOUT).isBefore(_clock.now());
   }
 
   bool ReceiveTimeout() {

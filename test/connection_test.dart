@@ -58,6 +58,65 @@ void main() {
    // assertNoLoggedWarnings();
   });
 
+  test('TestConnectionOpenTimeout', () {
+    expect(connection.isActiveConnection(), isFalse);
+    fakeClock.testTime = fakeClock.testTime.add(ConnectionStats.OPEN_TIMEOUT);
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 1));
+    // Now closed since never open.
+    expect(connection.isClosedConnection(), isTrue);
+  });
+
+  test('TestCompleteNegotiation',() {
+    WebRtcDanceProto? webRtcDanceProto = null;
+    connection.negotiator.onNegotiationComplete(
+            (WebRtcDanceProto proto) => webRtcDanceProto = proto);
+    connection.negotiator.sdpReceived("sdp", "offer");
+    connection.negotiator.onIceCandidate("candidate1");
+    connection.negotiator.onIceCandidate("candidate2");
+    connection.negotiator.onIceCandidate(null);
+
+    expect(webRtcDanceProto, WebRtcDanceProto()
+        ..sdp = "sdp"
+        ..sdpType = "offer"
+        ..candidates.add("candidate1")
+        ..candidates.add("candidate2"));
+  });
+
+  test('TesRestartIce',() {
+    WebRtcDanceProto? webRtcDanceProto = null;
+    connection.negotiator.onNegotiationComplete(
+            (WebRtcDanceProto proto) => webRtcDanceProto = proto);
+    connection.negotiator.sdpReceived("sdp", "offer");
+    connection.negotiator.onIceCandidate("candidate1");
+    connection.negotiator.onIceCandidate("candidate2");
+    connection.negotiator.onIceCandidate(null);
+
+    connection.restartIceWithTurn();
+
+    expect(testConnection.iceRestarts, 1);
+    expect(testConnection.setConfigurations, 1);
+
+    connection.negotiator.onIceCandidate("candidate3");
+    connection.negotiator.onIceCandidate("candidate4");
+    connection.negotiator.onIceCandidate(null);
+
+    expect(webRtcDanceProto, WebRtcDanceProto()
+      ..sdp = "sdp"
+      ..sdpType = "offer"
+      ..candidates.add("candidate3")
+      ..candidates.add("candidate4"));
+  });
+
+  test('TestConnectionMarkedOpenThenClosed', () {
+    expect(connection.isActiveConnection(), isFalse);
+    connection.open();
+    expect(connection.isActiveConnection(), isTrue);
+    expect(connection.isClosedConnection(), isFalse);
+    connection.close("test!");
+    expect(connection.isActiveConnection(), isFalse);
+    expect(connection.isClosedConnection(), isTrue);
+  });
+
   test('TestReliableDataSend', () {
     GameStateUpdates data = GameStateUpdates()
         ..lastFrameSeen = 1

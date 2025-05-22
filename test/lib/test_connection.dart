@@ -6,6 +6,7 @@ import 'package:clock/clock.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/config_params.dart';
+import 'package:web/web.dart';
 import 'test_env.dart';
 import 'test_mocks.mocks.dart';
 
@@ -35,6 +36,8 @@ class TestConnection {
 
   List<int>? recentDataSent = null;
   int dataReceivedCount = 0;
+  int iceRestarts = 0;
+  int setConfigurations = 0;
   var recentDataRecevied = null;
 
   @override
@@ -92,6 +95,14 @@ class TestConnection {
     if (_otherEnd != null && !_otherEnd!.closed) {
       _otherEnd?.close();
     }
+  }
+
+  void setConfiguration(RTCConfiguration configuration) {
+    setConfigurations++;
+  }
+
+  void restartIce() {
+    iceRestarts++;
   }
 
   sendAndReceivByOtherPeer(List<int> data) {

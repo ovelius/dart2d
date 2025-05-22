@@ -16,6 +16,17 @@ import 'dart:math';
 import 'dart:core';
 import 'helpers.dart';
 
+
+List<RTCIceServer> _getIceWithTurn() => [RTCIceServer(urls:'stun:turn.goog'.toJS),
+  // These are free tier credentials from https://www.expressturn.com/#dashboard
+  // anyone can sign up an get these, don't bother to steal them.
+  RTCIceServer(urls: "turn:relay1.expressturn.com".toJS,
+      username: "efT66RHD29KTGKVBBS", credential:"up2bRVNNAV1euOlX")];
+
+RTCConfiguration _getRtcConfigurationWithTurn() {
+  return RTCConfiguration(iceServers: _getIceWithTurn().toJS);
+}
+
 class ConnectionWrapper {
   static const PROBLEMATIC_FRAMES_BEHIND = 12;
   static bool THROW_SEND_ERRORS_FOR_TEST = false;
@@ -23,7 +34,7 @@ class ConnectionWrapper {
   // Close connection due to inactivity.
   static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
   static const Duration KEEP_ALIVE_DURATION = Duration(seconds: 2);
-  static const int COLLECT_STATS_EVERY_N_FRAMES = 20;
+  static const int COLLECT_STATS_EVERY_N_FRAMES = 50;
 
   Network _network;
   ConfigParams _configParams;
@@ -299,6 +310,12 @@ class ConnectionWrapper {
     } else {
       log.warning("Dropping old data ${frameDeltaFromLastSeen} frames behind!");
     }
+  }
+
+  void restartIceWithTurn() {
+    negotiator.restartingIce();
+    _rtcConnection!.setConfiguration(_getRtcConfigurationWithTurn());
+    _rtcConnection!.restartIce();
   }
 
   void checkIfShouldClose(int keyFrame) {

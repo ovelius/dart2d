@@ -30,6 +30,12 @@ class Negotiator {
     }
   }
 
+  void restartingIce() {
+    _iceCompleted = false;
+    _negotiationCompletedFired = false;
+    _iceCandidates.clear();
+  }
+
   void _checkCompleted() {
     // Don't fire off this event again.
     if (_negotiationCompletedFired) {
