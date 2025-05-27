@@ -100,6 +100,7 @@ class WeaponState {
       sprite.owner = weaponState.owner;
       sprite.explodeAfter = 15.0;
       sprite.health = 5;
+      sprite.spawn_sound = Sound.BLUBB;
       sprite.velocity = sprite.velocity.multiply(0.8);
       double sum = sprite.velocity.sum();
       sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;

@@ -31,6 +31,9 @@ enum Sound {
   FIZZ("fizz.ogg"),
   // From https://freesound.org/people/kyles/.
   BURN("burn.ogg"),
+  // A version of a sound from
+  // https://freesound.org/people/BlueSiren/
+  BLUBB("blubb.ogg"),
   // This is a version of the powerup sound from
   // https://freesound.org/people/AbbasGamez/
   JUMP("jump.mp3");
