@@ -13,6 +13,25 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class WebRtcNegotiationProto_Type extends $pb.ProtobufEnum {
+  static const WebRtcNegotiationProto_Type UNSET = WebRtcNegotiationProto_Type._(0, _omitEnumNames ? '' : 'UNSET');
+  static const WebRtcNegotiationProto_Type OFFER = WebRtcNegotiationProto_Type._(1, _omitEnumNames ? '' : 'OFFER');
+  static const WebRtcNegotiationProto_Type ANSWER = WebRtcNegotiationProto_Type._(2, _omitEnumNames ? '' : 'ANSWER');
+  static const WebRtcNegotiationProto_Type CANDIDATES = WebRtcNegotiationProto_Type._(3, _omitEnumNames ? '' : 'CANDIDATES');
+
+  static const $core.List<WebRtcNegotiationProto_Type> values = <WebRtcNegotiationProto_Type> [
+    UNSET,
+    OFFER,
+    ANSWER,
+    CANDIDATES,
+  ];
+
+  static final $core.Map<$core.int, WebRtcNegotiationProto_Type> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static WebRtcNegotiationProto_Type? valueOf($core.int value) => _byValue[value];
+
+  const WebRtcNegotiationProto_Type._($core.int v, $core.String n) : super(v, n);
+}
+
 class CommanderGameReply_ChallengeReply extends $pb.ProtobufEnum {
   static const CommanderGameReply_ChallengeReply UNSET = CommanderGameReply_ChallengeReply._(0, _omitEnumNames ? '' : 'UNSET');
   static const CommanderGameReply_ChallengeReply ACCEPT = CommanderGameReply_ChallengeReply._(1, _omitEnumNames ? '' : 'ACCEPT');

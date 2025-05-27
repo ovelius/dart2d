@@ -83,10 +83,16 @@ message StateUpdate {
 }
 
 message WebRtcNegotiationProto {
+  enum Type {
+    UNSET = 0;
+    OFFER = 1;
+    ANSWER = 2;
+    CANDIDATES = 3;
+  }
   optional WebRtcDanceProto dance_proto = 1;
   optional string src = 2;
   optional string dst = 3;
-  optional string type = 4;
+  optional Type type = 4;
 }
 
 message PlaySound {
@@ -308,9 +314,9 @@ message ExtraSpriteData {
 }
 
 message WebRtcDanceProto {
-  // Gzipped version of SDP string.
+  // Raw SDP string.
   optional string sdp = 1;
-  // Gzipped version of ICE candidates.
+  // Raw ICE candidates.
   repeated string candidates = 2;
   // Offer or answer etc.
   optional string sdp_type = 3;

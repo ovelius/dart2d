@@ -595,7 +595,7 @@ class WebRtcNegotiationProto extends $pb.GeneratedMessage {
     WebRtcDanceProto? danceProto,
     $core.String? src,
     $core.String? dst,
-    $core.String? type,
+    WebRtcNegotiationProto_Type? type,
   }) {
     final $result = create();
     if (danceProto != null) {
@@ -620,7 +620,7 @@ class WebRtcNegotiationProto extends $pb.GeneratedMessage {
     ..aOM<WebRtcDanceProto>(1, _omitFieldNames ? '' : 'danceProto', subBuilder: WebRtcDanceProto.create)
     ..aOS(2, _omitFieldNames ? '' : 'src')
     ..aOS(3, _omitFieldNames ? '' : 'dst')
-    ..aOS(4, _omitFieldNames ? '' : 'type')
+    ..e<WebRtcNegotiationProto_Type>(4, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: WebRtcNegotiationProto_Type.UNSET, valueOf: WebRtcNegotiationProto_Type.valueOf, enumValues: WebRtcNegotiationProto_Type.values)
     ..hasRequiredFields = false
   ;
 
@@ -675,9 +675,9 @@ class WebRtcNegotiationProto extends $pb.GeneratedMessage {
   void clearDst() => clearField(3);
 
   @$pb.TagNumber(4)
-  $core.String get type => $_getSZ(3);
+  WebRtcNegotiationProto_Type get type => $_getN(3);
   @$pb.TagNumber(4)
-  set type($core.String v) { $_setString(3, v); }
+  set type(WebRtcNegotiationProto_Type v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasType() => $_has(3);
   @$pb.TagNumber(4)
@@ -2488,7 +2488,7 @@ class WebRtcDanceProto extends $pb.GeneratedMessage {
   static WebRtcDanceProto getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WebRtcDanceProto>(create);
   static WebRtcDanceProto? _defaultInstance;
 
-  /// Gzipped version of SDP string.
+  /// Raw SDP string.
   @$pb.TagNumber(1)
   $core.String get sdp => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -2498,7 +2498,7 @@ class WebRtcDanceProto extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearSdp() => clearField(1);
 
-  /// Gzipped version of ICE candidates.
+  /// Raw ICE candidates.
   @$pb.TagNumber(2)
   $core.List<$core.String> get candidates => $_getList(1);
 

@@ -53,7 +53,7 @@ class PeerWrapper {
         Map<String, String> data = {
           'src': proto.src,
           'dst': proto.dst,
-          'type': proto.type
+          'type': proto.type.value.toString()
         };
         _onServerMessage(data, explicitPayload: proto.danceProto);
       }
@@ -78,14 +78,14 @@ class PeerWrapper {
         _network, _hudMessages,
         id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
     connectionWrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto){
-      _sendNegotiatorPayload(connectionWrapper.negotiator, proto, 'OFFER');
+      _sendNegotiatorPayload(connectionWrapper.negotiator, proto, WebRtcNegotiationProto_Type.OFFER);
     });
     connections[id] = connectionWrapper;
     _connectionFactory.connectTo(connectionWrapper, connectionWrapper.negotiator);
     return connectionWrapper;
   }
 
-  void _sendNegotiatorPayload(Negotiator negotiator, WebRtcDanceProto proto, String type) {
+  void _sendNegotiatorPayload(Negotiator negotiator, WebRtcDanceProto proto, WebRtcNegotiationProto_Type type) {
     // Check if commander can route us.
     String commanderId = _network.getGameState().gameStateProto.actingCommanderId;
     if (_network.getGameState().isConnected(commanderId, negotiator.otherId)
@@ -102,7 +102,7 @@ class PeerWrapper {
     } else {
       String base64Proto = base64Encode(
           negotiator.buildProto().writeToBuffer());
-      serverChannel.sendData(negotiator.otherId, type, base64Proto);
+      serverChannel.sendData(negotiator.otherId, type.value.toString(), base64Proto);
     }
   }
 
@@ -367,7 +367,10 @@ class PeerWrapper {
    */
   _onServerMessage(Map<String, String> json, {WebRtcDanceProto? explicitPayload = null}) {
     log.info("Got ServerChannel data ${json}");
-    String? type = json['type']!;
+    WebRtcNegotiationProto_Type? type = WebRtcNegotiationProto_Type.valueOf(int.parse(json['type']!));
+    if (type == null) {
+      throw ArgumentError("Received message of unknown type ${json['type']}");
+    }
     String? payload = json['payload'];
     String? src = json['src'];
     String? dst = json['dst'];
@@ -378,10 +381,7 @@ class PeerWrapper {
     }
 
     switch (type) {
-      case 'ERROR':
-        log.severe("Got error from server ${payload}");
-        break;
-      case 'OFFER':
+      case WebRtcNegotiationProto_Type.OFFER:
         if (src == null || dst == null || proto == null) {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;
@@ -394,13 +394,13 @@ class PeerWrapper {
           log.info("Handling offer from ${src} offer: ${proto.toDebugString()}");
           ConnectionWrapper wrapper = _createWrapper(src);
           wrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto) {
-            _sendNegotiatorPayload(wrapper.negotiator, proto, 'ANSWER');
+            _sendNegotiatorPayload(wrapper.negotiator, proto, WebRtcNegotiationProto_Type.ANSWER);
           });
           _connectionFactory.createInboundConnection(wrapper, wrapper.negotiator, proto);
           connections[src] = wrapper;
         }
         break;
-      case 'ANSWER':
+      case WebRtcNegotiationProto_Type.ANSWER:
         if (src == null || dst == null || proto == null) {
           log.severe("Received malformed message of type $type, missing src or dst");
           return;

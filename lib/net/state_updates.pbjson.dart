@@ -108,7 +108,19 @@ const WebRtcNegotiationProto$json = {
     {'1': 'dance_proto', '3': 1, '4': 1, '5': 11, '6': '.dart2d_proto.WebRtcDanceProto', '10': 'danceProto'},
     {'1': 'src', '3': 2, '4': 1, '5': 9, '10': 'src'},
     {'1': 'dst', '3': 3, '4': 1, '5': 9, '10': 'dst'},
-    {'1': 'type', '3': 4, '4': 1, '5': 9, '10': 'type'},
+    {'1': 'type', '3': 4, '4': 1, '5': 14, '6': '.dart2d_proto.WebRtcNegotiationProto.Type', '10': 'type'},
+  ],
+  '4': [WebRtcNegotiationProto_Type$json],
+};
+
+@$core.Deprecated('Use webRtcNegotiationProtoDescriptor instead')
+const WebRtcNegotiationProto_Type$json = {
+  '1': 'Type',
+  '2': [
+    {'1': 'UNSET', '2': 0},
+    {'1': 'OFFER', '2': 1},
+    {'1': 'ANSWER', '2': 2},
+    {'1': 'CANDIDATES', '2': 3},
   ],
 };
 
@@ -116,7 +128,9 @@ const WebRtcNegotiationProto$json = {
 final $typed_data.Uint8List webRtcNegotiationProtoDescriptor = $convert.base64Decode(
     'ChZXZWJSdGNOZWdvdGlhdGlvblByb3RvEj8KC2RhbmNlX3Byb3RvGAEgASgLMh4uZGFydDJkX3'
     'Byb3RvLldlYlJ0Y0RhbmNlUHJvdG9SCmRhbmNlUHJvdG8SEAoDc3JjGAIgASgJUgNzcmMSEAoD'
-    'ZHN0GAMgASgJUgNkc3QSEgoEdHlwZRgEIAEoCVIEdHlwZQ==');
+    'ZHN0GAMgASgJUgNkc3QSPQoEdHlwZRgEIAEoDjIpLmRhcnQyZF9wcm90by5XZWJSdGNOZWdvdG'
+    'lhdGlvblByb3RvLlR5cGVSBHR5cGUiOAoEVHlwZRIJCgVVTlNFVBAAEgkKBU9GRkVSEAESCgoG'
+    'QU5TV0VSEAISDgoKQ0FORElEQVRFUxAD');
 
 @$core.Deprecated('Use playSoundDescriptor instead')
 const PlaySound$json = {
