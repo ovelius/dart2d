@@ -64,7 +64,7 @@ class WeaponState {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, positionBase:weaponState.owner.gun);
         sprite.mod = Mod.SHOTGUN;
         sprite.particlesOnExplode = false;
-        sprite.spriteType = SpriteType.RECT;
+        sprite.spriteType = SpriteType.CIRCLE;
         sprite.owner = weaponState.owner;
         double sum = sprite.velocity.sum();
         sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 4;
@@ -72,21 +72,21 @@ class WeaponState {
 
         sprite.gravityAffect = 0.5;
         
-        sprite.size = new Vec2(8.0, 8.0);
-        sprite.radius = 8.0;
+        sprite.size = new Vec2(5.0, 5.0);
+        sprite.radius = 2.0;
         weaponState.world.addSprite(sprite);
       }
     }),
-    new Weapon("Dart gun", 1, 120, 6.0, .07, (WeaponState weaponState) {
+    new Weapon("Dart gun", 1, 120, 6.0, .12, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.DARTGUN;
-      sprite.spriteType = SpriteType.RECT;
       sprite.owner = weaponState.owner;
       double sum = sprite.velocity.sum();
       sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
       sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
       sprite.gravityAffect = 0.3;
-      sprite.size = new Vec2(5.0, 5.0);
+      sprite.size = new Vec2(20.0, 6.0);
+      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("dart.png"), 1);
       sprite.radius = 2.0;
       sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);

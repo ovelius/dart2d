@@ -25,6 +25,7 @@ Set<String> PLAYER_SOURCES = new Set<String>.from([
 List<String> GAME_SOURCES = [
   "cake.png",
   "banana.png",
+  "dart.png",
   "shield.png",
   "powerup.png",
   "powerup_swiwel.png",

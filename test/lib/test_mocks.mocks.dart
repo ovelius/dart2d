@@ -3423,6 +3423,15 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
       );
 
   @override
+  void restartIceWithTurn() => super.noSuchMethod(
+        Invocation.method(
+          #restartIceWithTurn,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   void checkIfShouldClose(int? keyFrame) => super.noSuchMethod(
         Invocation.method(
           #checkIfShouldClose,
