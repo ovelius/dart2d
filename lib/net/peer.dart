@@ -81,6 +81,9 @@ class PeerWrapper {
     connectionWrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto){
       _sendNegotiatorPayload(connectionWrapper.negotiator, proto, WebRtcNegotiationProto_Type.OFFER);
     });
+    connectionWrapper.negotiator.onIceRestartCompleted((WebRtcDanceProto proto){
+      _sendNegotiatorPayload(connectionWrapper.negotiator, proto, WebRtcNegotiationProto_Type.CANDIDATES);
+    });
     connections[id] = connectionWrapper;
     _connectionFactory.connectTo(connectionWrapper, connectionWrapper.negotiator);
     return connectionWrapper;
@@ -367,8 +370,8 @@ class PeerWrapper {
    * Callback for receiving a message from signaling server.
    */
   _onServerMessage(Map<String, String> json, {WebRtcDanceProto? explicitPayload = null}) {
-    log.info("Got ServerChannel data ${json}");
     WebRtcNegotiationProto_Type? type = WebRtcNegotiationProto_Type.valueOf(int.parse(json['type']!));
+    log.info("Got ServerChannel type ${type} data ${json}");
     if (type == null) {
       throw ArgumentError("Received message of unknown type ${json['type']}");
     }
@@ -397,6 +400,9 @@ class PeerWrapper {
           ConnectionWrapper wrapper = _createWrapper(src);
           wrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto) {
             _sendNegotiatorPayload(wrapper.negotiator, proto, WebRtcNegotiationProto_Type.ANSWER);
+          });
+          wrapper.negotiator.onIceRestartCompleted((WebRtcDanceProto proto) {
+            _sendNegotiatorPayload(wrapper.negotiator, proto, WebRtcNegotiationProto_Type.CANDIDATES);
           });
           _connectionFactory.createInboundConnection(wrapper, wrapper.negotiator, proto);
           connections[src] = wrapper;

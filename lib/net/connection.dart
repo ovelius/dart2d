@@ -316,7 +316,15 @@ class ConnectionWrapper {
   void restartIceWithTurn() {
     negotiator.restartingIce();
     _rtcConnection!.setConfiguration(_getRtcConfigurationWithTurn());
-    _rtcConnection!.restartIce();
+    // This is a legacy ICE restart flow.
+    RTCOfferOptions options = RTCOfferOptions(iceRestart: true);
+    _rtcConnection!.createOffer(options).toDart.then((desc) {
+      RTCLocalSessionDescriptionInit localInit =
+      RTCLocalSessionDescriptionInit();
+      localInit.sdp = desc!.sdp;
+      localInit.type = desc.type;
+      _rtcConnection!.setLocalDescription(localInit);
+    });
     _usesTurn = true;
   }
 

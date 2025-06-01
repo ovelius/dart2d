@@ -20,28 +20,7 @@ late GaReporter gaReporter;
 
 void main() {
   configureDependencies();
-  String url = "";
-  if (url.isEmpty) {
-    init();
-    return;
-  }
-  /*
-  HttpRequest request = new HttpRequest();
-  request.open("POST", url, async: true);
-  request.onReadyStateChange.listen((_) {
-    if (request.readyState == HttpRequest.DONE) {
-      if (request.status == 200 || request.status == 0) {
-        iceServers = JSON.decode(request.responseText)["iceServers"];
-        print("Fetched ICE config from HTTP");
-        init();
-      } else {
-        print("Failure loading ICE config HTTP ${request.status} ${request
-            .responseText}");
-        init();
-      }
-    }
-  });
-  request.send("{}"); */
+  init();
 }
 
 void init() {

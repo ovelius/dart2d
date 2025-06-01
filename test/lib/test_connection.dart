@@ -36,8 +36,8 @@ class TestConnection {
 
   List<int>? recentDataSent = null;
   int dataReceivedCount = 0;
-  int iceRestarts = 0;
   int setConfigurations = 0;
+  RTCConfiguration? configuration = null;
   var recentDataRecevied = null;
 
   @override
@@ -99,10 +99,16 @@ class TestConnection {
 
   void setConfiguration(RTCConfiguration configuration) {
     setConfigurations++;
+    this.configuration = configuration;
   }
 
-  void restartIce() {
-    iceRestarts++;
+  JSPromise createOffer() {
+    RTCSessionDescriptionInit init = RTCSessionDescriptionInit(type: 'offer', sdp: 'sdp');
+    return Future.value(init).toJS;
+  }
+
+  JSPromise setLocalDescription(RTCLocalSessionDescriptionInit init) {
+    return Future.value("done").toJS;
   }
 
   sendAndReceivByOtherPeer(List<int> data) {

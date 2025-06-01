@@ -66,6 +66,17 @@ void main() {
     expect(connection.isClosedConnection(), isTrue);
   });
 
+  test('TestConnectionActivatesTurn', () {
+    expect(connection.isActiveConnection(), isFalse);
+    fakeClock.testTime = fakeClock.testTime.add(ConnectionStats.ICE_RESTART_TIME);
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 1));
+
+    expect(connection.isClosedConnection(), isFalse);
+
+    expect(testConnection.setConfigurations, 1);
+    expect(testConnection.configuration, isNotNull);
+  });
+
   test('TestCompleteNegotiation',() {
     WebRtcDanceProto? webRtcDanceProto = null;
     connection.negotiator.onNegotiationComplete(
@@ -84,8 +95,10 @@ void main() {
 
   test('TesRestartIce',() {
     WebRtcDanceProto? webRtcDanceProto = null;
+    WebRtcDanceProto? iceRestartProto = null;
     connection.negotiator.onNegotiationComplete(
             (WebRtcDanceProto proto) => webRtcDanceProto = proto);
+    connection.negotiator.onIceRestartCompleted((WebRtcDanceProto proto) => iceRestartProto = proto);
     connection.negotiator.sdpReceived("sdp", "offer");
     connection.negotiator.onIceCandidate("candidate1");
     connection.negotiator.onIceCandidate("candidate2");
@@ -93,7 +106,6 @@ void main() {
 
     connection.restartIceWithTurn();
 
-    expect(testConnection.iceRestarts, 1);
     expect(testConnection.setConfigurations, 1);
 
     connection.negotiator.onIceCandidate("candidate3");
@@ -103,6 +115,10 @@ void main() {
     expect(webRtcDanceProto, WebRtcDanceProto()
       ..sdp = "sdp"
       ..sdpType = "offer"
+      ..candidates.add("candidate1")
+      ..candidates.add("candidate2"));
+
+    expect(iceRestartProto, WebRtcDanceProto()
       ..candidates.add("candidate3")
       ..candidates.add("candidate4"));
   });

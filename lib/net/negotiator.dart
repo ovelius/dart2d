@@ -2,6 +2,13 @@ import 'dart:convert';
 
 import 'package:dart2d/net/state_updates.pb.dart';
 
+enum IceState {
+  GATHERING,
+  GATHER_COMPLETED,
+  RESTARTING,
+  RESTARTING_COMPLETED;
+}
+
 class Negotiator {
 
   final String ourId;
@@ -12,7 +19,8 @@ class Negotiator {
   String? _sdp = null;
   String? _sdpType = null;
   List<String> _iceCandidates = [];
-  bool _iceCompleted = false;
+
+  IceState _iceState = IceState.GATHERING;
 
   dynamic _onNegotiationComplete;
   dynamic _onIceRestartComplete;
@@ -22,18 +30,27 @@ class Negotiator {
     _onNegotiationComplete = f;
   }
 
+  onIceRestartCompleted(dynamic f) {
+    _onIceRestartComplete = f;
+  }
+
   void onIceCandidate(String? candidate) {
     if (candidate != null) {
       _iceCandidates.add(candidate);
     } else {
-      _iceCompleted = true;
-      _checkCompleted();
+      if (_iceState == IceState.GATHERING) {
+        _iceState = IceState.GATHER_COMPLETED;
+        _checkCompleted();
+      }
+      if (_iceState == IceState.RESTARTING) {
+        _iceState = IceState.RESTARTING_COMPLETED;
+        _onIceRestartComplete(candidateProto());
+      }
     }
   }
 
   void restartingIce() {
-    _iceCompleted = false;
-    _negotiationCompletedFired = false;
+    _iceState = IceState.RESTARTING;
     _iceCandidates.clear();
   }
 
@@ -42,7 +59,7 @@ class Negotiator {
     if (_negotiationCompletedFired) {
       return;
     }
-    if (_iceCompleted && _sdp != null) {
+    if (_iceState == IceState.GATHER_COMPLETED && _sdp != null) {
       _onNegotiationComplete(buildProto());
       _negotiationCompletedFired = true;
     }
@@ -62,16 +79,21 @@ class Negotiator {
     }
   }
 
-  WebRtcDanceProto buildProto() {
-    if (!_iceCompleted || _sdp == null) {
-      throw "Incomplete offer/answer!";
-    }
-    WebRtcDanceProto dance = WebRtcDanceProto()
-      ..sdpType = _sdpType!
-      ..sdp = _sdp!;
+  WebRtcDanceProto candidateProto() {
+    WebRtcDanceProto dance = WebRtcDanceProto();
     for (String candidate in _iceCandidates) {
       dance.candidates.add(candidate);
     }
+    return dance;
+  }
+
+  WebRtcDanceProto buildProto() {
+    if (_sdp == null) {
+      throw "Incomplete offer/answer: SDP unset!";
+    }
+    WebRtcDanceProto dance = candidateProto()
+      ..sdpType = _sdpType!
+      ..sdp = _sdp!;
     return dance;
   }
 }
