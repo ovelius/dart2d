@@ -72,8 +72,8 @@ class WeaponState {
 
         sprite.gravityAffect = 0.5;
         
-        sprite.size = new Vec2(5.0, 5.0);
-        sprite.radius = 2.0;
+        sprite.size = new Vec2(2.0, 2.0);
+        sprite.radius = 8.0;
         weaponState.world.addSprite(sprite);
       }
     }),

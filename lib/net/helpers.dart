@@ -30,7 +30,9 @@ class PacketListenerBindings {
 
 class ConnectionStats {
   // How long until connection attempt times out.
-  static const Duration OPEN_TIMEOUT = const Duration(seconds: 6);
+  static const Duration OPEN_TIMEOUT = const Duration(seconds: 8);
+  // When we should attempt to restart with ICE.
+  static const Duration ICE_RESTART_TIME = const Duration(seconds: 5);
   // How long we don't have a response before we close the connection.
   static const Duration RESPONSE_TIMEOUT = const Duration(seconds: 10);
 
@@ -49,6 +51,11 @@ class ConnectionStats {
     _attemptOpenTime = _clock.now();
   }
 
+  void gotSignalingMessage() {
+    // Reset out open attempt time.
+    _attemptOpenTime = _clock.now();
+  }
+
   bool keepAlive() => receiveSentDiffMillis() > (RESPONSE_TIMEOUT.inMilliseconds / 4);
 
   void open() {
@@ -57,6 +64,10 @@ class ConnectionStats {
 
   bool OpenTimeout() {
     return _attemptOpenTime.add(ConnectionStats.OPEN_TIMEOUT).isBefore(_clock.now());
+  }
+
+  bool isIceRestartTime() {
+    return _attemptOpenTime.add(ConnectionStats.ICE_RESTART_TIME).isBefore(_clock.now());
   }
 
   bool ReceiveTimeout() {

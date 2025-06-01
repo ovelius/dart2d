@@ -15,6 +15,7 @@ class Negotiator {
   bool _iceCompleted = false;
 
   dynamic _onNegotiationComplete;
+  dynamic _onIceRestartComplete;
   bool _negotiationCompletedFired = false;
 
   onNegotiationComplete(dynamic f) {

@@ -6,6 +6,7 @@ import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/util/util.dart';
 import 'dart:convert';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'package:web/web.dart';
 
 class PeerWrapper {
   final Logger log = new Logger('Peer');
@@ -380,12 +381,13 @@ class PeerWrapper {
       proto = WebRtcDanceProto.fromBuffer(base64Decode(payload));
     }
 
+    if (src == null || dst == null || proto == null) {
+      log.severe("Received malformed message of type $type, missing src or dst");
+      return;
+    }
+
     switch (type) {
       case WebRtcNegotiationProto_Type.OFFER:
-        if (src == null || dst == null || proto == null) {
-          log.severe("Received malformed message of type $type, missing src or dst");
-          return;
-        }
         ConnectionWrapper? connection = connections[src];
         if (connection != null) {
           log.warning(
@@ -401,10 +403,6 @@ class PeerWrapper {
         }
         break;
       case WebRtcNegotiationProto_Type.ANSWER:
-        if (src == null || dst == null || proto == null) {
-          log.severe("Received malformed message of type $type, missing src or dst");
-          return;
-        }
         ConnectionWrapper? connection = connections[src];
         if (connection == null) {
           log.warning("Received answer from unknown connection '$src'! Connections: ${connections.keys}");
@@ -413,6 +411,16 @@ class PeerWrapper {
           _connectionFactory.handleGotAnswer(connection.rtcConnection(), proto);
         }
         break;
+      case WebRtcNegotiationProto_Type.CANDIDATES:
+        ConnectionWrapper? connection = connections[src];
+        if (connection == null) {
+          log.warning("Received candidates from unknown connection '$src'! Connections: ${connections.keys}");
+          return;
+        }
+        for (String candidate in proto.candidates) {
+          RTCIceCandidateInit init = new RTCIceCandidateInit(candidate:candidate, sdpMLineIndex:0);
+          connection.rtcConnection()?.addIceCandidate(init);
+        }
       default:
         log.severe("Unhandled message ${json}");
         break;

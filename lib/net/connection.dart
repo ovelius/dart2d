@@ -49,6 +49,7 @@ class ConnectionWrapper {
   // True if connection was successfully opened.
   bool _opened = false;
   bool closed = false;
+  bool _usesTurn = false;
 
   bool _initialPingSent = false;
   bool _initialPongReceived = false;
@@ -316,6 +317,7 @@ class ConnectionWrapper {
     negotiator.restartingIce();
     _rtcConnection!.setConfiguration(_getRtcConfigurationWithTurn());
     _rtcConnection!.restartIce();
+    _usesTurn = true;
   }
 
   void checkIfShouldClose(int keyFrame) {
@@ -479,8 +481,13 @@ class ConnectionWrapper {
       return true;
     }
     // Timed out waiting to become open.
-    if (!_opened && _connectionStats.OpenTimeout()) {
-      return true;
+    if (!_opened) {
+      if (_connectionStats.OpenTimeout()) {
+        return true;
+        // Try to save ourselves with TURN.
+      } else if (_connectionStats.isIceRestartTime() && !_usesTurn) {
+        restartIceWithTurn();
+      }
     }
 
     return _connectionStats.ReceiveTimeout();
