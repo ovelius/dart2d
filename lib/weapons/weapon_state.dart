@@ -18,6 +18,7 @@ class WeaponState {
   static const double SHOW_WEAPON_NAME_TIME = 1.3;
   static const int ICON_TILE_SIZE = 80;
   static const int ICON_SIZE_HALF = ICON_TILE_SIZE ~/ 2;
+  static const int WHEEL_SIZE = 145;
   WormWorld world;
   LocalPlayerSprite owner;
   Sprite gun;
@@ -36,6 +37,13 @@ class WeaponState {
         _longestWeaponName = w.name;
       }
     }
+    mobileControls?.listenForTouch((int x, int y) {
+      if (changeTime > 0) {
+        Point<int> location = mobileControls!.buttonLocation(MobileControls.WEAPON_SELECT_BUTTON);
+        Point<int> deltaLocation = Point(location.x - x, location.y - y);
+        weaponStateSelector(deltaLocation);
+      }
+    });
     _anglePerWeapon =  (pi * 2)/weapons.length;
   }
 
@@ -233,16 +241,14 @@ class WeaponState {
   weaponStateSelector(Point<int> delta) {
     changeTime = SHOW_WEAPON_NAME_TIME;
 
-
-    double wheelRadius = 145;
     double currentAngle = 0.0;
     int weaponCount = weapons.length;
     int closestWeapon = 0;
     double closest = 9999999.0;
 
     for (int i = 0; i < weaponCount; i++) {
-      double deltaX = ((sin(currentAngle) * wheelRadius) - ICON_SIZE_HALF) + delta.x;
-      double deltaY = ((cos(currentAngle) * wheelRadius) - ICON_SIZE_HALF) + delta.y;
+      double deltaX = ((sin(currentAngle) * WHEEL_SIZE) - ICON_SIZE_HALF) + delta.x;
+      double deltaY = ((cos(currentAngle) * WHEEL_SIZE) - ICON_SIZE_HALF) + delta.y;
       double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
       if (distance < closest) {
         closestWeapon = i;
@@ -269,12 +275,11 @@ class WeaponState {
 
     int weaponCount = weapons.length;
 
-    double wheelRadius = 145;
     double currentAngle = 0.0;
 
     for (int i = 0; i < weaponCount; i++) {
-      double x = sin(currentAngle) * wheelRadius;
-      double y = cos(currentAngle) * wheelRadius;
+      double x = sin(currentAngle) * WHEEL_SIZE;
+      double y = cos(currentAngle) * WHEEL_SIZE;
       if (selectedWeaponIndex == i) {
         context.globalAlpha = 1.0;
       } else {
