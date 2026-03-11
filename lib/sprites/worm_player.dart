@@ -237,6 +237,7 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.save();
     if (!inGame()) {
       this.velocity.x = 0.0;
       this.velocity.y = 0.0;
@@ -244,6 +245,7 @@ class LocalPlayerSprite extends MovingSprite {
         rope!.remove = true;
         rope = null;
       }
+      context.restore();
       return;
     }
     weaponState?.draw(context);
@@ -263,6 +265,7 @@ class LocalPlayerSprite extends MovingSprite {
     } else {
       super.draw(context, debug);
     }
+    context.restore();
   }
 
   bool drawHealthBar(CanvasRenderingContext2D context) {

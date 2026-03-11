@@ -128,6 +128,7 @@ class Hyper extends WorldDamageProjectile {
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.save();
     Vec2 center = centerPoint();
     for (LocalPlayerSprite sprite in _spritesInDamageArea) {
       if (sprite.inGame() && sprite.takesDamage(Mod.HYPER)) {
@@ -144,7 +145,7 @@ class Hyper extends WorldDamageProjectile {
 
     super.draw(context, debug);
     double r = getRadius() * 6;
-    context.translate(-r, -r);
+    context.translate(center.x - r, center.y - r);
     context.strokeStyle = this.color.toJS;
     context.globalCompositeOperation = "lighter";
     context.lineWidth = 2;
@@ -154,6 +155,7 @@ class Hyper extends WorldDamageProjectile {
       var y = r + (r * sin(theta) / 2);
       drawSeed(context, x, y, r);
     }
+    context.restore();
   }
 
   drawSeed(CanvasRenderingContext2D ctx, num x,y,r) {
@@ -410,12 +412,14 @@ class WorldDamageProjectile extends MovingSprite {
   }
   
   draw(var context, bool debug) {
+    context.save();
     if (explodeAfter != null && showCounter) {
       context.fillStyle = "#ffffff".toJS;
       context.fillText(
         explodeAfter!.toInt().toString(), position.x, position.y - size.y);
     }
     super.draw(context, debug);
+    context.restore();
   }
 
   SpriteConstructor remoteRepresentation() {

@@ -196,6 +196,9 @@ class SpriteIndex {
       }
       log.fine("Removing sprite ${id} from world");
       if (sprite != null) {
+        if (sprite is Particles) {
+          sprite.release();
+        }
         sprite.remove = true;
         if (sprite.networkType != NetworkType.REMOTE) {
           log.fine("Removing sprite ${id} from network");

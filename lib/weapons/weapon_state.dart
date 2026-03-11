@@ -320,6 +320,7 @@ class WeaponState {
   }
 
   draw(CanvasRenderingContext2D context) {
+    context.save();
     if (owner.drawWeaponHelpers()) {
       double radius = owner.getRadius();
       context.fillStyle = "#ffffff".toJS;
@@ -345,6 +346,7 @@ class WeaponState {
         context.restore();
       }
     }
+    context.restore();
   }
 
   bool reloading() => weapons[selectedWeaponIndex].reloading();

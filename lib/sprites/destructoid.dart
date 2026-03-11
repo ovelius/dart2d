@@ -22,6 +22,7 @@ class Destructoid extends MovingSprite {
   
   @override
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.save();
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     
    // context.translate(position.x + size.x / 2, position.y + size.y / 2);
@@ -39,6 +40,7 @@ class Destructoid extends MovingSprite {
               -size.x / 2,  -size.y / 2,
               size.x, size.y);
  //    context.drawImage(,  position.x + centerView.x, position.y + centerView.y);
+    context.restore();
   }
   
   collide(MovingSprite? other, ByteWorld? world, int? direction) {

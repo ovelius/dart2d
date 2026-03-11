@@ -43,13 +43,14 @@ class Particles extends MovingSprite {
     this.collision = false;
     Random r = new Random();
     for (int i = 0; i < count; i++) {
-      _Particle p = new _Particle();
+      _Particle p = _Particle.acquire();
       p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime,
           RANDOM_VELOCITY_PARTICLES.contains(particleType));
       particles.add(p);
     }
     this.radius = radius;
     this.particleLifeTime = lifeTime;
+    this.world = world;
   }
   
   Particles.fromNetworkUpdate(ParticleEffects data, WormWorld world)
@@ -70,7 +71,7 @@ class Particles extends MovingSprite {
     this.invisibleOutsideCanvas = false;
     Random r = new Random();
     for (int i = 0; i < count; i++) {
-       _Particle p = new _Particle();
+       _Particle p = _Particle.acquire();
        p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime,
            RANDOM_VELOCITY_PARTICLES.contains(particleType));
        particles.add(p);
@@ -126,33 +127,66 @@ class Particles extends MovingSprite {
     }
     super.frame(duration, frames, Vec2.ZERO);
   }
+  void release() {
+    for (_Particle p in particles) {
+      _Particle.release(p);
+    }
+    particles.clear();
+  }
+
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.save();
     int dead = 0;
     Random r = new Random();
     if (particleType != ParticleEffects_ParticleType.SODA
      && particleType != ParticleEffects_ParticleType.BLOOD) {
       context.globalCompositeOperation = "lighter";
     }
-    for(var i = 0; i < particles.length; i++) {
-      _Particle p = particles[i];
-      if(p.lifeTimeRemaining < 0 || p.radius < 0) {
-        if (follow != null && !follow!.remove) {
-          p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
-             RANDOM_VELOCITY_PARTICLES.contains(particleType));
-        } else {
-          dead++;
+
+    bool useSimpleRect = (particleType == ParticleEffects_ParticleType.FIRE || 
+                          particleType == ParticleEffects_ParticleType.SODA ||
+                          particleType == ParticleEffects_ParticleType.BLOOD ||
+                          particleType == ParticleEffects_ParticleType.CONFETTI);
+
+    if (useSimpleRect) {
+      for(var i = 0; i < particles.length; i++) {
+        _Particle p = particles[i];
+        if(p.lifeTimeRemaining < 0 || p.radius < 0) {
+          if (follow != null && !follow!.remove) {
+            p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
+               RANDOM_VELOCITY_PARTICLES.contains(particleType));
+          } else {
+            dead++;
+          }
+          continue;
         }
-        continue;
+        setFillStyle(context, p, r);
+        context.fillRect(p.location.x - p.radius, p.location.y - p.radius, p.radius * 2, p.radius * 2);
       }
-      
-      context.beginPath();
-      setFillStyle(context, p, r);
-      context.arc(p.location.x, p.location.y, p.radius, 0, pi*2.0);
-      context.fill();  
+    } else {
+      for(var i = 0; i < particles.length; i++) {
+        _Particle p = particles[i];
+        if(p.lifeTimeRemaining < 0 || p.radius < 0) {
+          if (follow != null && !follow!.remove) {
+            p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
+               RANDOM_VELOCITY_PARTICLES.contains(particleType));
+          } else {
+            dead++;
+          }
+          continue;
+        }
+        
+        context.beginPath();
+        setFillStyle(context, p, r);
+        context.arc(p.location.x, p.location.y, p.radius, 0, pi*2.0);
+        context.fill();  
+      }
     }
+    
     if (dead == particles.length) {
       this.remove = true;
     }
+    context.restore();
   }
   
   setFillStyle(CanvasRenderingContext2D context, _Particle p, Random r) {
@@ -209,6 +243,17 @@ class Particles extends MovingSprite {
 }
 
 class _Particle {
+  static final List<_Particle> _pool = [];
+  
+  static _Particle acquire() {
+    if (_pool.isEmpty) return _Particle();
+    return _pool.removeLast();
+  }
+  
+  static void release(_Particle p) {
+    _pool.add(p);
+  }
+
   late Vec2 location;
   late Vec2 speed;
   late int lifeTimeRemaining;
