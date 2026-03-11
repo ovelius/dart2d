@@ -11,6 +11,7 @@ import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:dart2d/phys/spatial_grid.dart';
 import 'package:dart2d/phys/phys.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/chunk_helper.dart';
@@ -53,6 +54,7 @@ class WormWorld extends World {
   Vec2 halfWorld = new Vec2();
   ByteWorld byteWorld;
   Vec2 gravity = new Vec2(0.0, 300.0);
+  late SpatialGrid _spatialGrid;
 
   late int _width, _height;
   double explosionFlash = 0.0;
@@ -102,6 +104,7 @@ class WormWorld extends World {
     this.hudMessages = hudMessages;
     this._network.world = this;
     worldListener.setWorld(this);
+    this._spatialGrid = new SpatialGrid(128.0);
   }
   
   void collisionCheck(int networkId, duration) {
@@ -110,14 +113,13 @@ class WormWorld extends World {
     if(sprite is MovingSprite) {
       if (sprite.collision) {
         if (_network.isCommander() || sprite.networkType == NetworkType.LOCAL) {
-          for (int id in spriteIndex.spriteIds()) {
-            // Avoid duplicate checks, but only if server.
-            if (_network.isCommander() && networkId >= id) {
-              continue;
-            }
-            var otherSprite = spriteIndex[id];
+          for (var otherSprite in _spatialGrid.query(sprite)) {
             if (otherSprite is MovingSprite) {
               if (!otherSprite.collision) continue;
+              // Avoid duplicate checks, but only if server.
+              if (_network.isCommander() && (sprite.networkId ?? 0) >= (otherSprite.networkId ?? 0)) {
+                continue;
+              }
               if (collision(sprite, otherSprite, duration)) {
                 sprite.collide(otherSprite, null, null);
                 otherSprite.collide(sprite, null, null);
@@ -258,6 +260,11 @@ class WormWorld extends World {
       duration = 0.041;
     }
     int frames = advanceFrames(duration);
+
+    _spatialGrid.clear();
+    for (int networkId in spriteIndex.spriteIds()) {
+      _spatialGrid.insert(spriteIndex[networkId]!);
+    }
 
     List<StateUpdate> particles = [];
 
@@ -648,8 +655,7 @@ class WormWorld extends World {
   }
   
   void addVelocityFromExplosion(Vec2 location, int damage, double radius, bool doDamage, LocalPlayerSprite? damageDoer, Mod mod) {
-    for (int networkId in spriteIndex.spriteIds()) {
-      Sprite? sprite = spriteIndex[networkId];
+    for (Sprite sprite in _spatialGrid.queryArea(location.x, location.y, radius)) {
       if (sprite is MovingSprite && sprite.collision) {
         int damageTaken = velocityForSingleSprite(sprite, location, radius, damage);
         if (doDamage && damageTaken > 0 && sprite.takesDamage(mod)) {

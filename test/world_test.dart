@@ -57,6 +57,9 @@ void main() {
       WormWorld worldA = await createTestWorld("a");
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
+      // Insert player sprite to world.
+      worldA.frameDraw();
+      // Map out sprites in SpartialGrid.
       worldA.frameDraw();
       LocalPlayerSprite player = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       player.position = new Vec2();
