@@ -168,26 +168,20 @@ class WormWorld extends World {
     int yStart = sprite.position.y.toInt();
     int yHeight = sprite.size.y.toInt();
 
-    List<int> data = byteWorld.getImageDataFor(xStart, yStart, xWidth, yHeight);
-
-    int xBelowBase = (yHeight - 1) * (xWidth * 4);
     int collisionAngles = 0;
     for (int x = 0; x < xWidth; x++) {
-      if (data[ x * 4] > 0) {
+      if (byteWorld.isSolid(xStart + x, yStart)) {
         collisionAngles |= MovingSprite.DIR_ABOVE;
       }
-      int pos = xBelowBase + (x + 1) * 4 - 1;
-      if (data[pos] > 0) {
+      if (byteWorld.isSolid(xStart + x, yStart + yHeight - 1)) {
         collisionAngles |= MovingSprite.DIR_BELOW;
       }
     }
     for (int y = 0; y < yHeight; y++) {
-      int pos = y * (xWidth * 4) + 3;
-      if (data[pos] > 0) {
+      if (byteWorld.isSolid(xStart, yStart + y)) {
         collisionAngles |= MovingSprite.DIR_LEFT;
       }
-      int pos2 = y * (xWidth * 4) + (xWidth * 4) - 1;
-      if (data[pos2] > 0) {
+      if (byteWorld.isSolid(xStart + xWidth - 1, yStart + y)) {
         collisionAngles |= MovingSprite.DIR_RIGHT;
       }
     }
@@ -307,10 +301,10 @@ class WormWorld extends World {
    byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
    _canvas.restore();
 
+    _canvas.save();
+    _canvas.translate(-viewPoint.x, -viewPoint.y);
     for (int networkId in spriteIndex.spriteIds()) {
       MovingSprite sprite = spriteIndex[networkId] as MovingSprite;
-      _canvas.save();
-      _canvas.translate(-viewPoint.x, -viewPoint.y);
       if (!freeze && !_network.hasNetworkProblem()) {
         sprite.frame(duration, frames, gravity);
       }
@@ -320,8 +314,8 @@ class WormWorld extends World {
       if (sprite.remove) {
         removeSprite(sprite.networkId!);
       }
-      _canvas.restore();
     }
+    _canvas.restore();
 
     if (explosionFlash > 0) {
       _canvas.fillStyle = "rgba(255, 255, 255, ${explosionFlash})".toJS;
@@ -413,9 +407,9 @@ class WormWorld extends World {
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
       double xMin = viewPoint.x;                        //leftest x-value
-      double xMax = viewPoint.x + _canvas.canvas.width;  //rightest x-value
+      double xMax = viewPoint.x + _width;               //rightest x-value
       double yMin = viewPoint.y;                        //highest y-value
-      double yMax = viewPoint.y + _canvas.canvas.height; //lowest y-value
+      double yMax = viewPoint.y + _height;              //lowest y-value
       
       double spriteX, spriteY, spriteWidth, spriteHeight;
       

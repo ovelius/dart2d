@@ -463,9 +463,9 @@ void main() {
     expect(handler.currentFrameRate(), ConnectionFrameHandler.MIN_FRAMERATE);
 
     handler.reportFrameRates(98.0, 30.0);
-    expect(handler.currentFrameRate(), 9);
+    expect(handler.currentFrameRate(), 7);
 
     handler.reportFrameRates(98.0, 25.0);
-    expect(handler.currentFrameRate(), 7);
+    expect(handler.currentFrameRate(), 6);
   });
 }

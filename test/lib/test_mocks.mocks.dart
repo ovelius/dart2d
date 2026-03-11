@@ -1416,6 +1416,23 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
       );
 
   @override
+  bool isSolid(
+    int? x,
+    int? y,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isSolid,
+          [
+            x,
+            y,
+          ],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   bool worldImageSet() => (super.noSuchMethod(
         Invocation.method(
           #worldImageSet,

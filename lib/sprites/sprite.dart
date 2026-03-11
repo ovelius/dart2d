@@ -152,6 +152,7 @@ class Sprite {
   }
 
   draw(CanvasRenderingContext2D context, bool debug) {
+    context.save();
     context.translate(position.x + size.x / 2, position.y + size.y / 2);
     if (debug) {
       context.fillStyle = "#ffffff".toJS;
@@ -192,6 +193,7 @@ class Sprite {
     } else if (spriteType == SpriteType.RECT) {
       drawRect(context);
     }
+    context.restore();
   }
   
   setColor(CanvasRenderingContext2D context) {

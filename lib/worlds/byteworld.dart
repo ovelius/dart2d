@@ -31,6 +31,7 @@ class ByteWorld {
   late HTMLCanvasElement _bedrocksCanvas;
   // x line for current bedrock computation.
   int _bedrockLine = -1;
+  late Uint8List _collisionBuffer;
 
   ByteWorld(
       ImageFactory imageFactory,
@@ -53,6 +54,17 @@ class ByteWorld {
     canvas!.context2D.drawImage(image, 0, 0, _width, _height);
     _bedrocksCanvas = _canvasFactory.createCanvas(_width, _height);
     _bedrockLine = 0;
+    _collisionBuffer = new Uint8List(_width * _height);
+    // Initialize buffer with current canvas alpha.
+    Uint8ClampedList data = canvas!.context2D.getImageData(0, 0, _width, _height).data.toDart;
+    for (int i = 0; i < _width * _height; i++) {
+      _collisionBuffer[i] = data[i * 4 + 3] > 0 ? 1 : 0;
+    }
+  }
+
+  bool isSolid(int x, int y) {
+    if (x < 0 || x >= _width || y < 0 || y >= _height) return false;
+    return _collisionBuffer[y * _width + x] > 0;
   }
   bool worldImageSet() {
     return _bedrockLine >= 0;
@@ -207,6 +219,17 @@ class ByteWorld {
     canvas!.context2D
       ..fillRect(pos.x, pos.y, size.x, size.y)
       ..restore();
+    
+    // Update collision buffer.
+    int x1 = max(0, pos.x.toInt());
+    int y1 = max(0, pos.y.toInt());
+    int x2 = min(_width, (pos.x + size.x).toInt());
+    int y2 = min(_height, (pos.y + size.y).toInt());
+    for (int y = y1; y < y2; y++) {
+      for (int x = x1; x < x2; x++) {
+        _collisionBuffer[y * _width + x] = 1;
+      }
+    }
   }
 
   /**
@@ -224,6 +247,37 @@ class ByteWorld {
         ..restore();
     // Re-apply any destroyed bedrock. It can't be destroyed :)
     canvas!.context2D.drawImage(_bedrockImage, 0, 0);
+
+    // Update collision buffer.
+    int x1 = max(0, (pos.x - radius).toInt());
+    int y1 = max(0, (pos.y - radius).toInt());
+    int x2 = min(_width, (pos.x + radius).ceil());
+    int y2 = min(_height, (pos.y + radius).ceil());
+    double rSquared = radius * radius;
+
+    for (int y = y1; y < y2; y++) {
+      for (int x = x1; x < x2; x++) {
+        double dx = x - pos.x;
+        double dy = y - pos.y;
+        if (dx * dx + dy * dy <= rSquared) {
+          _collisionBuffer[y * _width + x] = 0;
+        }
+      }
+    }
+
+    // Re-sync bedrock pixels to collision buffer.
+    // This is a bit slow but necessary to keep buffer accurate.
+    // Optimization: only re-sync the affected area.
+    Uint8ClampedList data = canvas!.context2D.getImageData(x1, y1, x2 - x1, y2 - y1).data.toDart;
+    for (int y = 0; y < (y2 - y1); y++) {
+      for (int x = 0; x < (x2 - x1); x++) {
+        int bufferIdx = (y1 + y) * _width + (x1 + x);
+        int dataIdx = (y * (x2 - x1) + x) * 4 + 3;
+        if (data[dataIdx] > 0) {
+          _collisionBuffer[bufferIdx] = 1;
+        }
+      }
+    }
   }
 
   Vec2 randomNotSolidPoint(Vec2 sizeOffset) {

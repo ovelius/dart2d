@@ -3,7 +3,7 @@ library fps_counter;
 import 'package:injectable/injectable.dart';
 
 /** The target FPS of the main game loop */
-const GAME_TARGET_FPS = 47;
+const GAME_TARGET_FPS = 60;
 const int TIMEOUT_MILLIS = 1000  ~/ GAME_TARGET_FPS;
 const Duration TIMEOUT = const Duration(milliseconds: TIMEOUT_MILLIS);
 
