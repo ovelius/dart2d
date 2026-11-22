@@ -35,6 +35,7 @@ void init() {
   gaReporter = getIt<GaReporter>();
 
   setKeyListeners(world, canvasElement);
+  setPageLifecycleListeners(world);
 
   Logger.root.onRecord.listen((LogRecord rec) {
     String msg = '${rec.loggerName}: ${rec.level.name}: ${rec
@@ -120,6 +121,26 @@ void setKeyListeners(WormWorld world, var canvasElement) {
   window.onkeyup = (KeyboardEvent e) {
     world.localKeyState.onKeyUp(e.keyCode);
   }.toJS;
+}
+
+// Immediately hand off the commander role when the tab closes or moves to the
+// background so other peers don't freeze waiting for the inactivity timeout or
+// throttled background timer (~1 FPS) to trigger a slow-framerate transfer.
+void setPageLifecycleListeners(WormWorld world) {
+  final onClose = ((Event _) {
+    world.network().transferCommander("tab closing");
+  }).toJS;
+  // Listen to both beforeunload and pagehide for reliable coverage across tab
+  // close, reload, and navigation (transferCommander is idempotent).
+  window.addEventListener('beforeunload', onClose);
+  window.addEventListener('pagehide', onClose);
+  // Browsers heavily throttle timers in background tabs, so transfer commander
+  // as soon as the page becomes hidden.
+  document.addEventListener('visibilitychange', ((Event _) {
+    if (document.hidden) {
+      world.network().transferCommander("tab backgrounded");
+    }
+  }).toJS);
 }
 
 

@@ -1183,5 +1183,51 @@ void main() {
       expect(worldA, hasSpecifiedConnections([]));
       expect(worldB, hasSpecifiedConnections([]));
     });
+
+    test('TransferCommander immediately transfers command on close or background', () async {
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      expect(worldA.network().isCommander(), isTrue);
+      expect(worldB.network().isCommander(), isFalse);
+      expect(worldC.network().isCommander(), isFalse);
+
+      // Non-commander closing/backgrounding does not trigger a command transfer.
+      expect(worldB.network().transferCommander("tab backgrounded"), isFalse);
+      expect(worldA.network().isCommander(), isTrue);
+
+      // Commander tab closing/backgrounding immediately initiates transfer.
+      expect(worldA.network().transferCommander("tab backgrounded"), isTrue);
+      // Subsequent event firing while transfer is pending is idempotent.
+      expect(worldA.network().transferCommander("tab closing"), isFalse);
+
+      String newCommanderId = worldA.network().pendingCommandTransfer()!;
+      expect(newCommanderId, anyOf(equals('b'), equals('c')));
+
+      // New commander immediately took over on receiving transferCommand.
+      WormWorld newCommander = newCommanderId == 'b' ? worldB : worldC;
+      WormWorld otherClient = newCommanderId == 'b' ? worldC : worldB;
+      expect(newCommander.network().isCommander(), isTrue);
+
+      // Advance one keyframe on the remaining peers so the other client updates.
+      newCommander.frameDraw(KEY_FRAME_DEFAULT);
+      otherClient.frameDraw(KEY_FRAME_DEFAULT);
+
+      expect(newCommander.network().gameState.gameStateProto.actingCommanderId,
+          equals(newCommanderId));
+      expect(otherClient.network().gameState.gameStateProto.actingCommanderId,
+          equals(newCommanderId));
+    });
   });
 }

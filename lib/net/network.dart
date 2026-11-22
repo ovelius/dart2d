@@ -480,6 +480,25 @@ class Network {
     }
   }
 
+  /**
+   * Immediately transfer the commander role to the best connected peer
+   * (e.g. when the browser tab is closing or moved to the background).
+   * Returns true if a command transfer was initiated.
+   */
+  bool transferCommander(String reason) {
+    if (peer.id == null || !isCommander() || _pendingCommandTransfer != null) {
+      return false;
+    }
+    Map<String, ConnectionWrapper> connections = safeActiveConnections();
+    String? newCommander = findNewCommander(connections, ignoreSelf: true);
+    if (newCommander == null) {
+      return false;
+    }
+    log.info("Transferring command role to $newCommander ($reason)");
+    _sendPendingCommandTransfer(connections[newCommander]!, reason);
+    return true;
+  }
+
   _sendPendingCommandTransfer(ConnectionWrapper connection, String reason) {
     connection.sendCommandTransfer();
     _slowCommandingFrames = 0;
