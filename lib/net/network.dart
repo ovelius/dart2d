@@ -37,6 +37,10 @@ class Network {
   // We may choose to give up our commanding role if this happens too much.
   int _slowCommandingFrames = 0;
   String? _pendingCommandTransfer = null;
+  // Disables automatic command role transfer when the commander's FPS is low.
+  // Used in tests that step frames manually with large durations (e.g. KEY_FRAME_DEFAULT),
+  // which would otherwise look like a low framerate and trigger unexpected commander handoffs.
+  bool disableCommandTransferHeuristicForTest = false;
 
   Network(
       this._gaReporter,
@@ -355,9 +359,12 @@ class Network {
    * Returns true if we got one.
    */
   bool findActiveGameConnection() {
+    if (peer.id == null) {
+      return false;
+    }
     Map<String, ConnectionWrapper> connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
-    if (connections.containsKey(gameState..gameStateProto.actingCommanderId)) {
+    if (connections.containsKey(gameState.gameStateProto.actingCommanderId)) {
       if (gameState.isAtMaxPlayers()) {
          connections[gameState.gameStateProto.actingCommanderId]!.close("Full game connection!");
          return false;
@@ -463,7 +470,7 @@ class Network {
     }
 
     // Transfer our commanding role to someone else!
-    if (isCommander() && isTooSlowForCommanding()) {
+    if (!disableCommandTransferHeuristicForTest && isCommander() && isTooSlowForCommanding()) {
       log.info("Self framerate is too low ${_slowCommandingFrames} attempting to transfer command role");
       Map connections = safeActiveConnections();
       String? newCommander = findNewCommander(connections, ignoreSelf: true);

@@ -58,6 +58,7 @@ class TestLocalStorage extends LocalStorage {
 clearEnvironment() {
   testConnections.clear();
   testPeers.clear();
+  (getIt<ConnectionFactory>() as TestConnectionFactory).reset();
 }
 
 Future<WormWorld> createTestWorld(String id,  {

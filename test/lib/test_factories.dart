@@ -17,6 +17,12 @@ class TestConnectionFactory extends ConnectionFactory {
   Map<String, Map<String, TestConnection>> connections = {};
   Map<String, List<String>> failConnectionsTo = {};
 
+  void reset() {
+    connections.clear();
+    failConnectionsTo.clear();
+    expectPeerToExist = true;
+  }
+
   TestConnectionFactory failConnection(String from, String to) {
     if (!failConnectionsTo.containsKey(from)) {
       failConnectionsTo[from] = [];
