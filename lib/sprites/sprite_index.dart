@@ -33,11 +33,12 @@ class SpriteIndex {
         new MovingSprite.imageBasedSprite(new Vec2(), 0, world.imageIndex()),
     SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE:
         (WormWorld world, int spriteId, String connectionId) {
-      PlayerInfoProto? info =
-          world.network().getGameState().playerInfoByConnectionId(connectionId);
+      GameState gameState = world.network().getGameState();
+      PlayerInfoProto? info = gameState.maybePlayerInfoBySpriteId(spriteId) ??
+          gameState.playerInfoByConnectionId(connectionId);
       if (info == null) {
         log.warning(
-            "Recieved player sprite not in Gamestate ${world.network().getGameState()}");
+            "Recieved player sprite not in Gamestate ${gameState}");
         return null;
       }
       return new LocalPlayerSprite(
@@ -76,7 +77,14 @@ class SpriteIndex {
       return null;
     }
     if (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE) {
-      world.adjustPlayerSprite(sprite as LocalPlayerSprite, data.imageId);
+      LocalPlayerSprite playerSprite = sprite as LocalPlayerSprite;
+      world.adjustPlayerSprite(playerSprite, data.imageId);
+      sprite.ownerId = playerSprite.info.connectionId;
+    } else {
+      // This might not be 100% accurate, since owner might be:
+      // Client -> Server -> Client.
+      // But if that is the case it will be updated when we parse the GameState.
+      sprite.ownerId = wrapper.id;
     }
     int spawnSound = data.spawnSound;
     if (spawnSound > 0 && spawnSound < Sound.values.length) {
@@ -84,10 +92,6 @@ class SpriteIndex {
     }
     sprite.networkType = NetworkType.REMOTE;
     sprite.networkId = networkId;
-    // This might not be 100% accurate, since onwer might be:
-    // Client -> Server -> Client.
-    // But if that is the case it will be updated when we parse the GameState.
-    sprite.ownerId = wrapper.id;
     world.addSprite(sprite);
     return sprite;
   }
@@ -105,8 +109,48 @@ class SpriteIndex {
   // Sprites that will replace the current world sprites next frame.
   Map<int, Sprite> _replaceSprite = {};
 
-  // When adding local world sprite we start from this number.
+  // When adding local world sprite we start from this number and wrap within
+  // [_localIdRangeStart, _localIdRangeEnd) so local sprites never spill into
+  // another player's 1000-ID block.
   int spriteNetworkId = 0;
+  int _localIdRangeStart = 0;
+  int _localIdRangeEnd = GameState.ID_OFFSET_FOR_NEW_CLIENT;
+
+  void setLocalIdRange(int start, int end) {
+    assert(end > start);
+    _localIdRangeStart = start;
+    _localIdRangeEnd = end;
+    spriteNetworkId = start;
+  }
+
+  Sprite? getPendingSprite(int id) {
+    for (Sprite sprite in _waitingSprites) {
+      if (sprite.networkId == id) {
+        return sprite;
+      }
+    }
+    return null;
+  }
+
+  int _nextLocalNetworkId() {
+    int rangeSize = _localIdRangeEnd - _localIdRangeStart;
+    for (int i = 0; i < rangeSize; i++) {
+      if (spriteNetworkId < _localIdRangeStart || spriteNetworkId >= _localIdRangeEnd) {
+        spriteNetworkId = _localIdRangeStart;
+      }
+      int candidate = spriteNetworkId++;
+      if (!_sprites.containsKey(candidate)) {
+        return candidate;
+      }
+    }
+    int candidate = spriteNetworkId++;
+    while (_sprites.containsKey(candidate)) {
+      log.warning(
+          "${this}: World contains sprite ${candidate} adding 1");
+      candidate = spriteNetworkId++;
+    }
+    return candidate;
+  }
 
   /**
    * Put the sprite in queue to be added.
@@ -138,12 +182,7 @@ class SpriteIndex {
     while (_waitingSprites.length > 0) {
       Sprite newSprite = _waitingSprites.removeAt(0);
       if (newSprite.networkId == null) {
-        newSprite.networkId = spriteNetworkId++;
-        while (_sprites.containsKey(newSprite.networkId)) {
-          log.warning(
-              "${this}: World contains sprite ${newSprite.networkId} adding 1");
-          newSprite.networkId = spriteNetworkId++;
-        }
+        newSprite.networkId = _nextLocalNetworkId();
       }
       if (_sprites.containsKey(newSprite.networkId)) {
         log.severe(
@@ -230,9 +269,13 @@ class SpriteIndex {
    */
   void clear() {
     _sprites.clear();
+    _waitingSprites.clear();
     _networkRemovals.clear();
     _removeSprites.clear();
     _replaceSprite.clear();
+    _localIdRangeStart = 0;
+    _localIdRangeEnd = GameState.ID_OFFSET_FOR_NEW_CLIENT;
+    spriteNetworkId = 0;
   }
 
   int count() => _sprites.length;

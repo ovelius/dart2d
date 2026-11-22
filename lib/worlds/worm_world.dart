@@ -445,7 +445,9 @@ class WormWorld extends World {
   }
 
   void createLocalClient(int spriteId,  Vec2 position) {
-    spriteIndex.spriteNetworkId = spriteId;
+    // Keep client-generated non-player sprites strictly inside (spriteId, spriteId + 1000)
+    // so they never collide with our own playerSprite or another player's ID block.
+    spriteIndex.setLocalIdRange(spriteId + 1, spriteId + GameState.ID_OFFSET_FOR_NEW_CLIENT);
     PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(network().peer.id!);
     if (info == null) {
       throw "Self gamestate data is missing id: ${_network.peer.id}!";
@@ -455,6 +457,7 @@ class WormWorld extends World {
         this, _imageIndex, _mobileControls, info,
         position,
         0);
+    playerSprite!.networkId = spriteId;
     _adjustPlayerSprite();
     addSprite(playerSprite!);
   }

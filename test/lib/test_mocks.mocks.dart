@@ -3088,6 +3088,14 @@ class MockGameState extends _i1.Mock implements _i5.GameState {
           as _i12.PlayerInfoProto?);
 
   @override
+  _i12.PlayerInfoProto? maybePlayerInfoBySpriteId(int? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#maybePlayerInfoBySpriteId, [id]),
+            returnValueForMissingStub: null,
+          )
+          as _i12.PlayerInfoProto?);
+
+  @override
   _i12.PlayerInfoProto playerInfoBySpriteId(int? id) =>
       (super.noSuchMethod(
             Invocation.method(#playerInfoBySpriteId, [id]),
@@ -3150,6 +3158,20 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
             returnValueForMissingStub: null,
           )
           as _i10.MovingSprite?);
+
+  @override
+  void setLocalIdRange(int? start, int? end) => super.noSuchMethod(
+    Invocation.method(#setLocalIdRange, [start, end]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i10.Sprite? getPendingSprite(int? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#getPendingSprite, [id]),
+            returnValueForMissingStub: null,
+          )
+          as _i10.Sprite?);
 
   @override
   void addSprite(_i10.Sprite? sprite) => super.noSuchMethod(

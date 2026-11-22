@@ -1229,5 +1229,48 @@ void main() {
       expect(otherClient.network().gameState.gameStateProto.actingCommanderId,
           equals(newCommanderId));
     });
+
+    test('SpriteId allocation wraps within local range and avoids player collisions', () async {
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // worldB's playerSprite has id 2000; spawning >1000 local sprites must wrap
+      // within [2001, 3000) and never collide with 2000 or 3000.
+      expect(worldB.playerSprite!.networkId, equals(playerId(1)));
+      for (int i = 0; i < 1100; i++) {
+        MovingSprite s = MovingSprite.imageBasedSprite(Vec2(), 0, worldB.imageIndex());
+        worldB.spriteIndex.addSprite(s);
+        worldB.spriteIndex.putPendingSpritesInWorld();
+        expect(s.networkId, greaterThan(playerId(1)));
+        expect(s.networkId, lessThan(playerId(2)));
+        worldB.spriteIndex.removeSprite(s.networkId!);
+        worldB.spriteIndex.removePending();
+      }
+
+      // getNextUsablePlayerSpriteId must skip IDs already present in GameState
+      // even if their sprite is not currently in SpriteIndex.
+      worldA.network().gameState.addPlayerInfo(PlayerInfoProto()
+        ..connectionId = "ghost"
+        ..name = "ghost"
+        ..spriteId = playerId(2));
+      expect(worldA.network().gameState.getNextUsablePlayerSpriteId(worldA),
+          equals(playerId(3)));
+
+      // removeByConnectionId must never mutate worldA's own playerSprite.networkType.
+      worldA.network().gameState.addPlayerInfo(PlayerInfoProto()
+        ..connectionId = "colliding"
+        ..name = "colliding"
+        ..spriteId = worldA.playerSprite!.networkId!);
+      worldA.network().gameState.removeByConnectionId(worldA, "colliding");
+      expect(worldA.playerSprite!.networkType, equals(NetworkType.LOCAL));
+    });
   });
 }

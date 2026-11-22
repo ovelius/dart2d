@@ -585,7 +585,8 @@ class Network {
         if (update.flags & Sprite.FLAG_FULL_FRAME == Sprite.FLAG_FULL_FRAME) {
           constructor = SpriteConstructor.values[update.remoteRepresentation];
         }
-        MovingSprite? sprite = _spriteIndex[update.spriteId] as MovingSprite?;
+        MovingSprite? sprite = (_spriteIndex[update.spriteId] ??
+            _spriteIndex.getPendingSprite(update.spriteId)) as MovingSprite?;
         if (sprite == null && constructor != SpriteConstructor.DO_NOT_CREATE) {
           sprite = _spriteIndex.CreateSpriteFromNetwork(
               world, update.spriteId, constructor, connection, update);

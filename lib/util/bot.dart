@@ -63,7 +63,11 @@ class Bot {
     if (info == null) {
       return false;
     }
-    _controlledSprite = _spriteIndex[info.spriteId] as LocalPlayerSprite?;
+    Sprite? sprite = _spriteIndex[info.spriteId];
+    if (sprite is! LocalPlayerSprite) {
+      return false;
+    }
+    _controlledSprite = sprite;
     log.info("Found controller target ${_controlledSprite}");
     _stuckAt = new Vec2.copy(_controlledSprite!.position);
     return true;
@@ -107,9 +111,8 @@ class Bot {
     LocalPlayerSprite? selectedSprite = null;
     double shortestDistance = double.infinity;
     for (PlayerInfoProto info in _network.getGameState().playerInfoList()) {
-      LocalPlayerSprite? candidate = _spriteIndex[info
-          .spriteId] as LocalPlayerSprite?;
-      if (candidate == null || !candidate.inGame()
+      Sprite? candidate = _spriteIndex[info.spriteId];
+      if (candidate is! LocalPlayerSprite || !candidate.inGame()
           || candidate.networkId == _controlledSprite!.networkId) {
         continue;
       }

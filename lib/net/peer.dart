@@ -215,7 +215,7 @@ class PeerWrapper {
 
   void tickConnections(double duration, List<int> removals) {
     List<String> closedConnections = [];
-    for (String key in connections.keys) {
+    for (String key in List.of(connections.keys)) {
       ConnectionWrapper? connection = connections[key];
       if (connection == null) {
         // Can actually happen! How fun.
@@ -247,7 +247,7 @@ class PeerWrapper {
   void sendDataWithKeyFramesToAll(GameStateUpdates data,
       {String? dontSendTo, String? onlySendTo}) {
     List<String> closedConnections = [];
-    for (String key in onlySendTo == null ?  connections.keys : [onlySendTo]) {
+    for (String key in onlySendTo == null ? List.of(connections.keys) : [onlySendTo]) {
       ConnectionWrapper? connection = connections[key];
       assert(connection != null);
       if (dontSendTo != null && dontSendTo == connection!.id) {
@@ -284,11 +284,16 @@ class PeerWrapper {
    * Remove connection with this ID.
    */
   void removeClosedConnection(String id) {
-    // Start with a copy.
+    if (!this.connections.containsKey(id)) {
+      return;
+    }
+    // Replace active connections with a copy excluding `id` up front so any
+    // downstream calls (e.g. sendMessage / convertToCommander) can't re-enter
+    // removal for `id` or concurrently modify an active map iterator.
     Map<String, ConnectionWrapper> connectionsCopy = new Map.from(this.connections);
-    ConnectionWrapper? wrapper = connectionsCopy[id];
+    ConnectionWrapper? wrapper = connectionsCopy.remove(id);
+    this.connections = connectionsCopy;
     log.info("Removing connection for ${id}");
-    connectionsCopy.remove(id);
     if (_network.isCommander()) {
       log.info("Removing GameState for ${id}");
       _network.gameState.removeByConnectionId(_network.world, id);
@@ -338,8 +343,6 @@ class PeerWrapper {
     } catch (e, _) {
       log.warning("Failed to close RTCConnection ${e}");
     }
-    // Assign back.
-    connections = connectionsCopy;
   }
 
   /**

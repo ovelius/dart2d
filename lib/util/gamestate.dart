@@ -141,11 +141,14 @@ class GameState {
         world.network().sendMessage("${info.name} disconnected :/", id);
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
-        Sprite? sprite = _spriteIndex[info.spriteId];
-        // The game engine will not remove things if the REMOTE NetworkType.
-        // So make the old servers sprite REMOTE_FORWARD.
-        sprite?.networkType = NetworkType.REMOTE_FORWARD;
-        world.removeSprite(info.spriteId);
+        // Never mutate or remove our own local playerSprite if an ID collided.
+        if (info.spriteId != world.playerSprite?.networkId) {
+          Sprite? sprite = _spriteIndex[info.spriteId];
+          // The game engine will not remove things if the REMOTE NetworkType.
+          // So make the old servers sprite REMOTE_FORWARD.
+          sprite?.networkType = NetworkType.REMOTE_FORWARD;
+          world.removeSprite(info.spriteId);
+        }
         return info;
       }
     }
@@ -181,11 +184,19 @@ class GameState {
     return _removedPlayers[id];
   }
 
-  PlayerInfoProto playerInfoBySpriteId(int id) {
-    for (PlayerInfoProto info in playerInfoList()) {
+  PlayerInfoProto? maybePlayerInfoBySpriteId(int id) {
+    for (PlayerInfoProto info in _gameStateProto.playerInfo) {
       if (info.spriteId == id) {
         return info;
       }
+    }
+    return null;
+  }
+
+  PlayerInfoProto playerInfoBySpriteId(int id) {
+    PlayerInfoProto? info = maybePlayerInfoBySpriteId(id);
+    if (info != null) {
+      return info;
     }
     throw "Can't find player for sprite $id";
   }
@@ -194,8 +205,12 @@ class GameState {
     int id = ID_OFFSET_FOR_NEW_CLIENT +
         world.spriteNetworkId +
         _gameStateProto.playerInfo.length * ID_OFFSET_FOR_NEW_CLIENT;
-    // Make sure we don't pick and ID we already use.
-    while (world.spriteIndex.hasSprite(id)) {
+    // Make sure we don't pick an ID already used in SpriteIndex, pending sprites,
+    // our own playerSprite, or another player in GameState.
+    while (world.spriteIndex.hasSprite(id) ||
+        world.spriteIndex.getPendingSprite(id) != null ||
+        world.playerSprite?.networkId == id ||
+        maybePlayerInfoBySpriteId(id) != null) {
       id = id + ID_OFFSET_FOR_NEW_CLIENT;
     }
     return id;
