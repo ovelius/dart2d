@@ -236,6 +236,17 @@ class ByteWorld {
    * Destroy part of the world. From an explosion perhaps?
    */
   clearAt(Vec2 pos, double radius) {
+    if (radius <= 0) {
+      return;
+    }
+    int x1 = max(0, (pos.x - radius).toInt());
+    int y1 = max(0, (pos.y - radius).toInt());
+    int x2 = min(_width, (pos.x + radius).ceil());
+    int y2 = min(_height, (pos.y + radius).ceil());
+    if (x2 <= x1 || y2 <= y1) {
+      return;
+    }
+
     Point<int> restoreRect = Vec2.createIntPoint(pos.x - radius - 1, pos.y - radius - 1);
     int restoreSize =  (radius * 2 + 2).toInt();
     canvas!.context2D
@@ -249,10 +260,6 @@ class ByteWorld {
     canvas!.context2D.drawImage(_bedrockImage, 0, 0);
 
     // Update collision buffer.
-    int x1 = max(0, (pos.x - radius).toInt());
-    int y1 = max(0, (pos.y - radius).toInt());
-    int x2 = min(_width, (pos.x + radius).ceil());
-    int y2 = min(_height, (pos.y + radius).ceil());
     double rSquared = radius * radius;
 
     for (int y = y1; y < y2; y++) {

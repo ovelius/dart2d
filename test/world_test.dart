@@ -91,6 +91,22 @@ void main() {
       expect(player.health, equals(
           LocalPlayerSprite.MAX_HEALTH - damageDone - 10));
     });
+
+    test('TestClearAtOutOfBoundsDoesNotThrow', () async {
+      WormWorld worldA = await createTestWorld("a");
+      ByteWorld bw = worldA.byteWorld;
+
+      // Completely outside each edge, touching edges (width/height == 0), and zero radius.
+      bw.clearAt(new Vec2(-50.0, 2.0), 10.0);
+      bw.clearAt(new Vec2(-10.0, 2.0), 10.0);
+      bw.clearAt(new Vec2(bw.width + 50.0, 2.0), 10.0);
+      bw.clearAt(new Vec2(bw.width + 10.0, 2.0), 10.0);
+      bw.clearAt(new Vec2(2.0, -50.0), 10.0);
+      bw.clearAt(new Vec2(2.0, -10.0), 10.0);
+      bw.clearAt(new Vec2(2.0, bw.height + 50.0), 10.0);
+      bw.clearAt(new Vec2(2.0, bw.height + 10.0), 10.0);
+      bw.clearAt(new Vec2(2.0, 2.0), 0.0);
+    });
   });
 }
 
