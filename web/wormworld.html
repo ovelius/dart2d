@@ -213,9 +213,9 @@
             let result = iter.next();
             while (!result.done) {
               let stat = result.value;
-              if (stat.type == "candidate-pair" && stat.nominated == true) {
+              if (stat.type == "candidate-pair" && (stat.nominated == true || stat.state == "succeeded")) {
                 for (key in data) {
-                  if (stat[key]) {
+                  if (stat[key] !== undefined) {
                     data[key] = stat[key];
                   }
                 }

@@ -4,6 +4,7 @@ import 'package:clock/clock.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
 import 'package:web/helpers.dart';
+import 'lib/test_factories.dart';
 import 'lib/test_lib.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:dart2d/net/net.dart';
@@ -39,6 +40,7 @@ void main() {
     when(mockPeerWrapper.id).thenReturn("b");
     when(mockNetwork.getPeer()).thenReturn(mockPeerWrapper);
     when(mockNetwork.isCommander()).thenReturn(false);
+    when(mockNetwork.connectionFactory).thenReturn(TestConnectionFactory());
     mockHudMessages = new MockHudMessages();
     testConfigParams = new ConfigParams({});
     packetListenerBindings = new PacketListenerBindings();
@@ -311,6 +313,18 @@ void main() {
     connection.receiveData(p);
 
     expect(connection.expectedLatency(), Duration(milliseconds: 500));
+  });
+
+  test('CollectsRtcStatsWithoutInitialPong', () async {
+    expect(connection.initialPongReceived(), isFalse);
+    expect(connection.expectedLatency(), equals(ConnectionStats.OPEN_TIMEOUT));
+
+    connection.open();
+    connection.sendData(GameStateUpdates()..frame = 1);
+    await Future.delayed(Duration.zero);
+
+    // TestConnectionFactory.getStats returns currentRoundTripTime: 0.1 (100ms).
+    expect(connection.expectedLatency(), equals(Duration(milliseconds: 100)));
   });
 
   test('SpriteDataNoKeyFrame_ignoresIt', () {

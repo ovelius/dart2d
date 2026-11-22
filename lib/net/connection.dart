@@ -423,9 +423,8 @@ class ConnectionWrapper {
     } else {
       // Store away any reliable data sent.
       _reliableHelper.storeAwayReliableData(data);
-      // Maybe issue a direct ping to measure latency.
-      _maybeSentImmediatePing(data);
     }
+    _maybeCollectRtcStats(data);
     Uint8List dataBytes = data.writeToBuffer();
 
     if (_egressLimit?.removeTokens(dataBytes.length) == true) {
@@ -452,11 +451,12 @@ class ConnectionWrapper {
     }
   }
 
-  void _maybeSentImmediatePing(GameStateUpdates data) {
-    if (!initialPongReceived()) {
+  void _maybeCollectRtcStats(GameStateUpdates data) {
+    if (!isActiveConnection()) {
       return;
     }
-    if (data.frame <= 0 || data.frame % COLLECT_STATS_EVERY_N_FRAMES != 0) {
+    if (data.frame <= 0 ||
+        (data.frame != 1 && data.frame % COLLECT_STATS_EVERY_N_FRAMES != 0)) {
       return;
     }
     collectRtcStats();
