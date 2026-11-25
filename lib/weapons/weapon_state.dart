@@ -268,9 +268,8 @@ class WeaponState {
           weapons[i].iconIndex,  baseX + x,  baseY + y);
       currentAngle += _anglePerWeapon;
     }
-    // Draw the weapon name.
-    context.font = '16pt Calibri';
-    context.fillStyle = "rgb(255,255,255)".toJS;
+    // Draw the weapon name in bold cartoon outlined style.
+    context.font = 'bold 20px "Trebuchet MS", Arial, sans-serif';
     String selectedWeaponName = weapons[selectedWeaponIndex].name;
     TextMetrics metrics = context.measureText(selectedWeaponName);
     context.globalAlpha = 1.0;
@@ -278,7 +277,13 @@ class WeaponState {
     if (textY < 0) {
       textY = center.y + WeaponState.ICON_SIZE_HALF;
     }
-    context.fillText(selectedWeaponName, center.x - metrics.width /2, textY);
+    double textX = center.x - metrics.width / 2;
+    context.lineJoin = "round";
+    context.strokeStyle = "#161b24".toJS;
+    context.lineWidth = 4.5;
+    context.strokeText(selectedWeaponName, textX, textY);
+    context.fillStyle = "#ffe97a".toJS;
+    context.fillText(selectedWeaponName, textX, textY);
     context.restore();
   }
 
@@ -310,8 +315,15 @@ class WeaponState {
 
         context.save();
         if (changeTime <= 0) {
-          context.fillText("Reloading",
-              center.x, center.y - owner.size.y);
+          context.font = 'bold 13px "Trebuchet MS", Arial, sans-serif';
+          context.lineJoin = "round";
+          context.strokeStyle = "#161b24".toJS;
+          context.lineWidth = 3.2;
+          double reloadX = center.x - 28;
+          double reloadY = center.y - owner.size.y * 0.75;
+          context.strokeText("Reloading", reloadX, reloadY);
+          context.fillStyle = "#fff9e6".toJS;
+          context.fillText("Reloading", reloadX, reloadY);
           context.beginPath();
         }
 

@@ -861,7 +861,7 @@ class MockHudMessages extends _i1.Mock implements _i5.HudMessages {
   );
 
   @override
-  void display(String? message, [double? period = 4.0]) => super.noSuchMethod(
+  void display(String? message, [double? period = 4.5]) => super.noSuchMethod(
     Invocation.method(#display, [message, period]),
     returnValueForMissingStub: null,
   );

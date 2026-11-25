@@ -634,14 +634,14 @@ class LocalPlayerSprite extends MovingSprite {
   void _deathMessage(Mod mod) {
     if (_killer != null) {
       if (_killer == info) {
-        world.displayHudMessageAndSendToNetwork("${info.name} killed itself!");
+        world.displayHudMessageAndSendToNetwork(selfKillMessage(info.name, mod));
         world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
         String message = killedMessage(info.name, killer!.name, mod);
         world.displayHudMessageAndSendToNetwork(message);
       }
     } else {
-      world.displayHudMessageAndSendToNetwork("${info.name} died!");
+      world.displayHudMessageAndSendToNetwork("${info.name} went poof!");
     }
   }
 
