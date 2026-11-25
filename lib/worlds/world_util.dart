@@ -158,11 +158,24 @@ void drawKilledView(CanvasRenderingContext2D context,
   if (player.inGame()) {
     return;
   }
+  // Let the killed player enjoy the first second of their death animation unobstructed
+  // before smoothly fading in the scoreboard overlay.
+  double overlayAlpha = 1.0;
+  if (player.spawnIn <= LocalPlayerSprite.RESPAWN_TIME) {
+    double deadElapsed = LocalPlayerSprite.RESPAWN_TIME - player.spawnIn;
+    if (deadElapsed < 1.0) {
+      return;
+    }
+    overlayAlpha = ((deadElapsed - 1.0) / 0.8).clamp(0.0, 1.0);
+  }
+  context.save();
+  context.globalAlpha = overlayAlpha;
   context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   PlayerInfoProto? killer = player.killer;
   if (killer == null || killer == player.info) {
+    context.restore();
     return;
   }
   // This can be null.
@@ -195,6 +208,7 @@ void drawKilledView(CanvasRenderingContext2D context,
         killerSprite.size.x * 2,
         killerSprite.size.y * 2);
   }
+  context.restore();
 
 }
 

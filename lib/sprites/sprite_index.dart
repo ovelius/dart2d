@@ -15,6 +15,12 @@ enum SpriteConstructor {
   MOVING_SPRITE,
   DAMAGE_PROJECTILE,
   HYPER,
+  HYPER_EXPLOSION,
+  JELLYBEAN,
+  DART,
+  BANANA_PANCAKE,
+  BANANA,
+  PLAYER_DEATH,
   REMOTE_PLAYER_CLIENT_SPRITE,
   POWERUP,
   ROPE_SPRITE
@@ -56,6 +62,24 @@ class SpriteIndex {
     SpriteConstructor.HYPER:
         (WormWorld world, int spriteId, String connectionId) =>
             new Hyper(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HYPER_EXPLOSION:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new HyperExplosion(world, 0.0, 0.0),
+    SpriteConstructor.JELLYBEAN:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new JellybeanProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.DART:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new DartProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.BANANA_PANCAKE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new BananaCake(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.BANANA:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new BananaClusterProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.PLAYER_DEATH:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new PlayerDeathEffect(world, 0.0, 0.0),
   };
 
   static MovingSprite? fromWorldByIndex(WormWorld world, int spriteId,
@@ -239,6 +263,7 @@ class SpriteIndex {
           sprite.release();
         }
         sprite.remove = true;
+        sprite.onRemove();
         if (sprite.networkType != NetworkType.REMOTE) {
           log.fine("Removing sprite ${id} from network");
           _networkRemovals.add(id);

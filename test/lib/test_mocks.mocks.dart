@@ -1915,6 +1915,21 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
   );
 
   @override
+  void playSoundAtPosition(
+    _i8.Vec2? location,
+    _i20.Sound? sound, {
+    bool? multiPlay = false,
+    String? playId = null,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #playSoundAtPosition,
+      [location, sound],
+      {#multiPlay: multiPlay, #playId: playId},
+    ),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void createLocalClient(int? spriteId, _i8.Vec2? position) =>
       super.noSuchMethod(
         Invocation.method(#createLocalClient, [spriteId, position]),
@@ -4247,6 +4262,12 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
             returnValueForMissingStub: 0.0,
           )
           as double);
+
+  @override
+  void onRemove() => super.noSuchMethod(
+    Invocation.method(#onRemove, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [PlayerWorldSelector].

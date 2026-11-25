@@ -224,6 +224,398 @@ void main() {
       expect(aParticleData.followId, bParticleData.followId);
       expect(aParticleData.particleType, bParticleData.particleType);
     });
+
+    test('Hyper_ExplodesAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      Hyper hyper = Hyper.createWithOwner(worldA, playerA, 30, playerA.gun);
+      hyper.radius = Hyper.DEFAULT_BLAST_RADIUS;
+      worldA.addSprite(hyper);
+      worldA.frameDraw(0.05);
+
+      // Simulate hitting the world terrain.
+      hyper.collide(null, worldA.byteWorld, MovingSprite.DIR_BELOW);
+      expect(hyper.remove, isTrue);
+
+      // Step frames to insert and transfer the HyperExplosion & red FIRE particles.
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      HyperExplosion? explosionA;
+      for (int id in worldA.spriteIndex.spriteIds()) {
+        if (worldA.spriteIndex[id] is HyperExplosion) {
+          explosionA = worldA.spriteIndex[id] as HyperExplosion;
+        }
+      }
+      HyperExplosion? explosionB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is HyperExplosion) {
+          explosionB = worldB.spriteIndex[id] as HyperExplosion;
+        }
+      }
+
+      expect(explosionA, isNotNull, reason: "Expected HyperExplosion on commander");
+      expect(explosionB, isNotNull, reason: "Expected HyperExplosion to transfer to client");
+      expect(explosionB!.networkType, equals(NetworkType.REMOTE));
+      expect(explosionB.color, equals(Hyper.COLOR));
+      expect(explosionB.maxRadius, closeTo(explosionA!.maxRadius, 0.1));
+
+      // Advance past explosion duration and verify cleanup on both peers.
+      for (int i = 0; i < 20; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(worldA.spriteIndex.hasSprite(explosionA.networkId!), isFalse);
+      expect(worldB.spriteIndex.hasSprite(explosionB.networkId!), isFalse);
+    });
+
+    test('DefaultExplosion_TransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      worldA.explosionAtSprite(
+        sprite: playerA,
+        velocity: Vec2(10.0, -20.0),
+        addParticles: true,
+        damage: 10,
+        radius: 40.0,
+        damageDoer: playerA,
+      );
+
+      worldA.frameDraw(0.05);
+      worldB.frameDraw(0.05);
+
+      ExplosionEffect? effectA;
+      for (int id in worldA.spriteIndex.spriteIds()) {
+        if (worldA.spriteIndex[id] is ExplosionEffect) {
+          effectA = worldA.spriteIndex[id] as ExplosionEffect;
+        }
+      }
+      ExplosionEffect? effectB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is ExplosionEffect) {
+          effectB = worldB.spriteIndex[id] as ExplosionEffect;
+        }
+      }
+
+      expect(effectA, isNotNull, reason: "Expected ExplosionEffect on commander");
+      expect(effectB, isNotNull, reason: "Expected ExplosionEffect on client via ByteWorldDestruction");
+      expect(effectB!.blastRadius, closeTo(40.0, 0.1));
+      expect(effectB.position.x, closeTo(effectA!.position.x, 0.1));
+      expect(effectB.position.y, closeTo(effectA.position.y, 0.1));
+
+      // Advance past explosion duration and verify cleanup on both peers.
+      for (int i = 0; i < 20; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(worldA.spriteIndex.hasSprite(effectA.networkId!), isFalse);
+      expect(worldB.spriteIndex.hasSprite(effectB.networkId!), isFalse);
+    });
+
+    test('Jellybean_TransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      JellybeanProjectile beanA =
+          JellybeanProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      // Keep the projectile clear of random player spawn collisions during transfer.
+      beanA.collision = false;
+      worldA.addSprite(beanA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      JellybeanProjectile? beanB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is JellybeanProjectile) {
+          beanB = worldB.spriteIndex[id] as JellybeanProjectile;
+        }
+      }
+
+      expect(beanB, isNotNull, reason: "Expected JellybeanProjectile to transfer to client");
+      expect(beanB!.networkType, equals(NetworkType.REMOTE));
+      expect(beanB.flavorIndex, equals(beanA.flavorIndex));
+      expect(beanB.color, equals(beanA.color));
+      expect(beanB.spriteType, equals(SpriteType.CUSTOM));
+      expect(beanB.rotationVelocity, closeTo(beanA.rotationVelocity, 0.01));
+
+      // Hit and destroy the jellybean -> verify JellybeanPopEffect spawns on both peers!
+      beanA.takeDamage(10, playerA, Mod.ZOOKA);
+      expect(beanA.remove, isTrue);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      bool hasPopA = worldA.spriteIndex
+          .spriteIds()
+          .any((id) => worldA.spriteIndex[id] is JellybeanPopEffect);
+      bool hasPopB = worldB.spriteIndex
+          .spriteIds()
+          .any((id) => worldB.spriteIndex[id] is JellybeanPopEffect);
+      expect(hasPopA, isTrue, reason: "Expected JellybeanPopEffect on commander when bean removed");
+      expect(hasPopB, isTrue, reason: "Expected JellybeanPopEffect on client when bean removed");
+
+      // Advance past pop duration and verify cleanup on both peers.
+      for (int i = 0; i < 15; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is JellybeanPopEffect),
+          isFalse);
+      expect(
+          worldB.spriteIndex.spriteIds().any((id) => worldB.spriteIndex[id] is JellybeanPopEffect),
+          isFalse);
+    });
+
+    test('Dart_TransfersAndSpawnsImpactEffectOnRemoval', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      DartProjectile dartA =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      dartA.collision = false;
+      worldA.addSprite(dartA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      DartProjectile? dartB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is DartProjectile) {
+          dartB = worldB.spriteIndex[id] as DartProjectile;
+        }
+      }
+      expect(dartB, isNotNull, reason: "Expected DartProjectile to transfer to client");
+
+      // Simulate dart hitting terrain/target and being removed.
+      dartA.explode();
+      expect(dartA.remove, isTrue);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      bool hasImpactA = worldA.spriteIndex
+          .spriteIds()
+          .any((id) => worldA.spriteIndex[id] is DartImpactEffect);
+      bool hasImpactB = worldB.spriteIndex
+          .spriteIds()
+          .any((id) => worldB.spriteIndex[id] is DartImpactEffect);
+      expect(hasImpactA, isTrue, reason: "Expected DartImpactEffect on commander");
+      expect(hasImpactB, isTrue, reason: "Expected DartImpactEffect on client");
+
+      // Advance past impact duration and verify cleanup on both peers.
+      for (int i = 0; i < 15; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is DartImpactEffect),
+          isFalse);
+      expect(
+          worldB.spriteIndex.spriteIds().any((id) => worldB.spriteIndex[id] is DartImpactEffect),
+          isFalse);
+    });
+
+    test('CoffeeParticles_ExpireAndCollideNormally', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.01);
+
+      Particles coffee = Particles(
+        worldA,
+        null,
+        Vec2(100.0, 100.0),
+        Vec2(400.0, 0.0),
+        radius: 10.0,
+        count: 5,
+        lifeTime: 65,
+        shrinkPerStep: -0.3,
+        particleType: ParticleEffects_ParticleType.FIRE,
+      );
+      coffee.collision = true;
+      coffee.damage = 7;
+      coffee.owner = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      worldA.addSprite(coffee);
+
+      // Droplets stay alive through the main spray, then all expire once 66 frames pass.
+      for (int i = 0; i < 40; i++) {
+        coffee.frame(0.016, 0);
+      }
+      expect(coffee.particles.any((p) => p.lifeTimeRemaining > 0), isTrue);
+
+      for (int i = 0; i < 30; i++) {
+        coffee.frame(0.016, 0);
+      }
+      expect(coffee.particles.every((p) => p.lifeTimeRemaining < 0), isTrue);
+
+      // World collision sets lifeTime to 0 and marks the sprite for removal on next frame.
+      coffee.collide(null, worldA.byteWorld, MovingSprite.DIR_RIGHT);
+      expect(coffee.lifeTime, equals(0));
+      coffee.frame(0.016, 0);
+      expect(coffee.remove, isTrue);
+    });
+
+    test('PlayerDeathEffect_TransfersOverNetworkAndRespectsBloodParam', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerB = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      // Lethal damage on commander spawns PlayerDeathEffect without blood by default.
+      playerB.takeDamage(LocalPlayerSprite.MAX_HEALTH + 10, playerA, Mod.ZOOKA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      PlayerDeathEffect? deathA;
+      for (int id in worldA.spriteIndex.spriteIds()) {
+        if (worldA.spriteIndex[id] is PlayerDeathEffect) {
+          deathA = worldA.spriteIndex[id] as PlayerDeathEffect;
+        }
+      }
+      PlayerDeathEffect? deathB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is PlayerDeathEffect) {
+          deathB = worldB.spriteIndex[id] as PlayerDeathEffect;
+        }
+      }
+
+      expect(deathA, isNotNull, reason: "Expected PlayerDeathEffect on commander");
+      expect(deathB, isNotNull, reason: "Expected PlayerDeathEffect to transfer to client");
+      expect(deathB!.networkType, equals(NetworkType.REMOTE));
+      expect(deathA!.bloodEnabled, isFalse, reason: "No blood unless blood param is enabled");
+      expect(deathB.bloodEnabled, isFalse);
+      expect(deathB.seed, equals(deathA.seed));
+      expect(deathB.playerImageId, equals(playerB.imageId));
+
+      // Advance past full death animation duration and verify cleanup on both peers.
+      for (int i = 0; i < 70; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(worldA.spriteIndex.hasSprite(deathA.networkId!), isFalse);
+      expect(worldB.spriteIndex.hasSprite(deathB.networkId!), isFalse);
+    });
+
+    test('BananaPancake_ExplodesIntoBananasAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      BananaCake pancakeA = BananaCake.createWithOwner(worldA, playerA, 50, playerA.gun);
+      pancakeA.explodeAfter = 4.0;
+      pancakeA.radius = 50.0;
+      pancakeA.collision = false;
+      worldA.addSprite(pancakeA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      BananaCake? pancakeB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is BananaCake) {
+          pancakeB = worldB.spriteIndex[id] as BananaCake;
+        }
+      }
+      expect(pancakeB, isNotNull, reason: "Expected BananaCake to transfer to client");
+      expect(pancakeB!.spriteType, equals(SpriteType.CUSTOM));
+
+      // Explode the pancake and verify glossy BananaClusterProjectiles spread and transfer.
+      pancakeA.explode();
+      expect(pancakeA.remove, isTrue);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      int bananasA = worldA.spriteIndex
+          .spriteIds()
+          .where((id) => worldA.spriteIndex[id] is BananaClusterProjectile)
+          .length;
+      int bananasB = worldB.spriteIndex
+          .spriteIds()
+          .where((id) => worldB.spriteIndex[id] is BananaClusterProjectile)
+          .length;
+      expect(bananasA, greaterThan(0), reason: "Expected BananaClusterProjectile burst on commander");
+      expect(bananasB, greaterThan(0), reason: "Expected BananaClusterProjectile burst to transfer to client");
+    });
     /*
     test('TestKillDormantSprites', () {
       Logger.root.level = Level.FINE;

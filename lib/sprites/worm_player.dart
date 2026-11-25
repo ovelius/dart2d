@@ -588,7 +588,6 @@ class LocalPlayerSprite extends MovingSprite {
         spawnIn = RESPAWN_TIME;
         _deathMessage(mod);
         _addDeathParticles();
-        world.playSound(Sound.DEATH);
       } else if (_shieldPoints <= 0) {
         _addDamageParticles();
       }
@@ -597,15 +596,14 @@ class LocalPlayerSprite extends MovingSprite {
 
   void _addDeathParticles() {
     int blood = world.config().getInt(ConfigParam.BLOOD);
-    int countLifeTime = blood > 0 ? blood : 120;
-    Particles p = Particles(world, null, centerPoint(), Vec2(200,300),
-        radius: 25.0, count:countLifeTime, lifeTime: countLifeTime, shrinkPerStep: 0.3,
-        particleType:
-        blood > 0  ?
-            ParticleEffects_ParticleType.BLOOD :
-            ParticleEffects_ParticleType.CONFETTI);
-    p.sendToNetwork = true;
-    world.addSprite(p);
+    bool bloodEnabled = blood > 0;
+    PlayerDeathEffect effect = PlayerDeathEffect.create(
+      world,
+      this,
+      bloodEnabled: bloodEnabled,
+      bloodCount: bloodEnabled ? blood : 0,
+    );
+    world.addSprite(effect);
   }
 
   void _addDamageParticles() {

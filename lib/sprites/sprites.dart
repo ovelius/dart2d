@@ -1,6 +1,7 @@
 library sprites;
 
 export 'movingsprite.dart';
+export 'death_effect.dart';
 export 'destructoid.dart';
 export 'movingsprite.dart';
 export 'particles.dart';

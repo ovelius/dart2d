@@ -243,6 +243,12 @@ class Sprite {
   }
 
   /**
+   * Called when this sprite is removed from the world (both locally and on remote peers).
+   */
+  void onRemove() {
+  }
+
+  /**
    * Extra data to be sent to clients.
    */
   ExtraSpriteData addExtraNetworkData() {

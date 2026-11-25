@@ -86,38 +86,13 @@ class WeaponState {
       }
     }),
     new Weapon("Dart gun", 1, 120, 6.0, .12, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
-      sprite.mod = Mod.DARTGUN;
-      sprite.owner = weaponState.owner;
-      double sum = sprite.velocity.sum();
-      sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
-      sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
-      sprite.gravityAffect = 0.3;
-      sprite.size = new Vec2(20.0, 6.0);
-      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("dart.png"), 1);
-      sprite.radius = 2.0;
-      sprite.spawn_sound = Sound.DARTGUN;
+      DartProjectile sprite = new DartProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Jellybean Jet", 8, 40, 9.0, .11, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 8, positionBase:weaponState.owner.gun);
-      sprite.mod = Mod.TV;
-      sprite.spriteType = SpriteType.CIRCLE;
-      double a = random.nextDouble() + 0.2;
-      sprite.color = "rgba(${random.nextInt(255)}, ${random.nextInt(255)}, ${random.nextInt(255)}, $a)";
-      sprite.owner = weaponState.owner;
-      sprite.explodeAfter = 15.0;
-      sprite.health = 5;
-      sprite.spawn_sound = Sound.BLUBB;
-      sprite.velocity = sprite.velocity.multiply(0.8);
-      double sum = sprite.velocity.sum();
-      sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 8;
-      sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 8;
-      sprite.gravityAffect = 0.1;
-      sprite.bounche = 0.99;
-      sprite.size = new Vec2(4.0, 4.0);
-      sprite.radius = -1.0;
-      sprite.showCounter = false;
+      JellybeanProjectile sprite = new JellybeanProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
       weaponState.world.addSprite(sprite);
     }),
     new Weapon("Coffee Burn",2, 150, 2.0, .05, (WeaponState weaponState) {
@@ -129,7 +104,7 @@ class WeaponState {
       Particles p = new Particles(
           weaponState.world,
           null, position, vel.multiply(400.0),
-          radius: 10.0, count: 5, lifeTime: 65, shrinkPerStep:-0.3, particleType: ParticleEffects_ParticleType.FIRE);
+          radius: 10.0, count: 5, lifeTime: 65, shrinkPerStep: -0.3, particleType: ParticleEffects_ParticleType.FIRE);
       p.sendToNetwork = true;
       p.world = weaponState.world;
       p.collision = true;
@@ -191,7 +166,9 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
     }), */
     new Weapon("Zooka",6, 5, 2.5, 0.8, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 40, positionBase:weaponState.owner.gun);
+      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, 40,
+          positionBase: weaponState.owner.gun, size: new Vec2(38.0, 16.0));
       sprite.mod = Mod.ZOOKA;
       sprite.spawn_sound = Sound.ZOOKA;
       sprite.radius = 40.0;
@@ -199,7 +176,9 @@ class WeaponState {
       sprite.gravityAffect = 0.05;
       // sprite.velocity = sprite.velocity.multiply(0.2);
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("zooka.png"), 1);
-      Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2));
+      Vec2 offset = Vec2(-cos(sprite.angle), -sin(sprite.angle)).multiply(sprite.size.x * 0.46);
+      Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2),
+          count: 45, lifeTime: 55, radius: 9.0, shrinkPerStep: 0.2, followOffset: offset);
       p.sendToNetwork = true;
       // The order is important here.
       weaponState.world.addSprite(sprite);
@@ -207,7 +186,7 @@ class WeaponState {
     }),
     new Weapon("Neon Blaster",7, 5, 2.5, 1.20, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30, weaponState.owner.gun);
-      sprite.radius = 25.0;
+      sprite.radius = Hyper.DEFAULT_BLAST_RADIUS;
       sprite.spawn_sound = Sound.HYPER;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;

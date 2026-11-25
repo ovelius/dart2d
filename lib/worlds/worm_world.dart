@@ -435,11 +435,19 @@ class WormWorld extends World {
   }
 
   void playSoundAtSprite(Sprite sprite, Sound sound, {multiPlay = false, playSpriteId = false}) {
+    playSoundAtPosition(
+        sprite.position,
+        sound,
+        multiPlay: multiPlay,
+        playId: playSpriteId ? sprite.networkId.toString() : null);
+  }
+
+  void playSoundAtPosition(Vec2 location, Sound sound, {bool multiPlay = false, String? playId = null}) {
     if (playerSprite != null) {
-      double distance = (sprite.position.subtract(playerSprite!.position)).sum();
+      double distance = (location.subtract(playerSprite!.position)).sum();
       double volume = 1.0 - (distance / 1000.0);
       if (volume > 0.01) {
-        playSound(sound, volume: volume, multiPlay: multiPlay, playId:  playSpriteId ? sprite.networkId.toString() : null);
+        playSound(sound, volume: volume, multiPlay: multiPlay, playId: playId);
       }
     }
   }
@@ -501,6 +509,14 @@ class WormWorld extends World {
     addSprite(new Particles.fromNetworkUpdate(data.particleEffects, this));
   }
   
+  void _spawnExplosionVisuals(Vec2 location, Vec2 velocity, double radius) {
+    if (radius <= 3) {
+      return;
+    }
+    playSoundAtPosition(location, Sound.EXPLOSION, multiPlay: true);
+    addSprite(ExplosionEffect(location, velocity, radius));
+  }
+
   void explosionAt({
         required Vec2 location,
         Vec2? velocity,
@@ -513,18 +529,7 @@ class WormWorld extends World {
     clearWorldArea(location, radius);
     if (addParticles) {
       checkNotNull(velocity);
-    }
-    if (addParticles) {
-      int particleCount = _particleCountFromFps();
-      if (particleCount > 0) {
-        addSprite(new Particles(
-            this,
-            null,
-            location,
-            velocity == null ? Vec2.ZERO : velocity,
-            radius: radius,
-            count: particleCount));
-      }
+      _spawnExplosionVisuals(location, velocity == null ? Vec2.ZERO : velocity, radius);
     }
     addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
     if (!fromNetwork) {
@@ -574,22 +579,20 @@ class WormWorld extends World {
         required LocalPlayerSprite damageDoer,
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
-    clearWorldArea(sprite.centerPoint(), radius);
+    Vec2 center = sprite.centerPoint();
+    clearWorldArea(center, radius);
     if (radius > 3 && addParticles) {
-      playSoundAtSprite(sprite, Sound.EXPLOSION, multiPlay:true);
-      addSprite(
-          new Particles(this, null, sprite.position, velocity, radius: radius * 1.5, count: _particleCountFromFps()));
-
+      _spawnExplosionVisuals(center, velocity, radius);
     }
     if (damage > 0) {
       addVelocityFromExplosion(
-          sprite.centerPoint(), damage, radius, !fromNetwork, damageDoer, mod);
+          center, damage, radius, !fromNetwork, damageDoer, mod);
     }
     if (!fromNetwork) {
       // TODO: Buffer here instead ?
       _network.peer.sendSingleStateUpdate(StateUpdate()..
           byteWorldDestruction = destructionAsNetworkUpdate(
-              sprite.centerPoint(), velocity, radius, damage, addParticles));
+              center, velocity, radius, damage, addParticles));
     }
   }
 

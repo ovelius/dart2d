@@ -45,7 +45,10 @@ class Particles extends MovingSprite {
     for (int i = 0; i < count; i++) {
       _Particle p = _Particle.acquire();
       p.setToRandom(r, radius, follow, followOffset, position, velocityBase, lifeTime,
-          RANDOM_VELOCITY_PARTICLES.contains(particleType));
+          RANDOM_VELOCITY_PARTICLES.contains(particleType),
+          isRocketTrail: particleType == ParticleEffects_ParticleType.COLORFUL,
+          isCoffee: particleType == ParticleEffects_ParticleType.FIRE,
+          initialSpawn: true);
       particles.add(p);
     }
     this.radius = radius;
@@ -72,8 +75,11 @@ class Particles extends MovingSprite {
     Random r = new Random();
     for (int i = 0; i < count; i++) {
        _Particle p = _Particle.acquire();
-       p.setToRandom(r, radius, follow, followOffset, position, velocity,  particleLifeTime,
-           RANDOM_VELOCITY_PARTICLES.contains(particleType));
+       p.setToRandom(r, radius, follow, followOffset, position, velocity, particleLifeTime,
+           RANDOM_VELOCITY_PARTICLES.contains(particleType),
+           isRocketTrail: particleType == ParticleEffects_ParticleType.COLORFUL,
+           isCoffee: particleType == ParticleEffects_ParticleType.FIRE,
+           initialSpawn: true);
        particles.add(p);
     }
     this.world = world;
@@ -107,14 +113,21 @@ class Particles extends MovingSprite {
       follow = world.spriteIndex[followId];
       followId = null;
     }
+    bool isRocketTrail = this.particleType == ParticleEffects_ParticleType.COLORFUL;
+    double drag = max(0.0, 1.0 - duration * 3.0);
     for(var i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       p.location.x += p.speed.x * duration;
       p.location.y += p.speed.y * duration;
-      if(p.lifeTimeRemaining < 0 || p.radius < 0) {
+      if(p.lifeTimeRemaining < 0 || (!isRocketTrail && p.radius < 0)) {
         continue;
       }
-      if (g != null) {
+      if (isRocketTrail) {
+        // Rocket exhaust slows down in air and drifts slightly upward as warm smoke.
+        p.speed.x *= drag;
+        p.speed.y *= drag;
+        p.location.y -= 16.0 * duration;
+      } else if (g != null) {
         if (this.particleType != ParticleEffects_ParticleType.FIRE) {
           p.location += g;
         }
@@ -123,7 +136,9 @@ class Particles extends MovingSprite {
         }
       }
       p.lifeTimeRemaining--;
-      p.radius-=shrinkPerStep;
+      if (!isRocketTrail) {
+        p.radius -= shrinkPerStep;
+      }
     }
     super.frame(duration, frames, Vec2.ZERO);
   }
@@ -138,6 +153,29 @@ class Particles extends MovingSprite {
     context.save();
     int dead = 0;
     Random r = new Random();
+
+    if (particleType == ParticleEffects_ParticleType.COLORFUL) {
+      // Realistic rocket exhaust trail (shared by Zooka and Snailgun):
+      // young particles glow hot flame at the nozzle, then expand into soft billowing smoke.
+      dead = _drawRocketTrail(context, r);
+      if (dead == particles.length) {
+        this.remove = true;
+      }
+      context.restore();
+      return;
+    }
+
+    if (particleType == ParticleEffects_ParticleType.FIRE) {
+      // Scalding coffee spray (Coffee Burn): rich dark-roast espresso stream with
+      // caramel crema sheen that cools into soft rising steam wisps.
+      dead = _drawCoffeeStream(context, r);
+      if (dead == particles.length) {
+        this.remove = true;
+      }
+      context.restore();
+      return;
+    }
+
     if (particleType != ParticleEffects_ParticleType.SODA
      && particleType != ParticleEffects_ParticleType.BLOOD) {
       context.globalCompositeOperation = "lighter";
@@ -187,6 +225,162 @@ class Particles extends MovingSprite {
       this.remove = true;
     }
     context.restore();
+  }
+
+  int _drawRocketTrail(CanvasRenderingContext2D context, Random r) {
+    int dead = 0;
+    double maxLife = max(1, this.particleLifeTime).toDouble();
+
+    // First handle respawns and draw billowing smoke puffs (normal alpha blend).
+    context.globalCompositeOperation = "source-over";
+    for (int i = 0; i < particles.length; i++) {
+      _Particle p = particles[i];
+      if (p.lifeTimeRemaining < 0) {
+        if (follow != null && !follow!.remove) {
+          p.setToRandom(r, radius, follow, followOffset, position, velocity, this.particleLifeTime,
+              false, isRocketTrail: true, initialSpawn: false);
+        } else {
+          dead++;
+          continue;
+        }
+      }
+      double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
+      if (lifeFrac > 0.85) {
+        continue;
+      }
+      double ageFrac = 1.0 - lifeFrac;
+      double smokeRadius = max(1.5, p.radius * (0.65 + 1.35 * ageFrac));
+      double smokeAlpha = (lifeFrac < 0.7 ? lifeFrac / 0.7 : (0.85 - lifeFrac) / 0.15) * 0.42;
+      if (smokeAlpha <= 0.01) {
+        continue;
+      }
+      int shade = (95 + (115 * ageFrac)).toInt().clamp(90, 215);
+      CanvasGradient grad = context.createRadialGradient(
+          p.location.x, p.location.y, 0, p.location.x, p.location.y, smokeRadius);
+      grad.addColorStop(0.0, "rgba($shade, ${shade - 3}, ${shade - 6}, ${smokeAlpha.toStringAsFixed(2)})");
+      grad.addColorStop(0.55, "rgba($shade, $shade, $shade, ${(smokeAlpha * 0.6).toStringAsFixed(2)})");
+      grad.addColorStop(1.0, "rgba($shade, $shade, $shade, 0)");
+      context.fillStyle = grad;
+      context.beginPath();
+      context.arc(p.location.x, p.location.y, smokeRadius, 0, pi * 2.0);
+      context.fill();
+    }
+
+    // Second pass: hot glowing exhaust flame right behind the rocket nozzle.
+    context.globalCompositeOperation = "lighter";
+    for (int i = 0; i < particles.length; i++) {
+      _Particle p = particles[i];
+      if (p.lifeTimeRemaining < 0) {
+        continue;
+      }
+      double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
+      if (lifeFrac <= 0.68) {
+        continue;
+      }
+      double flameT = ((lifeFrac - 0.68) / 0.32).clamp(0.0, 1.0); // 1.0 = hottest at nozzle
+      double flameRadius = max(1.5, p.radius * (0.55 + 0.55 * flameT));
+      int gVal = (90 + 165 * flameT).toInt().clamp(0, 255);
+      int bVal = (210 * flameT * flameT).toInt().clamp(0, 255);
+      double flameAlpha = (0.35 + 0.65 * flameT).clamp(0.0, 1.0);
+      CanvasGradient grad = context.createRadialGradient(
+          p.location.x, p.location.y, 0, p.location.x, p.location.y, flameRadius);
+      grad.addColorStop(0.0, "rgba(255, $gVal, $bVal, ${flameAlpha.toStringAsFixed(2)})");
+      grad.addColorStop(0.5, "rgba(255, ${(gVal * 0.65).toInt()}, 15, ${(flameAlpha * 0.6).toStringAsFixed(2)})");
+      grad.addColorStop(1.0, "rgba(220, 40, 0, 0)");
+      context.fillStyle = grad;
+      context.beginPath();
+      context.arc(p.location.x, p.location.y, flameRadius, 0, pi * 2.0);
+      context.fill();
+    }
+
+    return dead;
+  }
+
+  int _drawCoffeeStream(CanvasRenderingContext2D context, Random r) {
+    int dead = 0;
+    double maxLife = max(1, this.particleLifeTime).toDouble();
+    context.globalCompositeOperation = "source-over";
+
+    // Pass 1: Soft rising warm steam wisps around the coffee spray.
+    for (int i = 0; i < particles.length; i++) {
+      _Particle p = particles[i];
+      if (p.lifeTimeRemaining < 0 || p.radius < 0) {
+        if (follow != null && !follow!.remove) {
+          p.setToRandom(r, radius, follow, followOffset, position, velocity,
+              this.particleLifeTime, false, isCoffee: true);
+        } else {
+          dead++;
+          continue;
+        }
+      }
+      double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
+      double ageFrac = 1.0 - lifeFrac;
+      double steamVisibility =
+          (ageFrac < 0.2 ? ageFrac / 0.2 : 1.0) * (lifeFrac < 0.35 ? lifeFrac / 0.35 : 1.0);
+      if (steamVisibility <= 0.02) {
+        continue;
+      }
+      double steamRise = (4.0 + 14.0 * ageFrac) * (0.75 + 0.5 * (p.g / 255.0));
+      double steamRadius = (p.radius * 0.95).clamp(4.0, 24.0);
+      double steamAlpha = 0.26 * steamVisibility;
+      double sx = p.location.x;
+      double sy = p.location.y - steamRise;
+      CanvasGradient grad =
+          context.createRadialGradient(sx, sy, 0, sx, sy, steamRadius);
+      grad.addColorStop(0.0, "rgba(242, 232, 218, ${steamAlpha.toStringAsFixed(2)})");
+      grad.addColorStop(0.6, "rgba(225, 212, 196, ${(steamAlpha * 0.5).toStringAsFixed(2)})");
+      grad.addColorStop(1.0, "rgba(220, 208, 195, 0)");
+      context.fillStyle = grad;
+      context.beginPath();
+      context.arc(sx, sy, steamRadius, 0, pi * 2.0);
+      context.fill();
+    }
+
+    // Pass 2: Rich dark-roast espresso droplets & caramel crema sheen,
+    // fading smoothly out over each droplet's exact original lifetime.
+    for (int i = 0; i < particles.length; i++) {
+      _Particle p = particles[i];
+      if (p.lifeTimeRemaining < 0 || p.radius < 0) {
+        continue;
+      }
+      double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
+      double dropR = (p.radius * 0.62).clamp(2.5, 13.5);
+      double alpha = (lifeFrac < 0.35 ? (lifeFrac / 0.35) * 0.9 : 0.9).clamp(0.0, 0.92);
+
+      // Blend from rich crema-mocha to deep espresso brown per droplet (using p.r as stable seed).
+      double roastMix = p.r / 255.0;
+      int cr = (48 + 52 * roastMix).toInt();
+      int cg = (22 + 30 * roastMix).toInt();
+      int cb = (8 + 12 * roastMix).toInt();
+
+      // Liquid splash streak behind moving droplets.
+      double speedSq = p.speed.x * p.speed.x + p.speed.y * p.speed.y;
+      if (speedSq > 400.0) {
+        context.strokeStyle = "rgba($cr, $cg, $cb, ${(alpha * 0.68).toStringAsFixed(2)})".toJS;
+        context.lineWidth = dropR * 1.25;
+        context.lineCap = "round";
+        context.beginPath();
+        context.moveTo(p.location.x, p.location.y);
+        context.lineTo(p.location.x - p.speed.x * 0.022, p.location.y - p.speed.y * 0.022);
+        context.stroke();
+      }
+
+      // Main dark-roast espresso droplet.
+      context.fillStyle = "rgba($cr, $cg, $cb, ${alpha.toStringAsFixed(2)})".toJS;
+      context.beginPath();
+      context.arc(p.location.x, p.location.y, dropR, 0, pi * 2.0);
+      context.fill();
+
+      // Glossy caramel crema highlight.
+      if (dropR > 3.2) {
+        context.fillStyle = "rgba(210, 152, 88, ${(alpha * 0.6).toStringAsFixed(2)})".toJS;
+        context.beginPath();
+        context.arc(p.location.x - dropR * 0.28, p.location.y - dropR * 0.28, dropR * 0.34, 0, pi * 2.0);
+        context.fill();
+      }
+    }
+
+    return dead;
   }
   
   setFillStyle(CanvasRenderingContext2D context, _Particle p, Random r) {
@@ -267,19 +461,45 @@ class _Particle {
   }
   
   setToRandom(Random ra, double radius, Sprite? follow, Vec2? followOffset, Vec2 location,
-      Vec2 velocityBase, int lifeTime, bool randomVelocity) {
+      Vec2 velocityBase, int lifeTime, bool randomVelocity,
+      {bool isRocketTrail = false, bool isCoffee = false, bool initialSpawn = false}) {
     randomColor(ra);
-    this.radius = (radius * ra.nextDouble());
+    if (isRocketTrail) {
+      this.radius = radius * (0.45 + 0.55 * ra.nextDouble());
+    } else if (isCoffee) {
+      this.radius = radius * (0.55 + 0.45 * ra.nextDouble());
+    } else {
+      this.radius = radius * ra.nextDouble();
+    }
     if (follow != null) {
       if (followOffset != null) {
         this.location = follow.centerPoint() + followOffset;
       } else {
         this.location = follow.centerPoint();
       }
+      if (isRocketTrail) {
+        this.location.x += (ra.nextDouble() - 0.5) * 4.0;
+        this.location.y += (ra.nextDouble() - 0.5) * 4.0;
+      }
     } else {
       this.location = new Vec2.copy(location);
     }
     double sum = velocityBase.sum();
+    if (isRocketTrail) {
+      // Gentle billowing exhaust spread trailing behind the projectile.
+      double spread = max(18.0, sum * 0.25);
+      speed = new Vec2(
+          -velocityBase.x * 0.15 + (ra.nextDouble() - 0.5) * spread,
+          -velocityBase.y * 0.15 + (ra.nextDouble() - 0.5) * spread);
+      if (initialSpawn) {
+        // Stagger initial pool lifetimes so emission is continuous rather than clumped.
+        lifeTimeRemaining = ra.nextInt(max(1, lifeTime));
+      } else {
+        // Freshly emitted trail puffs always start hot at the nozzle.
+        lifeTimeRemaining = max(1, (lifeTime * (0.85 + 0.15 * ra.nextDouble())).toInt());
+      }
+      return;
+    }
     if (randomVelocity) {
       speed = new Vec2(velocityBase.x * ra.nextDouble(),
           velocityBase.y * ra.nextDouble());
@@ -296,6 +516,8 @@ class _Particle {
           velocityBase.y + sum * ra.nextDouble() * 0.1 -
               sum * ra.nextDouble() * 0.1);
     }
-    lifeTimeRemaining = ra.nextInt(lifeTime);
+    lifeTimeRemaining = isCoffee
+        ? max(1, (lifeTime * (0.7 + 0.3 * ra.nextDouble())).round())
+        : ra.nextInt(max(1, lifeTime));
   }
 }
