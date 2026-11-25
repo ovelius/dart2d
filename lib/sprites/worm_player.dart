@@ -306,7 +306,6 @@ class LocalPlayerSprite extends MovingSprite {
       if (!inGame() && spawnIn < RESPAWN_TIME / 2) {
         if (_updatePosition) {
           position = world.byteWorld.randomNotSolidPoint(size);
-          // TODO zoom in on the new position?
           _updatePosition = false;
         }
       } else {
@@ -597,11 +596,14 @@ class LocalPlayerSprite extends MovingSprite {
   void _addDeathParticles() {
     int blood = world.config().getInt(ConfigParam.BLOOD);
     bool bloodEnabled = blood > 0;
+    String killerId =
+        (_killer != null && _killer != info) ? _killer!.connectionId : "";
     PlayerDeathEffect effect = PlayerDeathEffect.create(
       world,
       this,
       bloodEnabled: bloodEnabled,
       bloodCount: bloodEnabled ? blood : 0,
+      killerConnectionId: killerId,
     );
     world.addSprite(effect);
   }

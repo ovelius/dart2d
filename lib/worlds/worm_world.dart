@@ -60,6 +60,15 @@ class WormWorld extends World {
   double explosionFlash = 0.0;
   bool soundEnabled = true;
 
+  // Death camera state: smoothly zooms out to reveal the full battlefield,
+  // then zooms back in on the new spawn location until the player spawns.
+  double _cameraZoom = 1.0;
+  double _deathCameraElapsed = 0.0;
+  bool _inDeathCamera = false;
+  Vec2 _cameraCenter = new Vec2();
+
+  double get cameraZoom => _cameraZoom;
+
   WormWorld(
       this._network,
       this.loader,
@@ -280,29 +289,26 @@ class WormWorld extends World {
       ..save();
 
 
-    if (playerSprite != null) {
-      Vec2 playerCenter = playerSprite!.centerPoint();
-      viewPoint.x = playerCenter.x - halfWorld.x;
-      viewPoint.y = playerCenter.y - halfWorld.y;
-      if (viewPoint.y > byteWorld.height - _height) {
-        viewPoint.y = byteWorld.height * 1.0 - _height;
-      }
-      if (viewPoint.x > byteWorld.width - _width) {
-        viewPoint.x = byteWorld.width * 1.0 - _width;
-      }
-      if (viewPoint.x < 0) {
-        viewPoint.x = 0.0;
-      }
-      if (viewPoint.y < 0) {
-        viewPoint.y = 0.0;
-      }
-    }
-  
-   byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
-   _canvas.restore();
+    _updateCamera(duration);
 
-    _canvas.save();
-    _canvas.translate(-viewPoint.x, -viewPoint.y);
+    if (_cameraZoom < 0.999 && byteWorld.canvas != null) {
+      _canvas.translate(_width / 2.0, _height / 2.0);
+      _canvas.scale(_cameraZoom, _cameraZoom);
+      _canvas.translate(-_cameraCenter.x, -_cameraCenter.y);
+      _canvas.drawImage(byteWorld.canvas!, 0, 0);
+      _canvas.restore();
+
+      _canvas.save();
+      _canvas.translate(_width / 2.0, _height / 2.0);
+      _canvas.scale(_cameraZoom, _cameraZoom);
+      _canvas.translate(-_cameraCenter.x, -_cameraCenter.y);
+    } else {
+      byteWorld.drawAt(_canvas, viewPoint.x, viewPoint.y);
+      _canvas.restore();
+
+      _canvas.save();
+      _canvas.translate(-viewPoint.x, -viewPoint.y);
+    }
     for (int networkId in spriteIndex.spriteIds()) {
       MovingSprite sprite = spriteIndex[networkId] as MovingSprite;
       if (!freeze && !_network.hasNetworkProblem()) {
@@ -315,6 +321,7 @@ class WormWorld extends World {
         removeSprite(sprite.networkId!);
       }
     }
+    _drawSpawnTargetBeacon(_canvas);
     _canvas.restore();
 
     if (explosionFlash > 0) {
@@ -404,12 +411,169 @@ class WormWorld extends World {
     }
   }
 
+  double _smoothStep(double t) {
+    double c = t.clamp(0.0, 1.0);
+    return c * c * (3.0 - 2.0 * c);
+  }
+
+  void _updateCamera(double duration) {
+    if (playerSprite == null) {
+      _cameraZoom = 1.0;
+      _inDeathCamera = false;
+      _deathCameraElapsed = 0.0;
+      _cameraCenter = Vec2(viewPoint.x + halfWorld.x, viewPoint.y + halfWorld.y);
+      return;
+    }
+
+    LocalPlayerSprite player = playerSprite!;
+    bool deadAndRespawning = !player.inGame() &&
+        player.info.deaths > 0 &&
+        !network().getGameState().hasWinner() &&
+        (player.spawnIn <= LocalPlayerSprite.RESPAWN_TIME || _inDeathCamera);
+
+    if (deadAndRespawning) {
+      double authElapsed =
+          (LocalPlayerSprite.RESPAWN_TIME - player.spawnIn)
+              .clamp(0.0, LocalPlayerSprite.RESPAWN_TIME);
+      if (!_inDeathCamera || authElapsed < _deathCameraElapsed - 0.5) {
+        _inDeathCamera = true;
+        _deathCameraElapsed = authElapsed;
+      } else {
+        _deathCameraElapsed =
+            (_deathCameraElapsed + duration).clamp(0.0, LocalPlayerSprite.RESPAWN_TIME);
+        if (player.spawnIn <= LocalPlayerSprite.RESPAWN_TIME &&
+            (authElapsed - _deathCameraElapsed).abs() > 0.25) {
+          _deathCameraElapsed +=
+              (authElapsed - _deathCameraElapsed) * min(1.0, duration * 6.0);
+        }
+      }
+
+      // Compute zoom needed to reveal the entire battlefield.
+      double minZoom = 1.0;
+      if (byteWorld.worldImageSet() && byteWorld.width > 0 && byteWorld.height > 0) {
+        minZoom = min(
+          1.0,
+          min(_width / byteWorld.width, _height / byteWorld.height),
+        );
+      }
+
+      // Timeline across the 5.0s respawn:
+      // 0.00 - 0.65s: Stay zoomed in on the KO pop.
+      // 0.65 - 1.95s: Smoothly zoom out to reveal the whole battlefield.
+      // 1.95 - 2.65s: Hold full battlefield overview (new spawn picked at 2.5s).
+      // 2.65 - 4.95s: Smoothly zoom back in onto the spawn location until spawn.
+      double zoomProgress;
+      if (_deathCameraElapsed < 0.65) {
+        zoomProgress = 1.0;
+      } else if (_deathCameraElapsed < 1.95) {
+        zoomProgress = 1.0 - _smoothStep((_deathCameraElapsed - 0.65) / 1.30);
+      } else if (_deathCameraElapsed < 2.65) {
+        zoomProgress = 0.0;
+      } else {
+        zoomProgress = _smoothStep((_deathCameraElapsed - 2.65) / 2.30);
+      }
+
+      // Exponential zoom interpolation gives constant perceived zoom speed.
+      _cameraZoom = minZoom * pow(1.0 / minZoom, zoomProgress).toDouble();
+    } else {
+      _cameraZoom = 1.0;
+      _inDeathCamera = false;
+      _deathCameraElapsed = 0.0;
+    }
+
+    Vec2 focus = player.centerPoint();
+    if (_cameraZoom < 0.999) {
+      double visW = _width / _cameraZoom;
+      double visH = _height / _cameraZoom;
+      double camX;
+      if (visW >= byteWorld.width) {
+        camX = byteWorld.width / 2.0;
+      } else {
+        camX = focus.x.clamp(visW / 2.0, byteWorld.width - visW / 2.0);
+      }
+      double camY;
+      if (visH >= byteWorld.height) {
+        camY = byteWorld.height / 2.0;
+      } else {
+        camY = focus.y.clamp(visH / 2.0, byteWorld.height - visH / 2.0);
+      }
+      _cameraCenter = Vec2(camX, camY);
+      viewPoint.x = camX - visW / 2.0;
+      viewPoint.y = camY - visH / 2.0;
+    } else {
+      viewPoint.x = focus.x - halfWorld.x;
+      viewPoint.y = focus.y - halfWorld.y;
+      if (viewPoint.y > byteWorld.height - _height) {
+        viewPoint.y = byteWorld.height * 1.0 - _height;
+      }
+      if (viewPoint.x > byteWorld.width - _width) {
+        viewPoint.x = byteWorld.width * 1.0 - _width;
+      }
+      if (viewPoint.x < 0) {
+        viewPoint.x = 0.0;
+      }
+      if (viewPoint.y < 0) {
+        viewPoint.y = 0.0;
+      }
+      _cameraCenter = Vec2(viewPoint.x + halfWorld.x, viewPoint.y + halfWorld.y);
+    }
+  }
+
+  void _drawSpawnTargetBeacon(CanvasRenderingContext2D context) {
+    if (!_inDeathCamera || playerSprite == null || playerSprite!.inGame()) {
+      return;
+    }
+    // Show landing beacon once the new spawn location has been chosen (after 2.5s).
+    if (playerSprite!.spawnIn >= LocalPlayerSprite.RESPAWN_TIME / 2.0) {
+      return;
+    }
+    Vec2 target = playerSprite!.centerPoint();
+    double t = _deathCameraElapsed;
+    double pulse = (sin(t * 9.0) + 1.0) * 0.5;
+    double outerR = 24.0 + 10.0 * pulse;
+    double innerR = 12.0 + 3.0 * (1.0 - pulse);
+    double invScale = (1.0 / _cameraZoom).clamp(1.0, 2.5);
+
+    context.save();
+    context.translate(target.x, target.y);
+
+    context.strokeStyle = "rgba(255, 235, 110, ${(0.55 + 0.35 * pulse).toStringAsFixed(2)})".toJS;
+    context.lineWidth = 2.4 * invScale;
+    context.beginPath();
+    context.arc(0, 0, outerR, 0, pi * 2.0);
+    context.stroke();
+
+    context.strokeStyle = "rgba(255, 255, 255, 0.9)".toJS;
+    context.lineWidth = 1.6 * invScale;
+    context.beginPath();
+    context.arc(0, 0, innerR, 0, pi * 2.0);
+    context.stroke();
+
+    // Subtle crosshair ticks.
+    double tickInner = outerR + 3.0;
+    double tickOuter = outerR + 10.0;
+    context.beginPath();
+    context.moveTo(-tickOuter, 0);
+    context.lineTo(-tickInner, 0);
+    context.moveTo(tickInner, 0);
+    context.lineTo(tickOuter, 0);
+    context.moveTo(0, -tickOuter);
+    context.lineTo(0, -tickInner);
+    context.moveTo(0, tickInner);
+    context.lineTo(0, tickOuter);
+    context.stroke();
+
+    context.restore();
+  }
+
   bool shouldDraw(Sprite sprite){
     if(sprite.invisibleOutsideCanvas) {
+      double visW = _width / _cameraZoom;
+      double visH = _height / _cameraZoom;
       double xMin = viewPoint.x;                        //leftest x-value
-      double xMax = viewPoint.x + _width;               //rightest x-value
+      double xMax = viewPoint.x + visW;                 //rightest x-value
       double yMin = viewPoint.y;                        //highest y-value
-      double yMax = viewPoint.y + _height;              //lowest y-value
+      double yMax = viewPoint.y + visH;                 //lowest y-value
       
       double spriteX, spriteY, spriteWidth, spriteHeight;
       
@@ -526,7 +690,8 @@ class WormWorld extends World {
         LocalPlayerSprite? damagerDoer,
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
-    clearWorldArea(location, radius);
+    bool fullExplosion = addParticles || mod == Mod.HYPER || radius >= 35.0;
+    clearWorldArea(location, radius, velocity, fullExplosion);
     if (addParticles) {
       checkNotNull(velocity);
       _spawnExplosionVisuals(location, velocity == null ? Vec2.ZERO : velocity, radius);
@@ -537,6 +702,35 @@ class WormWorld extends World {
         ..byteWorldDestruction = destructionAsNetworkUpdate(
             location, velocity == null ? Vec2.ZERO : velocity, radius, damage, addParticles));
     }
+  }
+
+  /// Returns a [0.0, 1.0] scale factor for terrain debris based on current draw FPS.
+  /// Defaults to 1.0 before the first second of FPS samples has been collected.
+  double _debrisBudgetScaleFromFps() {
+    double fps = _drawFps.fps();
+    if (fps <= 0.0) {
+      return 1.0;
+    }
+    if (fps < 25.0) {
+      return 0.0;
+    }
+    if (fps < 35.0) {
+      return 0.35;
+    }
+    if (fps < 48.0) {
+      return 0.65;
+    }
+    return 1.0;
+  }
+
+  int _activeDebrisEffectCount() {
+    int count = 0;
+    for (int id in spriteIndex.spriteIds()) {
+      if (spriteIndex[id] is TerrainDebrisEffect) {
+        count++;
+      }
+    }
+    return count;
   }
 
   /**
@@ -580,7 +774,8 @@ class WormWorld extends World {
         bool fromNetwork = false,
         Mod mod = Mod.UNKNOWN}) {
     Vec2 center = sprite.centerPoint();
-    clearWorldArea(center, radius);
+    bool fullExplosion = addParticles || mod == Mod.HYPER || radius >= 35.0;
+    clearWorldArea(center, radius, velocity, fullExplosion);
     if (radius > 3 && addParticles) {
       _spawnExplosionVisuals(center, velocity, radius);
     }
@@ -596,8 +791,29 @@ class WormWorld extends World {
     }
   }
 
-  void clearWorldArea(Vec2 location, double radius) {
-    byteWorld.clearAt(location, radius);
+  void clearWorldArea(Vec2 location, double radius,
+      [Vec2? velocity, bool fullExplosion = true]) {
+    double fpsScale = _debrisBudgetScaleFromFps();
+    int maxActive = ((fullExplosion ? 18 : 7) * fpsScale).round();
+    bool canSpawnDebris =
+        radius >= 6.0 && fpsScale > 0.0 && _activeDebrisEffectCount() < maxActive;
+    int maxSamples = canSpawnDebris ? (fullExplosion ? 18 : 4) : 0;
+
+    dynamic sampled = byteWorld.clearAt(location, radius, maxColorSamples: maxSamples);
+    if (canSpawnDebris && sampled is List<String> && sampled.isNotEmpty) {
+      TerrainDebrisEffect debris = TerrainDebrisEffect(
+        this,
+        location,
+        velocity ?? Vec2.ZERO,
+        radius,
+        sampled,
+        fullExplosion: fullExplosion,
+        budgetScale: fpsScale,
+      );
+      if (!debris.remove) {
+        addSprite(debris);
+      }
+    }
   }
 
   /**

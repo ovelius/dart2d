@@ -1096,6 +1096,288 @@ class ExplosionEffect extends MovingSprite {
   }
 }
 
+class _DebrisChunk {
+  double x;
+  double y;
+  double vx;
+  double vy;
+  double angle;
+  double spin;
+  double life;
+  double maxLife;
+  int bounces;
+  String fillColor;
+  final List<double> vxOffsets;
+  final List<double> vyOffsets;
+
+  _DebrisChunk({
+    required this.x,
+    required this.y,
+    required this.vx,
+    required this.vy,
+    required this.angle,
+    required this.spin,
+    required this.maxLife,
+    required this.fillColor,
+    required this.vxOffsets,
+    required this.vyOffsets,
+  })  : life = maxLife,
+        bounces = 0;
+}
+
+class _DebrisDust {
+  double x;
+  double y;
+  double vx;
+  double vy;
+  double maxRadius;
+  String colorRgb;
+  double life;
+  double maxLife;
+
+  _DebrisDust(this.x, this.y, this.vx, this.vy, this.maxRadius, this.colorRgb, this.maxLife)
+      : life = maxLife;
+}
+
+/**
+ * Local color-sampled flying terrain debris & dust puffs spawned whenever an
+ * explosion carves solid terrain. Chunks fly outward under gravity and bounce
+ * off surviving ByteWorld terrain before settling and fading out.
+ */
+class TerrainDebrisEffect extends MovingSprite {
+  final WormWorld world;
+  double _age = 0.0;
+  double _maxDuration = 0.9;
+  final List<_DebrisChunk> _chunks = [];
+  final List<_DebrisDust> _dust = [];
+
+  TerrainDebrisEffect(
+    this.world,
+    Vec2 center,
+    Vec2 baseVelocity,
+    double blastRadius,
+    List<String> terrainColors, {
+    bool fullExplosion = true,
+    double budgetScale = 1.0,
+  }) : super(Vec2.copy(center), Vec2(1.0, 1.0), SpriteType.CUSTOM) {
+    this.networkType = NetworkType.LOCAL_ONLY;
+    this.collision = false;
+    this.invisibleOutsideCanvas = false;
+
+    double clampedScale = budgetScale.clamp(0.0, 1.0);
+    if (terrainColors.isEmpty || clampedScale <= 0.0) {
+      this.remove = true;
+      return;
+    }
+
+    Random rng = WorldDamageProjectile.random;
+    int chunkCount;
+    int dustCount;
+    if (fullExplosion) {
+      int baseChunks = (7 + (blastRadius / 6.0).round()).clamp(7, 20);
+      int baseDust = (4 + (blastRadius / 18.0).round()).clamp(4, 9);
+      chunkCount = max(1, (baseChunks * clampedScale).round());
+      dustCount = (baseDust * clampedScale).round();
+    } else {
+      // Carving weapons (Snailgun, Coffee Burn, Shotgun): keep debris very light.
+      int baseChunks = (1 + (blastRadius / 14.0).round()).clamp(1, 3);
+      chunkCount = (baseChunks * clampedScale).round();
+      dustCount = (blastRadius >= 16.0 && clampedScale >= 0.9) ? 1 : 0;
+    }
+
+    if (chunkCount <= 0 && dustCount <= 0) {
+      this.remove = true;
+      return;
+    }
+
+    for (int i = 0; i < chunkCount; i++) {
+      double angle = (2.0 * pi * i / chunkCount) + (rng.nextDouble() - 0.5) * 0.55;
+      double speed = fullExplosion
+          ? (95.0 + blastRadius * 2.4) * (0.55 + rng.nextDouble() * 0.85)
+          : (60.0 + blastRadius * 1.4) * (0.55 + rng.nextDouble() * 0.75);
+      double offsetR = blastRadius * rng.nextDouble() * 0.45;
+      double chunkSize = fullExplosion
+          ? (2.4 + (blastRadius / 28.0) + rng.nextDouble() * 2.8).clamp(2.4, 6.8)
+          : (1.8 + rng.nextDouble() * 1.8).clamp(1.8, 3.8);
+
+      // Build an irregular 5-vertex angular rock polygon.
+      const int verts = 5;
+      List<double> vxOff = [];
+      List<double> vyOff = [];
+      for (int v = 0; v < verts; v++) {
+        double va = (2.0 * pi * v / verts) + (rng.nextDouble() - 0.5) * 0.45;
+        double vr = chunkSize * (0.62 + rng.nextDouble() * 0.48);
+        vxOff.add(cos(va) * vr);
+        vyOff.add(sin(va) * vr);
+      }
+
+      double maxLife = fullExplosion
+          ? 0.72 + rng.nextDouble() * 0.58
+          : 0.38 + rng.nextDouble() * 0.28;
+      if (maxLife > _maxDuration) _maxDuration = maxLife;
+
+      _chunks.add(_DebrisChunk(
+        x: center.x + cos(angle) * offsetR,
+        y: center.y + sin(angle) * offsetR,
+        vx: cos(angle) * speed + baseVelocity.x * 0.25,
+        vy: sin(angle) * speed - (fullExplosion ? 65.0 + rng.nextDouble() * 75.0 : 35.0 + rng.nextDouble() * 35.0) + baseVelocity.y * 0.25,
+        angle: rng.nextDouble() * 2.0 * pi,
+        spin: (rng.nextBool() ? 1.0 : -1.0) * (5.0 + rng.nextDouble() * 12.0),
+        maxLife: maxLife,
+        fillColor: terrainColors[rng.nextInt(terrainColors.length)],
+        vxOffsets: vxOff,
+        vyOffsets: vyOff,
+      ));
+    }
+
+    for (int i = 0; i < dustCount; i++) {
+      double angle = (2.0 * pi * i / dustCount) + (rng.nextDouble() - 0.5) * 0.5;
+      double speed = blastRadius * (0.5 + rng.nextDouble() * 0.75) + 18.0;
+      double offsetR = blastRadius * (0.25 + rng.nextDouble() * 0.45);
+      String raw = terrainColors[rng.nextInt(terrainColors.length)];
+      String dustRgb = _extractDustRgb(raw);
+      double maxLife = fullExplosion
+          ? 0.48 + rng.nextDouble() * 0.32
+          : 0.32 + rng.nextDouble() * 0.18;
+      _dust.add(_DebrisDust(
+        center.x + cos(angle) * offsetR,
+        center.y + sin(angle) * offsetR,
+        cos(angle) * speed,
+        sin(angle) * speed - 22.0,
+        (blastRadius * 0.28 + rng.nextDouble() * 6.0).clamp(5.0, 22.0),
+        dustRgb,
+        maxLife,
+      ));
+    }
+  }
+
+  int get chunkCount => _chunks.length;
+  int get dustCount => _dust.length;
+
+  static String _extractDustRgb(String rgbStr) {
+    // Parse "rgb(r, g, b)" and blend 55% toward warm earthy dust.
+    final RegExp re = RegExp(r'(\d+)\s*,\s*(\d+)\s*,\s*(\d+)');
+    final RegExpMatch? m = re.firstMatch(rgbStr);
+    if (m == null) return "150, 138, 122";
+    int r = ((int.parse(m.group(1)!) * 0.45) + (165 * 0.55)).round().clamp(0, 255);
+    int g = ((int.parse(m.group(2)!) * 0.45) + (152 * 0.55)).round().clamp(0, 255);
+    int b = ((int.parse(m.group(3)!) * 0.45) + (135 * 0.55)).round().clamp(0, 255);
+    return "$r, $g, $b";
+  }
+
+  @override
+  frame(double dt, int frameStep, [Vec2? gravity]) {
+    _age += dt;
+    double gravY = gravity != null ? gravity.y * 1.35 : 405.0;
+    double airDrag = max(0.0, 1.0 - dt * 0.9);
+    double dustDrag = max(0.0, 1.0 - dt * 3.0);
+    ByteWorld bw = world.byteWorld;
+    bool canBounce = bw.worldImageSet();
+
+    for (_DebrisChunk c in _chunks) {
+      if (c.life <= 0) continue;
+      c.life -= dt;
+      c.vx *= airDrag;
+      c.vy = c.vy * airDrag + gravY * dt;
+
+      double nextX = c.x + c.vx * dt;
+      double nextY = c.y + c.vy * dt;
+
+      if (canBounce && c.bounces < 2 && bw.isSolid(nextX.round(), nextY.round())) {
+        bool hitY = bw.isSolid(c.x.round(), nextY.round());
+        bool hitX = bw.isSolid(nextX.round(), c.y.round());
+        if (hitY) {
+          c.vy = -c.vy * 0.42;
+          c.vx *= 0.68;
+          nextY = c.y;
+        }
+        if (hitX) {
+          c.vx = -c.vx * 0.45;
+          nextX = c.x;
+        }
+        if (!hitX && !hitY) {
+          c.vx = -c.vx * 0.42;
+          c.vy = -c.vy * 0.42;
+          nextX = c.x;
+          nextY = c.y;
+        }
+        c.spin *= -0.65;
+        c.bounces++;
+      }
+
+      c.x = nextX;
+      c.y = nextY;
+      c.angle += c.spin * dt;
+    }
+
+    for (_DebrisDust d in _dust) {
+      if (d.life <= 0) continue;
+      d.life -= dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vx *= dustDrag;
+      d.vy = d.vy * dustDrag - 12.0 * dt;
+    }
+
+    if (_age >= _maxDuration) {
+      this.remove = true;
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    if (_age >= _maxDuration) return;
+    context.save();
+
+    // 1. Terrain-tinted dust puffs billowing off the crater rim.
+    for (_DebrisDust d in _dust) {
+      if (d.life <= 0) continue;
+      double frac = (d.life / d.maxLife).clamp(0.0, 1.0);
+      double ageFrac = 1.0 - frac;
+      double r = d.maxRadius * (0.45 + 0.75 * ageFrac);
+      double alpha = (ageFrac < 0.2 ? ageFrac / 0.2 : frac / 0.8) * 0.36;
+      if (alpha <= 0.01) continue;
+      CanvasGradient grad = context.createRadialGradient(d.x, d.y, 0, d.x, d.y, r);
+      grad.addColorStop(0.0, "rgba(${d.colorRgb}, ${alpha.toStringAsFixed(2)})");
+      grad.addColorStop(1.0, "rgba(${d.colorRgb}, 0)");
+      context.fillStyle = grad;
+      context.beginPath();
+      context.arc(d.x, d.y, r, 0, pi * 2.0);
+      context.fill();
+    }
+
+    // 2. Tumbling angular rocky terrain chunks sampled from the blasted ground.
+    for (_DebrisChunk c in _chunks) {
+      if (c.life <= 0) continue;
+      double frac = (c.life / c.maxLife).clamp(0.0, 1.0);
+      double alpha = frac < 0.3 ? (frac / 0.3) : 1.0;
+      context.save();
+      context.translate(c.x, c.y);
+      context.rotate(c.angle);
+      context.globalAlpha = alpha;
+
+      context.beginPath();
+      for (int i = 0; i < c.vxOffsets.length; i++) {
+        if (i == 0) {
+          context.moveTo(c.vxOffsets[i], c.vyOffsets[i]);
+        } else {
+          context.lineTo(c.vxOffsets[i], c.vyOffsets[i]);
+        }
+      }
+      context.closePath();
+
+      context.fillStyle = c.fillColor.toJS;
+      context.fill();
+      context.strokeStyle = "rgba(20, 14, 10, 0.75)".toJS;
+      context.lineWidth = 0.9;
+      context.stroke();
+      context.restore();
+    }
+
+    context.restore();
+  }
+}
+
 class BrickBuilder extends WorldDamageProjectile {
   static const String COLOR = "#aa3311";
   static const int COLOR_R = 170;

@@ -172,6 +172,7 @@ class PlayerDeathEffect extends MovingSprite {
   late WormWorld world;
   double _age = 0.0;
   bool _playedPopSound = false;
+  bool _playedKillSound = false;
 
   double launchVx = 45.0;
   double launchVy = -245.0;
@@ -182,6 +183,9 @@ class PlayerDeathEffect extends MovingSprite {
   int seed = 1;
   bool bloodEnabled = false;
   int bloodCount = 0;
+  String killerConnectionId = "";
+
+  bool get playedKillSound => _playedKillSound;
 
   bool _burstInitialized = false;
   final List<_DeathPuff> _puffs = [];
@@ -202,6 +206,7 @@ class PlayerDeathEffect extends MovingSprite {
     LocalPlayerSprite victim, {
     required this.bloodEnabled,
     this.bloodCount = 0,
+    this.killerConnectionId = "",
   }) : super(Vec2.copy(victim.centerPoint()), Vec2(1.0, 1.0), SpriteType.CUSTOM) {
     Random rng = WorldDamageProjectile.random;
     this.collision = false;
@@ -224,6 +229,20 @@ class PlayerDeathEffect extends MovingSprite {
     this.launchVy = -235.0 - rng.nextDouble() * 45.0;
 
     _initBurst();
+    _maybePlayKillSound();
+  }
+
+  void _maybePlayKillSound() {
+    if (_playedKillSound || killerConnectionId.isEmpty) {
+      return;
+    }
+    if (killerConnectionId == world.network().peer.getId()) {
+      _playedKillSound = true;
+      world.playSound(Sound.KILL, multiPlay: true);
+      if (world.playerSprite != null) {
+        world.addSprite(KillScorePopup(world, world.playerSprite!));
+      }
+    }
   }
 
   double get age => _age;
@@ -350,7 +369,7 @@ class PlayerDeathEffect extends MovingSprite {
 
   @override
   ExtraSpriteData addExtraNetworkData() {
-    return ExtraSpriteData()
+    ExtraSpriteData data = ExtraSpriteData()
       ..extraFloat.add(_age)
       ..extraFloat.add(launchVx)
       ..extraFloat.add(launchVy)
@@ -362,6 +381,10 @@ class PlayerDeathEffect extends MovingSprite {
       ..extraInt.add(seed)
       ..extraInt.add(bloodCount)
       ..extraBool.add(bloodEnabled);
+    if (killerConnectionId.isNotEmpty) {
+      data.extraString.add(killerConnectionId);
+    }
+    return data;
   }
 
   @override
@@ -394,6 +417,10 @@ class PlayerDeathEffect extends MovingSprite {
     if (data.extraBool.isNotEmpty && bloodEnabled != data.extraBool[0]) {
       bloodEnabled = data.extraBool[0];
       needInit = true;
+    }
+    if (data.extraString.isNotEmpty) {
+      killerConnectionId = data.extraString[0];
+      _maybePlayKillSound();
     }
     if (needInit) {
       _initBurst();
@@ -903,5 +930,159 @@ class PlayerDeathEffect extends MovingSprite {
   @override
   SpriteConstructor remoteRepresentation() {
     return SpriteConstructor.PLAYER_DEATH;
+  }
+}
+
+class _ScoreSparkle {
+  final double angle;
+  final double speed;
+  final double size;
+  final double maxLife;
+
+  _ScoreSparkle(this.angle, this.speed, this.size, this.maxLife);
+}
+
+/**
+ * Satisfying elastic golden "+1" score popup with twinkling sparkles that floats
+ * next to the local player when they score a kill (spawned locally only for the killer).
+ */
+class KillScorePopup extends MovingSprite {
+  static const double DURATION = 1.35;
+  final WormWorld world;
+  final LocalPlayerSprite target;
+  double _age = 0.0;
+  late final double _offsetX;
+  late final double _offsetY;
+  final List<_ScoreSparkle> _sparkles = [];
+
+  KillScorePopup(this.world, this.target)
+      : super(Vec2.copy(target.centerPoint()), Vec2(1.0, 1.0), SpriteType.CUSTOM) {
+    this.networkType = NetworkType.LOCAL_ONLY;
+    this.collision = false;
+    this.invisibleOutsideCanvas = false;
+
+    Random rng = WorldDamageProjectile.random;
+    // Place neatly to the upper-right of the player (slight jitter prevents
+    // exact overlap on rapid multi-kills).
+    _offsetX = target.size.x * 0.58 + (rng.nextDouble() - 0.5) * 14.0;
+    _offsetY = -target.size.y * 0.35 + (rng.nextDouble() - 0.5) * 8.0;
+
+    for (int i = 0; i < 6; i++) {
+      double a = (2.0 * pi * i / 6.0) + (rng.nextDouble() - 0.5) * 0.4;
+      _sparkles.add(_ScoreSparkle(
+        a,
+        24.0 + rng.nextDouble() * 26.0,
+        3.2 + rng.nextDouble() * 2.4,
+        0.45 + rng.nextDouble() * 0.25,
+      ));
+    }
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    if (target.inGame()) {
+      Vec2 c = target.centerPoint();
+      position.x = c.x;
+      position.y = c.y;
+    }
+    if (_age >= DURATION) {
+      this.remove = true;
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    if (_age >= DURATION) return;
+
+    double progress = (_age / DURATION).clamp(0.0, 1.0);
+    double easeOut = 1.0 - pow(1.0 - progress, 3).toDouble();
+    double riseY = -44.0 * easeOut;
+
+    // Elastic spring overshoot pop-in (0.2 -> 1.38 -> 1.0 over first 0.28s).
+    double scale;
+    if (_age < 0.28) {
+      double t = _age / 0.28;
+      scale = 1.0 - exp(-9.0 * t) * cos(t * pi * 2.1) * 0.85;
+    } else {
+      scale = 1.0;
+    }
+
+    double alpha = progress > 0.72
+        ? (1.0 - (progress - 0.72) / 0.28).clamp(0.0, 1.0)
+        : 1.0;
+    double wobble = sin(_age * 16.0) * exp(-_age * 5.0) * 0.16;
+
+    double drawX = position.x + _offsetX;
+    double drawY = position.y + _offsetY + riseY;
+
+    context.save();
+    context.translate(drawX, drawY);
+    context.globalAlpha = alpha;
+
+    // 1. Warm golden flash halo on initial pop-in.
+    if (_age < 0.35) {
+      double ht = (_age / 0.35).clamp(0.0, 1.0);
+      double ha = (1.0 - ht) * 0.75;
+      double hr = 14.0 + 18.0 * (1.0 - pow(1.0 - ht, 2).toDouble());
+      context.save();
+      context.globalCompositeOperation = "lighter";
+      CanvasGradient glow = context.createRadialGradient(0, 0, 0, 0, 0, hr);
+      glow.addColorStop(0.0, "rgba(255, 245, 165, ${ha.toStringAsFixed(2)})");
+      glow.addColorStop(1.0, "rgba(255, 190, 40, 0)");
+      context.fillStyle = glow;
+      context.beginPath();
+      context.arc(0, 0, hr, 0, pi * 2.0);
+      context.fill();
+      context.restore();
+    }
+
+    // 2. Twinkling golden 4-point sparkle stars around the "+1".
+    for (_ScoreSparkle sp in _sparkles) {
+      if (_age >= sp.maxLife) continue;
+      double st = (_age / sp.maxLife).clamp(0.0, 1.0);
+      double sa = (1.0 - st) * alpha;
+      double dist = sp.speed * (1.0 - pow(1.0 - st, 2).toDouble());
+      double sx = cos(sp.angle) * dist;
+      double sy = sin(sp.angle) * dist;
+      double r = sp.size * (0.5 + 0.5 * (1.0 - st));
+      context.save();
+      context.translate(sx, sy);
+      context.globalAlpha = sa;
+      context.fillStyle = "#fff6b0".toJS;
+      context.beginPath();
+      context.moveTo(0, -r);
+      context.lineTo(r * 0.32, -r * 0.32);
+      context.lineTo(r, 0);
+      context.lineTo(r * 0.32, r * 0.32);
+      context.lineTo(0, r);
+      context.lineTo(-r * 0.32, r * 0.32);
+      context.lineTo(-r, 0);
+      context.lineTo(-r * 0.32, -r * 0.32);
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    // 3. Bold outlined metallic-gold "+1" text.
+    context.rotate(wobble);
+    context.scale(scale, scale);
+    context.font = 'bold 24px "Trebuchet MS", Arial, sans-serif';
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.lineJoin = "round";
+
+    context.strokeStyle = "#3b1c00".toJS;
+    context.lineWidth = 4.5;
+    context.strokeText("+1", 0, 0);
+
+    CanvasGradient textGrad = context.createLinearGradient(0, -12, 0, 12);
+    textGrad.addColorStop(0.0, "#fffad1");
+    textGrad.addColorStop(0.45, "#ffd93b");
+    textGrad.addColorStop(1.0, "#ff9100");
+    context.fillStyle = textGrad;
+    context.fillText("+1", 0, 0);
+
+    context.restore();
   }
 }

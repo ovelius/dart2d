@@ -187,6 +187,175 @@ void main() {
       expect(isBrickPixel(baseX + stepX + bwW - 1, baseY - 2), isTrue);
       expect(isWhiteMortar(baseX + bwW, baseY - stepY + bwH ~/ 2), isTrue); // Aligned cleanly with top-center brick's mortar!
     });
+
+    test('TestRealisticDestructionScorchesSamplesAndSpawnsDebris', () async {
+      WormWorld worldA = await createTestWorld("a");
+      worldA.startAsServer("a");
+      worldA.frameDraw();
+
+      ByteWorld bw = worldA.byteWorld;
+      bw.setWorldImage(worldA.imageIndex().imageFactory.createWithSize(300, 300));
+      while (!bw.bedrockComputed()) {
+        bw.bedrockStep();
+      }
+      // Paint solid bright green terrain across the center.
+      bw.fillRectAt(Vec2(40.0, 40.0), Vec2(220.0, 220.0), "rgb(100, 190, 80)");
+
+      // Blast a 35px crater in the middle.
+      worldA.clearWorldArea(Vec2(150.0, 150.0), 35.0, Vec2(10.0, -10.0));
+      worldA.frameDraw(0.05);
+
+      // Center of crater must be carved hollow (not solid).
+      expect(bw.isSolid(150, 150), isFalse);
+
+      // Verify a TerrainDebrisEffect was spawned with sampled terrain chunks.
+      bool hasDebris = worldA.spriteIndex
+          .spriteIds()
+          .any((id) => worldA.spriteIndex[id] is TerrainDebrisEffect);
+      expect(hasDebris, isTrue, reason: "Expected TerrainDebrisEffect on solid terrain blast");
+
+      // Verify the rim right outside the carved edge is darkened/scorched vs intact terrain.
+      var intactPx = bw.getImageDataFor(50, 50, 1, 1);
+      int intactLuma = intactPx[0] + intactPx[1] + intactPx[2];
+      bool foundScorchedRim = false;
+      for (int dx = 28; dx <= 46; dx++) {
+        if (bw.isSolid(150 + dx, 150)) {
+          var rimPx = bw.getImageDataFor(150 + dx, 150, 1, 1);
+          if (rimPx[0] + rimPx[1] + rimPx[2] < intactLuma - 30) {
+            foundScorchedRim = true;
+          }
+          break;
+        }
+      }
+      expect(foundScorchedRim, isTrue, reason: "Expected charred scorch darkening on crater rim");
+
+      // Advance past debris lifetime and verify cleanup.
+      for (int i = 0; i < 35; i++) {
+        worldA.frameDraw(0.05);
+      }
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is TerrainDebrisEffect),
+          isFalse);
+    });
+
+    test('TestDebrisScaledByExplosionTypeAndFps', () async {
+      WormWorld worldA = await createTestWorld("a");
+      worldA.startAsServer("a");
+      worldA.frameDraw();
+
+      ByteWorld bw = worldA.byteWorld;
+      bw.setWorldImage(worldA.imageIndex().imageFactory.createWithSize(400, 400));
+      while (!bw.bedrockComputed()) {
+        bw.bedrockStep();
+      }
+      bw.fillRectAt(Vec2(20.0, 20.0), Vec2(360.0, 360.0), "rgb(120, 160, 90)");
+
+      // 1. Full explosion at 60 FPS -> full debris count.
+      worldA.drawFps().setFpsForTest(60.0);
+      worldA.clearWorldArea(Vec2(100.0, 100.0), 40.0, Vec2.ZERO, true);
+      worldA.frameDraw(0.01);
+      TerrainDebrisEffect fullDebris = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<TerrainDebrisEffect>()
+          .last;
+      expect(fullDebris.chunkCount, greaterThanOrEqualTo(10));
+
+      // 2. Carving (non-exploding) hit at 60 FPS -> heavily reduced debris.
+      worldA.clearWorldArea(Vec2(220.0, 100.0), 19.0, Vec2.ZERO, false);
+      worldA.frameDraw(0.01);
+      TerrainDebrisEffect carveDebris = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<TerrainDebrisEffect>()
+          .last;
+      expect(carveDebris.chunkCount, lessThanOrEqualTo(3));
+      expect(carveDebris.chunkCount, lessThan(fullDebris.chunkCount));
+
+      // 3. Low FPS (< 25) -> skips spawning debris completely.
+      int beforeCount = worldA.spriteIndex
+          .spriteIds()
+          .where((id) => worldA.spriteIndex[id] is TerrainDebrisEffect)
+          .length;
+      worldA.drawFps().setFpsForTest(20.0);
+      worldA.clearWorldArea(Vec2(300.0, 200.0), 40.0, Vec2.ZERO, true);
+      worldA.frameDraw(0.01);
+      int afterCount = worldA.spriteIndex
+          .spriteIds()
+          .where((id) => worldA.spriteIndex[id] is TerrainDebrisEffect)
+          .length;
+      expect(afterCount, equals(beforeCount));
+
+      // 4. Mid FPS (30) -> reduced debris budget compared to 60 FPS.
+      worldA.drawFps().setFpsForTest(30.0);
+      worldA.clearWorldArea(Vec2(100.0, 260.0), 40.0, Vec2.ZERO, true);
+      worldA.frameDraw(0.01);
+      TerrainDebrisEffect lowFpsDebris = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<TerrainDebrisEffect>()
+          .last;
+      expect(lowFpsDebris.chunkCount, lessThan(fullDebris.chunkCount));
+      expect(lowFpsDebris.chunkCount, greaterThan(0));
+    });
+
+    test('TestDeathCameraZoomOutAndZoomInOnSpawn', () async {
+      WormWorld worldA = await createTestWorld("a");
+      worldA.startAsServer("a");
+      worldA.frameDraw();
+
+      // Use a battlefield larger than the viewport so zooming out reveals the whole map.
+      ByteWorld bw = worldA.byteWorld;
+      int mapW = (worldA.width() * 2).toInt();
+      int mapH = (worldA.height() * 2).toInt();
+      bw.setWorldImage(worldA.imageIndex().imageFactory.createWithSize(mapW, mapH));
+      while (!bw.bedrockComputed()) {
+        bw.bedrockStep();
+      }
+      double expectedMinZoom = 0.5;
+
+      LocalPlayerSprite player = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      // Finish initial 1.0s match-join spawn so player is alive in game first.
+      for (int i = 0; i < 12; i++) {
+        worldA.frameDraw(0.1);
+      }
+      expect(player.inGame(), isTrue);
+      expect(worldA.cameraZoom, closeTo(1.0, 0.001));
+
+      // Kill the player.
+      player.takeDamage(LocalPlayerSprite.MAX_HEALTH + 10, player, Mod.ZOOKA);
+      expect(player.inGame(), isFalse);
+
+      // Early in death (0.3s): stay zoomed in to watch the KO pop.
+      for (int i = 0; i < 15; i++) {
+        worldA.frameDraw(0.02);
+      }
+      expect(worldA.cameraZoom, closeTo(1.0, 0.01));
+
+      // Mid-death (~2.2s elapsed): zoomed all the way out to reveal the entire battlefield.
+      for (int i = 0; i < 95; i++) {
+        worldA.frameDraw(0.02);
+      }
+      expect(worldA.cameraZoom, closeTo(expectedMinZoom, 0.02));
+
+      // Sprites at far corners of the battlefield should be drawn while zoomed out.
+      _TestSprite farSprite = _TestSprite.withVecPosition(Vec2(mapW - 10.0, mapH - 10.0));
+      expect(worldA.shouldDraw(farSprite), isTrue);
+
+      // Zoom-in phase (~3.8s elapsed): camera is zooming back in toward the new spawn point.
+      for (int i = 0; i < 80; i++) {
+        worldA.frameDraw(0.02);
+      }
+      expect(worldA.cameraZoom, greaterThan(expectedMinZoom + 0.1));
+      expect(worldA.cameraZoom, lessThan(1.0));
+
+      // Complete respawn (~5.1s elapsed): player is back in game at full 1.0 zoom.
+      for (int i = 0; i < 70; i++) {
+        worldA.frameDraw(0.02);
+      }
+      expect(player.inGame(), isTrue);
+      expect(worldA.cameraZoom, closeTo(1.0, 0.001));
+    });
   });
 }
 

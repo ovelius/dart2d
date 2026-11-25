@@ -36,7 +36,8 @@ enum Sound {
   BLUBB("blubb.ogg"),
   // This is a version of the powerup sound from
   // https://freesound.org/people/AbbasGamez/
-  JUMP("jump.mp3");
+  JUMP("jump.mp3"),
+  KILL("kill.wav");
 
   const Sound(this.url);
 

@@ -552,6 +552,19 @@ void main() {
       expect(deathB.bloodEnabled, isFalse);
       expect(deathB.seed, equals(deathA.seed));
       expect(deathB.playerImageId, equals(playerB.imageId));
+      // Player A killed Player B -> kill chime & "+1" popup play ONLY for killer A, NOT victim B.
+      expect(deathA.killerConnectionId, equals('a'));
+      expect(deathB.killerConnectionId, equals('a'));
+      expect(deathA.playedKillSound, isTrue, reason: "Killer should hear the kill chime");
+      expect(deathB.playedKillSound, isFalse, reason: "Victim must not hear the kill chime");
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is KillScorePopup),
+          isTrue,
+          reason: "Killer A should see the +1 score popup");
+      expect(
+          worldB.spriteIndex.spriteIds().any((id) => worldB.spriteIndex[id] is KillScorePopup),
+          isFalse,
+          reason: "Victim B must not see the +1 score popup");
 
       // Advance past full death animation duration and verify cleanup on both peers.
       for (int i = 0; i < 70; i++) {
@@ -560,6 +573,40 @@ void main() {
       }
       expect(worldA.spriteIndex.hasSprite(deathA.networkId!), isFalse);
       expect(worldB.spriteIndex.hasSprite(deathB.networkId!), isFalse);
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is KillScorePopup),
+          isFalse);
+
+      // Now client B kills commander A -> kill chime & "+1" popup must trigger ONLY on client B!
+      playerA.takeDamage(LocalPlayerSprite.MAX_HEALTH + 10, playerB, Mod.ZOOKA);
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      PlayerDeathEffect? death2A;
+      for (int id in worldA.spriteIndex.spriteIds()) {
+        if (worldA.spriteIndex[id] is PlayerDeathEffect) {
+          death2A = worldA.spriteIndex[id] as PlayerDeathEffect;
+        }
+      }
+      PlayerDeathEffect? death2B;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is PlayerDeathEffect) {
+          death2B = worldB.spriteIndex[id] as PlayerDeathEffect;
+        }
+      }
+      expect(death2A, isNotNull);
+      expect(death2B, isNotNull);
+      expect(death2A!.playedKillSound, isFalse, reason: "Commander victim must not hear kill chime");
+      expect(death2B!.playedKillSound, isTrue, reason: "Remote killer B must hear kill chime");
+      expect(
+          worldA.spriteIndex.spriteIds().any((id) => worldA.spriteIndex[id] is KillScorePopup),
+          isFalse,
+          reason: "Victim A must not see +1 popup");
+      expect(
+          worldB.spriteIndex.spriteIds().any((id) => worldB.spriteIndex[id] is KillScorePopup),
+          isTrue,
+          reason: "Remote killer B should see +1 popup");
     });
 
     test('BananaPancake_ExplodesIntoBananasAndTransfersOverNetwork', () async {
@@ -577,6 +624,8 @@ void main() {
 
       LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       BananaCake pancakeA = BananaCake.createWithOwner(worldA, playerA, 50, playerA.gun);
+      pancakeA.position = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      pancakeA.velocity = Vec2.ZERO;
       pancakeA.explodeAfter = 4.0;
       pancakeA.radius = 50.0;
       pancakeA.collision = false;
@@ -596,13 +645,15 @@ void main() {
       expect(pancakeB, isNotNull, reason: "Expected BananaCake to transfer to client");
       expect(pancakeB!.spriteType, equals(SpriteType.CUSTOM));
 
-      // Explode the pancake and verify glossy BananaClusterProjectiles spread and transfer.
+      // Explode the pancake in-bounds and verify BananaClusterProjectiles spread and transfer.
+      pancakeA.position = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      pancakeA.velocity = Vec2.ZERO;
       pancakeA.explode();
       expect(pancakeA.remove, isTrue);
 
       for (int i = 0; i < 3; i++) {
-        worldA.frameDraw(0.05);
-        worldB.frameDraw(0.05);
+        worldA.frameDraw(0.004);
+        worldB.frameDraw(0.004);
       }
 
       int bananasA = worldA.spriteIndex

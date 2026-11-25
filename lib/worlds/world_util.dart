@@ -158,19 +158,24 @@ void drawKilledView(CanvasRenderingContext2D context,
   if (player.inGame()) {
     return;
   }
-  // Let the killed player enjoy the first second of their death animation unobstructed
-  // before smoothly fading in the scoreboard overlay.
+  // Let the killed player watch the KO pop unobstructed, show a light overlay
+  // while zoomed out over the battlefield, then fade clear as the camera zooms
+  // into the new spawn location.
   double overlayAlpha = 1.0;
+  double backdropAlpha = 0.7;
   if (player.spawnIn <= LocalPlayerSprite.RESPAWN_TIME) {
     double deadElapsed = LocalPlayerSprite.RESPAWN_TIME - player.spawnIn;
-    if (deadElapsed < 1.0) {
+    if (deadElapsed < 1.0 || deadElapsed > 4.5) {
       return;
     }
-    overlayAlpha = ((deadElapsed - 1.0) / 0.8).clamp(0.0, 1.0);
+    double fadeIn = ((deadElapsed - 1.0) / 0.6).clamp(0.0, 1.0);
+    double fadeOut = ((4.5 - deadElapsed) / 0.9).clamp(0.0, 1.0);
+    overlayAlpha = min(fadeIn, fadeOut);
+    backdropAlpha = 0.32;
   }
   context.save();
   context.globalAlpha = overlayAlpha;
-  context.fillStyle = "rgb(0, 0, 0, 0.7)".toJS;
+  context.fillStyle = "rgb(0, 0, 0, ${backdropAlpha.toStringAsFixed(2)})".toJS;
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   PlayerInfoProto? killer = player.killer;

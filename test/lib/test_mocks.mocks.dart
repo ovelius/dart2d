@@ -1216,10 +1216,15 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
       );
 
   @override
-  dynamic clearAt(_i8.Vec2? pos, double? radius) => super.noSuchMethod(
-    Invocation.method(#clearAt, [pos, radius]),
-    returnValueForMissingStub: null,
-  );
+  dynamic clearAt(_i8.Vec2? pos, double? radius, {int? maxColorSamples = 18}) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #clearAt,
+          [pos, radius],
+          {#maxColorSamples: maxColorSamples},
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   _i8.Vec2 randomNotSolidPoint(_i8.Vec2? sizeOffset) =>
@@ -1726,6 +1731,15 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
           as _i11.PacketListenerBindings);
 
   @override
+  double get cameraZoom =>
+      (super.noSuchMethod(
+            Invocation.getter(#cameraZoom),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
+
+  @override
   bool get isCommander =>
       (super.noSuchMethod(
             Invocation.getter(#isCommander),
@@ -2027,8 +2041,18 @@ class MockWormWorld extends _i1.Mock implements _i4.WormWorld {
   );
 
   @override
-  void clearWorldArea(_i8.Vec2? location, double? radius) => super.noSuchMethod(
-    Invocation.method(#clearWorldArea, [location, radius]),
+  void clearWorldArea(
+    _i8.Vec2? location,
+    double? radius, [
+    _i8.Vec2? velocity,
+    bool? fullExplosion = true,
+  ]) => super.noSuchMethod(
+    Invocation.method(#clearWorldArea, [
+      location,
+      radius,
+      velocity,
+      fullExplosion,
+    ]),
     returnValueForMissingStub: null,
   );
 

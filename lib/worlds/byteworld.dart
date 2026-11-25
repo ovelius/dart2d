@@ -232,59 +232,190 @@ class ByteWorld {
     }
   }
 
+  void _traceCraterPolygon(CanvasRenderingContext2D ctx, double cx, double cy,
+      List<double> radii, double scale) {
+    ctx.beginPath();
+    int count = radii.length;
+    for (int i = 0; i < count; i++) {
+      double theta = (2.0 * pi * i) / count;
+      double r = radii[i] * scale;
+      double px = cx + cos(theta) * r;
+      double py = cy + sin(theta) * r;
+      if (i == 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.closePath();
+  }
+
   /**
    * Destroy part of the world. From an explosion perhaps?
+   * Carves a deterministic jagged crater with a charred scorch rim (via
+   * `source-atop` so only solid terrain is tinted) and returns up to
+   * [maxColorSamples] sampled RGB colors from the destroyed terrain pixels
+   * for spawning debris chunks (pass 0 to skip color sampling when FPS-limited).
    */
-  clearAt(Vec2 pos, double radius) {
+  clearAt(Vec2 pos, double radius, {int maxColorSamples = 18}) {
     if (radius <= 0) {
-      return;
+      return <String>[];
     }
-    int x1 = max(0, (pos.x - radius).toInt());
-    int y1 = max(0, (pos.y - radius).toInt());
-    int x2 = min(_width, (pos.x + radius).ceil());
-    int y2 = min(_height, (pos.y + radius).ceil());
+    bool useJaggedCrater = radius >= 6.0;
+    double maxCraterR = useJaggedCrater ? radius * 1.14 : radius;
+    double scorchPad = useJaggedCrater ? (radius * 0.24).clamp(4.0, 12.0) : 0.0;
+    double samplePad = maxCraterR + 2.0;
+
+    int x1 = max(0, (pos.x - samplePad).floor());
+    int y1 = max(0, (pos.y - samplePad).floor());
+    int x2 = min(_width, (pos.x + samplePad).ceil());
+    int y2 = min(_height, (pos.y + samplePad).ceil());
     if (x2 <= x1 || y2 <= y1) {
-      return;
+      return <String>[];
     }
 
-    Point<int> restoreRect = Vec2.createIntPoint(pos.x - radius - 1, pos.y - radius - 1);
-    int restoreSize =  (radius * 2 + 2).toInt();
-    canvas!.context2D
-        ..save()
-        ..beginPath()
-        ..arc(pos.x, pos.y, radius, 0, 2 * pi, false)
-        ..clip()
-        ..clearRect(restoreRect.x, restoreRect.y, restoreSize, restoreSize)
-        ..restore();
-    // Re-apply any destroyed bedrock. It can't be destroyed :)
-    canvas!.context2D.drawImage(_bedrockImage, 0, 0);
+    int boxW = x2 - x1;
+    int boxH = y2 - y1;
+    CanvasRenderingContext2D ctx = canvas!.context2D;
 
-    // Update collision buffer.
-    double rSquared = radius * radius;
+    // Deterministic seed from impact coordinates & radius so every peer carves
+    // the exact same crater shape and scorch marks with zero extra network data.
+    int seed = ((pos.x.round() * 73856093) ^
+            (pos.y.round() * 19349663) ^
+            (radius.round() * 83492791)) &
+        0x7fffffff;
+    Random rng = Random(seed);
 
-    for (int y = y1; y < y2; y++) {
-      for (int x = x1; x < x2; x++) {
-        double dx = x - pos.x;
-        double dy = y - pos.y;
-        if (dx * dx + dy * dy <= rSquared) {
-          _collisionBuffer[y * _width + x] = 0;
+    // 1. Sample actual terrain pixel colors inside the blast before erasing
+    // (skipped when maxColorSamples <= 0 to save GPU->CPU readback at low FPS).
+    List<String> sampledColors = <String>[];
+    bool hadSolidTerrain = false;
+    if (radius >= 5.0 && maxColorSamples > 0) {
+      Uint8ClampedList beforeData = ctx.getImageData(x1, y1, boxW, boxH).data.toDart;
+      int targetSamples = min(maxColorSamples, (6 + (radius / 5.0).round()).clamp(6, 18));
+      int attempts = targetSamples * 6;
+      for (int i = 0; i < attempts && sampledColors.length < targetSamples; i++) {
+        double a = rng.nextDouble() * 2.0 * pi;
+        double d = sqrt(rng.nextDouble()) * radius * 0.92;
+        int sx = (pos.x + cos(a) * d).round() - x1;
+        int sy = (pos.y + sin(a) * d).round() - y1;
+        if (sx < 0 || sy < 0 || sx >= boxW || sy >= boxH) continue;
+        int idx = (sy * boxW + sx) * 4;
+        if (beforeData[idx + 3] > 140) {
+          hadSolidTerrain = true;
+          int r = beforeData[idx];
+          int g = beforeData[idx + 1];
+          int b = beforeData[idx + 2];
+          // Prefer non-charred colors when available so repeated blasts still
+          // show recognizable dirt/rock/brick hues.
+          if (r + g + b > 55 || sampledColors.isEmpty && i > attempts ~/ 2) {
+            sampledColors.add("rgb($r, $g, $b)");
+          }
+        }
+      }
+      if (!hadSolidTerrain) {
+        // Fallback quick grid scan so thin ledges still register as solid terrain.
+        int step = max(1, (radius / 4).round());
+        for (int ly = 0; ly < boxH && !hadSolidTerrain; ly += step) {
+          for (int lx = 0; lx < boxW; lx += step) {
+            int idx = (ly * boxW + lx) * 4;
+            if (beforeData[idx + 3] > 140) {
+              hadSolidTerrain = true;
+              sampledColors.add(
+                  "rgb(${beforeData[idx]}, ${beforeData[idx + 1]}, ${beforeData[idx + 2]})");
+              break;
+            }
+          }
         }
       }
     }
 
-    // Re-sync bedrock pixels to collision buffer.
-    // This is a bit slow but necessary to keep buffer accurate.
-    // Optimization: only re-sync the affected area.
-    Uint8ClampedList data = canvas!.context2D.getImageData(x1, y1, x2 - x1, y2 - y1).data.toDart;
-    for (int y = 0; y < (y2 - y1); y++) {
-      for (int x = 0; x < (x2 - x1); x++) {
-        int bufferIdx = (y1 + y) * _width + (x1 + x);
-        int dataIdx = (y * (x2 - x1) + x) * 4 + 3;
-        if (data[dataIdx] > 0) {
-          _collisionBuffer[bufferIdx] = 1;
-        }
+    // Build deterministic organic rocky crater radii.
+    List<double>? craterRadii;
+    if (useJaggedCrater) {
+      int segments = (18 + (radius * 0.45).round()).clamp(18, 44);
+      double p1 = rng.nextDouble() * 2.0 * pi;
+      double p2 = rng.nextDouble() * 2.0 * pi;
+      double p3 = rng.nextDouble() * 2.0 * pi;
+      craterRadii = List<double>.generate(segments, (int i) {
+        double theta = (2.0 * pi * i) / segments;
+        double wave = 0.065 * sin(3.0 * theta + p1) +
+            0.045 * sin(7.0 * theta + p2) +
+            0.030 * sin(13.0 * theta + p3) +
+            (rng.nextDouble() - 0.5) * 0.07;
+        return radius * (0.96 + wave).clamp(0.84, 1.12);
+      });
+    }
+
+    // 2. Paint charred soot halo & scorched inner rim onto existing terrain only.
+    // (`source-atop` is a no-op on transparent sky pixels, so it stays safe even
+    // when color sampling was skipped at low FPS.)
+    if (useJaggedCrater && (hadSolidTerrain || maxColorSamples <= 0) && craterRadii != null) {
+      ctx.save();
+      ctx.globalCompositeOperation = "source-atop";
+
+      double outerScorchR = radius + scorchPad;
+      CanvasGradient sootGrad = ctx.createRadialGradient(
+          pos.x, pos.y, radius * 0.78, pos.x, pos.y, outerScorchR);
+      sootGrad.addColorStop(0.0, "rgba(18, 12, 8, 0.62)");
+      sootGrad.addColorStop(0.55, "rgba(28, 19, 13, 0.36)");
+      sootGrad.addColorStop(1.0, "rgba(32, 22, 16, 0)");
+      ctx.fillStyle = sootGrad;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, outerScorchR, 0, 2.0 * pi);
+      ctx.fill();
+
+      // Crisp dark charred rim hugging the carved rock fracture edge.
+      ctx.lineJoin = "round";
+      _traceCraterPolygon(ctx, pos.x, pos.y, craterRadii, 1.0);
+      ctx.strokeStyle = "rgba(16, 11, 8, 0.72)".toJS;
+      ctx.lineWidth = (radius * 0.14).clamp(3.0, 8.0);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(72, 54, 42, 0.42)".toJS;
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // 3. Carve the jagged (or smooth tiny) crater hole.
+    ctx.save();
+    if (craterRadii != null) {
+      _traceCraterPolygon(ctx, pos.x, pos.y, craterRadii, 1.0);
+    } else {
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, radius, 0, 2 * pi, false);
+    }
+    ctx.clip();
+    ctx.clearRect(x1, y1, boxW, boxH);
+    ctx.restore();
+
+    // 4. Re-apply any destroyed or scorched bedrock inside the blast+scorch rect.
+    int bx1 = max(0, (pos.x - (radius + scorchPad + 2.0)).floor());
+    int by1 = max(0, (pos.y - (radius + scorchPad + 2.0)).floor());
+    int bx2 = min(_width, (pos.x + (radius + scorchPad + 2.0)).ceil());
+    int by2 = min(_height, (pos.y + (radius + scorchPad + 2.0)).ceil());
+    int bW = bx2 - bx1;
+    int bH = by2 - by1;
+    if (bW > 0 && bH > 0 && _bedrockImage.width >= bx2 && _bedrockImage.height >= by2) {
+      ctx.drawImage(_bedrockImage, bx1, by1, bW, bH, bx1, by1, bW, bH);
+    } else {
+      ctx.drawImage(_bedrockImage, 0, 0);
+    }
+
+    // 5. Sync collision buffer pixel-for-pixel with the carved canvas & bedrock.
+    Uint8ClampedList afterData = ctx.getImageData(x1, y1, boxW, boxH).data.toDart;
+    for (int y = 0; y < boxH; y++) {
+      int rowOffset = (y1 + y) * _width + x1;
+      int dataRowOffset = y * boxW * 4;
+      for (int x = 0; x < boxW; x++) {
+        _collisionBuffer[rowOffset + x] =
+            afterData[dataRowOffset + x * 4 + 3] > 0 ? 1 : 0;
       }
     }
+
+    return sampledColors;
   }
 
   Vec2 randomNotSolidPoint(Vec2 sizeOffset) {
