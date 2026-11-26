@@ -497,6 +497,743 @@ class BananaClusterProjectile extends WorldDamageProjectile {
   }
 }
 
+/// Upgraded cartoon Cat Litter Box projectile with 3 animated cats peeking and
+/// squirming inside a glossy turquoise litter tray. When the fuse expires it
+/// detonates AND launches panicked cartoon cats that jump out and sprint across
+/// the world until they hit a wall or explode 2 seconds later.
+class CatLitterBox extends WorldDamageProjectile {
+  static const int CAT_COUNT = 4;
+  double _age = 0.0;
+  double _bounceSquash = 0.0;
+  double _prevVelX = 0.0;
+  double _prevVelY = 0.0;
+  bool _hasPrevVel = false;
+
+  CatLitterBox(
+      WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, imageId, imageIndex) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(46.0, 36.0);
+    this.mod = Mod.LITTER;
+    this.bounche = 0.4;
+    this.angle = 0.0;
+  }
+
+  CatLitterBox.createWithOwner(WormWorld world, LocalPlayerSprite owner,
+      int damage, MovingSprite positionBase)
+      : super(
+            world,
+            0.0,
+            0.0,
+            world.imageIndex().getImageIdByName("box.png"),
+            world.imageIndex()) {
+    this.world = world;
+    this.owner = owner;
+    this.damage = damage;
+    this.mod = Mod.LITTER;
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(46.0, 36.0);
+    this.radius = 150.0;
+    this.explodeAfter = 5.0;
+    this.bounche = 0.4;
+    this.angle = 0.0;
+
+    double ownerSize = owner.size.sum() / 2;
+    Vec2 ownerCenter = owner.centerPoint();
+    this.setCenter(Vec2(
+      ownerCenter.x + cos(positionBase.angle) * ownerSize * 0.7,
+      ownerCenter.y + sin(positionBase.angle) * ownerSize * 0.7,
+    ));
+    this.velocity.x = cos(positionBase.angle) * 100.0 + positionBase.velocity.x;
+    this.velocity.y = sin(positionBase.angle) * 100.0 + positionBase.velocity.y;
+  }
+
+  @override
+  handleWorldCollide(ByteWorld world, int direction) {
+    super.handleWorldCollide(world, direction);
+    _bounceSquash = 1.0;
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    super.frame(duration, frameStep, gravity);
+
+    if (_hasPrevVel &&
+        ((_prevVelX * velocity.x < -40.0) || (_prevVelY * velocity.y < -40.0))) {
+      _bounceSquash = 1.0;
+    }
+    _prevVelX = velocity.x;
+    _prevVelY = velocity.y;
+    _hasPrevVel = true;
+
+    if (_bounceSquash > 0.0) {
+      _bounceSquash = max(0.0, _bounceSquash - duration * 6.5);
+    }
+  }
+
+  void _drawPeekingCat(
+    CanvasRenderingContext2D ctx, {
+    required double x,
+    required double y,
+    required double scale,
+    required String furColor,
+    required String stripeColor,
+    required String eyeColor,
+    required String bellyColor,
+    required double bobOffset,
+    bool showPaws = false,
+    bool wideEyes = false,
+  }) {
+    ctx.save();
+    ctx.translate(x, y + bobOffset);
+    ctx.scale(scale, scale);
+
+    // Pointy cartoon ears with pink inner triangles.
+    ctx.fillStyle = furColor.toJS;
+    ctx.strokeStyle = "#1c1f29".toJS;
+    ctx.lineWidth = 1.6;
+    for (final double side in const [-1.0, 1.0]) {
+      ctx.beginPath();
+      ctx.moveTo(side * 2.5, -5.5);
+      ctx.lineTo(side * 6.8, -11.5);
+      ctx.lineTo(side * 7.8, -3.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ff9eb8".toJS;
+      ctx.beginPath();
+      ctx.moveTo(side * 3.8, -5.8);
+      ctx.lineTo(side * 6.3, -9.6);
+      ctx.lineTo(side * 6.9, -4.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = furColor.toJS;
+    }
+
+    // Plump cat head + shoulders peeking out of litter.
+    ctx.fillStyle = furColor.toJS;
+    ctx.beginPath();
+    ctx.ellipse(0, -1.5, 8.2, 6.8, 0, 0, pi * 2.0);
+    ctx.fill();
+    ctx.stroke();
+
+    // Coat markings (stripes or tuxedo muzzle/chest).
+    ctx.fillStyle = stripeColor.toJS;
+    ctx.fillRect(-1.0, -7.8, 2.0, 3.2);
+    ctx.fillRect(-4.2, -7.0, 1.6, 2.6);
+    ctx.fillRect(2.6, -7.0, 1.6, 2.6);
+
+    // Light muzzle patch.
+    ctx.fillStyle = bellyColor.toJS;
+    ctx.beginPath();
+    ctx.ellipse(0, 1.4, 4.4, 2.7, 0, 0, pi * 2.0);
+    ctx.fill();
+
+    // Big expressive cartoon eyes!
+    final double eyeR = wideEyes ? 2.4 : 2.0;
+    for (final double ex in const [-3.1, 3.1]) {
+      ctx.fillStyle = eyeColor.toJS;
+      ctx.beginPath();
+      ctx.arc(ex, -2.0, eyeR, 0, pi * 2.0);
+      ctx.fill();
+      ctx.fillStyle = "#12151f".toJS;
+      ctx.beginPath();
+      ctx.arc(ex, -2.0, eyeR * 0.56, 0, pi * 2.0);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff".toJS;
+      ctx.beginPath();
+      ctx.arc(ex - 0.6, -2.6, 0.7, 0, pi * 2.0);
+      ctx.fill();
+    }
+
+    // Cute pink triangle nose + whiskers!
+    ctx.fillStyle = "#ff789e".toJS;
+    ctx.beginPath();
+    ctx.moveTo(-1.3, 0.0);
+    ctx.lineTo(1.3, 0.0);
+    ctx.lineTo(0.0, 1.4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "#1c1f29".toJS;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(-4.8, 0.6);
+    ctx.lineTo(-9.2, 0.0);
+    ctx.moveTo(-4.8, 1.8);
+    ctx.lineTo(-9.0, 2.5);
+    ctx.moveTo(4.8, 0.6);
+    ctx.lineTo(9.2, 0.0);
+    ctx.moveTo(4.8, 1.8);
+    ctx.lineTo(9.0, 2.5);
+    ctx.stroke();
+
+    // Little paws gripping the rim of the litter box!
+    if (showPaws) {
+      ctx.fillStyle = bellyColor.toJS;
+      ctx.strokeStyle = "#1c1f29".toJS;
+      ctx.lineWidth = 1.3;
+      for (final double px in const [-5.2, 5.2]) {
+        ctx.beginPath();
+        ctx.ellipse(px, 5.4, 2.8, 2.0, 0, 0, pi * 2.0);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 center = centerPoint();
+    final double urgency =
+        explodeAfter != null ? ((1.8 - explodeAfter!) / 1.8).clamp(0.0, 1.0) : 0.0;
+
+    context.save();
+
+    // Crisp cartoon countdown timer above the box.
+    if (explodeAfter != null && showCounter) {
+      context.fillStyle = (urgency > 0.5 ? "#ffec66" : "#ffffff").toJS;
+      context.strokeStyle = "#19222e".toJS;
+      context.lineWidth = 3.0;
+      context.font = "bold 12px Arial";
+      final String txt = max(0, explodeAfter!.ceil()).toString();
+      context.strokeText(txt, center.x - 4, position.y - 12);
+      context.fillText(txt, center.x - 4, position.y - 12);
+    }
+
+    context.translate(center.x, center.y + 3.0);
+
+    // Excited rumble & squash as the cats prepare to burst out!
+    final double wobble =
+        sin(_age * (9.0 + 26.0 * urgency)) * (0.04 + 0.14 * urgency);
+    context.rotate(wobble);
+
+    double sx = 1.0;
+    double sy = 1.0;
+    if (_bounceSquash > 0.01) {
+      final double wave = sin(_bounceSquash * pi);
+      sx += 0.20 * wave;
+      sy -= 0.16 * wave;
+    }
+    if (urgency > 0.0) {
+      final double pulse = sin(_age * (16.0 + 24.0 * urgency)) * 0.07 * urgency;
+      sx += pulse;
+      sy -= pulse * 0.7;
+    }
+    context.scale(sx, sy);
+
+    final double hw = size.x * 0.50; // ~23px
+
+    // 1. Back rim of the glossy turquoise litter tray.
+    context.fillStyle = "#1c8eb8".toJS;
+    context.strokeStyle = "#16212e".toJS;
+    context.lineWidth = 2.4;
+    context.beginPath();
+    context.moveTo(-hw + 3, -6);
+    context.lineTo(hw - 3, -6);
+    context.lineTo(hw + 1, 2);
+    context.lineTo(-hw - 1, 2);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // 2. Sandy granular cat litter mound inside the tray!
+    final CanvasGradient litterGrad = context.createLinearGradient(0, -10, 0, 4);
+    litterGrad.addColorStop(0.0, "#e6dec8");
+    litterGrad.addColorStop(1.0, "#b8ae95");
+    context.fillStyle = litterGrad;
+    context.beginPath();
+    context.moveTo(-hw + 4, 1);
+    context.quadraticCurveTo(-hw * 0.45, -10, 0, -6);
+    context.quadraticCurveTo(hw * 0.45, -11, hw - 4, 1);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // Little pink plastic litter scoop handle sticking out of right corner!
+    context.save();
+    context.translate(hw - 7, -5);
+    context.rotate(0.45);
+    context.fillStyle = "#ff7ab3".toJS;
+    context.strokeStyle = "#4f1730".toJS;
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.roundRect(-2.2, -10.5, 4.4, 11.0, 2.0.toJS);
+    context.fill();
+    context.stroke();
+    context.restore();
+
+    // 3. THREE ACTUAL CARTOON CATS SQUIRMING INSIDE THE BOX!
+    final double fast = 6.0 + 14.0 * urgency;
+    // Left cat: Orange Tabby!
+    _drawPeekingCat(
+      context,
+      x: -11.5,
+      y: -5.5,
+      scale: 0.88,
+      furColor: "#ff9e3b",
+      stripeColor: "#c45a12",
+      eyeColor: "#9ef562",
+      bellyColor: "#fff0d1",
+      bobOffset: sin(_age * fast) * (1.4 + urgency * 2.0),
+      wideEyes: urgency > 0.45,
+    );
+    // Right cat: Calico cream & cocoa!
+    _drawPeekingCat(
+      context,
+      x: 11.2,
+      y: -5.2,
+      scale: 0.86,
+      furColor: "#fff3db",
+      stripeColor: "#8c4e24",
+      eyeColor: "#6be8ff",
+      bellyColor: "#ffffff",
+      bobOffset: sin(_age * fast + 2.1) * (1.4 + urgency * 2.0),
+      wideEyes: urgency > 0.45,
+    );
+    // Center hero cat: Tuxedo black & white gripping the front rim!
+    _drawPeekingCat(
+      context,
+      x: 0.0,
+      y: -7.5,
+      scale: 0.96,
+      furColor: "#33394a",
+      stripeColor: "#1b1f2b",
+      eyeColor: "#ffe44d",
+      bellyColor: "#ffffff",
+      bobOffset: sin(_age * fast + 4.2) * (1.6 + urgency * 2.2),
+      showPaws: true,
+      wideEyes: urgency > 0.35,
+    );
+
+    // 4. Chunky glossy turquoise front wall of the litter box (drawn in front of cats' bellies!).
+    final CanvasGradient trayGrad = context.createLinearGradient(0, -1, 0, 14);
+    trayGrad.addColorStop(0.0, "#4ce0ff");
+    trayGrad.addColorStop(0.55, "#1db4e6");
+    trayGrad.addColorStop(1.0, "#107fa8");
+    context.fillStyle = trayGrad;
+    context.strokeStyle = "#16212e".toJS;
+    context.lineWidth = 2.4;
+    context.beginPath();
+    context.moveTo(-hw, 0);
+    context.lineTo(hw, 0);
+    context.lineTo(hw - 3, 13.5);
+    context.lineTo(-hw + 3, 13.5);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // Raised rounded top lip along front edge!
+    context.fillStyle = "#7ef0ff".toJS;
+    context.beginPath();
+    context.roundRect(-hw - 1.5, -2.5, (hw + 1.5) * 2.0, 4.4, 2.2.toJS);
+    context.fill();
+    context.stroke();
+
+    // Cute cartoon paw-print emblem stamped on the front of the box!
+    context.fillStyle = "#ffffff".toJS;
+    context.beginPath();
+    context.arc(0, 8.2, 2.6, 0, pi * 2.0);
+    context.arc(-3.2, 5.4, 1.2, 0, pi * 2.0);
+    context.arc(0.0, 4.5, 1.2, 0, pi * 2.0);
+    context.arc(3.2, 5.4, 1.2, 0, pi * 2.0);
+    context.fill();
+
+    // 5. Gentle comic stink/excitement squiggles rising above the box!
+    context.strokeStyle =
+        "rgba(154, 240, 112, ${(0.55 + 0.35 * urgency).toStringAsFixed(2)})".toJS;
+    context.lineWidth = 1.6;
+    context.lineCap = "round";
+    for (int i = -1; i <= 1; i++) {
+      final double wx = i * 9.5;
+      final double phase = _age * 4.2 + i * 1.4;
+      final double rise = (phase % 1.0) * 7.0;
+      context.beginPath();
+      context.moveTo(wx, -16 - rise);
+      context.quadraticCurveTo(
+          wx + sin(phase * 3.0) * 3.0, -20 - rise, wx, -24 - rise);
+      context.stroke();
+    }
+
+    context.restore();
+
+    if (debug) {
+      super.draw(context, true);
+    }
+  }
+
+  @override
+  explode() {
+    if (remove) return;
+    world.explosionAtSprite(
+        sprite: this,
+        velocity: velocity.multiply(0.2),
+        addParticles: particlesOnExplode,
+        damage: damage,
+        radius: radius,
+        damageDoer: owner!,
+        mod: Mod.LITTER);
+
+    final Random rng = WorldDamageProjectile.random;
+    final Vec2 origin = centerPoint();
+    for (int i = 0; i < CAT_COUNT; i++) {
+      final double dir = i.isEven ? -1.0 : 1.0;
+      final double jumpSpeedX = dir * (155.0 + rng.nextDouble() * 85.0);
+      final double jumpSpeedY = -(200.0 + rng.nextDouble() * 115.0);
+      final Vec2 launchOrigin = Vec2(
+        origin.x + dir * (6.0 + (i ~/ 2) * 8.0),
+        origin.y - 8.0,
+      );
+      final RunningCatProjectile cat = RunningCatProjectile.createFromBox(
+        world,
+        this.owner!,
+        launchOrigin,
+        Vec2(jumpSpeedX + velocity.x * 0.25, jumpSpeedY),
+        runDirection: dir,
+        catVariant: i % 4,
+      );
+      world.addSprite(cat);
+    }
+    this.remove = true;
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.CAT_LITTER_BOX;
+  }
+}
+
+/// Panicked cartoon cat launched when a [CatLitterBox] explodes.
+/// Jumps out of the box, lands on terrain, and sprints horizontally across
+/// slopes until it smashes into a wall (or an enemy) or detonates 2 seconds later!
+class RunningCatProjectile extends WorldDamageProjectile {
+  static const double FUSE_SECONDS = 2.0;
+  static const double RUN_SPEED = 220.0;
+  static const int WALKABLE_STEP_HEIGHT = 8;
+
+  int catVariant = 0;
+  double runDirection = 1.0;
+  double _age = 0.0;
+  bool _onGround = false;
+
+  RunningCatProjectile(
+      WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, imageId, imageIndex) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(26.0, 20.0);
+    this.mod = Mod.LITTER;
+    this.explodeAfter = FUSE_SECONDS;
+    this.showCounter = false;
+    this.radius = 44.0;
+    this.damage = 32;
+    this.bounche = 0.0;
+    this.angle = 0.0;
+  }
+
+  RunningCatProjectile.createFromBox(
+    WormWorld world,
+    LocalPlayerSprite owner,
+    Vec2 origin,
+    Vec2 jumpVelocity, {
+    required double runDirection,
+    required int catVariant,
+  }) : super(
+            world,
+            origin.x,
+            origin.y,
+            world.imageIndex().getImageIdByName("box.png"),
+            world.imageIndex()) {
+    this.world = world;
+    this.owner = owner;
+    this.damage = 32;
+    this.radius = 44.0;
+    this.mod = Mod.LITTER;
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(26.0, 20.0);
+    this.explodeAfter = FUSE_SECONDS;
+    this.showCounter = false;
+    this.bounche = 0.0;
+    this.angle = 0.0;
+    this.runDirection = runDirection >= 0 ? 1.0 : -1.0;
+    this.catVariant = catVariant % 4;
+    this.setCenter(origin);
+    this.velocity = Vec2.copy(jumpVelocity);
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    // Keep sprinting in our chosen run direction!
+    if (networkType != NetworkType.REMOTE) {
+      if (_onGround) {
+        velocity.x = runDirection * RUN_SPEED;
+      } else if (_age > 0.12) {
+        // Maintain forward horizontal momentum mid-leap as well.
+        final double targetVx = runDirection * RUN_SPEED;
+        velocity.x += (targetVx - velocity.x) * min(1.0, duration * 6.0);
+      }
+      // Never allow MovingSprite._checkIsStill to disable gravity for a running cat.
+      gravityAffect = 1.0;
+    } else if (velocity.x.abs() > 10.0) {
+      runDirection = velocity.x >= 0 ? 1.0 : -1.0;
+    }
+    _onGround = false;
+    super.frame(duration, frameStep, gravity);
+  }
+
+  @override
+  handleWorldCollide(ByteWorld byteWorld, int direction) {
+    if (remove) return;
+
+    final bool hitBelow =
+        (direction & MovingSprite.DIR_BELOW) == MovingSprite.DIR_BELOW;
+    final bool hitAbove =
+        (direction & MovingSprite.DIR_ABOVE) == MovingSprite.DIR_ABOVE;
+    final bool hitLeft =
+        (direction & MovingSprite.DIR_LEFT) == MovingSprite.DIR_LEFT;
+    final bool hitRight =
+        (direction & MovingSprite.DIR_RIGHT) == MovingSprite.DIR_RIGHT;
+
+    // 1. Land & glide over gentle slopes.
+    if (hitBelow) {
+      _onGround = true;
+      if (velocity.y > 0) {
+        velocity.y = 0.0;
+      }
+      int stepped = 0;
+      while (stepped < WALKABLE_STEP_HEIGHT &&
+          byteWorld.isCanvasCollide(
+            (position.x + 2).toInt(),
+            (position.y + size.y - 1).toInt(),
+            max(1, (size.x - 4).toInt()),
+            1,
+          )) {
+        position.y -= 1.0;
+        stepped++;
+      }
+    }
+
+    // 2. Check for a genuine wall impact in the direction the cat is running!
+    final bool movingRight = runDirection >= 0;
+    final bool leadingEdgeHit = movingRight ? hitRight : hitLeft;
+    if (leadingEdgeHit) {
+      final bool atWorldEdge = movingRight
+          ? (position.x + size.x >= byteWorld.width - 1.0)
+          : (position.x <= 1.0);
+      final int probeX = movingRight
+          ? (position.x + size.x - 1).toInt()
+          : position.x.toInt();
+      final int upperWallHeight = max(2, size.y.toInt() - WALKABLE_STEP_HEIGHT);
+      final bool solidUpperWall = byteWorld.isCanvasCollide(
+        probeX,
+        position.y.toInt(),
+        1,
+        upperWallHeight,
+      );
+
+      if (atWorldEdge || solidUpperWall || !hitBelow) {
+        explode();
+        return;
+      }
+
+      // Only the cat's feet brushed a gentle incline -> step up and keep running!
+      position.y -= 2.0;
+    }
+
+    // 3. Softly deflect off ceilings when leaping out of the box.
+    if (hitAbove && velocity.y < 0) {
+      velocity.y = -velocity.y * 0.25;
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 center = centerPoint();
+    final double facing = runDirection >= 0 ? 1.0 : -1.0;
+    final double urgency =
+        explodeAfter != null ? ((0.55 - explodeAfter!) / 0.55).clamp(0.0, 1.0) : 0.0;
+
+    // 4 distinct cartoon cat coat palettes!
+    const List<List<String>> coats = [
+      ['#ff9e3b', '#c45a12', '#fff0d1', '#9ef562'], // Orange Tabby
+      ['#33394a', '#1b1f2b', '#ffffff', '#ffe44d'], // Tuxedo
+      ['#fff3db', '#9e5624', '#ffffff', '#6be8ff'], // Calico
+      ['#8b9bb5', '#586882', '#e4ecf7', '#ffd24d'], // Russian Blue
+    ];
+    final List<String> pal = coats[catVariant.abs() % coats.length];
+    final String fur = pal[0];
+    final String stripe = pal[1];
+    final String belly = pal[2];
+    final String eyeCol = pal[3];
+
+    context.save();
+    context.translate(center.x, center.y);
+    context.scale(facing, 1.0);
+
+    // Subtle puff-up & frantic gallop bob!
+    final double stride = _age * 24.0;
+    final double hop = _onGround ? sin(stride).abs() * -2.2 : 0.0;
+    final double puff = 1.0 + sin(_age * 36.0) * 0.08 * urgency;
+    context.translate(0, hop);
+    context.scale(puff, puff);
+
+    // Little dust puff behind feet when sprinting on ground.
+    if (_onGround) {
+      context.fillStyle = "rgba(255, 248, 224, 0.55)".toJS;
+      context.beginPath();
+      context.arc(-13.5, 6.5, 2.8 + sin(stride) * 0.9, 0, pi * 2.0);
+      context.arc(-17.0, 5.2, 1.9, 0, pi * 2.0);
+      context.fill();
+    }
+
+    // 1. Curved swishing tail + tiny danger spark near detonation!
+    final double tailWag = sin(_age * 20.0) * 3.0;
+    context.strokeStyle = "#1c1f29".toJS;
+    context.lineWidth = 4.6;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(-8.5, -1.0);
+    context.quadraticCurveTo(-15.5, -6.5 + tailWag, -12.0, -11.5 + tailWag * 0.6);
+    context.stroke();
+    context.strokeStyle = fur.toJS;
+    context.lineWidth = 2.6;
+    context.stroke();
+
+    if (urgency > 0.05) {
+      context.save();
+      context.globalCompositeOperation = "lighter";
+      context.fillStyle = "#ff8822".toJS;
+      context.beginPath();
+      context.arc(-12.0, -11.5 + tailWag * 0.6, 3.2 + urgency * 2.2, 0, pi * 2.0);
+      context.fill();
+      context.fillStyle = "#fff5a8".toJS;
+      context.beginPath();
+      context.arc(-12.0, -11.5 + tailWag * 0.6, 1.6 + urgency, 0, pi * 2.0);
+      context.fill();
+      context.restore();
+    }
+
+    // 2. Animated scampering legs (front & back pairs alternating!).
+    final double legSwing = sin(stride) * 4.5;
+    context.strokeStyle = "#1c1f29".toJS;
+    context.lineWidth = 3.6;
+    for (final List<double> leg in [
+      [-6.0, 3.0, -7.0 - legSwing, 9.2],
+      [-3.5, 3.0, -3.5 + legSwing, 9.2],
+      [4.0, 3.0, 5.0 + legSwing, 9.2],
+      [6.5, 3.0, 7.0 - legSwing, 9.2],
+    ]) {
+      context.beginPath();
+      context.moveTo(leg[0], leg[1]);
+      context.lineTo(leg[2], leg[3]);
+      context.stroke();
+      context.strokeStyle = belly.toJS;
+      context.lineWidth = 1.8;
+      context.stroke();
+      context.strokeStyle = "#1c1f29".toJS;
+      context.lineWidth = 3.6;
+    }
+
+    // 3. Plump running cartoon cat body!
+    context.fillStyle = fur.toJS;
+    context.strokeStyle = "#1c1f29".toJS;
+    context.lineWidth = 1.9;
+    context.beginPath();
+    context.ellipse(-1.0, 0.5, 9.2, 5.4, 0, 0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    // Coat stripes/patches on back + light belly.
+    context.fillStyle = stripe.toJS;
+    context.fillRect(-5.0, -4.4, 2.2, 4.2);
+    context.fillRect(-1.2, -4.6, 2.2, 4.5);
+    context.fillRect(2.4, -4.0, 2.0, 3.8);
+    context.fillStyle = belly.toJS;
+    context.beginPath();
+    context.ellipse(0.0, 3.2, 5.6, 2.1, 0, 0, pi * 2.0);
+    context.fill();
+
+    // 4. Cat head facing forward with pointy ears, wide eye & whiskers!
+    context.fillStyle = fur.toJS;
+    context.strokeStyle = "#1c1f29".toJS;
+    context.lineWidth = 1.8;
+    // Pointy ears.
+    context.beginPath();
+    context.moveTo(4.5, -5.5);
+    context.lineTo(6.2, -11.5);
+    context.lineTo(9.2, -5.5);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.beginPath();
+    context.moveTo(8.0, -5.5);
+    context.lineTo(10.8, -11.2);
+    context.lineTo(12.2, -4.8);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // Round head.
+    context.beginPath();
+    context.arc(8.8, -2.2, 5.4, 0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    // Big bright eye + tiny pink nose!
+    context.fillStyle = eyeCol.toJS;
+    context.beginPath();
+    context.arc(10.6, -3.2, 2.0, 0, pi * 2.0);
+    context.fill();
+    context.fillStyle = "#12151f".toJS;
+    context.beginPath();
+    context.arc(11.0, -3.2, 1.0, 0, pi * 2.0);
+    context.fill();
+    context.fillStyle = "#ffffff".toJS;
+    context.beginPath();
+    context.arc(10.4, -3.8, 0.55, 0, pi * 2.0);
+    context.fill();
+
+    context.fillStyle = "#ff789e".toJS;
+    context.beginPath();
+    context.arc(13.6, -1.6, 1.2, 0, pi * 2.0);
+    context.fill();
+
+    context.restore();
+
+    if (debug) {
+      super.draw(context, true);
+    }
+  }
+
+  @override
+  ExtraSpriteData addExtraNetworkData() {
+    final ExtraSpriteData data = super.addExtraNetworkData();
+    data.extraInt.add(catVariant);
+    data.extraInt.add(runDirection >= 0 ? 1 : -1);
+    return data;
+  }
+
+  @override
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    super.parseExtraNetworkData(data);
+    if (data.extraInt.length > 3) {
+      catVariant = data.extraInt[3];
+    }
+    if (data.extraInt.length > 4) {
+      runDirection = data.extraInt[4] >= 0 ? 1.0 : -1.0;
+    }
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.RUNNING_CAT;
+  }
+}
+
 class Hyper extends WorldDamageProjectile {
   static const String COLOR = "#ff1e3c";
   static const int EFFECTIVE_DISTANCE = 300;

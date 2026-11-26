@@ -109,6 +109,8 @@ Future<WormWorld> createTestWorld(String id,  {
       }
     }
     ConnectionFrameHandler.DISABLE_AUTO_ADJUST_FOR_TEST = true;
+    // Prevent random powerups from spawning on top of players during unrelated world tests.
+    getIt<PowerupManager>().setNextPowerForTest(999.0);
     return world;
   });
 }

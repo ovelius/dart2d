@@ -741,6 +741,140 @@ void main() {
       expect(bananasA, greaterThan(0), reason: "Expected BananaClusterProjectile burst on commander");
       expect(bananasB, greaterThan(0), reason: "Expected BananaClusterProjectile burst to transfer to client");
     });
+
+    test('CatLitterBox_ExplodesIntoRunningCatsAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      CatLitterBox boxA = CatLitterBox.createWithOwner(worldA, playerA, 100, playerA.gun);
+      boxA.position = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      boxA.velocity = Vec2.ZERO;
+      boxA.collision = false;
+      worldA.addSprite(boxA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      CatLitterBox? boxB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is CatLitterBox) {
+          boxB = worldB.spriteIndex[id] as CatLitterBox;
+        }
+      }
+      expect(boxB, isNotNull, reason: "Expected CatLitterBox to transfer to client");
+      expect(boxB!.spriteType, equals(SpriteType.CUSTOM));
+
+      // Explode the litter box centered in-bounds and verify all cats jump out in both directions and sync!
+      final Vec2 mid = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      boxA.setCenter(mid);
+      boxA.velocity = Vec2.ZERO;
+      // Disable remote player collision in this tiny 100x100 test world so the 4 leaping cats aren't immediately eaten by playerB.
+      (worldA.spriteIndex[playerId(1)] as MovingSprite).collision = false;
+      boxA.explode();
+      expect(boxA.remove, isTrue);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.004);
+        worldB.frameDraw(0.004);
+      }
+
+      List<RunningCatProjectile> catsA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<RunningCatProjectile>()
+          .toList();
+      List<RunningCatProjectile> catsB = worldB.spriteIndex
+          .spriteIds()
+          .map((id) => worldB.spriteIndex[id])
+          .whereType<RunningCatProjectile>()
+          .toList();
+      expect(catsA.length, equals(CatLitterBox.CAT_COUNT),
+          reason: "Expected ${CatLitterBox.CAT_COUNT} running cats to jump out of the box");
+      expect(catsB.length, greaterThan(0),
+          reason: "Expected RunningCatProjectiles to transfer to remote client");
+      expect(catsA.any((c) => c.runDirection < 0), isTrue);
+      expect(catsA.any((c) => c.runDirection > 0), isTrue);
+      expect(catsA.every((c) => c.velocity.y < 0), isTrue,
+          reason: "Cats should initially jump upward out of the box");
+      expect(catsA.every((c) => c.explodeAfter != null && c.explodeAfter! <= RunningCatProjectile.FUSE_SECONDS),
+          isTrue);
+    });
+
+    test('RunningCat_ExplodesWhenHittingWall', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.02);
+
+      // Build a vertical solid wall directly in front of the running cat.
+      worldA.byteWorld.fillRectAt(Vec2(60.0, 10.0), Vec2(16.0, 80.0), "#444444");
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      RunningCatProjectile cat = RunningCatProjectile.createFromBox(
+        worldA,
+        playerA,
+        Vec2(24.0, 40.0),
+        Vec2(RunningCatProjectile.RUN_SPEED, 0.0),
+        runDirection: 1.0,
+        catVariant: 0,
+      );
+      cat.gravityAffect = 0.0;
+      worldA.addSprite(cat);
+
+      // Step up to 0.5s (well under the 2.0s timer) -> must explode on wall impact!
+      for (int i = 0; i < 20 && !cat.remove; i++) {
+        worldA.frameDraw(0.025);
+      }
+      expect(cat.remove, isTrue, reason: "Running cat should explode upon hitting a wall");
+      expect(cat.explodeAfter!, greaterThan(1.0),
+          reason: "Cat should have exploded from the wall well before its 2s timer");
+    });
+
+    test('RunningCat_RunsAndExplodesAfterTwoSeconds', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.02);
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      RunningCatProjectile cat = RunningCatProjectile.createFromBox(
+        worldA,
+        playerA,
+        Vec2(10.0, 40.0),
+        Vec2(RunningCatProjectile.RUN_SPEED, 0.0),
+        runDirection: 1.0,
+        catVariant: 2,
+      );
+      cat.collision = false; // Open run with no wall collision.
+      worldA.addSprite(cat);
+
+      final double startX = cat.position.x;
+      // After 1.5s the cat has been running and hasn't blown up yet.
+      for (int i = 0; i < 30; i++) {
+        worldA.frameDraw(0.05);
+      }
+      expect(cat.remove, isFalse, reason: "Running cat should still be alive at 1.5s");
+      expect(cat.position.x, greaterThan(startX + 100.0),
+          reason: "Running cat should sprint forward across the world");
+
+      // After passing 2.0s total -> cat blows up automatically!
+      for (int i = 0; i < 15; i++) {
+        worldA.frameDraw(0.05);
+      }
+      expect(cat.remove, isTrue, reason: "Running cat must explode after 2 seconds");
+    });
     /*
     test('TestKillDormantSprites', () {
       Logger.root.level = Level.FINE;

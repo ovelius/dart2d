@@ -287,6 +287,25 @@ class ImageIndex {
     return _imagesLoading[index]!;
   }
 
+  /// Registers and loads a procedurally generated world image from a PNG data URL
+  /// without persisting it to localStorage.
+  Future addGeneratedImage(String imgName, String dataUrl) {
+    assert(imagesIndexed());
+    int? index = imageByName[imgName];
+    HTMLImageElement element = this._imageFactory.createWithSrc(dataUrl);
+    if (index != null) {
+      images[index] = element;
+      loadedImages.remove(index);
+    } else {
+      images.add(element);
+      index = images.length - 1;
+      imageByName[imgName] = index;
+    }
+    _rawImageDataUrls[index] = dataUrl;
+    _imagesLoading[index] = _imageLoadedFuture(element, index, false);
+    return _imagesLoading[index]!;
+  }
+
   Future _fetchAndLoadImage(
       HTMLImageElement element, int index, String url) async {
     String? dataUrl = await _imageFactory.fetchImageDataUrl(url);

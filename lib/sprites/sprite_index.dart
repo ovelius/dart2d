@@ -20,6 +20,8 @@ enum SpriteConstructor {
   DART,
   BANANA_PANCAKE,
   BANANA,
+  CAT_LITTER_BOX,
+  RUNNING_CAT,
   PLAYER_DEATH,
   REMOTE_PLAYER_CLIENT_SPRITE,
   POWERUP,
@@ -77,6 +79,12 @@ class SpriteIndex {
     SpriteConstructor.BANANA:
         (WormWorld world, int spriteId, String connectionId) =>
             new BananaClusterProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.CAT_LITTER_BOX:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new CatLitterBox(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.RUNNING_CAT:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new RunningCatProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
     SpriteConstructor.PLAYER_DEATH:
         (WormWorld world, int spriteId, String connectionId) =>
             new PlayerDeathEffect(world, 0.0, 0.0),

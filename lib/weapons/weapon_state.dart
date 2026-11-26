@@ -144,15 +144,9 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }, hasLaserSight: true),
     new Weapon("Cat litter box", 5, 1, 5.0, 0.01, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, positionBase:weaponState.owner.gun);
-      sprite.mod = Mod.LITTER;
-      sprite.radius = 150.0;
-      sprite.owner = weaponState.owner;
-      sprite.explodeAfter = 5.0;
-      sprite.size = new Vec2(140.0 * 0.3, 129.0 * 0.3);
-      sprite.angle = 0.0;
-      sprite.velocity = sprite.velocity.multiply(0.2);
-      sprite.setImage(weaponState.world.imageIndex().getImageIdByName("box.png"), 2);
+      CatLitterBox sprite = new CatLitterBox.createWithOwner(
+          weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
     }),
     /*

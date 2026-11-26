@@ -500,6 +500,15 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
           as _i18.Future<dynamic>);
 
   @override
+  _i18.Future<dynamic> addGeneratedImage(String? imgName, String? dataUrl) =>
+      (super.noSuchMethod(
+            Invocation.method(#addGeneratedImage, [imgName, dataUrl]),
+            returnValue: _i18.Future<dynamic>.value(),
+            returnValueForMissingStub: _i18.Future<dynamic>.value(),
+          )
+          as _i18.Future<dynamic>);
+
+  @override
   String imageNameFromIndex(int? index) =>
       (super.noSuchMethod(
             Invocation.method(#imageNameFromIndex, [index]),
@@ -1103,8 +1112,11 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
           as int);
 
   @override
-  void setWorldImage(_i16.HTMLImageElement? image) => super.noSuchMethod(
-    Invocation.method(#setWorldImage, [image]),
+  void setWorldImage(
+    _i16.HTMLImageElement? image, {
+    _i16.HTMLCanvasElement? bedrockCanvas,
+  }) => super.noSuchMethod(
+    Invocation.method(#setWorldImage, [image], {#bedrockCanvas: bedrockCanvas}),
     returnValueForMissingStub: null,
   );
 
@@ -4393,6 +4405,15 @@ class MockPlayerWorldSelector extends _i1.Mock
     Invocation.setter(#clearBackground, _clearBackground),
     returnValueForMissingStub: null,
   );
+
+  @override
+  int get selectedMapIndex =>
+      (super.noSuchMethod(
+            Invocation.getter(#selectedMapIndex),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
 
   @override
   void maybeSelectPlayerOrMap() => super.noSuchMethod(

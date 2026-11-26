@@ -22,6 +22,8 @@ import 'package:web/web.dart';
 import '../net/state_updates.pb.dart';
 import 'byteworld.dart';
 import 'loader.dart';
+import 'world_generator.dart';
+import 'world_themes.dart';
 import 'world_util.dart';
 import 'dart:math';
 import 'player_world_selector.dart';
@@ -58,6 +60,7 @@ class WormWorld extends World {
 
   late int _width, _height;
   double explosionFlash = 0.0;
+  double _skyTime = 0.0;
   bool soundEnabled = true;
 
   // Death camera state: smoothly zooms out to reveal the full battlefield,
@@ -282,11 +285,27 @@ class WormWorld extends World {
         ..stateUpdate.addAll(particles));
     }
 
-    _canvas.fillStyle = "rgb(135,206,250)".toJS;
-    _canvas
-      ..clearRect(0, 0, _width, _height)
-      ..fillRect(0, 0, _width, _height)
-      ..save();
+    _skyTime += duration;
+    final ParsedGeneratedMap? activeMap =
+        parseGeneratedMapName(_network.getGameState().gameStateProto.mapName) ??
+            parseGeneratedMapName(loader.selectedWorldName());
+    gravity.y = activeMap?.theme.gravity ?? DEFAULT_WORLD_GRAVITY;
+
+    _canvas.clearRect(0, 0, _width, _height);
+    if (activeMap != null) {
+      WorldGenerator.drawGameplaySky(
+        _canvas,
+        _width,
+        _height,
+        activeMap.theme,
+        _skyTime,
+        seed: activeMap.seed,
+      );
+    } else {
+      _canvas.fillStyle = "rgb(135,206,250)".toJS;
+      _canvas.fillRect(0, 0, _width, _height);
+    }
+    _canvas.save();
 
 
     _updateCamera(duration);
@@ -895,6 +914,10 @@ class WormWorld extends World {
     assert(loader.selectedWorldName() != null);
     addLocalPlayerSprite(name == null ? _localStorage['playerName'] : name);
     _network.setAsActingCommander();
+    final String? selected = loader.selectedWorldName();
+    if (selected != null && selected.isNotEmpty) {
+      _network.gameState.gameStateProto.mapName = selected;
+    }
   }
 
 

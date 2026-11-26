@@ -45,9 +45,11 @@ class ByteWorld {
   }
 
   /**
-   * Initialize the world image.
+   * Initialize the world image. If [bedrockCanvas] is supplied (e.g. from the
+   * procedural world generator), uses it directly as the indestructible bedrock
+   * layer instead of scanning for legacy RGB sentinel pixels.
    */
-  void setWorldImage(HTMLImageElement image) {
+  void setWorldImage(HTMLImageElement image, {HTMLCanvasElement? bedrockCanvas}) {
     canvas = _canvasFactory.createCanvas(image.width, image.height);
     _width = canvas!.width;
     _height = canvas!.height;
@@ -59,6 +61,11 @@ class ByteWorld {
     Uint8ClampedList data = canvas!.context2D.getImageData(0, 0, _width, _height).data.toDart;
     for (int i = 0; i < _width * _height; i++) {
       _collisionBuffer[i] = data[i * 4 + 3] > 0 ? 1 : 0;
+    }
+    if (bedrockCanvas != null && _width > 0 && _height > 0) {
+      _bedrocksCanvas.context2D.drawImage(bedrockCanvas, 0, 0, _width, _height);
+      _bedrockLine = _width + 1;
+      _finalizeBedrock();
     }
   }
 

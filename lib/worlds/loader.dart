@@ -208,10 +208,15 @@ class Loader {
     if (map.isNotEmpty) {
       _network.getGameState().gameStateProto.mapName = map;
     }
+    final String effectiveMapName =
+        map.isNotEmpty ? map : _network.getGameState().gameStateProto.mapName;
     HTMLImageElement worldImage = map.isNotEmpty
         ? _imageIndex.getImageByName(map)
         : _imageIndex.getImageById(ImageIndex.WORLD_IMAGE_INDEX);
-    _byteWorld.setWorldImage(worldImage);
+    final GeneratedWorldResult? generated =
+        WorldGenerator.generateFromMapKey(effectiveMapName);
+    _byteWorld.setWorldImage(worldImage,
+        bedrockCanvas: generated?.bedrockCanvas);
   }
 
   void _advanceConnectionStage(double duration) {

@@ -519,7 +519,6 @@ class Network {
     log.info("Setting ${peer.id} as acting commander.");
     gameState.gameStateProto.actingCommanderId = peer.id!;
     gameState.markAsUrgent();
-    gameState.gameStateProto.mapName = "";
     // If we have any connections, consider them to be SERVER_TO_CLIENT now.
     for (ConnectionWrapper connection in safeActiveConnections().values) {
       // Announce change in GameState.

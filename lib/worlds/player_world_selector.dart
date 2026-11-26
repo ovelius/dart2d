@@ -9,6 +9,8 @@ import '../net/connection.dart';
 import '../net/helpers.dart';
 import '../net/network.dart';
 import 'world_data.dart';
+import 'world_generator.dart';
+import 'world_themes.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/imageindex.dart';
@@ -28,7 +30,24 @@ class PlayerWorldSelector {
   ];
   static final List<int> PLAYER_SPRITE_SIZES = [97, 96, 98, 93, 77, 88, 97, 95];
 
-  static final List<String> AVAILABLE_MAPS = new List.from(WORLDS.keys);
+  static final List<String> AVAILABLE_MAPS =
+      WORLD_THEMES.map((t) => t.key).toList();
+
+  /// Clockwise 3x3 Mega Man grid positions (col, row) for the 8 world themes
+  /// surrounding the player sprite in the center cell (1, 1):
+  ///   [0: Villa   ] [1: Spooky] [2: Volcano]
+  ///   [7: Jungle  ] [ PLAYER  ] [3: Glacier]
+  ///   [6: City    ] [5: Lunar ] [4: Candy  ]
+  static const List<Point<int>> _GRID_COORDS = [
+    Point(0, 0),
+    Point(1, 0),
+    Point(2, 0),
+    Point(2, 1),
+    Point(2, 2),
+    Point(1, 2),
+    Point(0, 2),
+    Point(0, 1),
+  ];
 
   static int playerSpriteWidth(String name) {
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
@@ -54,8 +73,10 @@ class PlayerWorldSelector {
   int _selectedPlayerSprite = new Random().nextInt(PLAYER_SPRITES.length);
   int _animateX = 0;
   double _frameTime = 0.00;
+  double _animTime = 0.0;
 
-  int _selectedMap = new Random().nextInt(AVAILABLE_MAPS.length);
+  int _selectedMap = new Random().nextInt(WORLD_THEMES.length);
+  int get selectedMapIndex => _selectedMap;
 
   String? _selectedWorldName = null;
   String? get selectedWorldName => _selectedWorldName;
@@ -67,6 +88,10 @@ class PlayerWorldSelector {
   double _fadeInProgress = 0.0;
   bool _lastFrameWasPlayerSelect = false;
   bool _hasRenderedOnce = false;
+
+  List<Rectangle<double>>? _mapTileRects = null;
+  List<List<String>> _otherPlayersSelections =
+      List.generate(WORLD_THEMES.length, (_) => <String>[]);
 
   PlayerWorldSelector(
       this._packetListenerBindings,
@@ -85,17 +110,32 @@ class PlayerWorldSelector {
     _keyState = localKeyState;
     _keyState.registerListener(KeyCodeDart.LEFT, () {
       _animateX = 0;
-      _selectedPlayerSprite =
-          (_selectedPlayerSprite - 1 + PLAYER_SPRITES.length) %
-              PLAYER_SPRITES.length;
-      _selectedMap =
-          (_selectedMap - 1 + AVAILABLE_MAPS.length) % AVAILABLE_MAPS.length;
+      if (!playerSelected()) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite - 1 + PLAYER_SPRITES.length) %
+                PLAYER_SPRITES.length;
+      } else {
+        _moveGridSelection(-1, 0);
+      }
     });
     _keyState.registerListener(KeyCodeDart.RIGHT, () {
       _animateX = 0;
-      _selectedPlayerSprite =
-          (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
-      _selectedMap = (_selectedMap + 1) % AVAILABLE_MAPS.length;
+      if (!playerSelected()) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite + 1) % PLAYER_SPRITES.length;
+      } else {
+        _moveGridSelection(1, 0);
+      }
+    });
+    _keyState.registerListener(KeyCodeDart.UP, () {
+      if (playerSelected()) {
+        _moveGridSelection(0, -1);
+      }
+    });
+    _keyState.registerListener(KeyCodeDart.DOWN, () {
+      if (playerSelected()) {
+        _moveGridSelection(0, 1);
+      }
     });
     _keyState.registerListener(KeyCodeDart.SPACE, maybeSelectPlayerOrMap);
     _keyState.registerListener(KeyCodeDart.ENTER, maybeSelectPlayerOrMap);
@@ -113,17 +153,20 @@ class PlayerWorldSelector {
             }
           }
         }
-      } else if (_mapPositions != null) {
-        double scaledWidth = _maxMapWidth * _mapScale;
-        for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
-          if (_onPoint(_mapPositions![i], x, y, scaledWidth)) {
+      } else if (_mapTileRects != null && playerSelected()) {
+        for (int i = 0; i < _mapTileRects!.length; i++) {
+          final Rectangle<double> rect = _mapTileRects![i];
+          if (x >= rect.left &&
+              x <= rect.right &&
+              y >= rect.top &&
+              y <= rect.bottom) {
             if (_selectedMap == i) {
-              // This always selects even if already loaded...
               maybeSelectPlayerOrMap();
             } else {
               _selectedMap = i;
-              _customMessage = "Touch again to confirm!";
+              _customMessage = "Touch again to drop!";
             }
+            break;
           }
         }
       }
@@ -132,18 +175,16 @@ class PlayerWorldSelector {
         (ConnectionWrapper connection, StateUpdate update) {
       String playerName = update.otherPlayerWorldSelect.name;
       int selectedIndex = update.otherPlayerWorldSelect.worldSelectedIndex;
-      // Clear up existing selection.
       for (List existingSelection in _otherPlayersSelections) {
         existingSelection.remove(playerName);
       }
-      if (_otherPlayersSelections.length > selectedIndex) {
+      if (selectedIndex >= 0 && selectedIndex < _otherPlayersSelections.length) {
         _otherPlayersSelections[selectedIndex].add(playerName);
       }
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.commanderMapSelected,
-            (ConnectionWrapper connection, StateUpdate update) {
-      _selectedWorldName = update.commanderMapSelected;
-      _imageIndex.addSingleImage(_selectedWorldName!);
+        (ConnectionWrapper connection, StateUpdate update) {
+      _loadSelectedWorldMap(update.commanderMapSelected);
     });
     // Always allow to reselect the player image again.
     _localStorage.remove('playerSprite');
@@ -156,6 +197,24 @@ class PlayerWorldSelector {
     }
   }
 
+  /// Moves the Mega Man 3x3 selection cursor by (dx, dy), wrapping cleanly and
+  /// hopping across the center player square (1, 1).
+  void _moveGridSelection(int dx, int dy) {
+    final Point<int> cur = _GRID_COORDS[_selectedMap % _GRID_COORDS.length];
+    int col = (cur.x + dx + 3) % 3;
+    int row = (cur.y + dy + 3) % 3;
+    if (col == 1 && row == 1) {
+      col = (col + dx + 3) % 3;
+      row = (row + dy + 3) % 3;
+    }
+    for (int i = 0; i < _GRID_COORDS.length; i++) {
+      if (_GRID_COORDS[i].x == col && _GRID_COORDS[i].y == row) {
+        _selectedMap = i;
+        return;
+      }
+    }
+  }
+
   bool _onPoint(Point<int> p, int x, int y, double scaledWidth) {
     if (x >= p.x && x <= p.x + scaledWidth) {
       if (y >= p.y && y <= p.y + scaledWidth) {
@@ -165,23 +224,43 @@ class PlayerWorldSelector {
     return false;
   }
 
+  void _loadSelectedWorldMap(String mapName) {
+    _selectedWorldName = mapName;
+    if (mapName.isNotEmpty) {
+      _network.gameState.gameStateProto.mapName = mapName;
+    }
+    final GeneratedWorldResult? generated =
+        WorldGenerator.generateFromMapKey(mapName);
+    if (generated != null) {
+      _imageIndex.addGeneratedImage(mapName, generated.toDataUrl());
+    } else {
+      _imageIndex.addSingleImage(mapName);
+    }
+  }
+
   void maybeSelectPlayerOrMap() {
     if (!playerSelected()) {
       String spriteName = PLAYER_SPRITES[_selectedPlayerSprite];
       _localStorage['playerSprite'] = spriteName;
       _gaReporter.reportEvent(spriteName, "PlayerSelect");
     } else if (_selectedWorldName == null) {
-      String mapFullName = WORLDS[AVAILABLE_MAPS[_selectedMap]]!;
-      _imageIndex.addSingleImage(mapFullName);
-      _selectedWorldName = mapFullName;
-      _gaReporter.reportEvent(_selectedWorldName!, "WorldSelect");
-      _mapPositions = null;
+      final WorldThemeSpec theme =
+          WORLD_THEMES[_selectedMap % WORLD_THEMES.length];
+      final int seed = Random().nextInt(0x7FFFFFFF);
+      final String mapFullName = encodeGeneratedMapName(theme.id, seed);
+      _loadSelectedWorldMap(mapFullName);
+      _gaReporter.reportEvent(theme.key, "WorldSelect");
+      _mapTileRects = null;
 
       StateUpdate mapSelected = StateUpdate()
         ..attachSingleTonUniqueDataReceipt()
         ..commanderMapSelected = mapFullName;
 
       _network.setAsActingCommander();
+      // Preserve the compact one-time vector skybox/map descriptor (`gen:<theme>:<seed>`)
+      // inside GameStateProto so all lobby peers and late-joining clients render the
+      // exact same deterministic skybox and physics without transferring skybox pixels.
+      _network.gameState.gameStateProto.mapName = mapFullName;
 
       _network.getPeer().sendSingleStateUpdate(mapSelected);
       _network.getPeer().sendSingleStateUpdate(StateUpdate()
@@ -190,7 +269,8 @@ class PlayerWorldSelector {
   }
 
   bool worldSelectedAndLoaded() {
-    return _selectedWorldName != null && _imageIndex.imageNameIsLoaded(_selectedWorldName!);
+    return _selectedWorldName != null &&
+        _imageIndex.imageNameIsLoaded(_selectedWorldName!);
   }
 
   void reset() {
@@ -198,6 +278,9 @@ class PlayerWorldSelector {
       _localStorage.remove("playerSprite");
     }
     _selectedWorldName = null;
+    for (List s in _otherPlayersSelections) {
+      s.clear();
+    }
     startFadeIn();
   }
 
@@ -211,18 +294,20 @@ class PlayerWorldSelector {
   }
 
   void frame(double duration) {
+    _animTime += duration.clamp(0.0, 0.1);
     final bool isPlayerSelect = !playerSelected();
     if (!_hasRenderedOnce || _lastFrameWasPlayerSelect != isPlayerSelect) {
       _fadeInProgress = 0.0;
       _hasRenderedOnce = true;
       _lastFrameWasPlayerSelect = isPlayerSelect;
     }
-    _fadeInProgress = min(1.0, _fadeInProgress + duration.clamp(0.0, 0.1) * 1.65);
+    _fadeInProgress =
+        min(1.0, _fadeInProgress + duration.clamp(0.0, 0.1) * 1.65);
 
     if (isPlayerSelect) {
       _drawPlayerSprites(duration);
     } else {
-      _drawMaps();
+      _drawMegaManWorldSelector(duration);
     }
     _nextSendToNetwork -= duration;
     if (_nextSendToNetwork < 0) {
@@ -233,9 +318,8 @@ class PlayerWorldSelector {
           ..worldSelectedIndex = _selectedMap;
         _network.peer.sendDataWithKeyFramesToAll(
             GameStateUpdates()
-                ..stateUpdate.add(StateUpdate()..otherPlayerWorldSelect =
-                    selected)
-        );
+              ..stateUpdate.add(
+                  StateUpdate()..otherPlayerWorldSelect = selected));
       }
     }
   }
@@ -276,16 +360,16 @@ class PlayerWorldSelector {
       _context.save();
       if (_selectedPlayerSprite != i) {
         _context.globalAlpha = fade * 0.55;
-        _context.drawImage(img, 0, 0, imgWidth, height,
-            position.x, position.y, drawW, drawH);
+        _context.drawImage(
+            img, 0, 0, imgWidth, height, position.x, position.y, drawW, drawH);
       } else {
         _frameTime += duration;
         _context.globalAlpha = fade;
-        // Sunny cartoon spotlight halo behind the selected player sprite.
         double cx = position.x + drawW * 0.5;
         double cy = position.y + drawH * 0.5;
         double haloR = max(drawW, drawH) * 0.72;
-        CanvasGradient halo = _context.createRadialGradient(cx, cy, 4, cx, cy, haloR);
+        CanvasGradient halo =
+            _context.createRadialGradient(cx, cy, 4, cx, cy, haloR);
         halo.addColorStop(0.0, "rgba(255, 246, 150, 0.72)");
         halo.addColorStop(0.6, "rgba(255, 255, 255, 0.26)");
         halo.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
@@ -294,12 +378,11 @@ class PlayerWorldSelector {
         _context.arc(cx, cy, haloR, 0, 2 * pi);
         _context.fill();
 
-        _context.drawImage(img, _animateX, 0, imgWidth, height,
-            position.x, position.y, drawW, drawH);
+        _context.drawImage(img, _animateX, 0, imgWidth, height, position.x,
+            position.y, drawW, drawH);
         if (_frameTime > 0.25) {
           _frameTime = 0.0;
           _animateX = _animateX + imgWidth;
-          // Next frame clearly runs outside the image... so +5.
           if (_animateX + 5 >= img.width) {
             _animateX = 0;
           }
@@ -311,7 +394,7 @@ class PlayerWorldSelector {
   }
 
   List<Point<int>>? _spritePositions = null;
-   double _scale = 1.0;
+  double _scale = 1.0;
   int _maxWidth = -1;
 
   void _partitionSprites() {
@@ -322,9 +405,7 @@ class PlayerWorldSelector {
         _maxWidth = imgWidth;
       }
     }
-    // TODO split in multiple rows?
     int allSpriteWidth = _maxWidth * PLAYER_SPRITES.length;
-    // Scale to fit 3/4 of screen.
     _scale = ((_width / 4) * 3) / allSpriteWidth;
     double x = _width / 2 - (allSpriteWidth / 2 * _scale);
     int y = _height ~/ 2 + _height ~/ 8;
@@ -335,112 +416,352 @@ class PlayerWorldSelector {
     }
   }
 
-  void _drawMaps() {
-    if (_mapPositions == null) {
-      _customMessage = null;
-      _partitionMaps();
-    }
+  /// Draws the Mega Man-style 3x3 World Boss Selector with the 8 procedural
+  /// world themes ringing the chosen player sprite in the center cell!
+  void _drawMegaManWorldSelector(double duration) {
     if (clearBackground) {
       _context.clearRect(0, 0, _width, _height);
     }
     final double fade = _easedFadeAlpha();
-    final double slideY = (1.0 - fade) * 24.0;
+    final double slideY = (1.0 - fade) * 22.0;
+
+    // Responsive 3x3 square grid layout centered neatly above the bottom island.
+    final double headerH = max(62.0, _height * 0.115);
+    final double bottomMargin = max(46.0, _height * 0.085);
+    final double availH = max(210.0, _height - headerH - bottomMargin);
+    final double availW = max(260.0, _width * 0.82);
+    final double gap = min(18.0, min(availW, availH) * 0.036);
+    final double cellSize =
+        min((availH - gap * 2) / 3.0, (availW - gap * 2) / 3.0 * 0.86)
+            .clamp(78.0, 176.0);
+    final double tileW = cellSize * 1.18;
+    final double tileH = cellSize * 0.94;
+    final double gridW = tileW * 3 + gap * 2;
+    final double gridH = tileH * 3 + gap * 2;
+    final double originX = (_width - gridW) * 0.5;
+    final double originY = headerH + (availH - gridH) * 0.5;
+
+    _mapTileRects = List.generate(WORLD_THEMES.length, (i) {
+      final Point<int> g = _GRID_COORDS[i];
+      return Rectangle<double>(
+        originX + g.x * (tileW + gap),
+        originY + g.y * (tileH + gap),
+        tileW,
+        tileH,
+      );
+    });
 
     _context.save();
     _context.globalAlpha = fade;
     _context.translate(0, slideY);
 
-    String message = "Select world!";
-    if (_network.hasOpenConnection()) {
-      message = "Hurry to select world!";
-    }
-    drawCenteredText(
-        _customMessage == null
-            ? message
-            : _customMessage!,
-        (_height / 2 - _height / 8).toInt(),
-        50);
-    for (int i = 0; i < AVAILABLE_MAPS.length; i++) {
-      List<String> otherPlayersSelections = _otherPlayersSelections[i];
-      Point<int> position = _mapPositions![i];
-      HTMLImageElement img = _imageIndex.getImageByName(AVAILABLE_MAPS[i]);
+    // Title banner.
+    final String message = _customMessage ??
+        (_network.hasOpenConnection()
+            ? "HURRY! SELECT WORLD!"
+            : "SELECT YOUR WORLD!");
+    final int titleSize = (min(_width, _height) * 0.052).round().clamp(24, 44);
+    drawCenteredText(message, (headerH * 0.58).round(), titleSize);
 
-      double selectScale = _mapScale;
-      double xOffset = 0.0;
-      _context.save();
-      if (_selectedMap != i) {
-        _context.globalAlpha = fade * 0.42;
-      } else {
-        _context.globalAlpha = fade;
-        selectScale *= 1.5;
-        xOffset = _mapScale * img.width / 2;
-      }
-      double x = position.x - xOffset;
-      double drawWidth = img.width * selectScale;
-      double drawHeight = img.height * selectScale;
-      if (!otherPlayersSelections.isEmpty) {
-        _context.save();
-        _context.globalAlpha = fade * 0.92;
-        _context.font = "700 13px 'Trebuchet MS', Arial, sans-serif";
-        _context.lineJoin = "round";
-        _context.lineWidth = 3.0;
-        _context.strokeStyle = "#0b2442".toJS;
-        _context.fillStyle = "#ffffff".toJS;
-        for (int j = 0; j < otherPlayersSelections.length; j++) {
-          String playerName = otherPlayersSelections[j];
-          var metrics = _context.measureText(playerName);
-          double tx = x + drawWidth / 2 - metrics.width / 2;
-          double ty = position.y - 20 * j - 20;
-          _context.strokeText(playerName, tx, ty);
-          _context.fillText(playerName, tx, ty);
-        }
-        _context.restore();
-      }
-      if (_selectedMap == i) {
-        // Cartoon frame highlight around the selected map preview.
-        _context.strokeStyle = "#ffe05c".toJS;
-        _context.lineWidth = 5.0;
-        _context.strokeRect(x - 3, position.y - 3, drawWidth + 6, drawHeight + 6);
-      }
-      _context.drawImage(
-          img,
-          0,
-          0,
-          img.width,
-          img.height,
-          x,
-          position.y,
-          drawWidth,
-          drawHeight);
-      _context.restore();
+    // 1. Draw the 8 outer world theme tiles.
+    for (int i = 0; i < WORLD_THEMES.length; i++) {
+      final WorldThemeSpec theme = WORLD_THEMES[i];
+      final Rectangle<double> rect = _mapTileRects![i];
+      final bool selected = i == _selectedMap;
+      _drawWorldThemeTile(
+          theme, rect, selected, _otherPlayersSelections[i], fade);
     }
+
+    // 2. Draw the center Mega Man player portrait tile at (1, 1)!
+    final Rectangle<double> centerRect = Rectangle<double>(
+      originX + (tileW + gap),
+      originY + (tileH + gap),
+      tileW,
+      tileH,
+    );
+    _drawCenterPlayerTile(centerRect, duration, fade);
+
     _context.restore();
   }
 
-  List<Point<int>>? _mapPositions = null;
-  List<List<String>> _otherPlayersSelections = [];
-  double _mapScale = 1.0;
-  int _maxMapWidth = -1;
+  void _drawWorldThemeTile(
+    WorldThemeSpec theme,
+    Rectangle<double> rect,
+    bool selected,
+    List<String> otherPlayers,
+    double fade,
+  ) {
+    final double pulse = sin(_animTime * 7.5) * 0.5 + 0.5;
+    final double pop = selected ? (1.035 + pulse * 0.025) : 1.0;
+    final double cx = rect.left + rect.width * 0.5;
+    final double cy = rect.top + rect.height * 0.5;
+    final double w = rect.width;
+    final double h = rect.height;
+    final double r = 12.0;
 
-  void _partitionMaps() {
-    _mapPositions = [];
-    for (String miniMap in WORLDS.keys) {
-      HTMLImageElement img = _imageIndex.getImageByName(miniMap);
-      if (_maxMapWidth < img.width) {
-        _maxMapWidth = img.width;
+    _context.save();
+    _context.translate(cx, cy);
+    _context.scale(pop, pop);
+    _context.translate(-w * 0.5, -h * 0.5);
+    _context.globalAlpha = selected ? fade : fade * 0.88;
+
+    // Cartoon drop shadow.
+    _context.fillStyle = "rgba(8, 24, 52, 0.45)".toJS;
+    _context.beginPath();
+    _context.roundRect(4, 5, w, h, r.toJS);
+    _context.fill();
+
+    // Clipped theme mini-diorama preview artwork!
+    _context.save();
+    _context.beginPath();
+    _context.roundRect(0, 0, w, h, r.toJS);
+    _context.clip();
+
+    final HTMLCanvasElement preview = WorldGenerator.getThemePreview(theme);
+    _context.drawImage(preview, 0, 0, w, h);
+
+    // Slight dim on unselected tiles so the active Mega Man pick jumps right out.
+    if (!selected) {
+      _context.fillStyle = "rgba(8, 22, 46, 0.24)".toJS;
+      _context.fillRect(0, 0, w, h);
+    }
+
+    // Bottom Mega Man nameplate bar inside the frame.
+    final double barH = max(22.0, h * 0.24);
+    _context.fillStyle = (selected
+            ? "rgba(14, 34, 68, 0.92)"
+            : "rgba(12, 26, 52, 0.82)")
+        .toJS;
+    _context.fillRect(0, h - barH, w, barH);
+
+    // Accent stripe along top of nameplate.
+    _context.fillStyle = theme.accentColor.toJS;
+    _context.fillRect(0, h - barH, w, 2.6);
+
+    // Bold cartoon world name.
+    final double nameSize = (barH * 0.58).clamp(11.0, 17.0);
+    _context.font =
+        "900 ${nameSize.round()}px 'Comic Sans MS', 'Trebuchet MS', Arial, sans-serif";
+    _context.textAlign = "center";
+    _context.textBaseline = "middle";
+    _context.lineJoin = "round";
+    _context.lineWidth = 3.0;
+    _context.strokeStyle = "#081426".toJS;
+    _context.strokeText(theme.name, w * 0.5, h - barH * 0.46);
+    _context.fillStyle = (selected ? "#ffe85c" : "#ffffff").toJS;
+    _context.fillText(theme.name, w * 0.5, h - barH * 0.46);
+
+    // Special "LOW G" badge on Lunar tile!
+    if (theme.badgeText.isNotEmpty) {
+      final double bw = 46.0;
+      final double bh = 17.0;
+      final double bx = w - bw - 6.0;
+      final double by = 6.0;
+      _context.fillStyle = "#ffe047".toJS;
+      _context.strokeStyle = "#162038".toJS;
+      _context.lineWidth = 2.0;
+      _context.beginPath();
+      _context.roundRect(bx, by, bw, bh, 8.0.toJS);
+      _context.fill();
+      _context.stroke();
+      _context.font = "900 10px 'Trebuchet MS', Arial, sans-serif";
+      _context.fillStyle = "#141d30".toJS;
+      _context.fillText(theme.badgeText, bx + bw * 0.5, by + bh * 0.54);
+    }
+    _context.restore();
+
+    // Bold Mega Man comic outer border.
+    _context.strokeStyle = "#0b1a30".toJS;
+    _context.lineWidth = selected ? 5.0 : 3.5;
+    _context.beginPath();
+    _context.roundRect(0, 0, w, h, r.toJS);
+    _context.stroke();
+
+    _context.strokeStyle =
+        (selected ? "#ffe44d" : "rgba(255, 255, 255, 0.55)").toJS;
+    _context.lineWidth = selected ? 2.8 : 1.5;
+    _context.beginPath();
+    _context.roundRect(1.5, 1.5, w - 3, h - 3, (r - 1.5).toJS);
+    _context.stroke();
+
+    // Animated pulsing Mega Man corner target brackets on the selected tile!
+    if (selected) {
+      final double off = 4.0 + pulse * 3.5;
+      final double leg = 14.0;
+      _context.strokeStyle = "#fff275".toJS;
+      _context.lineWidth = 3.6;
+      _context.lineCap = "round";
+      // Top-left
+      _context.beginPath();
+      _context.moveTo(-off, -off + leg);
+      _context.lineTo(-off, -off);
+      _context.lineTo(-off + leg, -off);
+      // Top-right
+      _context.moveTo(w + off - leg, -off);
+      _context.lineTo(w + off, -off);
+      _context.lineTo(w + off, -off + leg);
+      // Bottom-left
+      _context.moveTo(-off, h + off - leg);
+      _context.lineTo(-off, h + off);
+      _context.lineTo(-off + leg, h + off);
+      // Bottom-right
+      _context.moveTo(w + off - leg, h + off);
+      _context.lineTo(w + off, h + off);
+      _context.lineTo(w + off, h + off - leg);
+      _context.stroke();
+    }
+
+    // Other multiplayer peers hovering this world tile.
+    if (otherPlayers.isNotEmpty) {
+      _context.font = "800 11px 'Trebuchet MS', Arial, sans-serif";
+      _context.textAlign = "center";
+      _context.textBaseline = "middle";
+      for (int j = 0; j < otherPlayers.length; j++) {
+        final String name = otherPlayers[j];
+        final double tw = _context.measureText(name).width.toDouble() + 12.0;
+        final double py = -12.0 - j * 18.0;
+        _context.fillStyle = "rgba(18, 36, 68, 0.90)".toJS;
+        _context.strokeStyle = "#5ce6ff".toJS;
+        _context.lineWidth = 1.6;
+        _context.beginPath();
+        _context.roundRect(w * 0.5 - tw * 0.5, py - 8, tw, 16, 7.0.toJS);
+        _context.fill();
+        _context.stroke();
+        _context.fillStyle = "#ffffff".toJS;
+        _context.fillText(name, w * 0.5, py);
       }
     }
-    int allMapWidth = _maxMapWidth * WORLDS.length;
-    // Scale to fit screen
-    _mapScale = _width / allMapWidth;
-    double x = _width / 2 - (allMapWidth / 2 * _mapScale);
-    int y = _height ~/ 2 + _height ~/ 8;
 
-    for (String miniMap in WORLDS.keys) {
-      _mapPositions!.add(new Point(x.toInt(), y));
-      _otherPlayersSelections.add([]);
-      x += _maxMapWidth * _mapScale;
+    _context.restore();
+  }
+
+  /// Draws the center Mega Man portrait tile showcasing the player's chosen
+  /// animal sprite looking toward the hovered world + hovered world subtitle!
+  void _drawCenterPlayerTile(
+      Rectangle<double> rect, double duration, double fade) {
+    final double w = rect.width;
+    final double h = rect.height;
+    final double r = 14.0;
+    final WorldThemeSpec hovered =
+        WORLD_THEMES[_selectedMap % WORLD_THEMES.length];
+    final Point<int> hoveredGrid = _GRID_COORDS[_selectedMap % _GRID_COORDS.length];
+
+    _context.save();
+    _context.translate(rect.left, rect.top);
+    _context.globalAlpha = fade;
+
+    // Drop shadow.
+    _context.fillStyle = "rgba(8, 24, 52, 0.45)".toJS;
+    _context.beginPath();
+    _context.roundRect(4, 5, w, h, r.toJS);
+    _context.fill();
+
+    // Radial glowing cartoon hero backdrop inside the center square.
+    _context.save();
+    _context.beginPath();
+    _context.roundRect(0, 0, w, h, r.toJS);
+    _context.clip();
+
+    final CanvasGradient bg =
+        _context.createRadialGradient(w * 0.5, h * 0.44, 6, w * 0.5, h * 0.44, w * 0.72);
+    bg.addColorStop(0.0, "#3a92e8");
+    bg.addColorStop(0.6, "#1a529c");
+    bg.addColorStop(1.0, "#0e2954");
+    _context.fillStyle = bg;
+    _context.fillRect(0, 0, w, h);
+
+    // Subtle spinning golden hero sunburst behind the chosen animal!
+    _context.save();
+    _context.translate(w * 0.5, h * 0.45);
+    _context.rotate(_animTime * 0.45);
+    for (int i = 0; i < 10; i++) {
+      final double a0 = (i / 10.0) * 2 * pi;
+      _context.fillStyle = "rgba(255, 236, 120, 0.16)".toJS;
+      _context.beginPath();
+      _context.moveTo(0, 0);
+      _context.arc(0, 0, w * 0.75, a0, a0 + 0.22);
+      _context.closePath();
+      _context.fill();
     }
+    _context.restore();
+
+    // Draw the chosen player sprite animated in the center!
+    final String? spriteName = _localStorage['playerSprite'];
+    if (spriteName != null && _imageIndex.imageNameIsLoaded(spriteName)) {
+      final HTMLImageElement img = _imageIndex.getImageByName(spriteName);
+      final int frameW = playerSpriteWidth(spriteName);
+      final int imgH = img.height;
+      if (frameW > 0 && imgH > 0) {
+        _frameTime += duration;
+        if (_frameTime > 0.22) {
+          _frameTime = 0.0;
+          _animateX += frameW;
+          if (_animateX + 5 >= img.width) {
+            _animateX = 0;
+          }
+        }
+        final double maxDrawH = h * 0.52;
+        final double maxDrawW = w * 0.56;
+        final double spriteScale = min(maxDrawW / frameW, maxDrawH / imgH);
+        final double drawW = frameW * spriteScale;
+        final double drawH = imgH * spriteScale;
+        final double bob = sin(_animTime * 4.5) * 3.0;
+        final bool lookLeft = hoveredGrid.x == 0;
+
+        _context.save();
+        _context.translate(w * 0.5, h * 0.46 + bob);
+        if (lookLeft) {
+          _context.scale(-1, 1);
+        }
+        _context.drawImage(
+            img, _animateX, 0, frameW, imgH, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
+        _context.restore();
+      }
+    }
+
+    // Top player name pill inside the center square.
+    final String playerName = _localStorage['playerName'] ?? 'PLAYER';
+    _context.font = "900 12px 'Trebuchet MS', Arial, sans-serif";
+    _context.textAlign = "center";
+    _context.textBaseline = "middle";
+    _context.lineJoin = "round";
+    _context.lineWidth = 3.0;
+    _context.strokeStyle = "#081426".toJS;
+    _context.strokeText(playerName, w * 0.5, 13.0);
+    _context.fillStyle = "#ffffff".toJS;
+    _context.fillText(playerName, w * 0.5, 13.0);
+
+    // Bottom info banner showing the currently hovered world's subtitle!
+    final double barH = max(22.0, h * 0.24);
+    _context.fillStyle = "rgba(10, 22, 46, 0.90)".toJS;
+    _context.fillRect(0, h - barH, w, barH);
+    _context.fillStyle = hovered.accentColor.toJS;
+    _context.fillRect(0, h - barH, w, 2.6);
+
+    final double subSize = (barH * 0.54).clamp(10.0, 15.0);
+    _context.font = "800 ${subSize.round()}px 'Trebuchet MS', Arial, sans-serif";
+    _context.strokeStyle = "#081426".toJS;
+    _context.lineWidth = 2.6;
+    _context.strokeText(hovered.subtitle, w * 0.5, h - barH * 0.46);
+    _context.fillStyle = (hovered.isLowGravity ? "#ffe44d" : "#d8f4ff").toJS;
+    _context.fillText(hovered.subtitle, w * 0.5, h - barH * 0.46);
+
+    _context.restore();
+
+    // Bold golden-ink Mega Man center frame border.
+    _context.strokeStyle = "#0b1a30".toJS;
+    _context.lineWidth = 4.6;
+    _context.beginPath();
+    _context.roundRect(0, 0, w, h, r.toJS);
+    _context.stroke();
+
+    _context.strokeStyle = "#5ce6ff".toJS;
+    _context.lineWidth = 2.4;
+    _context.beginPath();
+    _context.roundRect(1.5, 1.5, w - 3, h - 3, (r - 1.5).toJS);
+    _context.stroke();
+
+    _context.restore();
   }
 
   void drawCenteredText(String text, [int y = 0, int size = 20]) {
@@ -453,7 +774,6 @@ class PlayerWorldSelector {
     _context.textAlign = "center";
     _context.textBaseline = "middle";
     _context.lineJoin = "round";
-    // Cartoon drop shadow + bold dark ink outline + bright white/gold fill.
     _context.fillStyle = "rgba(8, 36, 72, 0.35)".toJS;
     _context.fillText(text, _width / 2 + 3, y + 4);
     _context.lineWidth = max(4.0, size * 0.14);
