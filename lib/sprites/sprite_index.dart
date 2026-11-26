@@ -126,7 +126,10 @@ class SpriteIndex {
     if (spawnSound > 0 && spawnSound < Sound.values.length) {
       sprite.spawn_sound = Sound.values[spawnSound];
     }
-    sprite.networkType = NetworkType.REMOTE;
+    sprite.networkType = (world.network().isCommander() &&
+            constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE)
+        ? NetworkType.REMOTE_FORWARD
+        : NetworkType.REMOTE;
     sprite.networkId = networkId;
     world.addSprite(sprite);
     return sprite;

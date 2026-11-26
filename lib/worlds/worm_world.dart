@@ -856,6 +856,16 @@ class WormWorld extends World {
               "Creating neighbour connection to ${info.name}");
           _network.peer.connectTo(info.connectionId).markAsClientToClientConnection();
         }
+      } else if (!_network.isCommander() &&
+          info.connectionId != _network.peer.id &&
+          info.connectionId != _network.gameState.gameStateProto.actingCommanderId) {
+        // Connection may have been opened early via autoConnectToPeers() before
+        // this peer appeared in GameState; promote it to a valid client-to-client
+        // game connection so frames and sprites flow immediately.
+        ConnectionWrapper? existing = _network.peer.connections[info.connectionId];
+        if (existing != null && !existing.isValidGameConnection() && !existing.isClosedConnection()) {
+          existing.markAsClientToClientConnection();
+        }
       }
     }
   }

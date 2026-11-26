@@ -3,6 +3,7 @@ library dart2d;
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/util/keystate.dart';
 import 'package:dart2d/worlds/loader.dart';
 import 'package:dart2d/worlds/player_world_selector.dart';
@@ -168,5 +169,69 @@ void main() {
     expect(w2.loader.bufferDraws, hasLength(1));
   });
 
+  test('E2E_FourthPlayerCompletesFullLoaderJoinWithoutFullGameDisconnect', () async {
+    expectWarningContaining("Duplicate handshake received");
+    expectWarningContaining("Dropping old data");
+    // NOTE: We intentionally do NOT expect "Commander data update for missing"
+    // so this test also verifies that warning is silenced while loading!
 
+    WormWorld worldA = await createTestWorld("a");
+    worldA.startAsServer("nameA");
+    WormWorld worldB = await createTestWorld("b");
+    WormWorld worldC = await createTestWorld("c");
+
+    worldB.connectTo("a", "nameB");
+    worldC.connectTo("a", "nameC");
+
+    for (int i = 0; i < 8; i++) {
+      worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+    }
+
+    // 4th player goes through the real staged Loader (including autoConnectToPeers
+    // to a, b, and c and multi-frame map/bedrock loading after joining 4/4 GameState).
+    WormWorld worldD = await createTestWorld("d",
+        signalPeerOpen: false,
+        setPlayer: true,
+        setPlayerImage: true,
+        selectMap: false,
+        completeLoader: false,
+        loadImages: true,
+        initByteWorld: false);
+    Loader loaderD = worldD.loader;
+
+    await signalOpen(worldD, ["a", "b", "c"]);
+
+    // Step all 4 worlds through loading + bedrock computation + entering game.
+    for (int i = 0; i < 40; i++) {
+      worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldD.frameDraw(KEY_FRAME_DEFAULT / 5);
+    }
+
+    // 4th player must NOT have closed its commander connection as "Full game connection!".
+    expect(loaderD.currentState(), equals(LoaderState.LOADING_AS_CLIENT_COMPLETED));
+    expect(worldD.network().getServerConnection(), isNotNull);
+    expect(worldD.network().getServerConnection()!.isClosedConnection(), isFalse);
+    expect(worldA.network().gameState.playerInfoList(), hasLength(4));
+    expect(worldD.network().gameState.playerInfoList(), hasLength(4));
+
+    // Early auto-connections from d to b and c must be promoted to valid game connections.
+    expect(worldD.network().peer.connections['b']?.isValidGameConnection(), isTrue);
+    expect(worldD.network().peer.connections['c']?.isValidGameConnection(), isTrue);
+
+    // Every world (commander and all 3 non-commanders) must have all 4 player sprites.
+    for (WormWorld w in [worldA, worldB, worldC, worldD]) {
+      expect(w.spriteIndex[playerId(0)], isA<LocalPlayerSprite>(),
+          reason: "World ${w.network().peer.id} missing player 0 sprite");
+      expect(w.spriteIndex[playerId(1)], isA<LocalPlayerSprite>(),
+          reason: "World ${w.network().peer.id} missing player 1 sprite");
+      expect(w.spriteIndex[playerId(2)], isA<LocalPlayerSprite>(),
+          reason: "World ${w.network().peer.id} missing player 2 sprite");
+      expect(w.spriteIndex[playerId(3)], isA<LocalPlayerSprite>(),
+          reason: "World ${w.network().peer.id} missing player 3 sprite");
+    }
+  });
 }

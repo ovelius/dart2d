@@ -13,8 +13,10 @@ import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/worlds/worm_world.dart';
+import 'package:dart2d/worlds/world_util.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:web/web.dart';
 
 void main() {
   setUpAll((){
@@ -1340,6 +1342,260 @@ void main() {
       }
       expect(worldC, isGameStateOf({playerId(2): "nameC"}).withCommanderId('c'));
       expect(worldC, hasSpecifiedConnections([]));
+    });
+
+    test('NonCommanderReceivesPlayerSprite_OverCommanderKeyframeWhenAsymmetric', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("commander");
+      WormWorld worldB = await createTestWorld("client1");
+      WormWorld worldC = await createTestWorld("client2");
+
+      TestConnectionFactory connectionFactory =
+          getIt<ConnectionFactory>() as TestConnectionFactory;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw();
+
+      // Block direct client1 <-> client2 connections so sprites must traverse
+      // commander.
+      connectionFactory
+          .failConnection('client1', 'client2')
+          .failConnection('client2', 'client1');
+
+      worldB.connectTo('commander', "nameB");
+      worldC.connectTo('commander', "nameC");
+
+      // Simulate asymmetric/stale connectionInfo where commander thinks client1
+      // is connected to client2, even though client2 has no connection to client1.
+      worldA.network().gameState.playerInfoByConnectionId('client1')!
+          .connectionInfo.add(ConnectionInfoProto()
+            ..id = 'client2'
+            ..latencyMillis = 20);
+
+      // Step ONLY commander's keyframes (even without client1 sending updates,
+      // e.g. while client1 is still loading) and client2's frameDraw.
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 2);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+
+      // client2 MUST have received client1's LocalPlayerSprite via commander's
+      // keyframe despite the one-sided connectionInfo.
+      expect(worldC.spriteIndex[playerId(1)], isA<LocalPlayerSprite>());
+      // And drawPlayerStats must safely render even if a player sprite is missing.
+      worldC.spriteIndex.removeSprite(playerId(1));
+      worldC.spriteIndex.removePending();
+      expect(worldC.spriteIndex[playerId(1)], isNull);
+      expect(() => drawPlayerStats(
+          worldC.byteWorld.canvas!.context2D, worldC, 800, 600,
+          worldC.spriteIndex, worldC.imageIndex(), false, false),
+          returnsNormally);
+    });
+
+    test('E2E_TransientSendFailuresSurviveAndRecoverWithinTwoSeconds', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldA, hasSpecifiedConnections(['b']).isValidGameConnections());
+      expect(worldB, hasSpecifiedConnections(['a']).isValidGameConnections());
+
+      // Manually trigger transient send errors on b -> a for 1.5 seconds (< 2s).
+      final TestConnection connBtoA = testConnections['b']!
+          .firstWhere((c) => c.getOtherEnd()?.id == 'a');
+      connBtoA.throwOnSend = true;
+
+      for (int i = 0; i < 15; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+      // Connection must survive < 2s of send failures.
+      expect(worldB.network().peer.hasConnectionTo('a'), isTrue);
+      expect(worldB.network().getServerConnection()!.isClosedConnection(), isFalse);
+
+      // Recover transport; movement updates should flow again.
+      connBtoA.throwOnSend = false;
+      final LocalPlayerSprite spriteB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      spriteB.position = Vec2(66.0, 55.0);
+      spriteB.velocity = Vec2();
+      for (int i = 0; i < 6; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldA.spriteIndex[playerId(1)]!.position.x, closeTo(66.0, 2.0));
+
+      // Now sustain send errors for > 2 seconds: connection must close cleanly.
+      connBtoA.throwOnSend = true;
+      for (int i = 0; i < 25; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+      expect(worldB.network().peer.hasConnectionTo('a'), isFalse);
+    });
+
+    test('E2E_ClientToClientConnectionDroppedMidGame_CommanderFallbackKeepsSpritesSynced', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 12; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldB, hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
+      expect(worldC, hasSpecifiedConnections(['a', 'b']).isValidGameConnections());
+
+      // Manually kill ONLY the direct client-to-client (b <-> c) transport mid-game.
+      for (TestConnection c in testConnections['b']!) {
+        if (c.getOtherEnd()?.id == 'c') {
+          c.close();
+        }
+      }
+
+      // Drop b's sprite on c to verify full re-creation via commander fallback.
+      worldC.spriteIndex.removeSprite(playerId(1));
+      worldC.spriteIndex.removePending();
+      expect(worldC.spriteIndex[playerId(1)], isNull);
+
+      final LocalPlayerSprite spriteB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      spriteB.position = Vec2(77.0, 44.0);
+      spriteB.velocity = Vec2();
+
+      // Advance past the 2-second send-failure timeout on b <-> c plus keyframes
+      // so ClientStatusData updates and Commander A resumes forwarding b -> c.
+      for (int i = 0; i < 35; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+        worldC.frameDraw(0.1);
+      }
+
+      // Direct b <-> c link is closed, while commander links stay alive.
+      expect(worldB.network().peer.hasConnectionTo('c'), isFalse);
+      expect(worldC.network().peer.hasConnectionTo('b'), isFalse);
+      expect(worldB.network().peer.hasConnectionTo('a'), isTrue);
+      expect(worldC.network().peer.hasConnectionTo('a'), isTrue);
+
+      // c must have re-created b's sprite and received its new position via commander A!
+      expect(worldC.spriteIndex[playerId(1)], isA<LocalPlayerSprite>());
+      expect(worldC.spriteIndex[playerId(1)]!.position.x, closeTo(77.0, 2.0));
+    });
+
+    test('E2E_EarlyAutoConnectBeforeJoin_PromotesClientToClientAndTransfersSprites', () async {
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 8; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Reproduce autoConnectToPeers(): c connects directly to non-commander b
+      // BEFORE c has joined a's GameState (neither end marks client-to-client).
+      worldC.network().peer.connectTo("b");
+      expect(worldB.network().peer.connections['c']!.isValidGameConnection(), isFalse);
+      expect(worldC.network().peer.connections['b']!.isValidGameConnection(), isFalse);
+
+      // Now c joins Commander A.
+      worldC.connectTo("a", "nameC");
+      for (int i = 0; i < 12; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Both sides of the early b <-> c connection must be promoted to valid
+      // game connections and all 3 worlds must have all 3 player sprites.
+      expect(worldB.network().peer.connections['c']!.isValidGameConnection(), isTrue);
+      expect(worldC.network().peer.connections['b']!.isValidGameConnection(), isTrue);
+      for (WormWorld w in [worldA, worldB, worldC]) {
+        expect(w.spriteIndex[playerId(0)], isA<LocalPlayerSprite>());
+        expect(w.spriteIndex[playerId(1)], isA<LocalPlayerSprite>());
+        expect(w.spriteIndex[playerId(2)], isA<LocalPlayerSprite>());
+      }
+    });
+
+    test('E2E_CommanderMigrationWithMissingSprite_NewCommanderForwardsPlayerSpriteToOtherClients', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      WormWorld worldD = await createTestWorld("d");
+
+      TestConnectionFactory connectionFactory =
+          getIt<ConnectionFactory>() as TestConnectionFactory;
+      // Block direct c <-> d so d's sprite MUST be forwarded through the commander.
+      connectionFactory
+          .failConnection('c', 'd')
+          .failConnection('d', 'c');
+
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+      worldD.connectTo("a", "nameD");
+
+      for (int i = 0; i < 12; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldD.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Remove d's sprite from BOTH b (the soon-to-be commander) and c right
+      // before commander a dies, reproducing a commander migration where the
+      // new commander creates d's sprite via CreateSpriteFromNetwork.
+      worldB.spriteIndex.removeSprite(playerId(3));
+      worldB.spriteIndex.removePending();
+      worldC.spriteIndex.removeSprite(playerId(3));
+      worldC.spriteIndex.removePending();
+      expect(worldB.spriteIndex[playerId(3)], isNull);
+      expect(worldC.spriteIndex[playerId(3)], isNull);
+
+      // Kill Commander A cleanly.
+      for (TestConnection conn in List.of(testConnections['a']!)) {
+        conn.signalClose();
+      }
+
+      for (int i = 0; i < 18; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldD.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // b is elected new commander, recreates d's sprite as REMOTE_FORWARD, and
+      // forwards it to c despite c <-> d having no direct link.
+      expect(worldB.network().isCommander(), isTrue);
+      expect(worldB.spriteIndex[playerId(3)], isA<LocalPlayerSprite>());
+      expect(worldB.spriteIndex[playerId(3)]!.networkType, equals(NetworkType.REMOTE_FORWARD));
+      expect(worldC.spriteIndex[playerId(3)], isA<LocalPlayerSprite>());
+
+      // Verify drawWinView also handles a missing winner sprite without throwing.
+      worldC.network().gameState.gameStateProto.winnerPlayerId = 'd';
+      worldC.spriteIndex.removeSprite(playerId(3));
+      worldC.spriteIndex.removePending();
+      final LocalPlayerSprite playerC = worldC.spriteIndex[playerId(2)] as LocalPlayerSprite;
+      playerC.info.inGame = false;
+      expect(() => drawWinView(
+          worldC.byteWorld.canvas!.context2D, worldC, 800, 600,
+          playerC, worldC.spriteIndex, worldC.imageIndex()),
+          returnsNormally);
     });
   });
 }

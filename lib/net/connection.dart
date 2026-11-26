@@ -424,7 +424,7 @@ class ConnectionWrapper {
 
     
     if (_connectionFrameHandler.keyFrame()) {
-      _network.stateBundle(true, data);
+      _network.stateBundle(true, data, recipientId: id);
       data.keyFrame = _connectionFrameHandler.currentKeyFrame();
       // Maybe adjust connection framerate.
       PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(id);
@@ -433,7 +433,7 @@ class ConnectionWrapper {
       }
     } else {
       // Send regular data.
-      _network.stateBundle(false, data);
+      _network.stateBundle(false, data, recipientId: id);
     }
 
     if (!_handshakeReceived && !_connectionFrameHandler.keyFrame()) {

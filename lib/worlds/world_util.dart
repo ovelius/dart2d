@@ -105,18 +105,17 @@ void drawPlayerStats(
 
   // Build rows first so we can draw a clean cartoon scoreboard panel behind them.
   List<String> labels = [];
-  List<Sprite> sprites = [];
+  List<Sprite?> sprites = [];
+  List<double> rowHeights = [];
+  List<double> iconWidths = [];
   double maxRowW = 0.0;
   double totalH = 0.0;
+  final double defaultIconW = LocalPlayerSprite.DEFAULT_PLAYER_SIZE.x * spriteScale;
+  final double defaultRowH = LocalPlayerSprite.DEFAULT_PLAYER_SIZE.y * spriteScale;
 
   for (int i = 0; i < infoList.length; i++) {
     PlayerInfoProto info = infoList[i];
     Sprite? sprite = spriteIndex[info.spriteId];
-    // Can happen when starting a game...
-    if (sprite == null) {
-      log.warning("Not drawing ${info}, sprite is missing");
-      continue;
-    }
     int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId]!.expectedLatency().inMilliseconds : 0;
     String text;
     if (netIssue && gameState.gameStateProto.actingCommanderId == info.connectionId) {
@@ -125,16 +124,20 @@ void drawPlayerStats(
     } else {
       text = "${info.score}  ${info.name}  ${latency} ms${gameState.gameStateProto.actingCommanderId == info.connectionId ? " *" : ""}";
     }
-    double rowW = sprite.size.x * spriteScale + 12.0 + context.measureText(text).width.toDouble();
+    double iconW = sprite != null ? sprite.size.x * spriteScale : defaultIconW;
+    double rowH = sprite != null ? sprite.size.y * spriteScale : defaultRowH;
+    double rowW = iconW + 12.0 + context.measureText(text).width.toDouble();
     if (rowW > maxRowW) maxRowW = rowW;
-    totalH += sprite.size.y * spriteScale;
+    totalH += rowH;
     labels.add(text);
     sprites.add(sprite);
+    rowHeights.add(rowH);
+    iconWidths.add(iconW);
   }
 
-  double startY = height / 2.0 - totalH / 2.0 + (sprites.isNotEmpty ? sprites[0].size.y * spriteScale * 0.5 : 0.0);
+  double startY = height / 2.0 - totalH / 2.0 + (rowHeights.isNotEmpty ? rowHeights[0] * 0.5 : 0.0);
 
-  if (sprites.isNotEmpty) {
+  if (labels.isNotEmpty) {
     double padX = 24.0;
     double padY = 16.0;
     double cardW = maxRowW + padX * 2;
@@ -157,23 +160,27 @@ void drawPlayerStats(
   }
 
   double y = startY;
-  for (int i = 0; i < sprites.length; i++) {
-    Sprite sprite = sprites[i];
+  for (int i = 0; i < labels.length; i++) {
+    Sprite? sprite = sprites[i];
     String text = labels[i];
-    HTMLImageElement img = imageIndex.getImageById(sprite.imageId);
+    double iconW = iconWidths[i];
+    double rowH = rowHeights[i];
     double metricsW = context.measureText(text).width.toDouble();
-    double totalWidth = sprite.size.x * spriteScale + 12.0 + metricsW;
+    double totalWidth = iconW + 12.0 + metricsW;
     double x = width / 2.0 - totalWidth / 2.0;
-    double frameWidth = (img.width / sprite.frames);
-    context.drawImage(
-        img,
-        0, 0,
-        frameWidth, img.height,
-        x, y - (sprite.size.y * spriteScale) / 2 - fontSize / 2,
-        sprite.size.x * spriteScale, sprite.size.y * spriteScale);
-    _drawCartoonText(context, text, x + sprite.size.x * spriteScale + 12.0, y,
+    if (sprite != null) {
+      HTMLImageElement img = imageIndex.getImageById(sprite.imageId);
+      double frameWidth = (img.width / sprite.frames);
+      context.drawImage(
+          img,
+          0, 0,
+          frameWidth, img.height,
+          x, y - rowH / 2 - fontSize / 2,
+          iconW, rowH);
+    }
+    _drawCartoonText(context, text, x + iconW + 12.0, y,
         fill: i == 0 ? "#ffe36e" : "#ffffff", strokeWidth: 4.0);
-    y += sprite.size.y * spriteScale;
+    y += rowH;
   }
   context.restore();
 }
@@ -199,13 +206,14 @@ void drawWinView(CanvasRenderingContext2D context,
     context.restore();
     return;
   }
-  LocalPlayerSprite killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite;
-  HTMLImageElement img = imageIndex.getImageById(killerSprite.imageId);
+  LocalPlayerSprite? killerSprite = spriteIndex[winner.spriteId] as LocalPlayerSprite?;
+  HTMLImageElement? img =
+      killerSprite == null ? null : imageIndex.getImageById(killerSprite.imageId);
   context.font = 'bold ${_textSize}px "Trebuchet MS", Arial, sans-serif';
   String text = "${winner.name} you're winner!";
   var metrics = context.measureText(text);
 
-  double messageLength =  metrics.width + killerSprite.size.x;
+  double messageLength = metrics.width + (killerSprite?.size.x ?? 0.0);
   if (messageLength > width) {
     // OOps we are larger than screen. Reduce text size for next frame.
     _textSize -= 2;
@@ -214,13 +222,15 @@ void drawWinView(CanvasRenderingContext2D context,
   double y = height / 4;
   _drawCartoonText(context, text, x, y, fill: "#ffe04d", stroke: "#2b1600", strokeWidth: 6.5);
 
-  double frameWidth = (img.width / killerSprite.frames);
-  context.drawImage(
-      img,
-      0, 0,
-      frameWidth, img.height,
-      x + metrics.width + 8,  y - killerSprite.size.y - _textSize / 2,
-      killerSprite.size.x * 2, killerSprite.size.y * 2);
+  if (killerSprite != null && img != null) {
+    double frameWidth = (img.width / killerSprite.frames);
+    context.drawImage(
+        img,
+        0, 0,
+        frameWidth, img.height,
+        x + metrics.width + 8,  y - killerSprite.size.y - _textSize / 2,
+        killerSprite.size.x * 2, killerSprite.size.y * 2);
+  }
   context.restore();
 }
 

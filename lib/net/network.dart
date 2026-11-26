@@ -577,9 +577,15 @@ class Network {
           Sprite.FLAG_COMMANDER_DATA) {
         assert(update.hasSpriteId());
         // parse as commander data update.
-        MovingSprite? sprite = world.spriteIndex[update.spriteId] as MovingSprite?;
+        MovingSprite? sprite = (world.spriteIndex[update.spriteId] ??
+            world.spriteIndex.getPendingSprite(update.spriteId)) as MovingSprite?;
         if (sprite == null) {
-          log.warning("Commander data update for missing sprite ${update.spriteId}");
+          if (world.loaderCompleted() &&
+              peer.id != null &&
+              (gameState.playerInfoByConnectionId(peer.id!)?.inGame ?? false)) {
+            log.warning(
+                "Commander data update for missing sprite ${update.spriteId}");
+          }
           continue;
         }
         if (isCommander()) {
@@ -606,6 +612,10 @@ class Network {
           log.fine("Sprite ${update.toDebugString()} can't be created, constructor: ${constructor}");
           continue;
         }
+        if (sprite.networkType == NetworkType.LOCAL) {
+          // Never let a remote generic update overwrite our own local sprite.
+          continue;
+        }
         intListToSpriteProperties(update, sprite);
         // Forward sprite to others.
         if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
@@ -615,10 +625,10 @@ class Network {
               // Don't send back from where it came.
               continue;
             }
-            // Don't forward if we know there is a direct connection between these
-            // two peers already.
-            // TODO: Forward if latency is better this path?
-            if (!gameState.isConnected(
+            // Don't forward if BOTH peers confirm a direct connection between
+            // them; checking only one direction drops updates on asymmetric or
+            // half-open client-to-client connections.
+            if (!_hasMutualDirectConnection(
                 connection.id, receipientConnection.id)) {
               GameStateUpdates g = GameStateUpdates()
                  ..spriteUpdates.add(update);
@@ -631,18 +641,37 @@ class Network {
     }
   }
 
-  void stateBundle(bool keyFrame, GameStateUpdates updates) {
+  bool _hasMutualDirectConnection(String a, String b) {
+    return gameState.isConnected(a, b) && gameState.isConnected(b, a);
+  }
+
+  void stateBundle(bool keyFrame, GameStateUpdates updates, {String? recipientId}) {
     for (int networkId in _spriteIndex.spriteIds()) {
       Sprite sprite = _spriteIndex[networkId]!;
       if (sprite.networkType == NetworkType.LOCAL) {
         updates.spriteUpdates.add(
             toSpriteUpdate(sprite as MovingSprite, keyFrame));
-      } else if (isCommander() && sprite.hasCommanderToOwnerData()) {
-        SpriteUpdate update = SpriteUpdate()
-          ..spriteId = networkId
-          ..flags = Sprite.FLAG_COMMANDER_DATA
-          ..commanderToOwnerData = sprite.getCommanderToOwnerData();
-        updates.spriteUpdates.add(update);
+      } else if (isCommander()) {
+        if (keyFrame &&
+            recipientId != null &&
+            sprite is LocalPlayerSprite &&
+            sprite.networkType == NetworkType.REMOTE_FORWARD &&
+            sprite.ownerId != null &&
+            sprite.ownerId != recipientId &&
+            !_hasMutualDirectConnection(sprite.ownerId!, recipientId)) {
+          // Guarantee non-commanders without a confirmed mutual direct P2P
+          // link receive full-frame player sprites on the commander's regular
+          // monotonic keyframes (even while the owner is still loading or if
+          // an unordered forwarded packet was dropped).
+          updates.spriteUpdates.add(toSpriteUpdate(sprite, true));
+        }
+        if (sprite.hasCommanderToOwnerData()) {
+          SpriteUpdate update = SpriteUpdate()
+            ..spriteId = networkId
+            ..flags = Sprite.FLAG_COMMANDER_DATA
+            ..commanderToOwnerData = sprite.getCommanderToOwnerData();
+          updates.spriteUpdates.add(update);
+        }
       }
     }
     if (!isCommander()) {
@@ -670,6 +699,9 @@ class Network {
     ClientStatusData clientStatusData = ClientStatusData()
       ..fps = _drawFps.fps();
     for (ConnectionWrapper c in safeActiveConnections().values) {
+      if (!c.isValidGameConnection()) {
+        continue;
+      }
       clientStatusData.connectionInfo.add(ConnectionInfoProto()
         ..id = c.id
         ..latencyMillis = c

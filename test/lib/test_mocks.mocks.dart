@@ -897,11 +897,18 @@ class MockNetwork extends _i1.Mock implements _i13.Network {
   );
 
   @override
-  void stateBundle(bool? keyFrame, _i12.GameStateUpdates? updates) =>
-      super.noSuchMethod(
-        Invocation.method(#stateBundle, [keyFrame, updates]),
-        returnValueForMissingStub: null,
-      );
+  void stateBundle(
+    bool? keyFrame,
+    _i12.GameStateUpdates? updates, {
+    String? recipientId,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #stateBundle,
+      [keyFrame, updates],
+      {#recipientId: recipientId},
+    ),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [HudMessages].
