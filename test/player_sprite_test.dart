@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:test/test.dart';
 import 'package:web/helpers.dart';
 import 'lib/test_lib.dart';
@@ -197,5 +199,35 @@ void main() {
     ws.think(1.5);
     expect(ws.reloading(), isFalse);
     ws.draw(canvas.context2D);
+  });
+
+  test("Weapon selector wheel starts with full clips and renders clip badges for every weapon", () {
+    MockPeerWrapper mockPeer = MockPeerWrapper();
+    when(mockPeer.getId()).thenReturn("a");
+    when(mockCommanderNetwork.peer).thenReturn(mockPeer);
+
+    final HTMLImageElement dummyIcons = HTMLImageElement()
+      ..width = 1280
+      ..height = 128;
+    when(mockCommanderWormWorld.imageIndex()).thenReturn(mockImageIndex);
+    when(mockImageIndex.getImageByName("weapon_icons.png"))
+        .thenReturn(dummyIcons);
+
+    WeaponState ws = commanderSprite.weaponState!;
+    // Every weapon starts with a full clip so unselected weapons show full ammo in the wheel.
+    for (final Weapon w in ws.weapons) {
+      expect(w.shotsLeft, equals(w.shotsPerClip),
+          reason: "Weapon ${w.name} should start loaded with full clip");
+    }
+
+    // Mix of full, partially drained, low, and reloading weapons on the wheel.
+    ws.weapons[0].shotsLeft = 1; // Low clip (1/2)
+    ws.weapons[2].shotsLeft = 2; // Partial clip (2/4)
+    ws.weapons[3].shotsLeft = 0;
+    ws.weapons[3].untilReload = 2.4; // Reloading
+    ws.changeTime = WeaponState.SHOW_WEAPON_NAME_TIME;
+
+    FakeCanvas canvas = FakeCanvas();
+    ws.drawWeaponHelper(canvas.context2D, const Point(400, 400), true);
   });
 }

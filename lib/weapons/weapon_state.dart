@@ -117,24 +117,11 @@ class WeaponState {
       weaponState.world.addSprite(p);
     }),
     new Weapon("Snailgun",3, 4, 1.0, 0.3, (WeaponState weaponState) {
-      WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 12,
-          positionBase: weaponState.owner.gun, size: new Vec2(180.0/ 4, 130/6));
-      sprite.mod = Mod.SNAIL;
-      sprite.radius = 19.0;
-      sprite.owner = weaponState.owner;
-      sprite.worldCollide = false;
-      sprite.removeOutOfBounds = true;
-      sprite.gravityAffect = 0;
-      sprite.particlesOnExplode = false;
-      sprite.removeOnCollision = false;
-      sprite.maxSpeed = sprite.velocity.multiply(1.0);
-      sprite.velocity = sprite.velocity.multiply(0.1);
-      sprite.acceleration = sprite.velocity.multiply(10.0);
-      int frame = Random().nextInt(3);
-      sprite.setImageWithLockedFrame(weaponState.world.imageIndex().getImageIdByName("snails.png"), 3, frame);
+      SnailProjectile sprite = new SnailProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, 12, weaponState.owner.gun);
 
       Vec2 offset = Vec2(-sprite.size.x * cos(sprite.angle),
-          -sprite.size.y * sin(sprite.angle)).multiply(0.3);
+          -sprite.size.y * sin(sprite.angle)).multiply(0.35);
 
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2),
           count: 60, lifeTime: 160, shrinkPerStep: 0.2, followOffset: offset);
@@ -263,15 +250,14 @@ class WeaponState {
     double currentAngle = 0.0;
 
     for (int i = 0; i < weaponCount; i++) {
-      double x = sin(currentAngle) * WHEEL_SIZE;
-      double y = cos(currentAngle) * WHEEL_SIZE;
-      if (selectedWeaponIndex == i) {
-        context.globalAlpha = 1.0;
-      } else {
-        context.globalAlpha = 0.5;
-      }
-      _drawIconImageAt(context, iconImages,
-          weapons[i].iconIndex,  baseX + x,  baseY + y);
+      final double x = sin(currentAngle) * WHEEL_SIZE;
+      final double y = cos(currentAngle) * WHEEL_SIZE;
+      final double tileX = baseX + x;
+      final double tileY = baseY + y;
+      final bool isSelected = selectedWeaponIndex == i;
+      context.globalAlpha = isSelected ? 1.0 : 0.55;
+      _drawIconImageAt(context, iconImages, weapons[i].iconIndex, tileX, tileY);
+      _drawWheelClipBadge(context, weapons[i], tileX, tileY, isSelected);
       currentAngle += _anglePerWeapon;
     }
     // Draw the weapon name in bold cartoon outlined style.
@@ -290,6 +276,91 @@ class WeaponState {
     context.strokeText(selectedWeaponName, textX, textY);
     context.fillStyle = "#ffe97a".toJS;
     context.fillText(selectedWeaponName, textX, textY);
+    context.restore();
+  }
+
+  /// Draws a compact cartoon clip-size pill badge (`shotsLeft/shotsPerClip`
+  /// plus a slim ammo/reload bar) at the bottom of each weapon wheel tile.
+  void _drawWheelClipBadge(
+    CanvasRenderingContext2D context,
+    Weapon weapon,
+    double tileX,
+    double tileY,
+    bool isSelected,
+  ) {
+    final int maxShots = weapon.shotsPerClip;
+    if (maxShots <= 0) return;
+
+    final bool isReloading = weapon.reloading();
+    final int remaining = isReloading ? 0 : weapon.shotsLeft.clamp(0, maxShots);
+    final double frac = isReloading
+        ? (weapon.reloadTime > 0
+            ? (1.0 - weapon.untilReload / weapon.reloadTime).clamp(0.0, 1.0)
+            : 0.0)
+        : (remaining / maxShots).clamp(0.0, 1.0);
+    final bool isLow = !isReloading && (remaining == 1 || frac <= 0.25);
+
+    final String label = isReloading
+        ? "${max(0.0, weapon.untilReload).toStringAsFixed(1)}s"
+        : "$remaining/$maxShots";
+
+    context.save();
+    context.globalAlpha = isSelected ? 1.0 : 0.86;
+    context.font = 'bold 11px "Trebuchet MS", Arial, sans-serif';
+    final double textW = context.measureText(label).width;
+    final double pillW = max(36.0, min(ICON_TILE_SIZE - 4.0, textW + 14.0));
+    const double pillH = 19.0;
+    final double pillX = tileX + (ICON_TILE_SIZE - pillW) * 0.5;
+    final double pillY = tileY + ICON_TILE_SIZE - pillH - 2.0;
+    const double radius = 6.5;
+
+    // Dark cartoon capsule background.
+    context.fillStyle = "rgba(18, 25, 38, 0.90)".toJS;
+    context.beginPath();
+    context.roundRect(pillX, pillY, pillW, pillH, radius.toJS);
+    context.fill();
+
+    // Slim bottom ammo / reload progress bar clipped inside the pill.
+    const double barH = 3.5;
+    final double barX = pillX + 3.0;
+    final double barY = pillY + pillH - barH - 2.0;
+    final double barW = pillW - 6.0;
+    context.fillStyle = "rgba(255, 255, 255, 0.14)".toJS;
+    context.beginPath();
+    context.roundRect(barX, barY, barW, barH, 2.0.toJS);
+    context.fill();
+
+    if (frac > 0.0) {
+      context.fillStyle = (isReloading
+              ? "#5ce8ff"
+              : (isLow ? "#ff6e48" : "#ffe252"))
+          .toJS;
+      context.beginPath();
+      context.roundRect(barX, barY, max(2.0, barW * frac), barH, 2.0.toJS);
+      context.fill();
+    }
+
+    // Crisp comic border (gold highlight on the currently selected weapon).
+    context.strokeStyle = (isSelected
+            ? "#ffe97a"
+            : (isReloading ? "#5ce8ff" : "#3a4a61"))
+        .toJS;
+    context.lineWidth = isSelected ? 1.8 : 1.3;
+    context.beginPath();
+    context.roundRect(pillX, pillY, pillW, pillH, radius.toJS);
+    context.stroke();
+
+    // Centered bold ammo text.
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = (isReloading
+            ? "#9ef4ff"
+            : (isLow
+                ? "#ff9675"
+                : (remaining >= maxShots ? "#fff29e" : "#ffffff")))
+        .toJS;
+    context.fillText(label, pillX + pillW * 0.5, pillY + 7.2);
+
     context.restore();
   }
 

@@ -925,7 +925,7 @@ class RunningCatProjectile extends WorldDamageProjectile {
       : super(world, x, y, imageId, imageIndex) {
     this.spriteType = SpriteType.CUSTOM;
     this.size = new Vec2(26.0, 20.0);
-    this.mod = Mod.LITTER;
+    this.mod = Mod.KITTEN;
     this.explodeAfter = FUSE_SECONDS;
     this.showCounter = false;
     this.radius = 44.0;
@@ -951,7 +951,7 @@ class RunningCatProjectile extends WorldDamageProjectile {
     this.owner = owner;
     this.damage = 32;
     this.radius = 44.0;
-    this.mod = Mod.LITTER;
+    this.mod = Mod.KITTEN;
     this.spriteType = SpriteType.CUSTOM;
     this.size = new Vec2(26.0, 20.0);
     this.explodeAfter = FUSE_SECONDS;
@@ -1231,6 +1231,302 @@ class RunningCatProjectile extends WorldDamageProjectile {
   @override
   SpriteConstructor remoteRepresentation() {
     return SpriteConstructor.RUNNING_CAT;
+  }
+}
+
+/// High-speed cartoon racer snail fired by the Snailgun.
+/// Features 3 distinct racer liveries (F1 Red, Bolt Blue, Viper Green) with
+/// racing goggles, shell spoilers, checkered/flame decals, twin chrome exhaust
+/// pipes with dynamic nitro flames, wind-swept eyestalks, and proper upright
+/// orientation regardless of whether fired left or right!
+class SnailProjectile extends WorldDamageProjectile {
+  int snailVariant = 0;
+  double _age = 0.0;
+
+  SnailProjectile(
+      WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, imageId, imageIndex) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(46.0, 24.0);
+    this.mod = Mod.SNAIL;
+    this.worldCollide = false;
+    this.removeOutOfBounds = true;
+    this.gravityAffect = 0.0;
+    this.particlesOnExplode = false;
+    this.removeOnCollision = false;
+  }
+
+  SnailProjectile.createWithOwner(
+      WormWorld world, LocalPlayerSprite owner, int damage, MovingSprite positionBase,
+      {int? variant})
+      : super.createWithOwner(world, owner, damage,
+            positionBase: positionBase, size: new Vec2(46.0, 24.0)) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.mod = Mod.SNAIL;
+    this.radius = 19.0;
+    this.owner = owner;
+    this.worldCollide = false;
+    this.removeOutOfBounds = true;
+    this.gravityAffect = 0.0;
+    this.particlesOnExplode = false;
+    this.removeOnCollision = false;
+    this.maxSpeed = this.velocity.multiply(1.0);
+    this.velocity = this.velocity.multiply(0.1);
+    this.acceleration = this.velocity.multiply(10.0);
+    this.snailVariant = (variant ?? WorldDamageProjectile.random.nextInt(3)) % 3;
+    this.setImageWithLockedFrame(
+        world.imageIndex().getImageIdByName("snails.png"), 3, this.snailVariant);
+  }
+
+  /// True when the snail is flying toward the left hemisphere (cos(angle) < 0),
+  /// in which case we flip vertically after rotating so the snail stays upright!
+  bool get isFacingLeft => cos(angle) < 0.0;
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    super.frame(duration, frameStep, gravity);
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 center = centerPoint();
+    final double speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    final double speedFrac = (speed / 500.0).clamp(0.0, 1.0);
+
+    // 3 distinct racer snail liveries!
+    // [shellMain, shellDark, stripeColor, bodyColor, bellyColor, flameOuter, flameInner, goggleTint]
+    const List<List<String>> liveries = [
+      // 0: Turbo Red F1 Racer
+      ['#ff3842', '#9e141c', '#ffffff', '#7df07a', '#d4ff9e', '#3ce8ff', '#ffffff', '#ffe44d'],
+      // 1: Bolt Neon Cyber Racer
+      ['#2988ff', '#133d99', '#ffe03b', '#9c66ff', '#d6b8ff', '#ff8822', '#fff4a6', '#5cf7ff'],
+      // 2: Toxic Viper Drift Racer
+      ['#52e038', '#1d7518', '#ff6824', '#ffb845', '#fff0b3', '#ff47c2', '#fff0ff', '#ff4455'],
+    ];
+    final List<String> pal = liveries[snailVariant.abs() % liveries.length];
+    final String shellMain = pal[0];
+    final String shellDark = pal[1];
+    final String stripeCol = pal[2];
+    final String bodyCol = pal[3];
+    final String bellyCol = pal[4];
+    final String flameOuter = pal[5];
+    final String flameInner = pal[6];
+    final String goggleTint = pal[7];
+
+    context.save();
+    context.translate(center.x, center.y);
+    context.rotate(angle);
+    // Fix left-facing orientation: keep the racer snail upright instead of upside down!
+    if (isFacingLeft) {
+      context.scale(1.0, -1.0);
+    }
+
+    // 1. Dynamic nitro afterburner flames shooting out of the twin rear exhaust pipes!
+    final double flicker = sin(_age * 52.0) * 3.0 + cos(_age * 37.0) * 1.5;
+    final double flameLen = 10.0 + speedFrac * 18.0 + flicker;
+    context.save();
+    context.globalCompositeOperation = "lighter";
+    for (final double ey in const [-4.5, 0.5]) {
+      // Outer glowing jet cone.
+      context.fillStyle = flameOuter.toJS;
+      context.beginPath();
+      context.moveTo(-14.0, ey - 2.6);
+      context.lineTo(-14.0 - flameLen, ey);
+      context.lineTo(-14.0, ey + 2.6);
+      context.closePath();
+      context.fill();
+      // White-hot inner core.
+      context.fillStyle = flameInner.toJS;
+      context.beginPath();
+      context.moveTo(-14.0, ey - 1.3);
+      context.lineTo(-14.0 - flameLen * 0.55, ey);
+      context.lineTo(-14.0, ey + 1.3);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+
+    // 2. Aerodynamic speed lines streaming off the shell!
+    if (speedFrac > 0.15) {
+      context.strokeStyle =
+          "rgba(255, 255, 255, ${(0.25 + speedFrac * 0.55).toStringAsFixed(2)})".toJS;
+      context.lineWidth = 1.4;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(-10.0, -11.5);
+      context.lineTo(-22.0 - speedFrac * 10.0, -11.5);
+      context.moveTo(-12.0, 9.2);
+      context.lineTo(-24.0 - speedFrac * 8.0, 9.2);
+      context.stroke();
+    }
+
+    // 3. Carbon-fiber rear racing spoiler wing + twin chrome exhaust pipes!
+    context.fillStyle = "#262d3d".toJS;
+    context.strokeStyle = "#11151f".toJS;
+    context.lineWidth = 1.6;
+    // Spoiler strut & top aero blade.
+    context.beginPath();
+    context.moveTo(-11.0, -7.0);
+    context.lineTo(-16.5, -13.5);
+    context.lineTo(-11.5, -13.5);
+    context.lineTo(-7.0, -8.5);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.fillStyle = stripeCol.toJS;
+    context.fillRect(-18.0, -14.8, 8.5, 2.5);
+    context.strokeRect(-18.0, -14.8, 8.5, 2.5);
+
+    // Twin chrome exhaust pipes on back of shell.
+    context.fillStyle = "#c8d4e6".toJS;
+    for (final double ey in const [-4.5, 0.5]) {
+      context.beginPath();
+      context.roundRect(-16.5, ey - 2.0, 7.5, 4.0, 1.5.toJS);
+      context.fill();
+      context.stroke();
+    }
+
+    // 4. Sleek hunched racing snail body & aerodynamic slime foot!
+    context.fillStyle = bodyCol.toJS;
+    context.strokeStyle = "#161c26".toJS;
+    context.lineWidth = 2.0;
+    context.beginPath();
+    context.moveTo(-14.0, 7.5);
+    context.quadraticCurveTo(-2.0, 9.0, 14.0, 7.8);
+    context.quadraticCurveTo(22.0, 6.2, 21.5, 0.8);
+    context.quadraticCurveTo(20.5, -4.5, 13.5, -5.2);
+    context.quadraticCurveTo(8.0, -5.0, 5.5, 1.0);
+    context.lineTo(-11.0, 3.0);
+    context.quadraticCurveTo(-16.0, 4.5, -14.0, 7.5);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // Bright racing underbelly stripe.
+    context.fillStyle = bellyCol.toJS;
+    context.beginPath();
+    context.moveTo(-11.5, 6.4);
+    context.quadraticCurveTo(2.0, 7.8, 15.5, 6.5);
+    context.quadraticCurveTo(17.5, 4.8, 13.0, 4.6);
+    context.lineTo(-10.5, 5.0);
+    context.closePath();
+    context.fill();
+
+    // 5. Glossy aerodynamic racer shell with racing stripe & spiral!
+    final CanvasGradient shellGrad =
+        context.createRadialGradient(-4.5, -5.5, 1.5, -2.0, -1.5, 13.0);
+    shellGrad.addColorStop(0.0, "#ffffff");
+    shellGrad.addColorStop(0.22, shellMain);
+    shellGrad.addColorStop(1.0, shellDark);
+    context.fillStyle = shellGrad;
+    context.strokeStyle = "#161c26".toJS;
+    context.lineWidth = 2.2;
+    context.beginPath();
+    context.ellipse(-2.5, -1.5, 11.8, 9.6, -0.18, 0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    // Racing stripe & crisp spiral inside shell.
+    context.save();
+    context.beginPath();
+    context.ellipse(-2.5, -1.5, 10.6, 8.5, -0.18, 0, pi * 2.0);
+    context.clip();
+    context.fillStyle = stripeCol.toJS;
+    context.fillRect(-14.0, -5.5, 24.0, 3.4);
+    // Checkered racing squares along the stripe!
+    context.fillStyle = "#161c26".toJS;
+    for (double cx = -12.0; cx < 9.0; cx += 5.0) {
+      context.fillRect(cx, -5.5, 2.5, 1.7);
+      context.fillRect(cx + 2.5, -3.8, 2.5, 1.7);
+    }
+    context.restore();
+
+    // Bold turbo shell spiral.
+    context.strokeStyle = "#161c26".toJS;
+    context.lineWidth = 1.7;
+    context.beginPath();
+    context.arc(-2.2, -1.0, 6.2, 0.3, pi * 1.65);
+    context.arc(-2.5, -1.0, 3.0, pi * 1.65, pi * 3.0);
+    context.stroke();
+
+    // 6. Wind-swept eyestalks & badass racing goggles!
+    final double windLean = -3.0 - speedFrac * 4.5;
+    context.strokeStyle = "#161c26".toJS;
+    context.lineWidth = 3.2;
+    context.lineCap = "round";
+    for (final List<double> stalk in [
+      [14.5, -4.5, 13.0 + windLean, -11.5],
+      [17.8, -3.8, 17.5 + windLean, -10.5],
+    ]) {
+      context.beginPath();
+      context.moveTo(stalk[0], stalk[1]);
+      context.quadraticCurveTo(stalk[0] + 1.0, stalk[1] - 4.0, stalk[2], stalk[3]);
+      context.stroke();
+      context.strokeStyle = bodyCol.toJS;
+      context.lineWidth = 1.8;
+      context.stroke();
+      context.strokeStyle = "#161c26".toJS;
+      context.lineWidth = 3.2;
+    }
+
+    // Racing goggles perched on the wind-swept eyes!
+    for (final List<double> eye in [
+      [13.0 + windLean, -11.5],
+      [17.5 + windLean, -10.5],
+    ]) {
+      // Goggle chrome frame.
+      context.fillStyle = "#262d3d".toJS;
+      context.strokeStyle = "#11151f".toJS;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.arc(eye[0], eye[1], 3.4, 0, pi * 2.0);
+      context.fill();
+      context.stroke();
+      // Tinted racing lens with glossy specular highlight!
+      context.fillStyle = goggleTint.toJS;
+      context.beginPath();
+      context.arc(eye[0] + 0.4, eye[1], 2.2, 0, pi * 2.0);
+      context.fill();
+      context.fillStyle = "#ffffff".toJS;
+      context.beginPath();
+      context.arc(eye[0] + 1.1, eye[1] - 0.8, 0.8, 0, pi * 2.0);
+      context.fill();
+    }
+
+    // Determined racer smirk!
+    context.strokeStyle = "#161c26".toJS;
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.moveTo(15.0, 2.2);
+    context.quadraticCurveTo(18.5, 3.0, 20.5, 0.8);
+    context.stroke();
+
+    context.restore();
+
+    if (debug) {
+      super.draw(context, true);
+    }
+  }
+
+  @override
+  ExtraSpriteData addExtraNetworkData() {
+    final ExtraSpriteData data = super.addExtraNetworkData();
+    data.extraInt.add(snailVariant);
+    return data;
+  }
+
+  @override
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    super.parseExtraNetworkData(data);
+    if (data.extraInt.length > 3) {
+      snailVariant = data.extraInt[3];
+    }
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.SNAIL;
   }
 }
 

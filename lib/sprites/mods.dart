@@ -12,6 +12,7 @@ enum Mod {
   HYPER,
   COFFEE,
   LITTER,
+  KITTEN,
   SNAIL,
   BRICK,
   SHOTGUN,
@@ -56,6 +57,12 @@ Map<Mod, List<KillMessageBuilder>> _killedMessages = {
     (killed, killer) => "$killer scooped $killed straight into the litter box!",
     (killed, killer) => "$killed had a catastrophic run-in with $killer's litter box!",
   ],
+  Mod.KITTEN: [
+    (killed, killer) => "$killed got pounced by $killer's runaway kitten!",
+    (killed, killer) => "$killer's zoomie kitten blasted $killed to smithereens!",
+    (killed, killer) => "$killed couldn't resist petting $killer's explosive kitten!",
+    (killed, killer) => "$killed got purr-minated by $killer's escaped kitten!",
+  ],
   Mod.BRICK: [
     (killed, killer) => "$killed ran straight into $killer's brick wall!",
     (killed, killer) => "$killer dropped a ton of bricks on $killed!",
@@ -89,6 +96,7 @@ Map<Mod, String Function(String player)> _selfKillMessages = {
   Mod.BANANA: (p) => "$p ate too much of their own banana pancake!",
   Mod.COFFEE: (p) => "$p spilled scalding coffee on themselves!",
   Mod.LITTER: (p) => "$p jumped into their own cat litter box!",
+  Mod.KITTEN: (p) => "$p got pounced by their own runaway kitten!",
   Mod.HYPER: (p) => "$p got toasted by their own Neon Blaster!",
   Mod.TV: (p) => "$p bounced into their own jellybeans!",
   Mod.SNAIL: (p) => "$p got caught by their own snails!",

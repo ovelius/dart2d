@@ -18,6 +18,7 @@ class Weapon {
   Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime,
       this.fireDelay, this.fire,
       {this.hasLaserSight = false}) {
+    this.shotsLeft = shotsPerClip;
   }
   
   void fireButton(WeaponState weaponState) {

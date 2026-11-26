@@ -4,6 +4,7 @@ import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worlds.dart';
+import 'package:dart2d/worlds/world_util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -874,6 +875,127 @@ void main() {
         worldA.frameDraw(0.05);
       }
       expect(cat.remove, isTrue, reason: "Running cat must explode after 2 seconds");
+    });
+
+    test('RacerSnail_StaysUprightWhenShootingLeftAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 8; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      // Fire a racer snail to the LEFT (angle = pi -> must flip upright, not upside down!).
+      playerA.gun.angle = 3.14159265;
+      SnailProjectile leftSnail = SnailProjectile.createWithOwner(
+          worldA, playerA, 12, playerA.gun, variant: 1);
+      leftSnail.position = Vec2(50.0, 50.0);
+      leftSnail.removeOutOfBounds = false;
+      expect(leftSnail.isFacingLeft, isTrue);
+
+      // Fire a racer snail to the RIGHT (angle = 0 -> upright without flip).
+      playerA.gun.angle = 0.0;
+      SnailProjectile rightSnail = SnailProjectile.createWithOwner(
+          worldA, playerA, 12, playerA.gun, variant: 2);
+      rightSnail.position = Vec2(40.0, 50.0);
+      rightSnail.removeOutOfBounds = false;
+      expect(rightSnail.isFacingLeft, isFalse);
+
+      // Verify all 3 racer liveries render cleanly in both left & right orientations.
+      FakeCanvas canvas = FakeCanvas();
+      for (int v = 0; v < 3; v++) {
+        leftSnail.snailVariant = v;
+        leftSnail.draw(canvas.context2D, false);
+        rightSnail.snailVariant = v;
+        rightSnail.draw(canvas.context2D, false);
+      }
+      leftSnail.snailVariant = 1;
+
+      worldA.addSprite(leftSnail);
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.02);
+        worldB.frameDraw(0.02);
+      }
+
+      SnailProjectile? remoteSnail;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is SnailProjectile) {
+          remoteSnail = worldB.spriteIndex[id] as SnailProjectile;
+        }
+      }
+      expect(remoteSnail, isNotNull,
+          reason: "Expected SnailProjectile to transfer to client");
+      expect(remoteSnail!.snailVariant, equals(1));
+      expect(remoteSnail.isFacingLeft, isTrue);
+    });
+
+    test('KittenKill_SyncsModMessageAndDrawsKittenEasterEggOnDeathScreen', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 8; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+
+      // Verify RunningCatProjectile uses its dedicated Mod.KITTEN.
+      RunningCatProjectile cat = RunningCatProjectile.createFromBox(
+        worldA,
+        playerA,
+        Vec2(40.0, 40.0),
+        Vec2(100.0, 0.0),
+        runDirection: 1.0,
+        catVariant: 0,
+      );
+      expect(cat.mod, equals(Mod.KITTEN));
+      expect(killedMessage("nameB", "playerA", Mod.KITTEN).toLowerCase(),
+          contains("kitten"));
+      expect(selfKillMessage("nameB", Mod.KITTEN).toLowerCase(),
+          contains("kitten"));
+
+      // Kill player B with Mod.KITTEN on commander and sync to client B.
+      playerBOnA.takeDamage(LocalPlayerSprite.MAX_HEALTH + 10, playerA, Mod.KITTEN);
+      expect(playerBOnA.killedByMod, equals(Mod.KITTEN));
+      expect(playerBOnA.killedByMessage, isNotNull);
+      expect(playerBOnA.killedByMessage!.toLowerCase(), contains("kitten"));
+
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+
+      expect(playerBOnB.killedByMod, equals(Mod.KITTEN),
+          reason: "Remote killed player should receive Mod.KITTEN from commander");
+      expect(playerBOnB.killedByMessage, equals(playerBOnA.killedByMessage),
+          reason: "Remote killed player should display the exact same Mod kill message");
+
+      // Advance into the visible killed-screen fade window and render drawKilledView
+      // with the kitten easter egg & killer avatar!
+      playerBOnB.spawnIn = LocalPlayerSprite.RESPAWN_TIME - 2.2;
+      FakeCanvas canvas = FakeCanvas();
+      drawKilledView(
+        canvas.context2D,
+        worldB,
+        canvas.width,
+        canvas.height,
+        playerBOnB,
+        worldB.spriteIndex,
+        worldB.imageIndex(),
+      );
     });
     /*
     test('TestKillDormantSprites', () {

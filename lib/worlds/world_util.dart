@@ -253,25 +253,73 @@ void drawKilledView(CanvasRenderingContext2D context,
   context.fillRect(0, 0, width, height);
   drawPlayerStats(context, world, width, height, spriteIndex, imageIndex, false, false);
   PlayerInfoProto? killer = player.killer;
-  if (killer == null || killer == player.info) {
+  if (killer == null) {
     context.restore();
     return;
   }
-  // This can be null.
-  LocalPlayerSprite? killerSprite = spriteIndex[killer.spriteId] as LocalPlayerSprite?;
-  HTMLImageElement? img = killerSprite == null ? null : imageIndex.getImageById(killerSprite.imageId);
-  context.font = 'bold ${_textSize}px "Trebuchet MS", Arial, sans-serif';
-  String text = "You were killed by ${killer.name}";
-  var metrics = context.measureText(text);
+  final bool isSelfKill = killer == player.info;
+  final Mod? killMod = player.killedByMod;
+  final bool isKittenKill = killMod == Mod.KITTEN;
 
-  double messageLength =  metrics.width + (killerSprite == null ? 0 : killerSprite.size.x);
-  if (messageLength > width) {
-    // OOps we are larger than screen. Reduce text size for next frame.
-    _textSize -= 2;
+  // Build the playful Mod kill message instead of generic "You were killed by ...".
+  String text = (player.killedByMessage != null &&
+          player.killedByMessage!.isNotEmpty)
+      ? player.killedByMessage!
+      : (isSelfKill
+          ? selfKillMessage(player.info.name, killMod ?? Mod.UNKNOWN)
+          : killedMessage(player.info.name, killer.name, killMod ?? Mod.UNKNOWN));
+
+  LocalPlayerSprite? killerSprite =
+      spriteIndex[killer.spriteId] as LocalPlayerSprite?;
+  HTMLImageElement? img = killerSprite == null
+      ? null
+      : imageIndex.getImageById(killerSprite.imageId);
+
+  final double avatarW = killerSprite == null ? 0.0 : killerSprite.size.x * 1.75;
+  final double avatarH = killerSprite == null ? 0.0 : killerSprite.size.y * 1.75;
+  final double kittenW = isKittenKill ? 66.0 : 0.0;
+  final double maxBannerW = max(240.0, width - 48.0);
+
+  // Dynamically fit font size so longer mod messages never clip off-screen.
+  int fontSize = 30;
+  double textW = 0.0;
+  while (fontSize >= 16) {
+    context.font = 'bold ${fontSize}px "Trebuchet MS", Arial, sans-serif';
+    textW = context.measureText(text).width.toDouble();
+    final double totalW =
+        textW + (avatarW > 0 ? avatarW + 14.0 : 0.0) + (kittenW > 0 ? kittenW + 12.0 : 0.0);
+    if (totalW <= maxBannerW) {
+      break;
+    }
+    fontSize -= 2;
   }
-  double x = width / 2 - messageLength / 2;
-  double y = height / 4;
-  _drawCartoonText(context, text, x, y, fill: "#fff7e0", stroke: "#181d26", strokeWidth: 6.5);
+
+  final double totalW = textW +
+      (avatarW > 0 ? avatarW + 14.0 : 0.0) +
+      (kittenW > 0 ? kittenW + 12.0 : 0.0);
+  final double startX = width / 2.0 - totalW / 2.0;
+  final double y = height / 4.0;
+  final double animTime =
+      max(0.0, LocalPlayerSprite.RESPAWN_TIME - player.spawnIn);
+
+  double cursorX = startX;
+
+  // Kitten Easter Egg: draw a cute animated cartoon kitten right beside the mod message!
+  if (isKittenKill) {
+    _drawKittenEasterEgg(context, cursorX + kittenW * 0.5, y - 4.0, animTime);
+    cursorX += kittenW + 12.0;
+  }
+
+  _drawCartoonText(
+    context,
+    text,
+    cursorX,
+    y,
+    fill: isKittenKill ? "#ffe680" : "#fff7e0",
+    stroke: "#181d26",
+    strokeWidth: max(4.0, fontSize * 0.20),
+  );
+  cursorX += textW + 14.0;
 
   if (img != null && killerSprite != null) {
     double frameWidth = (img.width / killerSprite.frames);
@@ -281,12 +329,167 @@ void drawKilledView(CanvasRenderingContext2D context,
         0,
         frameWidth,
         img.height,
-        x + metrics.width + 8,
-        y - killerSprite.size.y - _textSize / 2,
-        killerSprite.size.x * 2,
-        killerSprite.size.y * 2);
+        cursorX,
+        y - avatarH * 0.72,
+        avatarW,
+        avatarH);
   }
   context.restore();
+}
 
+/// Adorable animated cartoon kitten easter egg shown on the death banner
+/// whenever a player is knocked out by a runaway kitten (`Mod.KITTEN`).
+void _drawKittenEasterEgg(
+    CanvasRenderingContext2D ctx, double cx, double cy, double time) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  final double hop = sin(time * 9.0).abs() * -5.0;
+  final double tailWag = sin(time * 12.0) * 4.5;
+  final double earTwitch = sin(time * 7.5) * 0.08;
+
+  // Subtle pastel glow halo behind the kitten!
+  final CanvasGradient halo = ctx.createRadialGradient(0, 0, 4, 0, 0, 32);
+  halo.addColorStop(0.0, "rgba(255, 224, 118, 0.55)");
+  halo.addColorStop(1.0, "rgba(255, 224, 118, 0.0)");
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(0, 0, 32, 0, pi * 2.0);
+  ctx.fill();
+
+  ctx.translate(0, hop);
+
+  // Cute swishing orange tabby tail!
+  ctx.strokeStyle = "#1a1f2b".toJS;
+  ctx.lineWidth = 6.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(12, 10);
+  ctx.quadraticCurveTo(26, 4 + tailWag, 22, -10 + tailWag * 0.7);
+  ctx.stroke();
+  ctx.strokeStyle = "#ff9e3b".toJS;
+  ctx.lineWidth = 3.8;
+  ctx.stroke();
+
+  // Plump sitting kitten body + white chest + tiny paws!
+  ctx.fillStyle = "#ff9e3b".toJS;
+  ctx.strokeStyle = "#1a1f2b".toJS;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.ellipse(0, 10, 14, 12, 0, 0, pi * 2.0);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff5e0".toJS;
+  ctx.beginPath();
+  ctx.ellipse(0, 12, 7.5, 8.0, 0, 0, pi * 2.0);
+  ctx.fill();
+
+  for (final double px in const [-6.5, 6.5]) {
+    ctx.fillStyle = "#ffffff".toJS;
+    ctx.beginPath();
+    ctx.ellipse(px, 19.5, 4.2, 2.8, 0, 0, pi * 2.0);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Big adorable cartoon kitten head with twitching pointy ears!
+  ctx.save();
+  ctx.rotate(earTwitch);
+  ctx.fillStyle = "#ff9e3b".toJS;
+  ctx.strokeStyle = "#1a1f2b".toJS;
+  ctx.lineWidth = 2.4;
+  for (final double side in const [-1.0, 1.0]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 4, -14);
+    ctx.lineTo(side * 13.5, -26);
+    ctx.lineTo(side * 15.5, -10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#ff9eb8".toJS;
+    ctx.beginPath();
+    ctx.moveTo(side * 6.5, -14.5);
+    ctx.lineTo(side * 12.2, -22.5);
+    ctx.lineTo(side * 13.5, -12.0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ff9e3b".toJS;
+  }
+
+  ctx.beginPath();
+  ctx.ellipse(0, -6, 15.5, 13.0, 0, 0, pi * 2.0);
+  ctx.fill();
+  ctx.stroke();
+
+  // Forehead tabby stripes!
+  ctx.fillStyle = "#c45a12".toJS;
+  ctx.fillRect(-1.5, -18.5, 3.0, 5.5);
+  ctx.fillRect(-6.5, -17.0, 2.4, 4.5);
+  ctx.fillRect(4.1, -17.0, 2.4, 4.5);
+
+  // Big sparkling innocent kitten eyes!
+  for (final double ex in const [-5.8, 5.8]) {
+    ctx.fillStyle = "#7cf55c".toJS;
+    ctx.beginPath();
+    ctx.arc(ex, -7.0, 3.8, 0, pi * 2.0);
+    ctx.fill();
+    ctx.fillStyle = "#12151f".toJS;
+    ctx.beginPath();
+    ctx.arc(ex, -7.0, 2.3, 0, pi * 2.0);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff".toJS;
+    ctx.beginPath();
+    ctx.arc(ex - 1.1, -8.3, 1.2, 0, pi * 2.0);
+    ctx.fill();
+  }
+
+  // Pink nose, happy `:3` mouth & whiskers!
+  ctx.fillStyle = "#ff789e".toJS;
+  ctx.beginPath();
+  ctx.moveTo(-2.2, -3.2);
+  ctx.lineTo(2.2, -3.2);
+  ctx.lineTo(0, -0.8);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "#1a1f2b".toJS;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(-2.5, -0.5, 2.5, 0.15 * pi, 0.9 * pi);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(2.5, -0.5, 2.5, 0.1 * pi, 0.85 * pi);
+  ctx.stroke();
+
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(-10, -3);
+  ctx.lineTo(-18, -4.5);
+  ctx.moveTo(-10, -1);
+  ctx.lineTo(-17.5, 1);
+  ctx.moveTo(10, -3);
+  ctx.lineTo(18, -4.5);
+  ctx.moveTo(10, -1);
+  ctx.lineTo(17.5, 1);
+  ctx.stroke();
+  ctx.restore();
+
+  // Tiny comic speech bubble "meow!" floating above the kitten!
+  ctx.fillStyle = "#ffffff".toJS;
+  ctx.strokeStyle = "#1a1f2b".toJS;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.roundRect(-24, -44, 48, 16, 7.0.toJS);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#ff5c8a".toJS;
+  ctx.font = 'bold 10px "Trebuchet MS", Arial, sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("meow! ♥", 0, -35.8);
+
+  ctx.restore();
 }
 

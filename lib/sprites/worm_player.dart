@@ -60,6 +60,8 @@ class LocalPlayerSprite extends MovingSprite {
 
   late PlayerInfoProto info;
   PlayerInfoProto? _killer = null;
+  Mod? _killedByMod = null;
+  String? _killedByMessage = null;
   Rope? rope = null;
   MobileControls? _mobileControls;
   double? _gunAngleTouchLock = null;
@@ -77,6 +79,8 @@ class LocalPlayerSprite extends MovingSprite {
   late StickySprite _shield;
 
   PlayerInfoProto? get killer => _killer;
+  Mod? get killedByMod => _killedByMod;
+  String? get killedByMessage => _killedByMessage;
 
   /**
    * Server constructor.
@@ -135,6 +139,8 @@ class LocalPlayerSprite extends MovingSprite {
         ..extraFloat.add(spawnIn);
     if (_killer != null) {
       data.extraString.add(_killer!.connectionId);
+      data.extraString.add(_killedByMessage ?? "");
+      data.extraString.add((_killedByMod ?? Mod.UNKNOWN).name);
     }
     if (weaponState != null) {
       Weapon w = weaponState!.getSelectedWeapon();
@@ -156,6 +162,16 @@ class LocalPlayerSprite extends MovingSprite {
           .network()
           .gameState
           .playerInfoByConnectionId(killerId);
+      if (data.extraString.length > 1 && data.extraString[1].isNotEmpty) {
+        _killedByMessage = data.extraString[1];
+      }
+      if (data.extraString.length > 2) {
+        final String modName = data.extraString[2];
+        _killedByMod = Mod.values.firstWhere(
+          (m) => m.name == modName,
+          orElse: () => Mod.UNKNOWN,
+        );
+      }
     }
     if (data.extraFloat.length > 2) {
       Weapon w = weaponState!.getSelectedWeapon();
@@ -695,6 +711,7 @@ class LocalPlayerSprite extends MovingSprite {
           world.checkWinner(killer!);
         }
         spawnIn = RESPAWN_TIME;
+        _killedByMod = mod;
         _deathMessage(mod);
         _addDeathParticles();
       } else if (_shieldPoints <= 0) {
@@ -744,14 +761,19 @@ class LocalPlayerSprite extends MovingSprite {
   void _deathMessage(Mod mod) {
     if (_killer != null) {
       if (_killer == info) {
-        world.displayHudMessageAndSendToNetwork(selfKillMessage(info.name, mod));
+        final String message = selfKillMessage(info.name, mod);
+        _killedByMessage = message;
+        world.displayHudMessageAndSendToNetwork(message);
         world.gaReporter().reportEvent("self_kill", "Frags");
       } else {
-        String message = killedMessage(info.name, killer!.name, mod);
+        final String message = killedMessage(info.name, killer!.name, mod);
+        _killedByMessage = message;
         world.displayHudMessageAndSendToNetwork(message);
       }
     } else {
-      world.displayHudMessageAndSendToNetwork("${info.name} went poof!");
+      final String message = "${info.name} went poof!";
+      _killedByMessage = message;
+      world.displayHudMessageAndSendToNetwork(message);
     }
   }
 
