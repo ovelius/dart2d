@@ -272,27 +272,137 @@ class LocalPlayerSprite extends MovingSprite {
     if (!_ownedByThisWorld()) {
       return false;
     }
-    if (shieldPoints <=0 && health == MAX_HEALTH) {
+    if (shieldPoints <= 0 && health == MAX_HEALTH) {
       // Don't draw if max health.
       return true;
     }
-    int height = 5;
-    int x = position.x.toInt();
-    int y = (position.y  + size.y + size.y /3).toInt();
-    int width = (size.x * health / MAX_HEALTH).toInt();
-    context.globalAlpha = 0.5;
-    context.fillStyle = "#FF0000".toJS;
-    context.fillRect(x, y, size.x.toInt() , height);
-    context.fillStyle = "#00FF00".toJS;;
-    context.fillRect(x, y, width, height);
-    if (_shieldPoints > 0) {
-      int shieldWidth = (size.x * _shieldPoints / MAX_SHIELD).toInt();
-      context.fillStyle = "#0000ff".toJS;
-      context.fillRect(
-          x, y, shieldWidth, height);
+    final double barWidth = size.x + 18.0;
+    final double barX = position.x + (size.x - barWidth) * 0.5;
+    final double barY = position.y + size.y + 8.0;
+    final double healthHeight = 9.5;
+    final double healthFrac = (health / MAX_HEALTH).clamp(0.0, 1.0);
+
+    // Pick juicy cartoon health fill colors based on remaining HP.
+    final String topColor;
+    final String bottomColor;
+    if (healthFrac > 0.55) {
+      topColor = "#7dff74";
+      bottomColor = "#20bd42";
+    } else if (healthFrac > 0.25) {
+      topColor = "#ffe252";
+      bottomColor = "#eb8614";
+    } else {
+      topColor = "#ff6b6b";
+      bottomColor = "#d41e32";
     }
-    context.globalAlpha = 1.0;
+
+    context.save();
+    context.globalAlpha = 0.94;
+    _drawCartoonStatusBar(
+      context,
+      x: barX,
+      y: barY,
+      width: barWidth,
+      height: healthHeight,
+      fraction: healthFrac,
+      fillTop: topColor,
+      fillBottom: bottomColor,
+    );
+
+    if (_shieldPoints > 0) {
+      final double shieldHeight = 8.0;
+      final double shieldY = barY + healthHeight + 3.5;
+      final double shieldFrac = (_shieldPoints / MAX_SHIELD).clamp(0.0, 1.0);
+
+      // Subtle electric-cyan outer glow behind the shield bar.
+      context.fillStyle = "rgba(86, 232, 255, 0.30)".toJS;
+      context.beginPath();
+      context.roundRect(
+        barX - 2.0,
+        shieldY - 2.0,
+        barWidth + 4.0,
+        shieldHeight + 4.0,
+        ((shieldHeight + 4.0) * 0.5).toJS,
+      );
+      context.fill();
+
+      _drawCartoonStatusBar(
+        context,
+        x: barX,
+        y: shieldY,
+        width: barWidth,
+        height: shieldHeight,
+        fraction: shieldFrac,
+        fillTop: "#8ef6ff",
+        fillBottom: "#1e90ff",
+      );
+    }
+
+    context.restore();
     return true;
+  }
+
+  void _drawCartoonStatusBar(
+    CanvasRenderingContext2D context, {
+    required double x,
+    required double y,
+    required double width,
+    required double height,
+    required double fraction,
+    required String fillTop,
+    required String fillBottom,
+  }) {
+    final double radius = height * 0.5;
+
+    // Cartoon drop shadow.
+    context.fillStyle = "rgba(10, 16, 26, 0.45)".toJS;
+    context.beginPath();
+    context.roundRect(x + 1.4, y + 1.8, width, height, radius.toJS);
+    context.fill();
+
+    // Recessed dark trough.
+    context.fillStyle = "rgba(18, 24, 36, 0.88)".toJS;
+    context.beginPath();
+    context.roundRect(x, y, width, height, radius.toJS);
+    context.fill();
+
+    // Clipped glossy fill gradient.
+    if (fraction > 0.0) {
+      context.save();
+      context.beginPath();
+      context.roundRect(x, y, width, height, radius.toJS);
+      context.clip();
+
+      final double fillW = width * fraction;
+      final CanvasGradient grad = context.createLinearGradient(0, y, 0, y + height);
+      grad.addColorStop(0.0, fillTop);
+      grad.addColorStop(1.0, fillBottom);
+      context.fillStyle = grad;
+      context.fillRect(x, y, fillW, height);
+
+      // Glossy top cartoon highlight strip.
+      context.fillStyle = "rgba(255, 255, 255, 0.36)".toJS;
+      context.fillRect(x, y + 0.8, fillW, height * 0.38);
+      context.restore();
+    }
+
+    // Subtle quarter-segment divider ticks for quick readability.
+    context.strokeStyle = "rgba(12, 18, 28, 0.35)".toJS;
+    context.lineWidth = 1.0;
+    for (int i = 1; i < 4; i++) {
+      final double tx = x + width * (i * 0.25);
+      context.beginPath();
+      context.moveTo(tx, y + 1.5);
+      context.lineTo(tx, y + height - 1.5);
+      context.stroke();
+    }
+
+    // Crisp cartoon dark ink border.
+    context.strokeStyle = "#121b28".toJS;
+    context.lineWidth = 2.0;
+    context.beginPath();
+    context.roundRect(x, y, width, height, radius.toJS);
+    context.stroke();
   }
 
   bool _ownedByThisWorld() {

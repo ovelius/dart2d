@@ -469,6 +469,80 @@ void main() {
           isFalse);
     });
 
+    test('Dart_InterceptsAndDetonatesOrStopsProjectiles', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 10; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerB = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+
+      // 1. Same-owner darts do NOT intercept each other.
+      DartProjectile ownDart1 =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      DartProjectile ownDart2 =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      ownDart1.collide(ownDart2, null, null);
+      expect(ownDart1.remove, isFalse);
+      expect(ownDart2.remove, isFalse);
+
+      // 2. Enemy darts stop each other mid-air.
+      DartProjectile enemyDart =
+          DartProjectile.createWithOwner(worldA, playerB, 8, playerB.gun);
+      ownDart1.collide(enemyDart, null, null);
+      expect(ownDart1.remove, isTrue);
+      expect(enemyDart.remove, isTrue);
+
+      // 3. Dart detonates an explosive BananaCake into BananaClusterProjectiles.
+      DartProjectile dartVsCake =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      BananaCake cake =
+          BananaCake.createWithOwner(worldA, playerB, 50, playerB.gun);
+      cake.position = Vec2(40.0, 40.0);
+      cake.radius = 40.0;
+      worldA.addSprite(cake);
+      dartVsCake.collide(cake, null, null);
+      expect(dartVsCake.remove, isTrue);
+      expect(cake.remove, isTrue);
+      worldA.frameDraw(0.004);
+      int clusterCount = worldA.spriteIndex
+          .spriteIds()
+          .where((id) => worldA.spriteIndex[id] is BananaClusterProjectile)
+          .length;
+      expect(clusterCount, greaterThan(0),
+          reason: "Expected BananaCake to explode into banana clusters when hit by a dart");
+
+      // 4. Dart stops a piercing Snailgun (removeOnCollision == false).
+      DartProjectile dartVsSnail =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      WorldDamageProjectile snail = WorldDamageProjectile.createWithOwner(
+          worldA, playerB, 12, positionBase: playerB.gun);
+      snail.mod = Mod.SNAIL;
+      snail.removeOnCollision = false;
+      snail.radius = 19.0;
+      dartVsSnail.collide(snail, null, null);
+      expect(dartVsSnail.remove, isTrue);
+      expect(snail.remove, isTrue,
+          reason: "Expected piercing Snailgun projectile to be stopped by dart");
+
+      // 5. Dart stops a BrickBuilder mid-air without placing a brick.
+      DartProjectile dartVsBrick =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      BrickBuilder brick =
+          BrickBuilder.createWithOwner(worldA, playerB, 2, playerB.gun);
+      dartVsBrick.collide(brick, null, null);
+      expect(dartVsBrick.remove, isTrue);
+      expect(brick.remove, isTrue);
+    });
+
     test('CoffeeParticles_ExpireAndCollideNormally', () async {
       throwIfLoggingUnexpected = false;
       WormWorld worldA = await createTestWorld('a');

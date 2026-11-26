@@ -2175,6 +2175,33 @@ class DartProjectile extends WorldDamageProjectile {
   }
 
   @override
+  collide(MovingSprite? other, ByteWorld? world, int? direction) {
+    if (networkType == NetworkType.REMOTE || remove) {
+      return;
+    }
+    if (other is WorldDamageProjectile && !other.remove) {
+      // Never intercept our own rapidly-fired darts coming out of the barrel.
+      if (other is DartProjectile &&
+          owner != null &&
+          other.owner != null &&
+          other.owner!.networkId == owner!.networkId) {
+        return;
+      }
+      if (other is DartProjectile || other is BrickBuilder) {
+        other.remove = true;
+      } else {
+        if (other.owner != null) {
+          other.explode();
+        }
+        other.remove = true;
+      }
+      this.remove = true;
+      return;
+    }
+    super.collide(other, world, direction);
+  }
+
+  @override
   void onRemove() {
     if (_impactSpawned) return;
     _impactSpawned = true;

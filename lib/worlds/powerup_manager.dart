@@ -10,41 +10,58 @@ class PowerupManager {
   final Logger log = new Logger('PowerupManager');
   static int MAX_POWERUPS = 4;
   static double POWERUP_SPAWN_TIME = 10.0;
+  static double MIN_POWERUP_SPAWN_TIME = 2.5;
 
   SpriteIndex _spriteIndex;
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
   List<Powerup> activePowerups = [];
 
-  double _nextPowerupin = POWERUP_SPAWN_TIME / 2;
+  double _nextPowerupin = MIN_POWERUP_SPAWN_TIME;
 
   PowerupManager(this._spriteIndex, this._imageIndex, this._byteWorld) {
-    log.info("Created PowerupManager spawning every ${POWERUP_SPAWN_TIME} seconds");
+    log.info("Created PowerupManager spawning every ${MIN_POWERUP_SPAWN_TIME}-${POWERUP_SPAWN_TIME} seconds");
   }
 
   void reset() {
     for (Powerup p in activePowerups) {
       p.remove = true;
     }
+    activePowerups.clear();
+    _nextPowerupin = MIN_POWERUP_SPAWN_TIME;
+  }
+
+  /// Returns a shorter spawn interval when fewer powerups are active in the world.
+  double nextSpawnInterval() {
+    if (MAX_POWERUPS <= 0) {
+      return POWERUP_SPAWN_TIME;
+    }
+    final double fillRatio =
+        (activePowerups.length / MAX_POWERUPS).clamp(0.0, 1.0);
+    return MIN_POWERUP_SPAWN_TIME +
+        (POWERUP_SPAWN_TIME - MIN_POWERUP_SPAWN_TIME) * fillRatio;
+  }
+
+  void _pruneRemovedPowerups() {
+    final int prevCount = activePowerups.length;
+    activePowerups.removeWhere((p) => p.remove);
+    if (activePowerups.length < prevCount) {
+      _nextPowerupin = min(_nextPowerupin, nextSpawnInterval());
+    }
   }
 
   void frame(double duration) {
+    _pruneRemovedPowerups();
     _nextPowerupin -= duration;
     if (_nextPowerupin < 0) {
-      _nextPowerupin = POWERUP_SPAWN_TIME;
-      List<Powerup> filtered = [];
-      for (Powerup p in activePowerups) {
-        if (!p.remove) {
-          filtered.add(p);
-        }
-      }
-      activePowerups = filtered;
-
       if (activePowerups.length < MAX_POWERUPS) {
         addNewRandomPowerup();
       }
+      _nextPowerupin = nextSpawnInterval();
     }
   }
+
+  double get nextPowerupIn => _nextPowerupin;
 
   void addNewRandomPowerup() {
     PowerUpType type = PowerUpType.values[new Random().nextInt(PowerUpType.values.length)];

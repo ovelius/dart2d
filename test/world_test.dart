@@ -4,6 +4,7 @@ import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
 import 'package:dart2d/worlds/worm_world.dart';
 import 'package:dart2d/worlds/byteworld.dart';
+import 'package:dart2d/worlds/powerup_manager.dart';
 import 'package:dart2d/phys/vec2.dart';
 
 late ByteWorld byteWorld;
@@ -355,6 +356,36 @@ void main() {
       }
       expect(player.inGame(), isTrue);
       expect(worldA.cameraZoom, closeTo(1.0, 0.001));
+    });
+
+    test('TestPowerupManagerSpawnsFasterWhenCountIsLow', () async {
+      WormWorld worldA = await createTestWorld('a');
+      PowerupManager pm = PowerupManager(
+          worldA.spriteIndex, worldA.imageIndex(), worldA.byteWorld);
+
+      // With 0 powerups, spawns quickly (MIN_POWERUP_SPAWN_TIME = 2.5s).
+      expect(pm.nextSpawnInterval(), equals(PowerupManager.MIN_POWERUP_SPAWN_TIME));
+      pm.frame(PowerupManager.MIN_POWERUP_SPAWN_TIME + 0.1);
+      expect(pm.activePowerups.length, equals(1));
+      double intervalAfter1 = pm.nextSpawnInterval();
+      expect(intervalAfter1, greaterThan(PowerupManager.MIN_POWERUP_SPAWN_TIME));
+      expect(intervalAfter1, lessThan(PowerupManager.POWERUP_SPAWN_TIME));
+
+      // Fill up to MAX_POWERUPS -> interval scales up monotonically to POWERUP_SPAWN_TIME.
+      while (pm.activePowerups.length < PowerupManager.MAX_POWERUPS) {
+        pm.frame(pm.nextPowerupIn + 0.1);
+      }
+      expect(pm.activePowerups.length, equals(PowerupManager.MAX_POWERUPS));
+      expect(pm.nextSpawnInterval(), equals(PowerupManager.POWERUP_SPAWN_TIME));
+      expect(pm.nextPowerupIn, equals(PowerupManager.POWERUP_SPAWN_TIME));
+
+      // When players consume all powerups, the pending timer speeds back up immediately.
+      for (Powerup p in pm.activePowerups) {
+        p.remove = true;
+      }
+      pm.frame(0.05);
+      expect(pm.activePowerups, isEmpty);
+      expect(pm.nextPowerupIn, lessThanOrEqualTo(PowerupManager.MIN_POWERUP_SPAWN_TIME));
     });
   });
 }

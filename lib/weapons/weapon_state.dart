@@ -26,6 +26,8 @@ class WeaponState {
   
   double changeTime = 0.0;
   double _laserTime = 0.0;
+  bool _wasReloading = false;
+  double _reloadReadyFlash = 0.0;
   String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
   double _anglePerWeapon = 0.0;
@@ -216,7 +218,15 @@ class WeaponState {
   think(double duration) {
     changeTime -= duration;
     _laserTime += duration;
+    if (_reloadReadyFlash > 0.0) {
+      _reloadReadyFlash = max(0.0, _reloadReadyFlash - duration * 3.6);
+    }
     weapons[selectedWeaponIndex].think(duration);
+    final bool nowReloading = reloading();
+    if (_wasReloading && !nowReloading) {
+      _reloadReadyFlash = 1.0;
+    }
+    _wasReloading = nowReloading;
   }
 
   weaponStateSelector(Point<int> delta) {
@@ -510,37 +520,246 @@ class WeaponState {
       _drawLaserSight(context);
     }
     if (owner.drawWeaponHelpers()) {
-      double radius = owner.getRadius();
-      context.fillStyle = "#ffffff".toJS;
-      Vec2 center = owner.centerPoint();
+      _drawMagazineIndicator(context);
       if (reloading()) {
-        double percentInverse = (100 - reloadPercent()) / 100.0;
-        double circle = pi * 2 * percentInverse - pi/2;
-
-        context.save();
-        if (changeTime <= 0) {
-          context.font = 'bold 13px "Trebuchet MS", Arial, sans-serif';
-          context.lineJoin = "round";
-          context.strokeStyle = "#161b24".toJS;
-          context.lineWidth = 3.2;
-          double reloadX = center.x - 28;
-          double reloadY = center.y - owner.size.y * 0.75;
-          context.strokeText("Reloading", reloadX, reloadY);
-          context.fillStyle = "#fff9e6".toJS;
-          context.fillText("Reloading", reloadX, reloadY);
-          context.beginPath();
-        }
-
-        context.fillStyle = "#009900".toJS;
-        context.globalAlpha = 0.5;
-        context.arc(center.x, center.y, radius + 5,
-            - pi/2, circle, false);
-        context.arc(center.x, center.y, radius,
-            circle, pi*2 - pi/2, true);
-        context.fill();
-        context.restore();
+        _drawReloadIndicator(context);
       }
     }
+    context.restore();
+  }
+
+  /// Draws a fresh cartoon reload widget cleanly above the clip size indicator:
+  /// a compact glossy rounded pill with a spinning cartoon reload arrow glyph
+  /// and a smooth candy-gradient progress bar with gliding shine.
+  void _drawReloadIndicator(CanvasRenderingContext2D context) {
+    final Weapon weapon = getSelectedWeapon();
+    final double progress = weapon.reloadTime > 0.0
+        ? (1.0 - (weapon.untilReload / weapon.reloadTime)).clamp(0.0, 1.0)
+        : 1.0;
+
+    final Vec2 center = owner.centerPoint();
+    final double bobY = sin(_laserTime * 7.5) * 1.2;
+    const double pillW = 62.0;
+    const double pillH = 15.0;
+    const double radius = pillH * 0.5;
+    final double pillX = center.x - pillW * 0.5;
+    final double pillY = owner.position.y - 31.0 + bobY;
+
+    context.save();
+    context.globalAlpha = 0.95;
+
+    // Cartoon drop shadow.
+    context.fillStyle = "rgba(10, 16, 28, 0.45)".toJS;
+    context.beginPath();
+    context.roundRect(pillX + 1.4, pillY + 1.8, pillW, pillH, radius.toJS);
+    context.fill();
+
+    // Glossy cartoon slate-navy capsule body.
+    final CanvasGradient bodyGrad =
+        context.createLinearGradient(0, pillY, 0, pillY + pillH);
+    bodyGrad.addColorStop(0.0, "#243b5c");
+    bodyGrad.addColorStop(1.0, "#132036");
+    context.fillStyle = bodyGrad;
+    context.beginPath();
+    context.roundRect(pillX, pillY, pillW, pillH, radius.toJS);
+    context.fill();
+
+    // Glossy top shine strip.
+    context.fillStyle = "rgba(255, 255, 255, 0.16)".toJS;
+    context.beginPath();
+    context.roundRect(
+        pillX + 3.0, pillY + 1.2, pillW - 6.0, pillH * 0.36, (radius * 0.5).toJS);
+    context.fill();
+
+    // Bold cartoon ink border + subtle golden accent rim.
+    context.strokeStyle = "#0e1726".toJS;
+    context.lineWidth = 2.0;
+    context.beginPath();
+    context.roundRect(pillX, pillY, pillW, pillH, radius.toJS);
+    context.stroke();
+
+    // Spinning circular reload arrow icon on the left side of the pill.
+    final double iconCx = pillX + 9.0;
+    final double iconCy = pillY + pillH * 0.5;
+    const double iconR = 4.2;
+    context.save();
+    context.translate(iconCx, iconCy);
+    context.rotate(_laserTime * 6.5);
+    context.strokeStyle = "#ffe454".toJS;
+    context.fillStyle = "#ffe454".toJS;
+    context.lineWidth = 1.6;
+    context.lineCap = "round";
+    for (int half = 0; half < 2; half++) {
+      final double startA = half * pi + 0.35;
+      final double endA = startA + pi * 0.65;
+      context.beginPath();
+      context.arc(0, 0, iconR, startA, endA);
+      context.stroke();
+
+      // Tiny arrowhead at end of arc.
+      final double ax = cos(endA) * iconR;
+      final double ay = sin(endA) * iconR;
+      final double tangent = endA + pi * 0.5;
+      context.beginPath();
+      context.moveTo(ax + cos(tangent) * 2.2, ay + sin(tangent) * 2.2);
+      context.lineTo(ax + cos(endA) * 1.9 - cos(tangent) * 1.2,
+          ay + sin(endA) * 1.9 - sin(tangent) * 1.2);
+      context.lineTo(ax - cos(endA) * 1.7 - cos(tangent) * 1.2,
+          ay - sin(endA) * 1.7 - sin(tangent) * 1.2);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+
+    // Smooth candy-gradient reload progress track to the right of the icon.
+    final double trackX = pillX + 16.5;
+    final double trackW = pillW - 21.5;
+    const double trackH = 7.0;
+    final double trackY = pillY + (pillH - trackH) * 0.5;
+    const double trackR = trackH * 0.5;
+
+    context.fillStyle = "rgba(8, 14, 24, 0.82)".toJS;
+    context.beginPath();
+    context.roundRect(trackX, trackY, trackW, trackH, trackR.toJS);
+    context.fill();
+
+    if (progress > 0.0) {
+      context.save();
+      context.beginPath();
+      context.roundRect(trackX, trackY, trackW, trackH, trackR.toJS);
+      context.clip();
+
+      final double fillW = max(trackH * 0.6, trackW * progress);
+      final CanvasGradient fillGrad =
+          context.createLinearGradient(trackX, 0, trackX + trackW, 0);
+      fillGrad.addColorStop(0.0, "#47f0ff");
+      fillGrad.addColorStop(0.55, "#6dff8f");
+      fillGrad.addColorStop(1.0, "#ffe44d");
+      context.fillStyle = fillGrad;
+      context.fillRect(trackX, trackY, fillW, trackH);
+
+      // Gliding cartoon shine highlight across the reload bar.
+      final double sheenX =
+          trackX + ((_laserTime * 75.0) % (trackW + 24.0)) - 12.0;
+      final CanvasGradient sheen =
+          context.createLinearGradient(sheenX - 7.0, 0, sheenX + 7.0, 0);
+      sheen.addColorStop(0.0, "rgba(255, 255, 255, 0.0)");
+      sheen.addColorStop(0.5, "rgba(255, 255, 255, 0.62)");
+      sheen.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
+      context.fillStyle = sheen;
+      context.fillRect(trackX, trackY, fillW, trackH);
+
+      // Glossy top highlight.
+      context.fillStyle = "rgba(255, 255, 255, 0.34)".toJS;
+      context.fillRect(trackX, trackY + 0.6, fillW, trackH * 0.36);
+      context.restore();
+    }
+
+    context.strokeStyle = "rgba(255, 255, 255, 0.30)".toJS;
+    context.lineWidth = 0.9;
+    context.beginPath();
+    context.roundRect(trackX, trackY, trackW, trackH, trackR.toJS);
+    context.stroke();
+
+    context.restore();
+  }
+
+  /// Draws a discreet cartoon magazine indicator above the local player:
+  /// - Small clips (<= 6 shots): individual rounded ammo pips.
+  /// - Large clips (> 6 shots): a slim rounded cartoon ammo bar.
+  void _drawMagazineIndicator(CanvasRenderingContext2D context) {
+    final Weapon weapon = getSelectedWeapon();
+    final int maxShots = weapon.shotsPerClip;
+    if (maxShots <= 0) return;
+
+    final bool isReloading = reloading();
+    final int remaining = isReloading ? 0 : weapon.shotsLeft.clamp(0, maxShots);
+    final double frac = remaining / maxShots;
+    final Vec2 center = owner.centerPoint();
+    final double baseY = owner.position.y - 10.0;
+    // Stay subtle when full, become clearly visible as the clip drains or reloads.
+    final bool isFull = !isReloading && remaining >= maxShots;
+    final bool isLow = !isReloading && (remaining == 1 || frac <= 0.25);
+    final double alpha = _reloadReadyFlash > 0.0
+        ? 0.96
+        : (isFull ? 0.45 : (isReloading ? 0.72 : 0.88));
+    final double popScale = 1.0 + _reloadReadyFlash * 0.16;
+
+    context.save();
+    context.globalAlpha = alpha;
+    if (_reloadReadyFlash > 0.01) {
+      context.translate(center.x, baseY);
+      context.scale(popScale, popScale);
+      context.translate(-center.x, -baseY);
+    }
+
+    if (maxShots <= 6) {
+      final double pipW = maxShots == 1 ? 12.0 : 7.0;
+      final double pipH = 5.0;
+      final double gap = 3.0;
+      final double totalW = maxShots * pipW + (maxShots - 1) * gap;
+      final double startX = center.x - totalW * 0.5;
+      final double y = baseY - pipH * 0.5;
+      final double r = pipH * 0.5;
+
+      for (int i = 0; i < maxShots; i++) {
+        final double x = startX + i * (pipW + gap);
+        final bool filled = i < remaining;
+        if (filled) {
+          context.fillStyle = (isLow ? "#ff7a45" : "#ffe252").toJS;
+        } else {
+          context.fillStyle = "rgba(18, 24, 36, 0.55)".toJS;
+        }
+        context.beginPath();
+        context.roundRect(x, y, pipW, pipH, r.toJS);
+        context.fill();
+
+        if (filled) {
+          context.fillStyle = "rgba(255, 255, 255, 0.45)".toJS;
+          context.fillRect(x + 1.0, y + 0.7, pipW - 2.0, pipH * 0.35);
+        }
+
+        context.strokeStyle = "#121b28".toJS;
+        context.lineWidth = 1.3;
+        context.beginPath();
+        context.roundRect(x, y, pipW, pipH, r.toJS);
+        context.stroke();
+      }
+    } else {
+      const double barW = 38.0;
+      const double barH = 5.0;
+      final double x = center.x - barW * 0.5;
+      final double y = baseY - barH * 0.5;
+      const double r = barH * 0.5;
+
+      // Dark trough.
+      context.fillStyle = "rgba(18, 24, 36, 0.72)".toJS;
+      context.beginPath();
+      context.roundRect(x, y, barW, barH, r.toJS);
+      context.fill();
+
+      // Clipped ammo fill.
+      if (frac > 0.0) {
+        context.save();
+        context.beginPath();
+        context.roundRect(x, y, barW, barH, r.toJS);
+        context.clip();
+        final double fillW = barW * frac;
+        context.fillStyle = (isLow ? "#ff684a" : "#ffe054").toJS;
+        context.fillRect(x, y, fillW, barH);
+        context.fillStyle = "rgba(255, 255, 255, 0.38)".toJS;
+        context.fillRect(x, y + 0.6, fillW, barH * 0.38);
+        context.restore();
+      }
+
+      // Crisp thin comic border.
+      context.strokeStyle = "#121b28".toJS;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.roundRect(x, y, barW, barH, r.toJS);
+      context.stroke();
+    }
+
     context.restore();
   }
 
