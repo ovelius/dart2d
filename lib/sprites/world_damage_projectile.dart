@@ -2484,12 +2484,15 @@ class BrickBuilder extends WorldDamageProjectile {
   }
 
   bool _isSlotOccupied(Point<int> slot, Uint8ClampedList data, int minX, int minY, int bufW, int bufH) {
+    // Sample the intact 2px perimeter edges (where exact COLOR is preserved for
+    // pattern matching) so textured realistic brick centers still report occupied.
     final List<Point<int>> samples = [
-      Point(slot.x + BRICK_WIDTH ~/ 2, slot.y + BRICK_HEIGHT ~/ 2),
-      Point(slot.x + BRICK_WIDTH ~/ 4, slot.y + BRICK_HEIGHT ~/ 4),
-      Point(slot.x + (BRICK_WIDTH * 3) ~/ 4, slot.y + BRICK_HEIGHT ~/ 4),
-      Point(slot.x + BRICK_WIDTH ~/ 4, slot.y + (BRICK_HEIGHT * 3) ~/ 4),
-      Point(slot.x + (BRICK_WIDTH * 3) ~/ 4, slot.y + (BRICK_HEIGHT * 3) ~/ 4),
+      Point(slot.x + 1, slot.y + 1),
+      Point(slot.x + BRICK_WIDTH - 2, slot.y + 1),
+      Point(slot.x + 1, slot.y + BRICK_HEIGHT - 2),
+      Point(slot.x + BRICK_WIDTH - 2, slot.y + BRICK_HEIGHT - 2),
+      Point(slot.x + BRICK_WIDTH ~/ 2, slot.y + 1),
+      Point(slot.x + BRICK_WIDTH ~/ 2, slot.y + BRICK_HEIGHT - 2),
     ];
     int hits = 0;
     for (Point<int> s in samples) {

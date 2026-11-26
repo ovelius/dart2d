@@ -482,4 +482,65 @@ void main() {
     handler.reportFrameRates(98.0, 25.0);
     expect(handler.currentFrameRate(), 6);
   });
+
+  test('SendFailures_toleratesAtLeastTwoSecondsBeforeClosing', () {
+    final bool prevThrowUnexpected = throwIfLoggingUnexpected;
+    throwIfLoggingUnexpected = false;
+    addTearDown(() => throwIfLoggingUnexpected = prevThrowUnexpected);
+
+    ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+    connection.open();
+    testConnection.throwOnSend = true;
+
+    // 10 consecutive send errors within < 2 seconds must not close connection.
+    for (int i = 0; i < 10; i++) {
+      connection.sendData(GameStateUpdates()..frame = i + 1);
+      expect(connection.isClosedConnection(), isFalse);
+      fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 199));
+    }
+    // Total elapsed is 10 * 199ms = 1990ms; one more failure at 1990ms stays open.
+    connection.sendData(GameStateUpdates()..frame = 11);
+    expect(connection.isClosedConnection(), isFalse);
+
+    // Crossing >= 2 seconds of continuous send failures closes the connection.
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 10));
+    connection.sendData(GameStateUpdates()..frame = 12);
+    expect(connection.isClosedConnection(), isTrue);
+  });
+
+  test('SendFailures_successfulSendResetsGracePeriod', () {
+    final bool prevThrowUnexpected = throwIfLoggingUnexpected;
+    throwIfLoggingUnexpected = false;
+    addTearDown(() => throwIfLoggingUnexpected = prevThrowUnexpected);
+
+    ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+    connection.open();
+    testConnection.throwOnSend = true;
+
+    // Fail for 1.5 seconds.
+    connection.sendData(GameStateUpdates()..frame = 1);
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 1500));
+    connection.sendData(GameStateUpdates()..frame = 2);
+    connection.sendData(GameStateUpdates()..frame = 3);
+    expect(connection.isClosedConnection(), isFalse);
+
+    // One successful send clears the failure timer and counter.
+    testConnection.throwOnSend = false;
+    connection.sendData(GameStateUpdates()..frame = 4);
+    expect(connection.isClosedConnection(), isFalse);
+
+    // Another 1.5 seconds of failures starts a fresh 2-second grace period.
+    testConnection.throwOnSend = true;
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 100));
+    connection.sendData(GameStateUpdates()..frame = 5);
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 1500));
+    connection.sendData(GameStateUpdates()..frame = 6);
+    connection.sendData(GameStateUpdates()..frame = 7);
+    expect(connection.isClosedConnection(), isFalse);
+
+    // Reaching 2 full seconds from the new failure streak closes it.
+    fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 500));
+    connection.sendData(GameStateUpdates()..frame = 8);
+    expect(connection.isClosedConnection(), isTrue);
+  });
 }

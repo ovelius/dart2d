@@ -220,12 +220,21 @@ class ByteWorld {
   }
 
   fillRectAt(Vec2 pos, Vec2 size, String colorString) {
-    canvas!.context2D
-      ..save();
-    canvas!.context2D.fillStyle = colorString.toJS;
-    canvas!.context2D
-      ..fillRect(pos.x, pos.y, size.x, size.y)
-      ..restore();
+    final CanvasRenderingContext2D ctx = canvas!.context2D;
+    ctx.save();
+    ctx.fillStyle = colorString.toJS;
+    ctx.fillRect(pos.x, pos.y, size.x, size.y);
+
+    // For BrickBuilder bricks (`#aa3311`, 54x18), enrich the interior center with
+    // realistic kiln-baked terracotta shading, inner bevels, and subtle mineral
+    // grain while leaving the outer 2px `#aa3311` perimeter completely untouched
+    // for pixel-exact brick alignment & pattern matching.
+    if (colorString.toLowerCase() == "#aa3311" &&
+        size.x >= 20.0 &&
+        size.y >= 10.0) {
+      _drawRealisticBrickCenter(ctx, pos.x, pos.y, size.x, size.y);
+    }
+    ctx.restore();
     
     // Update collision buffer.
     int x1 = max(0, pos.x.toInt());
@@ -237,6 +246,96 @@ class ByteWorld {
         _collisionBuffer[y * _width + x] = 1;
       }
     }
+  }
+
+  /// Renders realistic baked-clay depth, subtle kiln-fired shade variation,
+  /// inner chamfer highlights/shadows, and fine mineral grain strictly inside
+  /// a 2px margin of a brick so the outer `#aa3311` edges remain exact.
+  void _drawRealisticBrickCenter(CanvasRenderingContext2D ctx, double x, double y,
+      double w, double h) {
+    const double edgeMargin = 2.0;
+    final double ix = x + edgeMargin;
+    final double iy = y + edgeMargin;
+    final double iw = w - edgeMargin * 2.0;
+    final double ih = h - edgeMargin * 2.0;
+    if (iw <= 4.0 || ih <= 4.0) return;
+
+    // Deterministic seed from brick coordinates so commander & remote clients
+    // draw identical clay grain while adjacent bricks look naturally varied.
+    final int seed = ((x.round() * 73856093) ^ (y.round() * 19349663)) & 0x7FFFFFFF;
+    final Random rng = Random(seed);
+    final int shadeJitter = rng.nextInt(15) - 7;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ix, iy, iw, ih);
+    ctx.clip();
+
+    // 1. Soft radial terracotta glow toward the brick center fading back to #aa3311.
+    final double cx = ix + iw * (0.46 + (rng.nextDouble() - 0.5) * 0.14);
+    final double cy = iy + ih * 0.42;
+    final CanvasGradient clayGrad =
+        ctx.createRadialGradient(cx, cy, 1.5, cx, cy, max(iw, ih) * 0.62);
+    final int hiR = (204 + shadeJitter).clamp(180, 224);
+    final int hiG = (78 + (shadeJitter ~/ 2)).clamp(60, 96);
+    final int hiB = (36 + (shadeJitter ~/ 3)).clamp(24, 50);
+    final int midR = (176 + shadeJitter).clamp(156, 194);
+    final int midG = (56 + (shadeJitter ~/ 2)).clamp(44, 72);
+    final int midB = (21 + (shadeJitter ~/ 3)).clamp(14, 32);
+    clayGrad.addColorStop(0.0, "rgb($hiR, $hiG, $hiB)");
+    clayGrad.addColorStop(0.62, "rgb($midR, $midG, $midB)");
+    clayGrad.addColorStop(1.0, "#992a0c");
+    ctx.fillStyle = clayGrad;
+    ctx.fillRect(ix, iy, iw, ih);
+
+    // 2. Subtle top-left sunlit clay bevel and bottom-right recessed bevel.
+    ctx.fillStyle = "rgba(255, 206, 162, 0.28)".toJS;
+    ctx.fillRect(ix + 1.0, iy, iw - 2.0, 2.0);
+    ctx.fillRect(ix, iy, 1.5, ih - 2.0);
+
+    ctx.fillStyle = "rgba(56, 12, 2, 0.36)".toJS;
+    ctx.fillRect(ix + 1.0, iy + ih - 2.0, iw - 1.0, 2.0);
+    ctx.fillRect(ix + iw - 1.5, iy + 1.0, 1.5, ih - 1.0);
+
+    // 3. Subtle horizontal pressed-clay striations across the face.
+    for (int s = 0; s < 3; s++) {
+      final double sy = iy + 2.5 + rng.nextDouble() * (ih - 5.0);
+      final double sx = ix + 2.0 + rng.nextDouble() * (iw * 0.35);
+      final double sw = 8.0 + rng.nextDouble() * (iw * 0.45);
+      ctx.fillStyle = (s.isEven
+              ? "rgba(82, 18, 4, 0.20)"
+              : "rgba(245, 162, 112, 0.16)")
+          .toJS;
+      ctx.fillRect(sx, sy, sw, 1.0);
+    }
+
+    // 4. Fine kiln-fired clay pores & sand/mineral flecks concentrated toward center.
+    for (int i = 0; i < 18; i++) {
+      final double fx = ix + 2.0 + rng.nextDouble() * (iw - 4.0);
+      final double fy = iy + 1.5 + rng.nextDouble() * (ih - 3.0);
+      final double fr = (i % 4 == 0) ? 1.4 : 0.9;
+      ctx.fillStyle = (i % 3 == 0
+              ? "rgba(62, 14, 3, 0.42)"
+              : (i % 3 == 1
+                  ? "rgba(255, 198, 152, 0.28)"
+                  : "rgba(128, 30, 8, 0.34)"))
+          .toJS;
+      ctx.fillRect(fx, fy, fr, fr);
+    }
+
+    // 5. Occasional tiny hairline clay micro-crack near the middle.
+    if (rng.nextInt(3) == 0) {
+      final double kx = ix + iw * (0.28 + rng.nextDouble() * 0.44);
+      final double ky = iy + 3.0 + rng.nextDouble() * max(1.0, ih - 8.0);
+      ctx.strokeStyle = "rgba(64, 14, 4, 0.36)".toJS;
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(kx, ky);
+      ctx.lineTo(kx + (rng.nextDouble() - 0.5) * 6.0, ky + 3.5);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
   void _traceCraterPolygon(CanvasRenderingContext2D ctx, double cx, double cy,

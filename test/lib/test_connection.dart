@@ -49,6 +49,7 @@ class TestConnection {
   }
 
   bool buffer = false;
+  bool throwOnSend = false;
   List<List<int>> dataBuffer = [];
 
   bool signalOpen = true;
@@ -138,6 +139,9 @@ class TestConnection {
   }
 
   send(List<int> data) {
+    if (throwOnSend) {
+      throw new StateError("Simulated send error on $this");
+    }
     GameStateUpdates update = GameStateUpdates.fromBuffer(data);
     for (StateUpdate update in update.stateUpdate) {
       if (update.whichUpdate() == StateUpdate_Update.notSet) {

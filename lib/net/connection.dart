@@ -34,6 +34,8 @@ class ConnectionWrapper {
   // Close connection due to inactivity.
   static const Duration LAST_RECEIVE_DATA_CLOSE_DURATION = Duration(seconds: 5);
   static const Duration KEEP_ALIVE_DURATION = Duration(seconds: 2);
+  // Require continuous send failures for at least this duration before dropping.
+  static const Duration SEND_FAILURE_CLOSE_DURATION = Duration(seconds: 2);
   static const int COLLECT_STATS_EVERY_N_FRAMES = 50;
 
   Network _network;
@@ -46,6 +48,8 @@ class ConnectionWrapper {
   RTCDataChannel? _dataChannel;
   RTCPeerConnection? _rtcConnection;
   int _sendFailures = 0;
+  DateTime? _firstSendFailureTime = null;
+  double _sendFailureTickSeconds = 0.0;
   // True if connection was successfully opened.
   bool _opened = false;
   bool closed = false;
@@ -343,6 +347,9 @@ class ConnectionWrapper {
    * Advance connection time. Maybe send data. Maybe send keyframe.
    */
   void tick(double duration, List<int> removals) {
+    if (_firstSendFailureTime != null) {
+      _sendFailureTickSeconds += duration;
+    }
     // Tickle connection with some data in case it's about to go cold.
     if (lastDataReceived() > KEEP_ALIVE_DURATION) {
       sendPing();
@@ -402,6 +409,7 @@ class ConnectionWrapper {
       log.warning(
           "Connection to $id not responsive, dropping!");
       close("Not responding receive timeout");
+      return;
     }
 
     DateTime now = _clock.now();
@@ -439,14 +447,27 @@ class ConnectionWrapper {
       }
       _dataChannel?.send(dataBytes.toJS);
       _sendFailures = 0;
+      _firstSendFailureTime = null;
+      _sendFailureTickSeconds = 0.0;
     } catch (e, s) {
       if (THROW_SEND_ERRORS_FOR_TEST) {
         log.severe("Error sending ${data}!");
         throw e;
       }
-      if (++_sendFailures > 2) {
-        log.severe("Failed to send to $id: $e, closing connection");
+      _sendFailures++;
+      _firstSendFailureTime ??= now;
+      final Duration wallFailureDuration = now.difference(_firstSendFailureTime!);
+      final Duration tickFailureDuration =
+          Duration(milliseconds: (_sendFailureTickSeconds * 1000).round());
+      final Duration failureDuration = wallFailureDuration > tickFailureDuration
+          ? wallFailureDuration
+          : tickFailureDuration;
+      if (_sendFailures > 2 && failureDuration >= SEND_FAILURE_CLOSE_DURATION) {
+        log.severe(
+            "Failed to send to $id for ${failureDuration.inMilliseconds}ms ($_sendFailures failures): $e, closing connection");
         close("Failed to send data");
+      } else if (_sendFailures == 1) {
+        log.warning("Transient send failure to $id: $e");
       }
     }
   }

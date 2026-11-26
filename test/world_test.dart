@@ -156,6 +156,26 @@ void main() {
       expect(isWhiteMortar(baseX - 1, baseY), isTrue);
       expect(isWhiteMortar(baseX + bwW, baseY), isTrue);
 
+      // Verify the outer 2px edge stays exact BrickBuilder.COLOR for pattern matching
+      // while the interior center has realistic shaded clay texture variation.
+      for (int x = baseX; x < baseX + bwW; x++) {
+        expect(isBrickPixel(x, baseY), isTrue);
+        expect(isBrickPixel(x, baseY + bwH - 1), isTrue);
+      }
+      for (int y = baseY; y < baseY + bwH; y++) {
+        expect(isBrickPixel(baseX, y), isTrue);
+        expect(isBrickPixel(baseX + bwW - 1, y), isTrue);
+      }
+      final Set<int> centerColors = {};
+      for (int y = baseY + 2; y < baseY + bwH - 2; y++) {
+        for (int x = baseX + 2; x < baseX + bwW - 2; x++) {
+          final px = bw.getImageDataFor(x, y, 1, 1);
+          centerColors.add((px[0] << 16) | (px[1] << 8) | px[2]);
+        }
+      }
+      expect(centerColors.length, greaterThan(10),
+          reason: "Brick interior should render realistic shaded clay variation");
+
       // 2. Hit slightly off-center on top edge -> aligns directly above with 1px mortar at y = baseY - 1.
       fireBrickAt(baseX + bwW * 0.7, baseY - 2.0, 0.0, 500.0);
       expect(isBrickPixel(baseX, baseY - stepY), isTrue);

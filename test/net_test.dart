@@ -1107,7 +1107,8 @@ void main() {
 
       ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
 
-      for (int i = 0; i < 20; i++) {
+      // Advance past the 2-second send failure grace period plus re-election.
+      for (int i = 0; i < 40; i++) {
         worldC.frameDraw(0.1);
         worldD.frameDraw(0.1);
       }

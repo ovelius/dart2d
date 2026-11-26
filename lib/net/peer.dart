@@ -77,7 +77,7 @@ class PeerWrapper {
     }
     ConnectionWrapper connectionWrapper = new ConnectionWrapper(
         _network, _hudMessages,
-        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
+        id, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), clock);
     connectionWrapper.negotiator.onNegotiationComplete((WebRtcDanceProto proto){
       _sendNegotiatorPayload(connectionWrapper.negotiator, proto, WebRtcNegotiationProto_Type.OFFER);
     });
@@ -205,7 +205,7 @@ class PeerWrapper {
       log.warning("Already a connection to ${otherPeerId}!");
     }
     ConnectionWrapper wrapper = new ConnectionWrapper(_network, _hudMessages,
-        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), Clock());
+        otherPeerId, _packetListenerBindings, _configParams, new ConnectionFrameHandler(_configParams), clock);
     if (!_network.isCommander()
         && _network.gameState.playerInfoByConnectionId(otherPeerId) != null) {
       wrapper.markAsClientToClientConnection();
