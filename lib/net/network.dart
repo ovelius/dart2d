@@ -65,6 +65,14 @@ class Network {
         (ConnectionWrapper connection, StateUpdate stateUpdate) {
         _handleClientStatusData(connection.id, stateUpdate.clientStatusData);
     });
+    _packetListenerBindings.bindHandler(StateUpdate_Update.userMessage,
+        (ConnectionWrapper connection, StateUpdate stateUpdate) {
+      _forwardUpdateToDisconnectedPeers(connection, stateUpdate);
+    });
+    _packetListenerBindings.bindHandler(StateUpdate_Update.particleEffects,
+        (ConnectionWrapper connection, StateUpdate stateUpdate) {
+      _forwardUpdateToDisconnectedPeers(connection, stateUpdate);
+    });
 
     _packetListenerBindings.bindHandler(StateUpdate_Update.commanderGameReply,
         (ConnectionWrapper connection, StateUpdate stateUpdate) {
@@ -158,8 +166,11 @@ class Network {
     }
     List<String> validKeys = [];
     for (String key in connections.keys) {
-      // Someone not in GameState is not valid...
+      // Someone not in GameState or never opened is not valid...
       ConnectionWrapper connection = connections[key];
+      if (!connection.isActiveConnection()) {
+        continue;
+      }
       if (connection.id == gameState.gameStateProto.actingCommanderId) {
         log.info("${peer.id} has a commander connection using ${key}");
         return null;
@@ -177,44 +188,89 @@ class Network {
   }
 
   /**
-   * When the commander dies unexpectedly we need to make a collective decision on
-   * who will be the next commander. The peer ID should be the most consistent item
-   * so we pick the remaining host with the highest natural order peerId.
-   * Should this turn out to be unsuitable, it will automatically select a better
-   * commander in time.
+   * Counts confirmed mutual direct connections in GameState for [candidateId]
+   * to other in-game peers (excluding [excludePeerId], such as a departing or
+   * dropped commander).
    */
-  String _naturalOrderPeerId(List<String> validKeys) {
-    // We always elect the peer with the highest natural order id.
-    var maxPeerKey = null;
-    if (!validKeys.isEmpty) {
-      maxPeerKey = validKeys.reduce(
-          (value, element) => value.compareTo(element) < 0 ? value : element);
+  int _countConfirmedPeerConnections(
+      String candidateId, {String? excludePeerId}) {
+    PlayerInfoProto? info = gameState.playerInfoByConnectionId(candidateId);
+    if (info == null) {
+      return 0;
     }
-    if (maxPeerKey != null && maxPeerKey.compareTo(peer.id) < 0) {
-      return maxPeerKey;
-    } else {
-      return peer.id!;
+    Set<String> connectedPeers = {};
+    for (ConnectionInfoProto conn in info.connectionInfo) {
+      String otherId = conn.id;
+      if (otherId == candidateId || otherId == excludePeerId) {
+        continue;
+      }
+      if (!gameState.isInGame(otherId)) {
+        continue;
+      }
+      if (_hasMutualDirectConnection(candidateId, otherId)) {
+        connectedPeers.add(otherId);
+      }
     }
+    return connectedPeers.length;
   }
 
   /**
-   * Select the best next commander.
-   * TODO also count the number of connections?
+   * When the commander dies unexpectedly we need to make a collective decision on
+   * who will be the next commander. Prefer the reachable peer with the most
+   * confirmed peer-to-peer connections in GameState so partial-mesh games keep
+   * the largest connected group together, breaking ties deterministically by
+   * natural order peerId.
+   */
+  String _naturalOrderPeerId(List<String> validKeys) {
+    String oldCommanderId = gameState.gameStateProto.actingCommanderId;
+    List<String> candidates = [peer.id!, ...validKeys];
+    String bestPeerKey = peer.id!;
+    int bestConnections = -1;
+    for (String candidateId in candidates) {
+      int connCount = _countConfirmedPeerConnections(
+          candidateId, excludePeerId: oldCommanderId);
+      if (connCount > bestConnections ||
+          (connCount == bestConnections &&
+              candidateId.compareTo(bestPeerKey) < 0)) {
+        bestConnections = connCount;
+        bestPeerKey = candidateId;
+      }
+    }
+    return bestPeerKey;
+  }
+
+  /**
+   * Select the best next commander when handing off command: prioritize the
+   * candidate with the most confirmed peer connections first, breaking ties by
+   * highest FPS and then natural peerId order.
    */
   String? _bestCommanderPeerId(List<String> validKeys) {
+    int bestConnections = -1;
     double bestFps = -1;
-    String? bestFpsKey = null;
+    String? bestKey = null;
     for (String peerId in validKeys) {
-      // pick commander with highest FPS.
       PlayerInfoProto? info = gameState.playerInfoByConnectionId(peerId);
-      if (info != null && info.fps > bestFps) {
+      if (info == null) {
+        continue;
+      }
+      int connCount =
+          _countConfirmedPeerConnections(peerId, excludePeerId: peer.id);
+      bool betterConnections = connCount > bestConnections;
+      bool tiedConnectionsBetterFps =
+          connCount == bestConnections && info.fps > bestFps;
+      bool tiedBothBetterOrder = connCount == bestConnections &&
+          info.fps == bestFps &&
+          bestKey != null &&
+          peerId.compareTo(bestKey) < 0;
+      if (betterConnections || tiedConnectionsBetterFps || tiedBothBetterOrder) {
+        bestConnections = connCount;
         bestFps = info.fps;
-        bestFpsKey = peerId;
+        bestKey = peerId;
       }
     }
     log.info(
-        "Identified ${bestFpsKey} as best suitable commander with fps ${bestFps}");
-    return bestFpsKey;
+        "Identified ${bestKey} as best suitable commander with ${bestConnections} peer connections and fps ${bestFps}");
+    return bestKey;
   }
 
   void resetGameConnections() {
@@ -231,18 +287,26 @@ class Network {
     _hudMessages.display("Commander role transferred to you :)");
     String oldCommanderId = gameState.gameStateProto.actingCommanderId;
     gameState.convertToServer(world, this.peer.id);
-    List<int> spriteIds = new List.from(_spriteIndex.spriteIds());
-    for (int id in spriteIds) {
-      Sprite sprite = _spriteIndex[id]!;
-      // Transfer ownership of the old commanders sprites to us.
-      if (!(sprite is LocalPlayerSprite)) {
-        if (sprite.ownerId == oldCommanderId &&
+    List<Sprite> allSprites = [
+      for (int id in new List.from(_spriteIndex.spriteIds()))
+        if (_spriteIndex.isPendingRemoval(id) != true) _spriteIndex[id]!,
+      for (Sprite pending in (_spriteIndex.pendingSprites() ?? const <Sprite>[]))
+        if (pending.networkId == null ||
+            _spriteIndex.isPendingRemoval(pending.networkId!) != true)
+          pending,
+    ];
+    for (Sprite sprite in allSprites) {
+      // Transfer ownership of commander-owned world sprites (such as Powerups
+      // and projectiles) to us, keeping their exact state as is.
+      if (sprite is! LocalPlayerSprite && sprite is! Rope) {
+        if ((sprite is Powerup || sprite.ownerId == oldCommanderId) &&
             sprite.networkType == NetworkType.REMOTE) {
           sprite.ownerId = null;
           sprite.networkType = NetworkType.LOCAL;
+          sprite.fullFramesOverNetwork = 6;
         }
       }
-      // Remove any projectiles without owner.
+      // Remove any projectiles/ropes belonging to a departed commander player.
       if (previousCommanderPlayerInfo != null && sprite is MovingSprite &&
           sprite.owner?.networkId == previousCommanderPlayerInfo.spriteId) {
         sprite.remove = true;
@@ -251,6 +315,12 @@ class Network {
     }
     for (String id in connections.keys) {
       ConnectionWrapper connection = connections[id]!;
+      // `connections` comes from PeerWrapper.connections before remaining closed
+      // or still-opening peers in the same tick are pruned; skip inactive ones
+      // so we don't send pings on closed channels or recycle dead peers.
+      if (!connection.isActiveConnection()) {
+        continue;
+      }
       connection.sendPing();
       if (connection.isValidGameConnection()) {
         PlayerInfoProto? info = gameState.playerInfoByConnectionId(id);
@@ -271,8 +341,19 @@ class Network {
             sprite?.networkType = NetworkType.REMOTE_FORWARD;
           }
         }
+        // Also promote any client-owned auxiliary sprites (e.g. Rope) from
+        // active peers so the new commander forwards them across missing P2P links.
+        for (int spriteId in _spriteIndex.spriteIds()) {
+          Sprite? s = _spriteIndex[spriteId];
+          if (s != null &&
+              s.ownerId == id &&
+              s.networkType == NetworkType.REMOTE) {
+            s.networkType = NetworkType.REMOTE_FORWARD;
+          }
+        }
       }
     }
+    world.powerupManager()?.syncWithSpriteIndex();
     gameState.markAsUrgent();
   }
 
@@ -336,15 +417,25 @@ class Network {
     // Command transfer successful.
     if (_pendingCommandTransfer != null &&
        gameState.gameStateProto.actingCommanderId == _pendingCommandTransfer) {
-
+      final String newCommanderId = gameState.gameStateProto.actingCommanderId;
+      List<Sprite> allSprites = [
+        for (int spriteId in _spriteIndex.spriteIds()) _spriteIndex[spriteId]!,
+        ...(_spriteIndex.pendingSprites() ?? const <Sprite>[]),
+      ];
       // Change sprite types. We are no longer commander.
-      for (PlayerInfoProto info in gameState.gameStateProto.playerInfo) {
-        Sprite? sprite = _spriteIndex[info.spriteId];
-        if (sprite?.networkType == NetworkType.REMOTE_FORWARD) {
-          sprite?.networkType = NetworkType.REMOTE;
+      for (Sprite sprite in allSprites) {
+        if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
+          sprite.networkType = NetworkType.REMOTE;
+        } else if (sprite.networkType == NetworkType.LOCAL &&
+            sprite is! LocalPlayerSprite &&
+            !(sprite is Rope &&
+                sprite.owner?.networkId == world.playerSprite?.networkId)) {
+          sprite.networkType = NetworkType.REMOTE;
+          sprite.ownerId = newCommanderId;
         }
       }
-      log.info("Successfully command transfer to ${gameState.gameStateProto.actingCommanderId}");
+      world.powerupManager()?.syncWithSpriteIndex();
+      log.info("Successfully command transfer to ${newCommanderId}");
       _pendingCommandTransfer = null;
     }
 
@@ -504,6 +595,18 @@ class Network {
    * on each before closing the underlying WebRTC transport.
    */
   void sendGoodbye(String reason) {
+    if (isCommander() && _pendingCommandTransfer != null) {
+      // Notify other active clients of the chosen successor before closing our
+      // channels so they don't run a competing election upon seeing goodbye.
+      gameState.gameStateProto.actingCommanderId = _pendingCommandTransfer!;
+      for (ConnectionWrapper connection in safeActiveConnections().values) {
+        if (connection.id != _pendingCommandTransfer &&
+            connection.isValidGameConnection()) {
+          connection.sendSingleUpdate(
+              StateUpdate()..gameState = gameState.gameStateProto);
+        }
+      }
+    }
     for (ConnectionWrapper connection in List.of(peer.connections.values)) {
       if (!connection.closed) {
         connection.close(reason);
@@ -617,6 +720,12 @@ class Network {
           continue;
         }
         intListToSpriteProperties(update, sprite);
+        if (sprite.networkType == NetworkType.REMOTE &&
+            sprite is! LocalPlayerSprite &&
+            sprite is! Rope &&
+            connection.id == gameState.gameStateProto.actingCommanderId) {
+          sprite.ownerId = connection.id;
+        }
         // Forward sprite to others.
         if (sprite.networkType == NetworkType.REMOTE_FORWARD) {
           for (ConnectionWrapper receipientConnection
@@ -641,6 +750,23 @@ class Network {
     }
   }
 
+  void _forwardUpdateToDisconnectedPeers(
+      ConnectionWrapper source, StateUpdate update) {
+    if (!isCommander() || !source.isValidGameConnection()) {
+      return;
+    }
+    for (ConnectionWrapper recipient in safeActiveConnections().values) {
+      if (recipient.id == source.id || !recipient.isValidGameConnection()) {
+        continue;
+      }
+      if (!_hasMutualDirectConnection(source.id, recipient.id)) {
+        GameStateUpdates forwarded = GameStateUpdates()
+          ..stateUpdate.add(update);
+        peer.sendDataWithKeyFramesToAll(forwarded, onlySendTo: recipient.id);
+      }
+    }
+  }
+
   bool _hasMutualDirectConnection(String a, String b) {
     return gameState.isConnected(a, b) && gameState.isConnected(b, a);
   }
@@ -654,15 +780,14 @@ class Network {
       } else if (isCommander()) {
         if (keyFrame &&
             recipientId != null &&
-            sprite is LocalPlayerSprite &&
+            sprite is MovingSprite &&
             sprite.networkType == NetworkType.REMOTE_FORWARD &&
             sprite.ownerId != null &&
             sprite.ownerId != recipientId &&
             !_hasMutualDirectConnection(sprite.ownerId!, recipientId)) {
           // Guarantee non-commanders without a confirmed mutual direct P2P
-          // link receive full-frame player sprites on the commander's regular
-          // monotonic keyframes (even while the owner is still loading or if
-          // an unordered forwarded packet was dropped).
+          // link receive full-frame client-owned sprites (player sprites,
+          // ropes) on the commander's regular monotonic keyframes.
           updates.spriteUpdates.add(toSpriteUpdate(sprite, true));
         }
         if (sprite.hasCommanderToOwnerData()) {
@@ -686,9 +811,8 @@ class Network {
     }
     if (keyFrame) {
       ClientStatusData clientData = _createClientStatusData();
-      if (isCommander()) {
-        _handleClientStatusData(peer.id!, clientData);
-      } else {
+      _handleClientStatusData(peer.id!, clientData);
+      if (!isCommander()) {
         updates.stateUpdate.add(StateUpdate()
           ..clientStatusData = clientData);
       }

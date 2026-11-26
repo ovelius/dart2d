@@ -50,6 +50,62 @@ class PowerupManager {
     }
   }
 
+  void pruneRemoved() {
+    _pruneRemovedPowerups();
+  }
+
+  void trackPowerup(Powerup powerup) {
+    if (powerup.remove) {
+      return;
+    }
+    final bool alreadyTracked = activePowerups.any((p) =>
+        identical(p, powerup) ||
+        (p.networkId != null && p.networkId == powerup.networkId));
+    if (!alreadyTracked) {
+      activePowerups.add(powerup);
+    }
+  }
+
+  void syncWithSpriteIndex() {
+    activePowerups.removeWhere((p) {
+      if (p.remove) {
+        return true;
+      }
+      final int? id = p.networkId;
+      if (id == null) {
+        return false;
+      }
+      if (_spriteIndex.isPendingRemoval(id) == true) {
+        return true;
+      }
+      return !_spriteIndex.hasSprite(id) &&
+          _spriteIndex.getPendingSprite(id) == null;
+    });
+    for (int id in _spriteIndex.spriteIds()) {
+      if (_spriteIndex.isPendingRemoval(id) == true) {
+        continue;
+      }
+      Sprite? s = _spriteIndex[id];
+      if (s is Powerup && !s.remove) {
+        trackPowerup(s);
+      }
+    }
+    for (Sprite s in (_spriteIndex.pendingSprites() ?? const <Sprite>[])) {
+      final int? id = s.networkId;
+      if (id != null && _spriteIndex.isPendingRemoval(id) == true) {
+        continue;
+      }
+      if (s is Powerup && !s.remove) {
+        trackPowerup(s);
+      }
+    }
+    if (activePowerups.length >= MAX_POWERUPS) {
+      _nextPowerupin = nextSpawnInterval();
+    } else {
+      _nextPowerupin = min(_nextPowerupin, nextSpawnInterval());
+    }
+  }
+
   void frame(double duration) {
     _pruneRemovedPowerups();
     _nextPowerupin -= duration;
@@ -64,12 +120,15 @@ class PowerupManager {
   double get nextPowerupIn => _nextPowerupin;
 
   void addNewRandomPowerup() {
+    if (activePowerups.length >= MAX_POWERUPS) {
+      return;
+    }
     PowerUpType type = PowerUpType.values[new Random().nextInt(PowerUpType.values.length)];
     Powerup p = new Powerup(_byteWorld.randomNotSolidPoint(
         Powerup.SIZE_OFFSET), type, _imageIndex);
     _spriteIndex.addSprite(p);
     log.info("Added new powerup ${type} to world at ${p.position}");
-    activePowerups.add(p);
+    trackPowerup(p);
   }
 
   setNextPowerForTest(double time) {

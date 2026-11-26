@@ -6,6 +6,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/sprites/sprites.dart';
+import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:test/test.dart';
 import 'lib/test_factories.dart';
 import 'lib/test_injector.dart';
@@ -1408,8 +1409,9 @@ void main() {
       expect(worldB, hasSpecifiedConnections(['a']).isValidGameConnections());
 
       // Manually trigger transient send errors on b -> a for 1.5 seconds (< 2s).
-      final TestConnection connBtoA = testConnections['b']!
-          .firstWhere((c) => c.getOtherEnd()?.id == 'a');
+      // Note: testConnections[remoteId] holds TestConnections pointing TO remoteId.
+      final TestConnection connBtoA = testConnections['a']!
+          .firstWhere((c) => c.getOtherEnd()?.id == 'b');
       connBtoA.throwOnSend = true;
 
       for (int i = 0; i < 15; i++) {
@@ -1423,13 +1425,13 @@ void main() {
       // Recover transport; movement updates should flow again.
       connBtoA.throwOnSend = false;
       final LocalPlayerSprite spriteB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
-      spriteB.position = Vec2(66.0, 55.0);
+      spriteB.position = Vec2(33.0, 22.0);
       spriteB.velocity = Vec2();
       for (int i = 0; i < 6; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
         worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
       }
-      expect(worldA.spriteIndex[playerId(1)]!.position.x, closeTo(66.0, 2.0));
+      expect(worldA.spriteIndex[playerId(1)]!.position.x, closeTo(33.0, 2.0));
 
       // Now sustain send errors for > 2 seconds: connection must close cleanly.
       connBtoA.throwOnSend = true;
@@ -1471,7 +1473,7 @@ void main() {
       expect(worldC.spriteIndex[playerId(1)], isNull);
 
       final LocalPlayerSprite spriteB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
-      spriteB.position = Vec2(77.0, 44.0);
+      spriteB.position = Vec2(41.0, 25.0);
       spriteB.velocity = Vec2();
 
       // Advance past the 2-second send-failure timeout on b <-> c plus keyframes
@@ -1490,7 +1492,7 @@ void main() {
 
       // c must have re-created b's sprite and received its new position via commander A!
       expect(worldC.spriteIndex[playerId(1)], isA<LocalPlayerSprite>());
-      expect(worldC.spriteIndex[playerId(1)]!.position.x, closeTo(77.0, 2.0));
+      expect(worldC.spriteIndex[playerId(1)]!.position.x, closeTo(41.0, 2.0));
     });
 
     test('E2E_EarlyAutoConnectBeforeJoin_PromotesClientToClientAndTransfersSprites', () async {
@@ -1548,8 +1550,11 @@ void main() {
 
       worldA.startAsServer("nameA");
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
       worldC.connectTo("a", "nameC");
+      worldC.network().getServerConnection()!.sendClientEnter();
       worldD.connectTo("a", "nameD");
+      worldD.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 12; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
@@ -1596,6 +1601,481 @@ void main() {
           worldC.byteWorld.canvas!.context2D, worldC, 800, 600,
           playerC, worldC.spriteIndex, worldC.imageIndex()),
           returnsNormally);
+    });
+
+    test('ConvertToCommander_skipsClosedAndInactiveConnections', () async {
+      // Strict mode: sending on any closed TestConnection throws immediately.
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = true;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 8; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Close BOTH commander 'a' and peer 'c' on worldB before ticking so
+      // removeClosedConnection('a') passes a connections map to
+      // convertToCommander that still contains already-closed 'c'.
+      for (TestConnection conn in List.of(testConnections['a']!)) {
+        conn.signalClose();
+        conn.close();
+      }
+      for (TestConnection conn in List.of(testConnections['c']!)) {
+        conn.signalClose();
+        conn.close();
+      }
+
+      // Must not attempt sendPing() on closed 'c' or recycle 'c' into GameState.
+      expect(() => worldB.frameDraw(KEY_FRAME_DEFAULT / 5), returnsNormally);
+      expect(worldB.network().isCommander(), isTrue);
+      expect(worldB, isGameStateOf({playerId(1): "nameB"}).withCommanderId('b'));
+    });
+
+    test('E2E_PartialMesh_CommanderAllPeersOnlyOneClientPairWorks_FullGameFlow', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      WormWorld worldD = await createTestWorld("d");
+      final List<WormWorld> allWorlds = [worldA, worldB, worldC, worldD];
+      for (WormWorld w in allWorlds) {
+        w.network().disableCommandTransferHeuristicForTest = true;
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(300, 200));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+      }
+
+      // Topology: Commander 'a' connects to all peers ('b', 'c', 'd'), while
+      // non-commander peers CANNOT connect to each other EXCEPT 'c' <-> 'd'.
+      TestConnectionFactory connectionFactory =
+          getIt<ConnectionFactory>() as TestConnectionFactory;
+      connectionFactory
+          .failConnection('b', 'c')
+          .failConnection('c', 'b')
+          .failConnection('b', 'd')
+          .failConnection('d', 'b');
+
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+      worldC.connectTo("a", "nameC");
+      worldC.network().getServerConnection()!.sendClientEnter();
+      worldD.connectTo("a", "nameD");
+      worldD.network().getServerConnection()!.sendClientEnter();
+
+      // Step enough frames for initial spawn timers (1.0s) and keyframes to sync.
+      for (int i = 0; i < 16; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+
+      // 1) Verify partial-mesh connection topology and 4-player GameState/sprites.
+      expect(worldA, hasSpecifiedConnections(['b', 'c', 'd']).isValidGameConnections());
+      expect(worldB.network().safeActiveConnections().keys.toSet(), equals({'a'}));
+      expect(worldC, hasSpecifiedConnections(['a', 'd']).isValidGameConnections());
+      expect(worldD, hasSpecifiedConnections(['a', 'c']).isValidGameConnections());
+
+      final Map<int, String> expectedPlayers = {
+        playerId(0): "nameA",
+        playerId(1): "nameB",
+        playerId(2): "nameC",
+        playerId(3): "nameD",
+      };
+      for (WormWorld w in allWorlds) {
+        expect(w, isGameStateOf(expectedPlayers).withCommanderId('a'));
+        for (int pid in expectedPlayers.keys) {
+          LocalPlayerSprite? ps = w.spriteIndex[pid] as LocalPlayerSprite?;
+          expect(ps, isNotNull, reason: "${w} missing sprite $pid");
+          expect(ps!.inGame(), isTrue, reason: "${w} sprite $pid not inGame");
+        }
+        // Confirmed mutual P2P link exists ONLY between c and d among clients.
+        GameState gs = w.network().getGameState();
+        expect(gs.isConnected('c', 'd') && gs.isConnected('d', 'c'), isTrue);
+        expect(gs.isConnected('b', 'c'), isFalse);
+        expect(gs.isConnected('b', 'd'), isFalse);
+      }
+
+      // 2) Verify movement, grappling hook (Rope), particles, and chat messages
+      // from isolated peer 'b' reach 'c' and 'd' via commander 'a', and vice versa.
+      final LocalPlayerSprite bOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      bOnB.position = Vec2(28.0, 22.0);
+      bOnB.velocity = Vec2.ZERO;
+      bOnB.gun.angle = 0.25;
+      Rope ropeB = Rope.createWithOwner(worldB, bOnB, -pi / 2, 250.0);
+      worldB.addSprite(ropeB);
+      Particles jetParticlesB = Particles(
+          worldB, bOnB, Vec2(28.0, 22.0), Vec2(0.0, 40.0),
+          radius: 6.0, count: 4, lifeTime: 80,
+          particleType: ParticleEffects_ParticleType.SODA)
+        ..sendToNetwork = true;
+      worldB.addSprite(jetParticlesB);
+      worldB.displayHudMessageAndSendToNetwork("nameB: hello from isolated peer");
+
+      final LocalPlayerSprite cOnC = worldC.spriteIndex[playerId(2)] as LocalPlayerSprite;
+      cOnC.position = Vec2(48.0, 22.0);
+      cOnC.velocity = Vec2.ZERO;
+      Rope ropeC = Rope.createWithOwner(worldC, cOnC, -pi / 2, 250.0);
+      worldC.addSprite(ropeC);
+
+      for (int i = 0; i < 8; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+
+      // Isolated 'b' updates reached 'c' and 'd' through commander 'a'.
+      expect(worldC.spriteIndex[ropeB.networkId!], isA<Rope>());
+      expect(worldD.spriteIndex[ropeB.networkId!], isA<Rope>());
+      expect((worldD.spriteIndex[ropeB.networkId!] as Rope).ownerId, equals('b'));
+      expect(
+          worldC.hudMessages.messages
+              .any((m) => m.message == "nameB: hello from isolated peer"),
+          isTrue);
+      expect(
+          worldD.hudMessages.messages
+              .any((m) => m.message == "nameB: hello from isolated peer"),
+          isTrue);
+      expect(
+          worldD.spriteIndex.spriteIds().any((id) => worldD.spriteIndex[id] is Particles),
+          isTrue);
+
+      // And 'c's rope reached BOTH direct peer 'd' AND isolated peer 'b'!
+      expect(worldD.spriteIndex[ropeC.networkId!], isA<Rope>());
+      expect(worldB.spriteIndex[ropeC.networkId!], isA<Rope>());
+
+      // Removing 'b' and 'c' ropes propagates removal and stationary positions sync cleanly.
+      worldB.removeSprite(ropeB.networkId!);
+      worldC.removeSprite(ropeC.networkId!);
+      for (WormWorld w in allWorlds) {
+        w.frameDraw(0.05);
+      }
+      bOnB.gravityAffect = 0.0;
+      cOnC.gravityAffect = 0.0;
+      bOnB.position = Vec2(32.0, 22.0);
+      bOnB.velocity = Vec2.ZERO;
+      cOnC.position = Vec2(120.0, 22.0);
+      cOnC.velocity = Vec2.ZERO;
+      for (int i = 0; i < 8; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+      for (WormWorld w in allWorlds) {
+        expect(w.spriteIndex[ropeB.networkId!], isNull);
+        expect(w.spriteIndex[ropeC.networkId!], isNull);
+      }
+      expect(worldC.spriteIndex[playerId(1)]!.position.x, closeTo(32.0, 1.0));
+      expect(worldD.spriteIndex[playerId(1)]!.position.x, closeTo(32.0, 1.0));
+      expect(worldB.spriteIndex[playerId(2)]!.position.x, closeTo(120.0, 1.0));
+      expect(worldD.spriteIndex[playerId(2)]!.position.x, closeTo(120.0, 1.0));
+
+      // 3) Combat, terrain destruction, kill, scoreboard, and respawn across partial mesh:
+      // Paint a destructible terrain wall at x=48..75, y=30..70, place 'c' right
+      // at its front face with 5 HP, and have isolated 'b' at x=2 fire Shotgun into it!
+      WeaponState.random = Random(1);
+      for (WormWorld w in allWorlds) {
+        w.byteWorld.clearAt(Vec2(50, 50), 80.0);
+        w.byteWorld.fillRectAt(Vec2(48, 30), Vec2(28, 40), "#8b5a2b");
+        for (int pid in expectedPlayers.keys) {
+          (w.spriteIndex[pid] as LocalPlayerSprite)
+            ..gravityAffect = 0.0
+            ..flags |= Sprite.FLAG_NO_GRAVITY;
+        }
+        // Move bystanders 'a' and 'd' out of the firing lane so they don't intercept pellets.
+        (w.spriteIndex[playerId(0)] as LocalPlayerSprite)
+          ..position = Vec2(2.0, 5.0)
+          ..velocity = Vec2.ZERO
+          ..collision = false;
+        (w.spriteIndex[playerId(3)] as LocalPlayerSprite)
+          ..position = Vec2(55.0, 5.0)
+          ..velocity = Vec2.ZERO
+          ..collision = false;
+        (w.spriteIndex[playerId(1)] as LocalPlayerSprite)
+          ..position = Vec2(2.0, 48.0)
+          ..velocity = Vec2.ZERO
+          ..angle = 0.0
+          ..gun.angle = 0.0;
+        (w.spriteIndex[playerId(2)] as LocalPlayerSprite)
+          ..position = Vec2(58.0, 48.0)
+          ..velocity = Vec2.ZERO;
+      }
+      expect(worldD.byteWorld.isSolid(52, 48), isTrue);
+
+      final LocalPlayerSprite cOnA = worldA.spriteIndex[playerId(2)] as LocalPlayerSprite;
+      cOnA.health = 5;
+      // Weapon index 0 ("Banana pancake") spawns a BananaCake (50 dmg, radius 50,
+      // explodeAfter 4.0s) that transfers to all peers, then explodes and spawns bananas!
+      final LocalPlayerSprite bOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      bOnB.weaponState!.selectedWeaponIndex = 0;
+      bOnA.weaponState!.selectedWeaponIndex = 0;
+
+      // Sync positions onto commander before firing.
+      for (int i = 0; i < 4; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(KEY_FRAME_DEFAULT / 2);
+        }
+      }
+
+      // Press Fire on isolated client 'b' -> syncs KeyState to 'a' -> 'a' spawns
+      // BananaCake -> syncs projectile to 'b', 'c', 'd' -> explodes at (50, 48) ->
+      // ByteWorldDestruction + kill syncs to all 4 worlds!
+      int fireKey = bOnB.getControls()['Fire']!;
+      worldB.localKeyState.onKeyDown(fireKey);
+      worldA.frameDraw(0.01);
+      worldA.frameDraw(0.01);
+      worldB.localKeyState.onKeyUp(fireKey);
+
+      final WorldDamageProjectile cake = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<WorldDamageProjectile>()
+          .first;
+      // Keep the BananaCake right next to the wall & 'c' while syncing to all clients.
+      cake.gravityAffect = 0.0;
+      cake.flags |= Sprite.FLAG_NO_GRAVITY;
+      cake.velocity = Vec2.ZERO;
+      cake.collision = false;
+      cake.position = Vec2(50.0, 48.0);
+      for (int i = 0; i < 6; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+      // All 4 worlds (including isolated 'b' and 'd') received the live projectile!
+      for (WormWorld w in allWorlds) {
+        expect(w.spriteIndex.hasSprite(cake.networkId!), isTrue,
+            reason: "Projectile did not sync to $w");
+      }
+
+      // Advance past explodeAfter (4.0s) so BananaCake detonates (radius 50, 50 dmg).
+      for (int i = 0; i < 40; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+
+      // Terrain at (52, 48) was destroyed on all 4 worlds (including isolated 'b' & 'd').
+      for (WormWorld w in allWorlds) {
+        expect(w.byteWorld.isSolid(52, 48), isFalse,
+            reason: "ByteWorldDestruction did not sync to $w");
+        PlayerInfoProto infoB = w.network().getGameState().playerInfoByConnectionId('b')!;
+        PlayerInfoProto infoC = w.network().getGameState().playerInfoByConnectionId('c')!;
+        expect(infoB.score, equals(1), reason: "Score for 'b' did not sync to $w");
+        expect(infoC.deaths, equals(1), reason: "Death for 'c' did not sync to $w");
+        expect(infoC.inGame, isFalse);
+        expect(() => drawPlayerStats(
+            w.byteWorld.canvas!.context2D, w, 800, 600,
+            w.spriteIndex, w.imageIndex(), false, true), returnsNormally);
+      }
+
+      // Advance past RESPAWN_TIME (5.0s) and verify 'c' respawns across all 4 worlds.
+      for (int i = 0; i < 55; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+      for (WormWorld w in allWorlds) {
+        PlayerInfoProto infoC = w.network().getGameState().playerInfoByConnectionId('c')!;
+        expect(infoC.inGame, isTrue, reason: "'c' did not respawn on $w");
+      }
+    });
+
+    test('E2E_PartialMesh_GracefulCommanderLeave_ElectsMostConnectedPeer', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      WormWorld worldD = await createTestWorld("d");
+      final List<WormWorld> allWorlds = [worldA, worldB, worldC, worldD];
+      for (WormWorld w in allWorlds) {
+        w.network().disableCommandTransferHeuristicForTest = true;
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(300, 200));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+      }
+
+      // Only 'c' <-> 'd' can connect among clients; 'b' is only connected to 'a'.
+      TestConnectionFactory connectionFactory =
+          getIt<ConnectionFactory>() as TestConnectionFactory;
+      connectionFactory
+          .failConnection('b', 'c')
+          .failConnection('c', 'b')
+          .failConnection('b', 'd')
+          .failConnection('d', 'b');
+
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+      worldC.connectTo("a", "nameC");
+      worldC.network().getServerConnection()!.sendClientEnter();
+      worldD.connectTo("a", "nameD");
+      worldD.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 12; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+
+      // Give isolated 'b' the HIGHEST FPS (60) and lowest alphabetical ID ('b'),
+      // while 'c' has 45 FPS and 'd' has 55 FPS.
+      // Because 'c' and 'd' have 1 confirmed peer connection ('c'<->'d') vs 'b's 0,
+      // commander election MUST ignore 'b' and pick 'd' (most connections, then highest FPS).
+      worldB.drawFps().setFpsForTest(60.0);
+      worldC.drawFps().setFpsForTest(45.0);
+      worldD.drawFps().setFpsForTest(55.0);
+      for (int i = 0; i < 12; i++) {
+        for (WormWorld w in allWorlds) {
+          w.frameDraw(0.1);
+        }
+      }
+
+      expect(worldA.network().transferCommander("tab closing"), isTrue);
+      expect(worldA.network().pendingCommandTransfer(), equals('d'));
+      worldA.network().sendGoodbye("tab closing");
+
+      // Deliberately tick worldC BEFORE worldD to verify worldC already knows 'd'
+      // took command and does NOT split-brain elect 'c' on seeing 'a's goodbye.
+      for (int i = 0; i < 10; i++) {
+        worldC.frameDraw(0.1);
+        worldD.frameDraw(0.1);
+        worldB.frameDraw(0.1);
+      }
+
+      // 'c' and 'd' stay in a healthy 2-player game with 'd' as commander!
+      expect(worldD.network().isCommander(), isTrue);
+      expect(worldC.network().isCommander(), isFalse);
+      expect(worldD, isGameStateOf({playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
+      expect(worldC, isGameStateOf({playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
+      expect(worldD, hasSpecifiedConnections(['c']).isValidGameConnections());
+      expect(worldC, hasSpecifiedConnections(['d']).isValidGameConnections());
+
+      // Isolated 'b' had no path to 'c' or 'd', so it cleanly became solo commander
+      // of its own 1-player game and reconnected to the signaling server.
+      expect(worldB.network().isCommander(), isTrue);
+      expect(worldB, isGameStateOf({playerId(1): "nameB"}).withCommanderId('b'));
+      expect(worldB, isConnectedToServer(true));
+    });
+
+    test('E2E_PartialMesh_AbruptCommanderDrop_ElectsMostConnectedPeer', () async {
+      ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
+      logConnectionData = false;
+
+      // Sub-case 1: Commander 'a' + isolated 'b' + connected pair 'c' <-> 'd'.
+      // When 'a' crashes abruptly, 'c' and 'd' elect 'c' and stay together,
+      // while isolated 'b' becomes solo commander.
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      WormWorld worldD = await createTestWorld("d");
+      TestConnectionFactory connectionFactory =
+          getIt<ConnectionFactory>() as TestConnectionFactory;
+      connectionFactory
+          .failConnection('b', 'c')
+          .failConnection('c', 'b')
+          .failConnection('b', 'd')
+          .failConnection('d', 'b');
+
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+      worldC.connectTo("a", "nameC");
+      worldC.network().getServerConnection()!.sendClientEnter();
+      worldD.connectTo("a", "nameD");
+      worldD.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 15; i++) {
+        worldA.frameDraw(0.1);
+        worldB.frameDraw(0.1);
+        worldC.frameDraw(0.1);
+        worldD.frameDraw(0.1);
+      }
+
+      for (TestConnection conn in List.of(testConnections['a']!)) {
+        conn.signalClose();
+      }
+      for (int i = 0; i < 15; i++) {
+        worldB.frameDraw(0.1);
+        worldC.frameDraw(0.1);
+        worldD.frameDraw(0.1);
+      }
+
+      expect(worldC, isGameStateOf({playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
+      expect(worldD, isGameStateOf({playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
+      expect(worldB, isGameStateOf({playerId(1): "nameB"}).withCommanderId('b'));
+
+      // Sub-case 2: Commander 'a' + clients 'b', 'c', 'd' where 'b' <-> 'c' fails
+      // while 'b' <-> 'd' AND 'c' <-> 'd' succeed!
+      // Alphabetically 'b' < 'c' < 'd', so pure ID order would pick 'b' and lose 'c',
+      // whereas connection-count priority elects 'd' (2 peer connections vs 1),
+      // keeping ALL THREE surviving players ('b', 'c', 'd') in the game together!
+      clearEnvironment();
+      WormWorld hubA = await createTestWorld("a");
+      WormWorld peerB = await createTestWorld("b");
+      WormWorld peerC = await createTestWorld("c");
+      WormWorld hubD = await createTestWorld("d");
+      connectionFactory = getIt<ConnectionFactory>() as TestConnectionFactory;
+      connectionFactory
+          .failConnection('b', 'c')
+          .failConnection('c', 'b');
+
+      hubA.startAsServer("nameA");
+      peerB.connectTo("a", "nameB");
+      peerC.connectTo("a", "nameC");
+      hubD.connectTo("a", "nameD");
+
+      for (int i = 0; i < 15; i++) {
+        hubA.frameDraw(0.1);
+        peerB.frameDraw(0.1);
+        peerC.frameDraw(0.1);
+        hubD.frameDraw(0.1);
+      }
+      expect(peerB.network().safeActiveConnections().keys.toSet(), equals({'a', 'd'}));
+      expect(peerC, hasSpecifiedConnections(['a', 'd']).isValidGameConnections());
+      expect(hubD, hasSpecifiedConnections(['a', 'b', 'c']).isValidGameConnections());
+
+      // Abruptly kill Commander 'a'.
+      for (TestConnection conn in List.of(testConnections['a']!)) {
+        conn.signalClose();
+      }
+      for (int i = 0; i < 15; i++) {
+        peerB.frameDraw(0.1);
+        peerC.frameDraw(0.1);
+        hubD.frameDraw(0.1);
+      }
+
+      // All 3 peers unanimously elect 'd' (most connections) and stay in the same game!
+      final Map<int, String> survivingThree = {
+        playerId(1): "nameB",
+        playerId(2): "nameC",
+        playerId(3): "nameD",
+      };
+      expect(hubD, isGameStateOf(survivingThree).withCommanderId('d'));
+      expect(peerB, isGameStateOf(survivingThree).withCommanderId('d'));
+      expect(peerC, isGameStateOf(survivingThree).withCommanderId('d'));
+
+      // Verify new commander 'd' actively forwards 'b' <-> 'c' movement!
+      final LocalPlayerSprite bSprite = peerB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      bSprite.position = Vec2(35.0, 33.0);
+      bSprite.velocity = Vec2.ZERO;
+      for (int i = 0; i < 8; i++) {
+        peerB.frameDraw(0.1);
+        hubD.frameDraw(0.1);
+        peerC.frameDraw(0.1);
+      }
+      expect(peerC.spriteIndex[playerId(1)]!.position.x, closeTo(35.0, 3.0));
     });
   });
 }

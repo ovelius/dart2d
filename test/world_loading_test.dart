@@ -172,6 +172,7 @@ void main() {
   test('E2E_FourthPlayerCompletesFullLoaderJoinWithoutFullGameDisconnect', () async {
     expectWarningContaining("Duplicate handshake received");
     expectWarningContaining("Dropping old data");
+    expectWarningContaining("Received offer from peer that has connection");
     // NOTE: We intentionally do NOT expect "Commander data update for missing"
     // so this test also verifies that warning is silenced while loading!
 
@@ -200,11 +201,25 @@ void main() {
         loadImages: true,
         initByteWorld: false);
     Loader loaderD = worldD.loader;
+    FakeImageFactory imageFactoryD = getIt<ImageFactory>() as FakeImageFactory;
 
     await signalOpen(worldD, ["a", "b", "c"]);
 
-    // Step all 4 worlds through loading + bedrock computation + entering game.
-    for (int i = 0; i < 40; i++) {
+    // Step through CONNECTING_TO_GAME -> LOADING_GAMESTATE (world image chunks).
+    for (int i = 0; i < 15; i++) {
+      worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      worldD.frameDraw(KEY_FRAME_DEFAULT / 5);
+    }
+    expect(loaderD.currentState(), equals(LoaderState.LOADING_GAMESTATE));
+    // Must stay connected to commander even though GameState is now 4/4!
+    expect(worldD.network().getServerConnection(), isNotNull);
+    expect(worldD.network().getServerConnection()!.isClosedConnection(), isFalse);
+
+    // Complete downloaded world image and step through bedrock + entering game.
+    await imageFactoryD.completeAllImages();
+    for (int i = 0; i < 30; i++) {
       worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
       worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
       worldC.frameDraw(KEY_FRAME_DEFAULT / 5);

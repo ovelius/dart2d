@@ -127,11 +127,15 @@ class SpriteIndex {
       sprite.spawn_sound = Sound.values[spawnSound];
     }
     sprite.networkType = (world.network().isCommander() &&
-            constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE)
+            (constructor == SpriteConstructor.REMOTE_PLAYER_CLIENT_SPRITE ||
+                constructor == SpriteConstructor.ROPE_SPRITE))
         ? NetworkType.REMOTE_FORWARD
         : NetworkType.REMOTE;
     sprite.networkId = networkId;
     world.addSprite(sprite);
+    if (sprite is Powerup) {
+      world.powerupManager()?.trackPowerup(sprite);
+    }
     return sprite;
   }
 
@@ -169,6 +173,14 @@ class SpriteIndex {
       }
     }
     return null;
+  }
+
+  Iterable<Sprite>? pendingSprites() {
+    return List<Sprite>.unmodifiable(_waitingSprites);
+  }
+
+  bool? isPendingRemoval(int id) {
+    return _removeSprites.contains(id);
   }
 
   int _nextLocalNetworkId() {

@@ -148,6 +148,7 @@ class LocalPlayerSprite extends MovingSprite {
       data.extraFloat.add(w.untilNextFire);
       data.extraInt.add(w.shotsLeft);
     }
+    data.extraFloat.add(_jetPackSec);
     return data;
   }
 
@@ -173,11 +174,18 @@ class LocalPlayerSprite extends MovingSprite {
         );
       }
     }
-    if (data.extraFloat.length > 2) {
+    if (data.extraFloat.length > 3 && weaponState != null) {
       Weapon w = weaponState!.getSelectedWeapon();
       w.untilReload = data.extraFloat[2];
       w.untilNextFire = data.extraFloat[3];
       w.shotsLeft = data.extraInt[2];
+    }
+    final int jetPackIdx = weaponState != null ? 4 : 2;
+    if (data.extraFloat.length > jetPackIdx) {
+      final double remoteJetPackSec = data.extraFloat[jetPackIdx];
+      if (remoteJetPackSec > _jetPackSec) {
+        _jetPackSec = remoteJetPackSec;
+      }
     }
     return true;
   }
@@ -809,7 +817,9 @@ class LocalPlayerSprite extends MovingSprite {
       data.extraInt
         ..add(health)
         ..add(_shieldPoints);
-      data.extraFloat.add(_shieldSec);
+      data.extraFloat
+        ..add(_shieldSec)
+        ..add(_jetPackSec);
     }
     return data;
   }
@@ -825,6 +835,9 @@ class LocalPlayerSprite extends MovingSprite {
       health = data.extraInt[1];
       _shieldPoints = data.extraInt[2];
       _shieldSec = data.extraFloat[1];
+      if (data.extraFloat.length > 2 && !_ownedByThisWorld()) {
+        _jetPackSec = data.extraFloat[2];
+      }
     }
   }
 
@@ -833,6 +846,8 @@ class LocalPlayerSprite extends MovingSprite {
   void set shieldPoints(int shieldPoints) {
     this._shieldPoints = shieldPoints;
   }
+
+  double get jetPackSec => _jetPackSec;
 
   void set jetPackSec(double secs) {
     this._jetPackSec = secs;

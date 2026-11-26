@@ -169,8 +169,8 @@ class GameState {
         // Convert other players.
         ConnectionWrapper? connection =
             world.network().peer.connections[info.connectionId];
-        if (connection == null) {
-          // Connection isn't there :( Not much we can do but kill the playerinfo.
+        if (connection == null || !connection.isActiveConnection()) {
+          // Connection isn't there or never opened :( Remove unreachable player.
           removeByConnectionId(world, info.connectionId);
         }
       }

@@ -81,7 +81,7 @@ class Powerup extends MovingSprite {
     if (_type == PowerUpType.POWERUP) {
       _swiwel = _createSwivel(imageIndex);
     }
-    size = SIZE_OFFSET;
+    size = new Vec2.copy(SIZE_OFFSET);
   }
 
   StickySprite _createSwivel(ImageIndex index) {
@@ -96,20 +96,26 @@ class Powerup extends MovingSprite {
       : _powerupImageIndex = index,
         super.empty(index) {
     _type = PowerUpType.HEALTH;
+    lifeTime = LIFETIME;
+    size = new Vec2.copy(SIZE_OFFSET);
   }
+
+  double get fadeAlpha =>
+      (this.lifeTime != Sprite.UNLIMITED_LIFETIME && this.lifeTime < ALPHA_LOWER)
+          ? (lifeTime / ALPHA_LOWER).clamp(0.0, 1.0)
+          : 1.0;
 
   @override
   draw(CanvasRenderingContext2D context, bool debug) {
-    final double fadeAlpha =
-        this.lifeTime < ALPHA_LOWER ? (lifeTime / ALPHA_LOWER).clamp(0.0, 1.0) : 1.0;
+    final double currentFadeAlpha = fadeAlpha;
 
     if (_type == PowerUpType.POWERUP) {
-      _drawMysteryQuestionCloud(context, fadeAlpha, debug);
+      _drawMysteryQuestionCloud(context, currentFadeAlpha, debug);
       return;
     }
 
     context.save();
-    context.globalAlpha = fadeAlpha;
+    context.globalAlpha = currentFadeAlpha;
     super.draw(context, debug);
     context.restore();
     _swiwel?.draw(context, debug);
@@ -272,7 +278,16 @@ class Powerup extends MovingSprite {
   @override
   frame(double duration, int frames, [Vec2? gravity]) {
     _animTime += duration;
-    super.frame(duration, frames, gravity);
+    if (remoteControlled()) {
+      final int savedLifeTime = lifeTime;
+      super.frame(duration, frames, gravity);
+      if (savedLifeTime != Sprite.UNLIMITED_LIFETIME) {
+        lifeTime = max(1, savedLifeTime - frames);
+        remove = false;
+      }
+    } else {
+      super.frame(duration, frames, gravity);
+    }
 
     if (_swiwel != null) {
       _swiwel?.frame(duration, frames, gravity);
@@ -333,13 +348,26 @@ class Powerup extends MovingSprite {
   ExtraSpriteData addExtraNetworkData() {
     ExtraSpriteData data = ExtraSpriteData();
     data.extraInt.add(_type.index);
+    data.extraInt.add(lifeTime);
     return data;
   }
 
   void parseExtraNetworkData(ExtraSpriteData data) {
     _type = PowerUpType.values[data.extraInt[0]];
+    if (data.extraInt.length > 1) {
+      lifeTime = data.extraInt[1];
+    }
+    if (spriteType != SpriteType.IMAGE) {
+      setImage(_powerupImageIndex.getImageIdByName(_IMAGES[_type]!), 1);
+      spriteType = SpriteType.IMAGE;
+    }
+    if (size.x <= 1.0 && size.y <= 1.0) {
+      size = new Vec2.copy(SIZE_OFFSET);
+    }
     if (_type == PowerUpType.POWERUP && _swiwel == null) {
       _swiwel = _createSwivel(_powerupImageIndex);
+    } else if (_type != PowerUpType.POWERUP) {
+      _swiwel = null;
     }
   }
 }

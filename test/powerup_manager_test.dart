@@ -146,5 +146,33 @@ void main() {
       expect(manager.nextPowerupIn,
           equals(PowerupManager.MIN_POWERUP_SPAWN_TIME));
     });
+
+    test('trackPowerup and syncWithSpriteIndex deduplicate and adopt world powerups', () {
+      Powerup remote1 = Powerup(Vec2(10.0, 20.0), PowerUpType.SHIELD, mockImageIndex)
+        ..networkId = 42
+        ..networkType = NetworkType.REMOTE;
+      Powerup remote2 = Powerup(Vec2(30.0, 40.0), PowerUpType.JETPACK, mockImageIndex)
+        ..networkId = 43
+        ..networkType = NetworkType.REMOTE;
+
+      manager.trackPowerup(remote1);
+      manager.trackPowerup(remote1);
+      expect(manager.activePowerups, hasLength(1));
+
+      when(mockSpriteIndex.hasSprite(42)).thenReturn(true);
+      when(mockSpriteIndex.hasSprite(43)).thenReturn(true);
+      when(mockSpriteIndex.isPendingRemoval(any)).thenReturn(false);
+      when(mockSpriteIndex.spriteIds()).thenReturn([42, 43]);
+      when(mockSpriteIndex[42]).thenReturn(remote1);
+      when(mockSpriteIndex[43]).thenReturn(remote2);
+      when(mockSpriteIndex.pendingSprites()).thenReturn(const <Sprite>[]);
+
+      manager.syncWithSpriteIndex();
+      expect(manager.activePowerups, unorderedEquals([remote1, remote2]));
+
+      remote1.remove = true;
+      manager.pruneRemoved();
+      expect(manager.activePowerups, equals([remote2]));
+    });
   });
 }

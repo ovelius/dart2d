@@ -55,7 +55,11 @@ Set<SpriteType> _colorSpriteTypes =
 
 
 SpriteUpdate toSpriteUpdate(MovingSprite sprite, bool keyFrame) {
-  keyFrame = keyFrame || sprite.fullFramesOverNetwork-- > 0;
+  final bool sendFullFrame = keyFrame || sprite.fullFramesOverNetwork > 0;
+  if (!keyFrame && sprite.fullFramesOverNetwork > 0) {
+    sprite.fullFramesOverNetwork--;
+  }
+  keyFrame = sendFullFrame;
   SpriteUpdate update = SpriteUpdate();
   update.spriteId = sprite.networkId!;
   update.flags = sprite.extraSendFlags() | (keyFrame ? Sprite.FLAG_FULL_FRAME : 0);

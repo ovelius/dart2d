@@ -3294,6 +3294,14 @@ class MockSpriteIndex extends _i1.Mock implements _i10.SpriteIndex {
           as _i10.Sprite?);
 
   @override
+  bool? isPendingRemoval(int? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#isPendingRemoval, [id]),
+            returnValueForMissingStub: null,
+          )
+          as bool?);
+
+  @override
   void addSprite(_i10.Sprite? sprite) => super.noSuchMethod(
     Invocation.method(#addSprite, [sprite]),
     returnValueForMissingStub: null,
@@ -3698,6 +3706,15 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
     Invocation.setter(#shieldPoints, shieldPoints),
     returnValueForMissingStub: null,
   );
+
+  @override
+  double get jetPackSec =>
+      (super.noSuchMethod(
+            Invocation.getter(#jetPackSec),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
 
   @override
   set jetPackSec(double? secs) => super.noSuchMethod(

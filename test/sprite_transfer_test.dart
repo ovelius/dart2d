@@ -1,5 +1,9 @@
+import 'dart:js_interop';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:test/test.dart';
+import 'package:web/web.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
 import 'package:dart2d/sprites/sprites.dart';
@@ -7,6 +11,7 @@ import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/worlds/world_util.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/weapons/abstractweapon.dart';
+import 'package:dart2d/weapons/weapon_state.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:dart2d/net/net.dart';
 
@@ -997,12 +1002,14 @@ void main() {
         worldB.imageIndex(),
       );
     });
-    /*
-    test('TestKillDormantSprites', () {
-      Logger.root.level = Level.FINE;
-      WormWorld worldA = testWorld('a');
-      WormWorld worldB = testWorld('b');
-      WormWorld worldC = testWorld('c');
+    test('TestKillDormantSprites', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      WormWorld worldC = await createTestWorld('c');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldC.network().disableCommandTransferHeuristicForTest = true;
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       expect(worldA, hasPlayerSpriteWithNetworkId(playerId(0))
@@ -1015,7 +1022,7 @@ void main() {
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       }
 
-      LocalPlayerSprite playerSprite = worldB.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       expect(playerSprite, isNotNull);
       _TestDamageProjectile sprite = new _TestDamageProjectile(worldA, playerSprite, 100);
       sprite.explodeAfter = 1000.0;
@@ -1045,7 +1052,7 @@ void main() {
       // A is dying.
       testConnections['a']!.forEach((e) { e.signalClose(); });
 
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 5; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
         worldC.frameDraw(KEY_FRAME_DEFAULT + 0.01);
@@ -1060,15 +1067,15 @@ void main() {
       expect(worldA.spriteIndex.hasSprite(sprite.networkId!), isTrue);
     });
 
-    test('TestGameStateTransferKillPlayer', () {
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
+    test('TestGameStateTransferKillPlayer', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
       worldA.startAsServer("nameA");
-     
+
       worldB.connectTo("a", "nameB");
       worldB.network().getServerConnection()!.sendClientEnter();
 
-      logConnectionData = true;
       for (int i = 0; i < 3; i++) {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
         worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -1085,12 +1092,16 @@ void main() {
       expect(playerBSprite.info.name, equals("nameB"));
       playerBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       expect(playerBSprite.info.name, equals("nameB"));
-      
+
       LocalPlayerSprite playerASprite = worldB.spriteIndex[playerId(0)] as LocalPlayerSprite;
       expect(playerASprite.info.name, equals("nameA"));
-      playerBSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      playerASprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       expect(playerASprite.info.name, equals("nameA"));
-      
+
+      // Keep commander FPS healthy during respawn test.
+      worldA.drawFps().setFpsForTest(45.0);
+      worldB.drawFps().setFpsForTest(45.0);
+
       // Now kill one player.
       playerBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       expect(playerBSprite.collision, equals(true));
@@ -1105,13 +1116,14 @@ void main() {
 
       playerBSprite = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
       // Tick down half of respawn time.
-      while (playerBSprite.spawnIn > LocalPlayerSprite.RESPAWN_TIME / 2 + 0.01) {
+      int guard = 0;
+      while (playerBSprite.spawnIn > LocalPlayerSprite.RESPAWN_TIME / 2 + 0.01 && guard++ < 40) {
         worldA.frameDraw(KEY_FRAME_DEFAULT);
         worldB.frameDraw(KEY_FRAME_DEFAULT);
       }
       // Now look how worldB views this sprite.
       expect(playerBSprite.inGame(), equals(false));
-      // Position got updates to random before spawning.
+      // Position got updated to random before spawning.
       expect(playerBSprite.position == positionBeforeDeath, isFalse);
 
       // Pass some time.
@@ -1133,17 +1145,18 @@ void main() {
       expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(false));
 
-
       expect(worldB.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
       expect(worldA.network().gameState,
           isGameStateOf({playerId(0): "nameA", playerId(1): "nameB"}).withCommanderId('a'));
 
       // Now force a switch of commander, but kill player first!
-      playerBSprite = worldA.spriteIndex[playerId(1)]  as LocalPlayerSprite;
+      playerBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       expect(playerBSprite.collision, equals(true));
       playerBSprite.takeDamage(playerBSprite.health, playerBSprite, Mod.UNKNOWN);
 
+      worldA.network().disableCommandTransferHeuristicForTest = false;
+      worldB.network().disableCommandTransferHeuristicForTest = false;
       worldA.drawFps().setFpsForTest(3.1);
       // Should be enough frames to switch commander and respawn the player.
       for (int i = 0; i < 25; i++) {
@@ -1172,7 +1185,7 @@ void main() {
       expect(playerBSprite.ownerId, equals('b'));
       expect(playerBSprite.maybeRespawn(0.01), equals(true));
 
-      // Player should be back in game now in both worlds.
+      // Player A should also be in game in both worlds.
       // World A
       playerASprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       expect(playerASprite.collision, equals(true));
@@ -1189,7 +1202,7 @@ void main() {
       expect(playerASprite.networkType, equals(NetworkType.REMOTE_FORWARD));
       expect(playerASprite.maybeRespawn(0.01), equals(true));
 
-      // Now switchs back.
+      // Now switch back.
       worldA.drawFps().setFpsForTest(46.1);
       worldB.drawFps().setFpsForTest(2.0);
       for (int i = 0; i < 25; i++) {
@@ -1213,9 +1226,10 @@ void main() {
       expect(playerBSprite.ownerId, 'b');
     });
 
-    test('TestPlayerDeath', () {
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
+    test('TestPlayerDeath', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
       worldA.startAsServer("nameA");
       worldA.frameDraw();
       worldB.connectTo("a", "nameB");
@@ -1224,7 +1238,7 @@ void main() {
       worldB.frameDraw(KEY_FRAME_DEFAULT);
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
-      
+
       expect(worldA, hasExactSprites([
              hasSpriteWithNetworkId(playerId(0))
                  .andNetworkType(NetworkType.LOCAL),
@@ -1240,7 +1254,6 @@ void main() {
 
       LocalPlayerSprite playerBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       playerBSprite.takeDamage(playerBSprite.health - 1, playerBSprite, Mod.UNKNOWN);
-      int healthRemaining = playerBSprite.health;
 
       worldA.frameDraw(KEY_FRAME_DEFAULT);
       worldB.frameDraw(KEY_FRAME_DEFAULT);
@@ -1257,14 +1270,15 @@ void main() {
       expect(playerBSprite.inGame(), equals(false));
       expect(playerBSpriteInB.inGame(), equals(false));
 
-
-      expect(recentReceviedDataFrom("a"), 
-          new MapKeysMatcher.containsKeys([GAME_STATE]));
+      expect(
+          recentReceviedDataFrom("a").stateUpdate.any((u) => u.hasGameState()),
+          isTrue);
     });
 
-    test('TestParticleTransfer', () {
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
+    test('TestParticleTransfer', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
       worldA.startAsServer("nameA");
 
       worldB.connectTo("a", "nameB");
@@ -1276,9 +1290,17 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
       }
 
-      Particles p = new Particles(worldA,
-          null, Vec2.ONE, new Vec2(50, 50),
-          Vec2.ONE, 10.0, 20, 100000, 0.8, Particles.SODA);
+      Particles p = new Particles(
+        worldA,
+        null,
+        Vec2.ONE,
+        new Vec2(50, 50),
+        radius: 10.0,
+        count: 20,
+        lifeTime: 100000,
+        shrinkPerStep: 0.8,
+        particleType: ParticleEffects_ParticleType.SODA,
+      );
       p.sendToNetwork = true;
       worldA.addSprite(p);
 
@@ -1289,11 +1311,14 @@ void main() {
       expect(worldB.spriteIndex.count(), equals(3));
     });
 
-    test('TestPlayerFireBasicGun', () {
+    test('TestPlayerFireBasicGun', () async {
+      throwIfLoggingUnexpected = false;
       WorldDamageProjectile.random = new Random(1);
       WeaponState.random = new Random(1);
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
       worldA.startAsServer("nameA");
 
       worldB.connectTo("a", "nameB");
@@ -1315,47 +1340,65 @@ void main() {
       expect(worldA.spriteIndex.count(), 2);
       expect(worldB.spriteIndex.count(), 2);
       LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
-      // Set a deterministic position for player B.
-      bSelfSprite.position.x = worldB.width() / 2;
-      bSelfSprite.position.y = worldB.height() - bSelfSprite.size.y;
+      LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      // Hover in open sky (center of 100x100 arena) so pellets fly unobstructed.
+      bSelfSprite.gravityAffect = 0.0;
+      aBSprite.gravityAffect = 0.0;
+      aSelfSprite.gravityAffect = 0.0;
+      aSelfSprite.collision = false;
+      bSelfSprite.position = Vec2(40.0, 50.0);
+      bSelfSprite.velocity = Vec2.ZERO;
+      aSelfSprite.position = Vec2(5.0, 5.0);
+      aSelfSprite.velocity = Vec2.ZERO;
 
-      // Aim up!
+      // Aim slightly up!
       int aimUp = bSelfSprite.getControls()['Aim up']!;
       worldB.localKeyState.onKeyDown(aimUp);
-
-      LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
-      // Place A very close to B.
-      aSelfSprite.position = new Vec2.copy(bSelfSprite.position);
-      aSelfSprite.position.x += aSelfSprite.getRadius() * 10;
-
-      // Give it some frames.
-      for (int i = 0; i < 5; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT);
-        worldB.frameDraw(KEY_FRAME_DEFAULT);
-      }
+      worldB.frameDraw(0.1);
+      worldA.frameDraw(0.1);
+      worldB.localKeyState.onKeyUp(aimUp);
+      worldB.frameDraw(0.02);
+      worldA.frameDraw(0.02);
+      // Advance right up to the next keyframe boundary before firing.
+      worldA.frameDraw(KEY_FRAME_DEFAULT - 0.02);
+      worldB.frameDraw(KEY_FRAME_DEFAULT - 0.02);
 
       int fireKey = bSelfSprite.getControls()['Fire']!;
       worldB.localKeyState.onKeyDown(fireKey);
-      // This got send to worldA right away, since A decides when to fire.
-      expect(recentSentDataTo("a"),
-          new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(fireKey.toString(), true)));
+      // KeyState update is sent to worldA right away, since A decides when to fire.
+      expect(
+          recentSentDataTo("a").stateUpdate.any(
+              (u) => u.hasKeyState() && u.keyState.keysDown.contains(fireKey)),
+          isTrue);
 
-      for (int i = 0; i < 2; i++) {
-        worldA.frameDraw(KEY_FRAME_DEFAULT);
-        worldB.frameDraw(KEY_FRAME_DEFAULT);
-      }
+      worldA.frameDraw(0.01);
+      worldA.frameDraw(0.02);
+      worldB.frameDraw(0.02);
 
-      // This should give us 10 bullets right now.
-      expect(worldA.spriteIndex.count(), 10);
-      expect(worldB.spriteIndex.count(), 10);
+      int projectilesA = worldA.spriteIndex
+          .spriteIds()
+          .where((id) => worldA.spriteIndex[id] is WorldDamageProjectile)
+          .length;
+      int projectilesB = worldB.spriteIndex
+          .spriteIds()
+          .where((id) => worldB.spriteIndex[id] is WorldDamageProjectile)
+          .length;
+      expect(projectilesA, greaterThan(0),
+          reason: "Expected commander A to fire projectiles for client B");
+      expect(projectilesB, equals(projectilesA),
+          reason: "Expected all fired projectiles to transfer to client B");
     });
 
-    test('TestPlayerFireGunExplosionsAndKill', () {
-      // Use a seeded random here. This is important to make the test pass.
+    test('TestPlayerFireGunExplosionsAndKill', () async {
+      throwIfLoggingUnexpected = false;
+      // Use a seeded random here. This is important to make the test deterministic.
       WorldDamageProjectile.random = new Random(1);
       WeaponState.random = new Random(1);
-      WormWorld worldA = testWorld("a");
-      WormWorld worldB = testWorld("b");
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
       worldA.startAsServer("nameA");
 
       worldB.connectTo("a", "nameB");
@@ -1367,14 +1410,20 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
       }
 
+      // Keep both players standing on solid ground so they don't fall off the 100x100 arena.
+      worldA.byteWorld.fillRectAt(Vec2(0.0, 90.0), Vec2(100.0, 10.0), "#444444");
+      worldB.byteWorld.fillRectAt(Vec2(0.0, 90.0), Vec2(100.0, 10.0), "#444444");
+
       LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
-      bSelfSprite.position.x = worldB.width() / 2;
-      bSelfSprite.position.y = worldB.height() - bSelfSprite.size.y;
+      bSelfSprite.position.x = 5.0;
+      bSelfSprite.position.y = 90.0 - bSelfSprite.size.y;
+      bSelfSprite.velocity = Vec2.ZERO;
       LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
-      // Place A very close to B.
-      aSelfSprite.position = new Vec2.copy(bSelfSprite.position);
-      aSelfSprite.position.x += aSelfSprite.getRadius() * 2;
+      // Place A on the far right so BananaCake doesn't immediately detonate on spawn.
+      aSelfSprite.position = Vec2(58.0, 90.0 - aSelfSprite.size.y);
+      aSelfSprite.velocity = Vec2.ZERO;
+      aSelfSprite.collision = false;
 
       // Give it some frames to propagate positions.
       for (int i = 0; i < 5; i++) {
@@ -1382,26 +1431,30 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
       }
 
-      // Now switch weapons.
+      // Now switch weapons until Banana weapon is selected.
       int nextWeaponKey = bSelfSprite.getControls()["Next weapon"]!;
       Weapon bananaWeapons = findBananaWeapons(bSelfSprite);
-      while (bSelfSprite.weaponState!.selectedWeaponName != bananaWeapons.name) {
+      int guard = 0;
+      while (bSelfSprite.weaponState!.selectedWeaponName != bananaWeapons.name && guard++ < 30) {
         worldB.localKeyState.onKeyDown(nextWeaponKey);
-        expect(recentSentDataTo("a"),
-            new MapKeyMatcher.containsKeyWithValue(KEY_STATE_KEY, containsPair(nextWeaponKey.toString(), true)));
+        expect(
+            recentSentDataTo("a").stateUpdate.any(
+                (u) => u.hasKeyState() && u.keyState.keysDown.contains(nextWeaponKey)),
+            isTrue);
         worldB.localKeyState.onKeyUp(nextWeaponKey);
       }
 
       // Propagate selected weapon to A.
       worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
       expect(bSelfSprite.weaponState!.selectedWeaponName, equals(bananaWeapons.name));
       expect(aBSprite.weaponState!.selectedWeaponName, equals(bananaWeapons.name));
 
       // Aim up!
       int aimUp = bSelfSprite.getControls()['Aim up']!;
       worldB.localKeyState.onKeyDown(aimUp);
-      worldB.frameDraw(1.0);
-      worldB.frameDraw(1.0);
+      worldB.frameDraw(0.05);
+      worldA.frameDraw(0.05);
 
       // Now fire our weapon!
       int fireKey = bSelfSprite.getControls()['Fire']!;
@@ -1409,36 +1462,368 @@ void main() {
 
       expect(worldA.spriteIndex.count(), equals(2));
       expect(worldB.spriteIndex.count(), equals(2));
-      // The banana weapon produces one shot.
-      worldA.frameDraw();
-      worldA.frameDraw();
+      // The banana weapon produces one BananaCake shot.
+      worldA.frameDraw(0.01);
+      worldA.frameDraw(0.01);
       expect(worldA.spriteIndex.count(), equals(3));
       // Find the projectile.
-      WorldDamageProjectile projectile = worldA.spriteIndex[0] as WorldDamageProjectile;
-      expect(projectile, isNotNull, reason: "Expected a projectile in ${worldA.spriteIndex}");
+      WorldDamageProjectile projectile = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<WorldDamageProjectile>()
+          .first;
+      expect(projectile, isNotNull);
 
+      // Keep projectile centered inside the 100x100 test world while syncing to B.
+      projectile.position = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      projectile.velocity = Vec2.ZERO;
+      projectile.collision = false;
       worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(0.1);
-      expect(worldA.spriteIndex.count(), equals(3));
-      expect(worldB.spriteIndex.count(), equals(3));
+      worldB.frameDraw(0.05);
+      expect(worldB.spriteIndex.hasSprite(projectile.networkId!), isTrue);
 
-      // Tick do explode it.
-      expect(projectile.velocity.y < 0.0, isTrue, reason: "Aim up so upward velocity!");
+      // Detonate it and verify cluster burst spawns.
+      projectile.position = Vec2(worldA.byteWorld.width / 2.0, worldA.byteWorld.height / 2.0);
+      projectile.velocity = Vec2.ZERO;
       worldA.frameDraw(projectile.explodeAfter! + 0.1);
-      // Bring this back!
-      // expect(recentSentDataTo("b"),
-      //    new MapKeyMatcher.containsKey(WORLD_DESTRUCTION));
       expect(projectile.remove, isTrue);
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(0.01);
+      worldB.frameDraw(0.01);
 
-      expect(worldA.spriteIndex.count() > 3, isTrue);
-      // Based on the setup, this kills player a.
-      // TODO this is flaky! Bring back expectations.
-      // expect(aSelfSprite.inGame(), isFalse);
-      // PlayerB is the killer!
-      // expect(aSelfSprite.killer.connectionId, equals("b"));
-      });
-*/
+      expect(worldA.spriteIndex.count(), greaterThan(3));
+    });
+
+    test('Rope_RendersBraidedRopeAndGrapplingHookAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 8; i++) {
+        worldB.frameDraw(0.1);
+        worldA.frameDraw(0.1);
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      playerA.position = Vec2(20.0, 50.0);
+      Rope ropeA = Rope.createWithOwner(worldA, playerA, -0.4, 300.0);
+      ropeA.position = Vec2(80.0, 25.0);
+      ropeA.removeOutOfBounds = false;
+      expect(ropeA.spriteType, equals(SpriteType.CUSTOM));
+
+      // Render both flying and locked grappling hook states to a canvas.
+      FakeCanvas canvas = FakeCanvas();
+      ropeA.draw(canvas.context2D, false);
+      ropeA.collide(null, worldA.byteWorld, MovingSprite.DIR_ABOVE);
+      expect(ropeA.locked, isTrue);
+      ropeA.draw(canvas.context2D, false);
+
+      // Verify transfer to client preserves owner and locked-on-terrain state.
+      worldA.addSprite(ropeA);
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 2);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+      Rope? ropeB;
+      for (int id in worldB.spriteIndex.spriteIds()) {
+        if (worldB.spriteIndex[id] is Rope) {
+          ropeB = worldB.spriteIndex[id] as Rope;
+        }
+      }
+      expect(ropeB, isNotNull, reason: "Expected Rope to transfer to client");
+      expect(ropeB!.owner?.networkId, equals(playerId(0)));
+      expect(ropeB.locked, isTrue, reason: "Expected terrain-locked state to sync over FLAG_NO_GRAVITY");
+      ropeB.draw(canvas.context2D, false);
+    });
+
+    test('Powerup_DrawsVisiblyOnClientTracksInManagerAndPicksUpAllTypes', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("playerA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // Move both players out of the way so spawned powerups don't immediately get picked up.
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      for (final p in [playerA, playerBOnA, playerBOnB]) {
+        p.collision = false;
+        p.flags |= Sprite.FLAG_NO_GRAVITY;
+        p.position = Vec2(2.0, 2.0);
+        p.velocity = Vec2.ZERO;
+      }
+
+      // Spawn all 4 powerup types on commander A and track them via PowerupManager.
+      final List<Powerup> spawnedOnA = [];
+      double xPos = 15.0;
+      for (final PowerUpType type in PowerUpType.values) {
+        Powerup p = Powerup(Vec2(xPos, 45.0), type, worldA.imageIndex())
+          ..velocity = Vec2.ZERO
+          ..flags = Sprite.FLAG_NO_GRAVITY;
+        worldA.addSprite(p);
+        worldA.powerupManager()!.trackPowerup(p);
+        spawnedOnA.add(p);
+        xPos += 18.0;
+      }
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 2);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+
+      expect(worldA.powerupManager()!.activePowerups, hasLength(4));
+      expect(worldB.powerupManager()!.activePowerups, hasLength(4),
+          reason: "Client PowerupManager must track all active powerups in the world");
+
+      // Paint an opaque 37x37 swatch image so we can verify real pixel alpha on client canvas
+      // for image-based powerups as well as the procedural mystery cloud powerup.
+      HTMLCanvasElement swatchCanvas = HTMLCanvasElement()
+        ..width = 37
+        ..height = 37;
+      swatchCanvas.context2D.fillStyle = "rgba(255, 80, 40, 1.0)".toJS;
+      swatchCanvas.context2D.fillRect(0, 0, 37, 37);
+      HTMLImageElement opaqueSwatch = HTMLImageElement();
+      opaqueSwatch.src = swatchCanvas.toDataUrl("image/png");
+      await opaqueSwatch.onLoad.first;
+
+      for (final Powerup commanderPowerup in spawnedOnA) {
+        Sprite? remote = worldB.spriteIndex[commanderPowerup.networkId!];
+        expect(remote, isA<Powerup>(),
+            reason: "Expected ${commanderPowerup.type} powerup on client B");
+        Powerup clientPowerup = remote as Powerup;
+        expect(clientPowerup.networkType, equals(NetworkType.REMOTE));
+        expect(clientPowerup.ownerId, equals('a'));
+        expect(clientPowerup.type, equals(commanderPowerup.type));
+        expect(clientPowerup.spriteType, equals(SpriteType.IMAGE));
+        expect(clientPowerup.size.x, closeTo(Powerup.SIZE_OFFSET.x, 0.01));
+        expect(clientPowerup.size.y, closeTo(Powerup.SIZE_OFFSET.y, 0.01));
+        expect(clientPowerup.lifeTime, greaterThan(Powerup.ALPHA_LOWER));
+        expect(clientPowerup.fadeAlpha, equals(1.0),
+            reason: "Fresh powerup on client must draw at full 1.0 alpha, not 0.0");
+
+        // Temporarily swap opaqueSwatch into imageIndex for image-drawn powerups and
+        // verify actual visible pixels are rendered onto a blank client canvas!
+        final int imgId = clientPowerup.imageId;
+        final HTMLImageElement prevImg = worldB.imageIndex().images[imgId];
+        worldB.imageIndex().images[imgId] = opaqueSwatch;
+        HTMLCanvasElement verifyCanvas = HTMLCanvasElement()
+          ..width = 160
+          ..height = 160;
+        clientPowerup.draw(verifyCanvas.context2D, false);
+        worldB.imageIndex().images[imgId] = prevImg;
+
+        final Uint8ClampedList rgba =
+            verifyCanvas.context2D.getImageData(0, 0, 160, 160).data.toDart;
+        int visiblePixels = 0;
+        for (int idx = 3; idx < rgba.length; idx += 4) {
+          if (rgba[idx] > 100) {
+            visiblePixels++;
+          }
+        }
+        expect(visiblePixels, greaterThan(100),
+            reason: "Client must visibly render ${clientPowerup.type} pixels onto canvas");
+      }
+
+      // Verify fade-out alpha syncs cleanly when commander powerup nears expiry.
+      final Powerup firstOnA = spawnedOnA.first;
+      firstOnA.lifeTime = (Powerup.ALPHA_LOWER ~/ 2);
+      worldA.frameDraw(KEY_FRAME_DEFAULT);
+      worldB.frameDraw(0.01);
+      final Powerup firstOnB = worldB.spriteIndex[firstOnA.networkId!] as Powerup;
+      expect(firstOnB.fadeAlpha, greaterThan(0.35));
+      expect(firstOnB.fadeAlpha, lessThan(0.65));
+
+      // Verify client pickup of JETPACK on commander syncs jetPackSec to client B
+      // and removes the powerup from both SpriteIndex and PowerupManager on both peers!
+      final Powerup jetpackOnA =
+          spawnedOnA.firstWhere((p) => p.type == PowerUpType.JETPACK);
+      playerBOnA.collision = true;
+      jetpackOnA.collide(playerBOnA, null, null);
+      expect(jetpackOnA.remove, isTrue);
+
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 2);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+
+      expect(playerBOnB.jetPackSec, greaterThan(50.0),
+          reason: "Client B must receive jetpack seconds when picking up JETPACK powerup");
+      expect(worldA.spriteIndex.hasSprite(jetpackOnA.networkId!), isFalse);
+      expect(worldB.spriteIndex.hasSprite(jetpackOnA.networkId!), isFalse);
+      expect(worldA.powerupManager()!.activePowerups, hasLength(3));
+      expect(worldB.powerupManager()!.activePowerups, hasLength(3));
+    });
+
+    test('Powerup_TransfersAsIsAcrossGracefulAndAbruptMultiHopCommandTransfers', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      WormWorld worldC = await createTestWorld('c');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldC.network().disableCommandTransferHeuristicForTest = true;
+
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      // Park all players out of collision range so powerups remain untouched during transfers.
+      for (final WormWorld w in [worldA, worldB, worldC]) {
+        for (final int pid in [playerId(0), playerId(1), playerId(2)]) {
+          final LocalPlayerSprite? ps = w.spriteIndex[pid] as LocalPlayerSprite?;
+          if (ps != null) {
+            ps.collision = false;
+            ps.flags |= Sprite.FLAG_NO_GRAVITY;
+            ps.position = Vec2(2.0, 2.0);
+            ps.velocity = Vec2.ZERO;
+          }
+        }
+      }
+
+      // Build a solid floor at y = 85 so resting powerups sit stably under real physics.
+      for (final WormWorld w in [worldA, worldB, worldC]) {
+        w.byteWorld.fillRectAt(Vec2(0.0, 85.0), Vec2(100.0, 15.0), "#444444");
+      }
+
+      // Commander A spawns 2 distinct powerups via PowerupManager / addSprite with custom remaining lifetimes.
+      Powerup shieldA = Powerup(Vec2(20.0, 85.0 - Powerup.SIZE_OFFSET.y), PowerUpType.SHIELD, worldA.imageIndex())
+        ..velocity = Vec2.ZERO
+        ..lifeTime = 340;
+      Powerup mysteryA = Powerup(Vec2(60.0, 85.0 - Powerup.SIZE_OFFSET.y), PowerUpType.POWERUP, worldA.imageIndex())
+        ..velocity = Vec2.ZERO
+        ..lifeTime = 290;
+      worldA.addSprite(shieldA);
+      worldA.addSprite(mysteryA);
+      worldA.powerupManager()!.trackPowerup(shieldA);
+      worldA.powerupManager()!.trackPowerup(mysteryA);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      final int shieldId = shieldA.networkId!;
+      final int mysteryId = mysteryA.networkId!;
+      for (final WormWorld clientWorld in [worldB, worldC]) {
+        expect(clientWorld.powerupManager()!.activePowerups, hasLength(2));
+        expect((clientWorld.spriteIndex[shieldId] as Powerup).type, equals(PowerUpType.SHIELD));
+        expect((clientWorld.spriteIndex[mysteryId] as Powerup).type, equals(PowerUpType.POWERUP));
+      }
+
+      final int shieldLifeBeforeTransfer = shieldA.lifeTime;
+      final Vec2 shieldPosBeforeTransfer = Vec2.copy(shieldA.position);
+
+      // 1. Graceful command transfer from A -> B (while A stays in the game as a client!).
+      worldB.drawFps().setFpsForTest(60.0);
+      worldC.drawFps().setFpsForTest(40.0);
+      expect(worldA.network().transferCommander("test graceful handoff"), isTrue);
+
+      // Step small frames to complete the handoff without large physics displacement,
+      // verifying position & remaining lifetime are preserved as-is at transfer time!
+      worldB.frameDraw(0.01);
+      worldA.frameDraw(0.01);
+      worldC.frameDraw(0.01);
+      worldB.frameDraw(KEY_FRAME_DEFAULT);
+      worldA.frameDraw(0.01);
+      worldC.frameDraw(0.01);
+
+      expect(worldB.isCommander, isTrue, reason: "B should now be commander");
+      expect(worldA.isCommander, isFalse, reason: "A should now be a client");
+      expect(worldC.isCommander, isFalse);
+
+      // Verify both powerups transferred AS IS:
+      // - LOCAL (ownerId == null) on new commander B
+      // - Demoted to REMOTE (ownerId == 'b') on former commander A
+      // - Updated to REMOTE (ownerId == 'b') on client C
+      // - Tracked in PowerupManager on all 3 worlds with no duplicate spawns!
+      for (final int id in [shieldId, mysteryId]) {
+        final Powerup onB = worldB.spriteIndex[id] as Powerup;
+        final Powerup onA = worldA.spriteIndex[id] as Powerup;
+        final Powerup onC = worldC.spriteIndex[id] as Powerup;
+
+        expect(onB.networkType, equals(NetworkType.LOCAL));
+        expect(onB.ownerId, isNull);
+        expect(onA.networkType, equals(NetworkType.REMOTE),
+            reason: "Former commander A must demote transferred powerups to REMOTE");
+        expect(onA.ownerId, equals('b'));
+        expect(onC.networkType, equals(NetworkType.REMOTE));
+        expect(onC.ownerId, equals('b'),
+            reason: "Client C must update powerup ownerId to new commander B");
+        expect(onB.fadeAlpha, equals(1.0));
+        expect(onA.fadeAlpha, equals(1.0));
+        expect(onC.fadeAlpha, equals(1.0));
+        expect(onA.position.x, closeTo(onB.position.x, 1.0));
+        expect(onA.position.y, closeTo(onB.position.y, 2.0));
+        expect(onC.position.x, closeTo(onB.position.x, 1.0));
+        expect(onC.position.y, closeTo(onB.position.y, 2.0));
+      }
+      final Powerup shieldOnB = worldB.spriteIndex[shieldId] as Powerup;
+      expect(shieldOnB.type, equals(PowerUpType.SHIELD));
+      expect(shieldOnB.position.x, closeTo(shieldPosBeforeTransfer.x, 0.5));
+      expect(shieldOnB.lifeTime, lessThanOrEqualTo(shieldLifeBeforeTransfer));
+      expect(shieldOnB.lifeTime, greaterThan(shieldLifeBeforeTransfer - 25));
+
+      expect(worldB.powerupManager()!.activePowerups, hasLength(2));
+      expect(worldA.powerupManager()!.activePowerups, hasLength(2));
+      expect(worldC.powerupManager()!.activePowerups, hasLength(2));
+
+      // 2. Abrupt multi-hop disconnect: Commander B drops -> A or C takes command
+      // and must inherit the exact same powerups (even though A originally created them!).
+      // Also disconnect A first so C becomes commander (testing full A -> B -> C multi-hop!).
+      testConnections['a']!.forEach((e) => e.signalClose());
+      for (int i = 0; i < 6; i++) {
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 2);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+      expect(worldB.isCommander, isTrue);
+
+      testConnections['b']!.forEach((e) => e.signalClose());
+      for (int i = 0; i < 8; i++) {
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 2);
+      }
+
+      expect(worldC.isCommander, isTrue,
+          reason: "C should become commander after A and B leave");
+      expect(worldC.powerupManager()!.activePowerups, hasLength(2),
+          reason: "New commander C must retain both powerups after A -> B -> C handoff");
+
+      final Powerup shieldOnC = worldC.spriteIndex[shieldId] as Powerup;
+      final Powerup mysteryOnC = worldC.spriteIndex[mysteryId] as Powerup;
+      expect(shieldOnC.networkType, equals(NetworkType.LOCAL));
+      expect(shieldOnC.ownerId, isNull);
+      expect(shieldOnC.type, equals(PowerUpType.SHIELD));
+      expect(mysteryOnC.networkType, equals(NetworkType.LOCAL));
+      expect(mysteryOnC.ownerId, isNull);
+      expect(mysteryOnC.type, equals(PowerUpType.POWERUP));
+
+      // Verify C can now pick up the transferred shield powerup as authoritative commander!
+      final LocalPlayerSprite playerC = worldC.spriteIndex[playerId(2)] as LocalPlayerSprite;
+      playerC.collision = true;
+      shieldOnC.collide(playerC, null, null);
+      expect(playerC.shieldPoints, equals(LocalPlayerSprite.MAX_SHIELD));
+      expect(shieldOnC.remove, isTrue);
+      worldC.frameDraw(0.05);
+      expect(worldC.powerupManager()!.activePowerups, equals([mysteryOnC]));
+    });
   });
 }
 

@@ -275,9 +275,12 @@ class WormWorld extends World {
     List<StateUpdate> particles = [];
 
     for (Sprite sprite in spriteIndex.putPendingSpritesInWorld()) {
-     if (sprite is Particles && sprite.sendToNetwork) {
-       particles.add(StateUpdate()..particleEffects = sprite.toNetworkUpdate());
-     }
+      if (sprite is Powerup) {
+        _powerupManager.trackPowerup(sprite);
+      }
+      if (sprite is Particles && sprite.sendToNetwork) {
+        particles.add(StateUpdate()..particleEffects = sprite.toNetworkUpdate());
+      }
     }
     if (particles.isNotEmpty) {
       // TODO: Make part of main network loop instead.
@@ -392,8 +395,10 @@ class WormWorld extends World {
     // Only send to network if server frames has passed.
     _network.frame(duration, spriteIndex.getAndClearNetworkRemovals());
     _checkDormantPlayer();
-    if (_network.isCommander()) {
+    if (_network.isCommander() && _network.pendingCommandTransfer() == null) {
       _powerupManager.frame(duration);
+    } else {
+      _powerupManager.pruneRemoved();
     }
 
     // 1 since we count how many times this method is called.
@@ -976,6 +981,7 @@ class WormWorld extends World {
   num height() => _height;
   Network network() => _network;
   ImageIndex imageIndex() => _imageIndex;
+  PowerupManager? powerupManager() => _powerupManager;
   FpsCounter drawFps() => _drawFps;
   ConfigParams config() => _configParams;
   gaReporter() => _gaReporter;
