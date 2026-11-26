@@ -129,6 +129,7 @@ void setKeyListeners(WormWorld world, var canvasElement) {
 void setPageLifecycleListeners(WormWorld world) {
   final onClose = ((Event _) {
     world.network().transferCommander("tab closing");
+    world.network().sendGoodbye("tab closing");
   }).toJS;
   // Listen to both beforeunload and pagehide for reliable coverage across tab
   // close, reload, and navigation (transferCommander is idempotent).

@@ -543,4 +543,38 @@ void main() {
     connection.sendData(GameStateUpdates()..frame = 8);
     expect(connection.isClosedConnection(), isTrue);
   });
+
+  test('CloseConnection_sendsGoodbyePacket', () {
+    connection.open();
+    connection.close("tab closing");
+
+    expect(connection.isClosedConnection(), isTrue);
+    expect(testConnection.dataBuffer.length, equals(1));
+    final GameStateUpdates sent = testConnection.nativeBufferedDataAt(0);
+    expect(sent.stateUpdate.length, equals(1));
+    expect(sent.stateUpdate[0].whichUpdate(), equals(StateUpdate_Update.goodbye));
+    expect(sent.stateUpdate[0].goodbye, equals("tab closing"));
+  });
+
+  test('ReceiveGoodbye_closesConnectionAndPrintsPlayerDisconnected', () {
+    final MockGameState mockGameState = mockNetwork.getGameState() as MockGameState;
+    when(mockGameState.playerInfoByConnectionId("a")).thenReturn(
+      PlayerInfoProto()
+        ..connectionId = "a"
+        ..name = "Alice",
+    );
+    connection.open();
+
+    final GameStateUpdates goodbye = GameStateUpdates()
+      ..frame = 1
+      ..lastFrameSeen = 0
+      ..stateUpdate.add(StateUpdate()..goodbye = "tab closing");
+    connection.receiveData(PacketWrapper(goodbye.writeToBuffer()));
+
+    expect(connection.isClosedConnection(), isTrue);
+    // Must not echo a goodbye packet back to the disconnecting peer.
+    expect(testConnection.dataBuffer, isEmpty);
+    verify(mockHudMessages.display("Alice disconnected")).called(1);
+    verifyNever(mockHudMessages.display(argThat(contains("Connection to a closed"))));
+  });
 }

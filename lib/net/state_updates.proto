@@ -79,6 +79,9 @@ message StateUpdate {
     PlaySound play_sound = 22;
 
     WebRtcNegotiationProto negotiation = 23;
+
+    // Graceful disconnect notification with optional reason.
+    string goodbye = 26;
   }
 }
 

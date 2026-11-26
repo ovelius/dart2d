@@ -813,6 +813,12 @@ class MockNetwork extends _i1.Mock implements _i13.Network {
           as bool);
 
   @override
+  void sendGoodbye(String? reason) => super.noSuchMethod(
+    Invocation.method(#sendGoodbye, [reason]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void setPendingCommandTransferForTest(String? pendingCommandTransfer) =>
       super.noSuchMethod(
         Invocation.method(#setPendingCommandTransferForTest, [
@@ -2542,8 +2548,16 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as bool);
 
   @override
-  void close(String? reason) => super.noSuchMethod(
-    Invocation.method(#close, [reason]),
+  void close(
+    String? reason, {
+    bool? sendGoodbye = true,
+    bool? silentHud = false,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #close,
+      [reason],
+      {#sendGoodbye: sendGoodbye, #silentHud: silentHud},
+    ),
     returnValueForMissingStub: null,
   );
 

@@ -34,6 +34,7 @@ class HudMessage {
     if (lower.contains("error") ||
         lower.contains("closed") ||
         lower.contains("closing") ||
+        lower.contains("disconnected") ||
         lower.contains("full")) {
       return _HudTone.WARNING;
     }
@@ -77,6 +78,12 @@ class HudMessages {
   }
 
   void display(String message, [double period = DEFAULT_DURATION]) {
+    // Avoid duplicate "<player> disconnected" banners when both direct goodbye
+    // and commander broadcast arrive for the same disconnect.
+    if (message.endsWith(" disconnected") &&
+        messages.any((m) => m.message == message)) {
+      return;
+    }
     messages.add(new HudMessage(message, period));
     while (messages.length > MAX_VISIBLE_MESSAGES) {
       messages.removeAt(0);

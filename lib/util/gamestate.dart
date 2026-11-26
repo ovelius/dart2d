@@ -138,7 +138,8 @@ class GameState {
       if (info.connectionId == id) {
         _gameStateProto.playerInfo.removeAt(i);
         _playerInfoById.remove(info.connectionId);
-        world.network().sendMessage("${info.name} disconnected :/", id);
+        world.hudMessages.display("${info.name} disconnected");
+        world.network().sendMessage("${info.name} disconnected", id);
         // This code runs under the assumption that we are acting server.
         // That means we have to do something about the dead servers sprite.
         // Never mutate or remove our own local playerSprite if an ID collided.

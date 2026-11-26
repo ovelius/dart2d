@@ -61,6 +61,7 @@ const StateUpdate$json = {
     {'1': 'commander_map_selected', '3': 21, '4': 1, '5': 9, '9': 0, '10': 'commanderMapSelected'},
     {'1': 'play_sound', '3': 22, '4': 1, '5': 11, '6': '.dart2d_proto.PlaySound', '9': 0, '10': 'playSound'},
     {'1': 'negotiation', '3': 23, '4': 1, '5': 11, '6': '.dart2d_proto.WebRtcNegotiationProto', '9': 0, '10': 'negotiation'},
+    {'1': 'goodbye', '3': 26, '4': 1, '5': 9, '9': 0, '10': 'goodbye'},
   ],
   '8': [
     {'1': 'update'},

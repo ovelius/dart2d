@@ -365,7 +365,7 @@ class Network {
     Map<String, ConnectionWrapper> connections = safeActiveConnections();
     List<String> closeAbleNotServer = [];
     if (connections.containsKey(gameState.gameStateProto.actingCommanderId)) {
-      if (gameState.isAtMaxPlayers()) {
+      if (gameState.isAtMaxPlayers() && !gameState.isInGame(peer.id!)) {
          connections[gameState.gameStateProto.actingCommanderId]!.close("Full game connection!");
          return false;
       }
@@ -497,6 +497,18 @@ class Network {
     log.info("Transferring command role to $newCommander ($reason)");
     _sendPendingCommandTransfer(connections[newCommander]!, reason);
     return true;
+  }
+
+  /**
+   * Gracefully closes all active peer connections, sending a goodbye message
+   * on each before closing the underlying WebRTC transport.
+   */
+  void sendGoodbye(String reason) {
+    for (ConnectionWrapper connection in List.of(peer.connections.values)) {
+      if (!connection.closed) {
+        connection.close(reason);
+      }
+    }
   }
 
   _sendPendingCommandTransfer(ConnectionWrapper connection, String reason) {

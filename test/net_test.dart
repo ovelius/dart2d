@@ -1055,6 +1055,13 @@ void main() {
       worldD.connectTo("a", "nameD");
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
+      // The 4th player is now in a full (4/4) GameState; calling
+      // findActiveGameConnection() during loading must NOT close its own
+      // commander connection as "Full game connection!".
+      expect(worldD.network().gameState.isAtMaxPlayers(), isTrue);
+      expect(worldD.network().findActiveGameConnection(), isTrue);
+      expect(worldD.network().getServerConnection()!.isClosedConnection(), isFalse);
+
       // At max players signaling server is disconnected.
       expect(worldA.network().peer.connectedToServer(), isFalse);
       // Explicitly reconnect.
@@ -1107,17 +1114,25 @@ void main() {
 
       ConnectionWrapper.THROW_SEND_ERRORS_FOR_TEST = false;
 
+      // During the first < 2 seconds of send failures, connections are not
+      // dropped prematurely.
+      for (int i = 0; i < 10; i++) {
+        worldC.frameDraw(0.1);
+        worldD.frameDraw(0.1);
+      }
+      expect(worldC.network().peer.hasConnectionTo('a'), isTrue);
+
       // Advance past the 2-second send failure grace period plus re-election.
-      for (int i = 0; i < 40; i++) {
+      for (int i = 0; i < 30; i++) {
         worldC.frameDraw(0.1);
         worldD.frameDraw(0.1);
       }
 
       // The two worlds still survived, and connected to each other. Yay!
       expect(worldC, isGameStateOf(
-          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
       expect(worldD, isGameStateOf(
-          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('d'));
+          {playerId(2): "nameC", playerId(3): "nameD"}).withCommanderId('c'));
     });
 
     test('TestMultipleCommanders_keepsOneCommander', () async {
@@ -1272,6 +1287,59 @@ void main() {
         ..spriteId = worldA.playerSprite!.networkId!);
       worldA.network().gameState.removeByConnectionId(worldA, "colliding");
       expect(worldA.playerSprite!.networkType, equals(NetworkType.LOCAL));
+    });
+
+    test('GracefulGoodbye_printsPlayerDisconnectedAndRemovesPlayer', () async {
+      logConnectionData = false;
+      WormWorld worldA = await createTestWorld("a");
+      WormWorld worldB = await createTestWorld("b");
+      WormWorld worldC = await createTestWorld("c");
+      worldA.startAsServer("nameA");
+      worldB.connectTo("a", "nameB");
+      worldC.connectTo("a", "nameC");
+
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldB.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      // Client B disconnects gracefully (e.g. closing tab).
+      worldB.network().sendGoodbye("tab closing");
+
+      // Both remaining peers immediately receive goodbye and show "<name> disconnected".
+      expect(
+          worldA.hudMessages.messages.where((m) => m.message == "nameB disconnected").length,
+          equals(1));
+      expect(
+          worldC.hudMessages.messages.where((m) => m.message == "nameB disconnected").length,
+          equals(1));
+
+      // Advance a few frames so closed connections and sprites are cleaned up.
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT / 5);
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+
+      expect(worldA, isGameStateOf({playerId(0): "nameA", playerId(2): "nameC"}).withCommanderId('a'));
+      expect(worldC, isGameStateOf({playerId(0): "nameA", playerId(2): "nameC"}).withCommanderId('a'));
+      // Commander broadcast must not create a duplicate disconnect banner on C.
+      expect(
+          worldC.hudMessages.messages.where((m) => m.message == "nameB disconnected").length,
+          equals(1));
+
+      // Now Commander A transfers command and sends goodbye.
+      worldA.network().transferCommander("tab closing");
+      worldA.network().sendGoodbye("tab closing");
+      expect(
+          worldC.hudMessages.messages.where((m) => m.message == "nameA disconnected").length,
+          equals(1));
+
+      for (int i = 0; i < 5; i++) {
+        worldC.frameDraw(KEY_FRAME_DEFAULT / 5);
+      }
+      expect(worldC, isGameStateOf({playerId(2): "nameC"}).withCommanderId('c'));
+      expect(worldC, hasSpecifiedConnections([]));
     });
   });
 }

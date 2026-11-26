@@ -110,13 +110,62 @@ class ConnectionWrapper {
     return _lastSeenKeyFrame != null || _network.isCommander();
   }
 
-  void close(String reason) {
-    if (!closed) {
-      _hudMessages.display("Connection to ${id} closed: $reason");
+  void close(String reason, {bool sendGoodbye = true, bool silentHud = false}) {
+    final bool wasClosed = closed;
+    closed = true;
+    if (!wasClosed) {
+      if (sendGoodbye) {
+        _sendGoodbyePacket(reason);
+      }
+      if (!silentHud) {
+        final String? playerName = _playerNameForConnection();
+        if (playerName != null) {
+          _hudMessages.display("$playerName disconnected");
+        } else {
+          _hudMessages.display("Connection to ${id} closed: $reason");
+        }
+      }
     }
     log.info("Closed connection to ${id} reason: ${reason}");
-    closed = true;
     _rtcConnection?.close();
+  }
+
+  String? _playerNameForConnection() {
+    final PlayerInfoProto? info =
+        _network.getGameState().playerInfoByConnectionId(id) ??
+            _network.getGameState().getRemovedPlayerInfo(id);
+    if (info != null && info.name.isNotEmpty) {
+      return info.name;
+    }
+    return null;
+  }
+
+  void _sendGoodbyePacket(String reason) {
+    if (_dataChannel == null) {
+      return;
+    }
+    try {
+      final GameStateUpdates goodbyeUpdate = GameStateUpdates()
+        ..frame = _connectionFrameHandler.currentFrame()
+        ..lastFrameSeen = lastSeenRemoteFrame
+        ..stateUpdate.add(StateUpdate()..goodbye = reason);
+      final Uint8List dataBytes = goodbyeUpdate.writeToBuffer();
+      _dataChannel?.send(dataBytes.toJS);
+    } catch (e) {
+      // Best-effort only: data channel may already be closed or unhealthy.
+      log.fine("Could not send goodbye to $id: $e");
+    }
+  }
+
+  void _handleGoodbye(String reason) {
+    log.info("Received goodbye from $id (reason: $reason)");
+    final String? playerName = _playerNameForConnection();
+    if (playerName != null) {
+      _hudMessages.display("$playerName disconnected");
+      close("Remote goodbye: $reason", sendGoodbye: false, silentHud: true);
+    } else {
+      close("Remote closed: $reason", sendGoodbye: false);
+    }
   }
 
   void open() {
@@ -274,6 +323,9 @@ class ConnectionWrapper {
           sampleLatency(new Duration(milliseconds: latencyMillis.toInt()));
             _initialPongReceived = true;
           continue;
+        case StateUpdate_Update.goodbye:
+          _handleGoodbye(update.goodbye);
+          return;
         default:
       }
       if (_packetListenerBindings.hasHandler(updateType)) {
