@@ -25,6 +25,7 @@ class WeaponState {
   MobileControls? mobileControls;
   
   double changeTime = 0.0;
+  double _laserTime = 0.0;
   String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
   double _anglePerWeapon = 0.0;
@@ -139,7 +140,7 @@ class WeaponState {
       // The order is important here.
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
-    }),
+    }, hasLaserSight: true),
     new Weapon("Cat litter box", 5, 1, 5.0, 0.01, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 100, positionBase:weaponState.owner.gun);
       sprite.mod = Mod.LITTER;
@@ -214,6 +215,7 @@ class WeaponState {
   
   think(double duration) {
     changeTime -= duration;
+    _laserTime += duration;
     weapons[selectedWeaponIndex].think(duration);
   }
 
@@ -303,8 +305,210 @@ class WeaponState {
     }
   }
 
+  LaserSightTrace computeLaserSightTrace() {
+    final Vec2 center = owner.centerPoint();
+    final double dirX = cos(gun.angle);
+    final double dirY = sin(gun.angle);
+    final double muzzleOffset = gun.size.x * 0.5;
+    final double startX = center.x + dirX * muzzleOffset;
+    final double startY = center.y + dirY * muzzleOffset;
+
+    double maxDist = 2500.0;
+    final bool worldReady = world.byteWorld.byteWorldReady();
+    if (worldReady) {
+      final double maxW = world.byteWorld.width.toDouble();
+      final double maxH = world.byteWorld.height.toDouble();
+      double boundDist = double.infinity;
+      if (dirX.abs() > 1e-6) {
+        final double tx = dirX > 0 ? (maxW - startX) / dirX : (0.0 - startX) / dirX;
+        if (tx >= 0.0) boundDist = min(boundDist, tx);
+      }
+      if (dirY.abs() > 1e-6) {
+        final double ty = dirY > 0 ? (maxH - startY) / dirY : (0.0 - startY) / dirY;
+        if (ty >= 0.0) boundDist = min(boundDist, ty);
+      }
+      if (boundDist.isFinite) {
+        maxDist = boundDist.clamp(0.0, 4000.0);
+      }
+    }
+
+    // Find first terrain contact (the Snailgun pierces straight through terrain,
+    // so we show a crisp laser beam up to terrain and a glowing dashed x-ray
+    // penetration path beyond it).
+    double? terrainHitDist;
+    if (worldReady && maxDist > 0.0) {
+      const double step = 6.0;
+      for (double d = 0.0; d <= maxDist; d += step) {
+        final int sx = (startX + dirX * d).round();
+        final int sy = (startY + dirY * d).round();
+        if (world.byteWorld.isSolid(sx, sy)) {
+          // Refine within the last step for a crisp dot right on the surface.
+          double refined = max(0.0, d - step);
+          while (refined < d &&
+              !world.byteWorld.isSolid(
+                  (startX + dirX * refined).round(),
+                  (startY + dirY * refined).round())) {
+            refined += 1.0;
+          }
+          terrainHitDist = refined;
+          break;
+        }
+      }
+    }
+
+    // Find any enemy players along the snail's straight path for target-lock dots.
+    final List<Vec2> playerHits = [];
+    for (int id in world.spriteIndex.spriteIds()) {
+      final Sprite? s = world.spriteIndex[id];
+      if (s is LocalPlayerSprite && s != owner && s.inGame()) {
+        final Vec2 targetCenter = s.centerPoint();
+        final double toX = targetCenter.x - startX;
+        final double toY = targetCenter.y - startY;
+        final double proj = toX * dirX + toY * dirY;
+        if (proj > 0.0 && proj <= maxDist) {
+          final double perpSq =
+              (toX - dirX * proj) * (toX - dirX * proj) +
+              (toY - dirY * proj) * (toY - dirY * proj);
+          final double hitRadius = s.getRadius() * 0.95;
+          if (perpSq <= hitRadius * hitRadius) {
+            playerHits.add(Vec2(startX + dirX * proj, startY + dirY * proj));
+          }
+        }
+      }
+    }
+
+    return LaserSightTrace(
+      start: Vec2(startX, startY),
+      dir: Vec2(dirX, dirY),
+      totalDistance: maxDist,
+      terrainHitDistance: terrainHitDist,
+      playerHits: playerHits,
+    );
+  }
+
+  void _drawLaserSight(CanvasRenderingContext2D context) {
+    final LaserSightTrace trace = computeLaserSightTrace();
+    if (trace.totalDistance <= 1.0) return;
+
+    final bool isLocalOwner = owner.drawWeaponHelpers();
+    final double reloadDim = (isLocalOwner && reloading()) ? 0.32 : 1.0;
+    final double ownerAlpha = (isLocalOwner ? 1.0 : 0.68) * reloadDim;
+    final double pulse = 0.88 + 0.12 * sin(_laserTime * 14.0);
+    final double alpha = ownerAlpha * pulse;
+
+    final double startX = trace.start.x;
+    final double startY = trace.start.y;
+    final double dirX = trace.dir.x;
+    final double dirY = trace.dir.y;
+    final double solidEndDist = trace.terrainHitDistance ?? trace.totalDistance;
+    final double solidEndX = startX + dirX * solidEndDist;
+    final double solidEndY = startY + dirY * solidEndDist;
+
+    context.save();
+    context.lineCap = "round";
+
+    // 1. Primary open-air laser beam (soft outer glow + bright crimson + hot core).
+    if (solidEndDist > 0.5) {
+      context.strokeStyle = "rgba(255, 32, 48, ${0.26 * alpha})".toJS;
+      context.lineWidth = 6.5;
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.lineTo(solidEndX, solidEndY);
+      context.stroke();
+
+      context.strokeStyle = "rgba(255, 48, 62, ${0.84 * alpha})".toJS;
+      context.lineWidth = 2.2;
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.lineTo(solidEndX, solidEndY);
+      context.stroke();
+
+      context.strokeStyle = "rgba(255, 232, 234, ${0.92 * alpha})".toJS;
+      context.lineWidth = 0.9;
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.lineTo(solidEndX, solidEndY);
+      context.stroke();
+    }
+
+    // 2. Piercing path continuation beyond first terrain hit (animated dashed beam
+    // showing the snail will burrow straight through the wall!).
+    if (trace.terrainHitDistance != null &&
+        trace.terrainHitDistance! < trace.totalDistance - 1.0) {
+      final double pierceStart = trace.terrainHitDistance!;
+      const double dashLen = 11.0;
+      const double gapLen = 9.0;
+      const double period = dashLen + gapLen;
+      final double phase = (_laserTime * 55.0) % period;
+
+      // Soft outer piercing glow.
+      context.strokeStyle = "rgba(255, 52, 68, ${0.22 * alpha})".toJS;
+      context.lineWidth = 4.2;
+      context.beginPath();
+      for (double d = pierceStart + phase; d < trace.totalDistance; d += period) {
+        final double segEnd = min(d + dashLen, trace.totalDistance);
+        context.moveTo(startX + dirX * d, startY + dirY * d);
+        context.lineTo(startX + dirX * segEnd, startY + dirY * segEnd);
+      }
+      context.stroke();
+
+      // Crisp inner piercing laser dashes.
+      context.strokeStyle = "rgba(255, 92, 102, ${0.72 * alpha})".toJS;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      for (double d = pierceStart + phase; d < trace.totalDistance; d += period) {
+        final double segEnd = min(d + dashLen, trace.totalDistance);
+        context.moveTo(startX + dirX * d, startY + dirY * d);
+        context.lineTo(startX + dirX * segEnd, startY + dirY * segEnd);
+      }
+      context.stroke();
+
+      // Glowing laser contact dot right where the beam hits terrain.
+      final double dotR = 3.2 + 0.8 * sin(_laserTime * 18.0);
+      context.fillStyle = "rgba(255, 42, 58, ${0.38 * alpha})".toJS;
+      context.beginPath();
+      context.arc(solidEndX, solidEndY, dotR * 2.1, 0, 2 * pi);
+      context.fill();
+
+      context.fillStyle = "rgba(255, 225, 228, ${0.95 * alpha})".toJS;
+      context.beginPath();
+      context.arc(solidEndX, solidEndY, dotR * 0.85, 0, 2 * pi);
+      context.fill();
+    }
+
+    // 3. Target-lock laser dots on any enemy player along the snail's trajectory!
+    for (final Vec2 hit in trace.playerHits) {
+      final double lockPulse = 1.0 + 0.25 * sin(_laserTime * 20.0);
+      context.strokeStyle = "rgba(255, 48, 64, ${0.9 * alpha})".toJS;
+      context.lineWidth = 1.8;
+      context.beginPath();
+      context.arc(hit.x, hit.y, 7.5 * lockPulse, 0, 2 * pi);
+      context.stroke();
+
+      context.fillStyle = "rgba(255, 240, 240, ${0.95 * alpha})".toJS;
+      context.beginPath();
+      context.arc(hit.x, hit.y, 2.8, 0, 2 * pi);
+      context.fill();
+    }
+
+    // 4. Tiny glowing emitter dot at the gun barrel tip.
+    context.fillStyle = "rgba(255, 58, 72, ${0.5 * alpha})".toJS;
+    context.beginPath();
+    context.arc(startX, startY, 3.8, 0, 2 * pi);
+    context.fill();
+    context.fillStyle = "rgba(255, 240, 240, ${0.95 * alpha})".toJS;
+    context.beginPath();
+    context.arc(startX, startY, 1.6, 0, 2 * pi);
+    context.fill();
+
+    context.restore();
+  }
+
   draw(CanvasRenderingContext2D context) {
     context.save();
+    if (getSelectedWeapon().hasLaserSight) {
+      _drawLaserSight(context);
+    }
     if (owner.drawWeaponHelpers()) {
       double radius = owner.getRadius();
       context.fillStyle = "#ffffff".toJS;
@@ -342,4 +546,23 @@ class WeaponState {
 
   bool reloading() => weapons[selectedWeaponIndex].reloading();
   int reloadPercent() => weapons[selectedWeaponIndex].reloadPercent();
+}
+
+class LaserSightTrace {
+  final Vec2 start;
+  final Vec2 dir;
+  final double totalDistance;
+  final double? terrainHitDistance;
+  final List<Vec2> playerHits;
+
+  const LaserSightTrace({
+    required this.start,
+    required this.dir,
+    required this.totalDistance,
+    required this.terrainHitDistance,
+    required this.playerHits,
+  });
+
+  Vec2 get end =>
+      Vec2(start.x + dir.x * totalDistance, start.y + dir.y * totalDistance);
 }

@@ -19,6 +19,7 @@ class ChunkHelper {
   // To fit nice inside your typical MTU.
   static const int MIN_CHUNK_SIZE = 1300;
   static const int IMAGE_RETRY_DURATION_MILLIS = 1500;
+  static const int MAX_CONSECUTIVE_TIMEOUTS_BEFORE_PEER_SWITCH = 3;
 
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
@@ -32,8 +33,14 @@ class ChunkHelper {
   Map<int, double> _retryTimer = new Map();
   // Track failures by connection.
   Map<String, int> _failures = new Map();
-  // Connection we requested image from.
+  // Connection we currently have an in-flight chunk request to.
   Map<int, String> _outstandingImageRequests = new Map();
+  // Single peer pinned for the entire transfer of each image index.
+  Map<int, String> _pinnedPeerForImage = new Map();
+  // Consecutive retry timeouts per image on its pinned peer.
+  Map<int, int> _consecutiveTimeoutsForImage = new Map();
+  // Peers denylisted per image index after delivering a corrupt / CRC32-mismatched image.
+  Map<int, Set<String>> _denylistedPeersByImage = new Map();
 
   // Buffer partially completed images in this map.
   Map<int, String> _imageBuffer = new Map();
@@ -53,10 +60,12 @@ class ChunkHelper {
     _packetListenerBindings.bindHandler(StateUpdate_Update.resourceResponse,
         (ConnectionWrapper connection, StateUpdate data) {
       parseImageChunkResponse(data.resourceResponse, connection);
-      // Request new data right away.
+      // Request new data right away from this peer without falling back to
+      // server (other peers are not in this single-connection map).
       requestNetworkData(
           // No time has passed.
-          {connection.id: connection}, 0.0);
+          {connection.id: connection}, 0.0,
+          allowServerFallback: false);
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.clientEnter,
         (var connection, dynamic unused) {
@@ -137,43 +146,114 @@ class ChunkHelper {
    */
   void parseImageChunkResponse(ResourceResponse response, var connection) {
     int index = response.resourceIndex;
-    String data = utf8.decode(response.data);
-    counter.collect(data.length);
-    int start = response.startByte;
-    // Final expected siimageBufferze.
-    int size = response.size;
-    if (!_imageSizes.containsKey(index)) {
-      _imageSizes[index] = size;
-    }
     if (!_imageBuffer.containsKey(index)) {
       log.warning(
           "Got image data for ${index}, excpected any of ${_imageBuffer.keys}");
       return;
     }
+    String? pinnedPeerId = _pinnedPeerForImage[index];
+    if (pinnedPeerId != null && pinnedPeerId != connection.id) {
+      log.warning(
+          "Dropping chunk for ${index} from unpinned peer ${connection.id} (pinned to ${pinnedPeerId}).");
+      return;
+    }
+    _pinnedPeerForImage[index] = connection.id;
+
+    String data = utf8.decode(response.data);
+    counter.collect(data.length);
+    int start = response.startByte;
+    // Final expected image size.
+    int size = response.size;
+    if (!_imageSizes.containsKey(index)) {
+      _imageSizes[index] = size;
+    } else if (_imageSizes[index] != size) {
+      log.warning(
+          "Dropping image transfer for ${index} from ${connection.id}: size changed from ${_imageSizes[index]} to ${size}.");
+      _resetImageTransfer(index);
+      return;
+    }
+
     if (start == _imageBuffer[index]!.length) {
       _imageBuffer[index] = _imageBuffer[index]! + data;
       _outstandingImageRequests.remove(index);
+      _consecutiveTimeoutsForImage.remove(index);
     } else {
       log.warning("Dropping data for ${index}, out of order??");
+      return;
+    }
+
+    if (_imageBuffer[index]!.length > size) {
+      log.warning(
+          "Dropping oversized image transfer for ${index} from ${connection.id}.");
+      if (index > ImageIndex.WORLD_IMAGE_INDEX) {
+        _denylistPeerForImage(index, connection.id);
+      }
+      _resetImageTransfer(index);
+      return;
     }
 
     // Image complete.
     if (_imageBuffer[index]!.length == size) {
-      _imageIndex.addFromImageData(index, _imageBuffer[index]!, true);
-      _imageBuffer.remove(index);
-      _imageSizes.remove(index);
+      String completedData = _imageBuffer[index]!;
+      String peerId = connection.id;
+      _resetImageTransfer(index);
+      if (!_imageIndex.verifyImageDataHash(index, completedData)) {
+        log.warning(
+            "Dropping corrupted image ${index} from peer ${peerId}: CRC32 mismatch.");
+        _denylistPeerForImage(index, peerId);
+        _failures[peerId] = (_failures[peerId] ?? 0) + 1;
+        return;
+      }
+      _imageIndex.addFromImageData(index, completedData, true);
       log.info("Image complete ${index} :)");
     }
   }
 
+  void _resetImageTransfer(int index) {
+    _imageBuffer.remove(index);
+    _imageSizes.remove(index);
+    _outstandingImageRequests.remove(index);
+    _pinnedPeerForImage.remove(index);
+    _consecutiveTimeoutsForImage.remove(index);
+    _retryTimer.remove(index);
+  }
+
+  void _denylistPeerForImage(int index, String peerId) {
+    _denylistedPeersByImage.putIfAbsent(index, () => <String>{}).add(peerId);
+  }
+
+  void _fallbackToServer(int index) {
+    String imageName = _imageIndex.imageNameFromIndex(index);
+    log.warning(
+        "All peers denylisted for image ${imageName} (${index}), falling back to server.");
+    _resetImageTransfer(index);
+    _imageIndex.addSingleImage(imageName);
+  }
+
+  bool isPeerDenylisted(int index, String peerId) {
+    return _denylistedPeersByImage[index]?.contains(peerId) ?? false;
+  }
+
+  Map<int, Set<String>> denylistedPeersByImage() {
+    return {
+      for (var entry in _denylistedPeersByImage.entries)
+        entry.key: Set<String>.from(entry.value),
+    };
+  }
+
+  String? pinnedPeerForImage(int index) => _pinnedPeerForImage[index];
+
   void requestNetworkData(
-      Map<String, ConnectionWrapper> connections, double secondsDuration) {
+      Map<String, ConnectionWrapper> connections, double secondsDuration,
+      {bool allowServerFallback = true}) {
     requestSpecificNetworkData(
-        connections, secondsDuration, _imageIndex.orderedImageIds());
+        connections, secondsDuration, _imageIndex.orderedImageIds(),
+        allowServerFallback: allowServerFallback);
   }
 
   void requestSpecificNetworkData(Map<String, ConnectionWrapper> connections,
-      double secondsDuration, Iterable<int> IdsToFetch) {
+      double secondsDuration, Iterable<int> IdsToFetch,
+      {bool allowServerFallback = true}) {
     int requestedImages = 0;
     for (int index in IdsToFetch) {
       if (_retryTimer.containsKey(index)) {
@@ -184,17 +264,41 @@ class ChunkHelper {
         continue;
       }
       if (!_imageIndex.imageIsLoading(index)) {
-        if (_maybeRequestImageLoad(index, connections, secondsDuration)) {
+        if (_maybeRequestImageLoad(index, connections, secondsDuration,
+            allowServerFallback: allowServerFallback)) {
           requestedImages++;
         }
       }
     }
   }
 
+  ConnectionWrapper? _findConnectionById(
+      List<ConnectionWrapper> connections, String id) {
+    for (ConnectionWrapper connection in connections) {
+      if (connection.id == id) {
+        return connection;
+      }
+    }
+    return null;
+  }
+
   bool _maybeRequestImageLoad(
-      int index, Map<String, ConnectionWrapper> connections, double duration) {
-    List<ConnectionWrapper> connectionList = new List.from(connections.values);
+      int index, Map<String, ConnectionWrapper> connections, double duration,
+      {bool allowServerFallback = true}) {
+    List<ConnectionWrapper> eligibleConnections = connections.values
+        .where((c) => !isPeerDenylisted(index, c.id))
+        .toList();
+    if (eligibleConnections.isEmpty) {
+      if (connections.isNotEmpty &&
+          allowServerFallback &&
+          index > ImageIndex.WORLD_IMAGE_INDEX) {
+        _fallbackToServer(index);
+      }
+      return false;
+    }
+
     String? connectionId = _outstandingImageRequests[index];
+    String? pinnedPeerId = _pinnedPeerForImage[index];
     if (connectionId == null) {
       // Request larger chunk.
       if (_chunkSize == MIN_CHUNK_SIZE) {
@@ -203,14 +307,32 @@ class ChunkHelper {
       if (_chunkSize == MAX_CHUNK_SIZE) {
         _chunkDecrementFactor = 0.7;
       }
-      this._chunkSize = min(MAX_CHUNK_SIZE, (_chunkSize * _chunkSizeIncrementFactor).toInt());
-      return _requestImageData(index, connectionList);
+      this._chunkSize =
+          min(MAX_CHUNK_SIZE, (_chunkSize * _chunkSizeIncrementFactor).toInt());
+      if (pinnedPeerId != null) {
+        ConnectionWrapper? pinned =
+            _findConnectionById(eligibleConnections, pinnedPeerId);
+        if (pinned != null) {
+          return _requestImageDataFromPeer(index, pinned);
+        }
+        if (!allowServerFallback) {
+          // Single-peer fast-path from another peer; do not hijack this image.
+          return false;
+        }
+        // Pinned peer disconnected or was denylisted; start clean on a new peer.
+        _resetImageTransfer(index);
+      }
+      return _requestImageData(index, eligibleConnections);
     }
     // Look if we should retry.
-    ConnectionWrapper? connection = connections[connectionId];
+    ConnectionWrapper? connection =
+        _findConnectionById(eligibleConnections, connectionId);
     if (connection == null) {
-      // Connection removed?
-      _outstandingImageRequests.remove(index);
+      if (!allowServerFallback) {
+        return false;
+      }
+      // Pinned connection removed or denylisted; reset partial transfer.
+      _resetImageTransfer(index);
       return false;
     }
     double? lastRequestTimeout = _retryTimer[index];
@@ -218,12 +340,22 @@ class ChunkHelper {
       // Request smaller chunk. This was a retry.
       _trackFailingConnection(index);
       connection.sendPing();
-      this._chunkSize = max(MIN_CHUNK_SIZE, (_chunkSize * _chunkDecrementFactor).toInt());
+      this._chunkSize =
+          max(MIN_CHUNK_SIZE, (_chunkSize * _chunkDecrementFactor).toInt());
       this._chunkMultiplier--;
       if (_chunkMultiplier <= 0) {
         _chunkMultiplier = 0;
       }
-      return _requestImageData(index, connectionList);
+      int timeouts = (_consecutiveTimeoutsForImage[index] ?? 0) + 1;
+      _consecutiveTimeoutsForImage[index] = timeouts;
+      if (timeouts >= MAX_CONSECUTIVE_TIMEOUTS_BEFORE_PEER_SWITCH &&
+          eligibleConnections.length > 1) {
+        List<ConnectionWrapper> alternatives =
+            eligibleConnections.where((c) => c.id != connection.id).toList();
+        _resetImageTransfer(index);
+        return _requestImageData(index, alternatives);
+      }
+      return _requestImageDataFromPeer(index, connection);
     }
     // return true if image is not loaded. False otherwise.
     return !_imageIndex.imageIsLoaded(index);
@@ -252,23 +384,28 @@ class ChunkHelper {
   }
 
   /**
-   * Request image data from a random connection.
+   * Request image data from a random eligible connection and pin this image to it.
    */
-  bool _requestImageData(int index, List<dynamic> connections) {
+  bool _requestImageData(int index, List<ConnectionWrapper> connections) {
     Random r = new Random();
     // There is a case were a connection is added, but not yet ready for data transfer :/
-    if (connections.length > 0) {
+    if (connections.isNotEmpty) {
       ConnectionWrapper connection = connections[r.nextInt(connections.length)];
-      connection.sendSingleUpdate(StateUpdate()
-        ..resourceRequest =  buildImageChunkRequest(index));
-      Duration connectionLatency = connection.expectedLatency();
-      int millis = min(IMAGE_RETRY_DURATION_MILLIS,
-          connectionLatency.inMilliseconds * 2);
-      _retryTimer[index] = millis / 1000.0;
-      _outstandingImageRequests[index] = connection.id;
-      return true;
+      return _requestImageDataFromPeer(index, connection);
     }
     return false;
+  }
+
+  bool _requestImageDataFromPeer(int index, ConnectionWrapper connection) {
+    _pinnedPeerForImage[index] = connection.id;
+    connection.sendSingleUpdate(
+        StateUpdate()..resourceRequest = buildImageChunkRequest(index));
+    Duration connectionLatency = connection.expectedLatency();
+    int millis = min(
+        IMAGE_RETRY_DURATION_MILLIS, connectionLatency.inMilliseconds * 2);
+    _retryTimer[index] = millis / 1000.0;
+    _outstandingImageRequests[index] = connection.id;
+    return true;
   }
 
   double getCompleteRatio(int index) {

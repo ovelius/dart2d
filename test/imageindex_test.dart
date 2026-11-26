@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:web/web.dart';
 import 'lib/test_injector.dart';
 import 'lib/test_lib.dart';
+import 'package:dart2d/res/crc32.dart';
+import 'package:dart2d/res/image_hashes.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:dart2d/util/util.dart';
+import 'package:dart2d/worlds/world_data.dart';
 
 void main() {
   late TestLocalStorage localStorage;
@@ -22,6 +26,9 @@ void main() {
     fakeCanvasFactory = new FakeCanvasFactory();
     index = new ImageIndex(new ConfigParams({}), localStorage,
         fakeCanvasFactory, fakeImageFactory);
+    // Legacy tests in this file pass synthetic data strings rather than real PNG bytes;
+    // dedicated CRC32 tests below re-enable hash verification explicitly.
+    index.verifyImageHashes = false;
   });
 
   tearDown(() {
@@ -200,5 +207,101 @@ void main() {
     expect(index.loadedImages[2], isTrue);
 
     expect(index.finishedLoadingImages(), isFalse);
+  });
+
+  group('CRC32 and raw fetch verification', () {
+    test('crc32Bytes matches IEEE 802.3 standard vector', () {
+      expect(crc32Bytes(utf8.encode('123456789')), equals(0xCBF43926));
+      expect(crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING), isNotNull);
+      expect(crc32FromPngDataUrl('not-a-png'), isNull);
+      expect(crc32FromPngDataUrl('data:image/png;base64,!!!invalid!!!'), isNull);
+    });
+
+    test('IMAGE_CRC32_HASHES covers all IMAGE_SOURCES and WORLDS maps', () {
+      for (String name in IMAGE_SOURCES) {
+        expect(IMAGE_CRC32_HASHES.containsKey(name), isTrue,
+            reason: 'Missing precomputed CRC32 hash for $name');
+      }
+      for (String worldMap in WORLDS.values) {
+        expect(IMAGE_CRC32_HASHES.containsKey(worldMap), isTrue,
+            reason: 'Missing precomputed CRC32 hash for $worldMap');
+      }
+    });
+
+    test('CRC32 mismatch rejects image data, skips cache, and falls back to server', () async {
+      expectWarningContaining('CRC32 mismatch');
+      index.verifyImageHashes = true;
+      index.loadImagesFromNetwork();
+
+      int imageId = index.getImageIdByName('lion88.png');
+      index.expectedImageHashes = {
+        'lion88.png': crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING)!,
+      };
+
+      // Corrupt data URL with a different base64 payload (different CRC32).
+      String corruptData = 'data:image/png;base64,${base64Encode([1, 2, 3, 4])}';
+      await index.addFromImageData(imageId, corruptData, true);
+
+      // Should not be marked loaded or cached, and should have triggered server fallback.
+      expect(index.loadedImages[imageId], isNull);
+      expect(localStorage['imglion88.png'], isNull);
+
+      await fakeImageFactory.completeAllImages();
+      expect(index.loadedImages[imageId], isTrue);
+    });
+
+    test('Stale localStorage entry with mismatched CRC32 is evicted on load', () {
+      index.verifyImageHashes = true;
+      index.expectedImageHashes = {
+        'lion88.png': crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING)!,
+      };
+      localStorage['imglion88.png'] =
+          'data:image/png;base64,${base64Encode([9, 9, 9, 9])}';
+      localStorage['timglion88.png'] =
+          DateTime.now().millisecondsSinceEpoch.toString();
+
+      index.loadImagesFromNetwork();
+
+      expect(localStorage['imglion88.png'], isNull);
+      expect(localStorage['timglion88.png'], isNull);
+      expect(index.imageIsLoading(index.getImageIdByName('lion88.png')), isFalse);
+    });
+
+    test('Raw fetch preserves exact PNG data URL without canvas re-encoding', () async {
+      index.verifyImageHashes = true;
+      index.expectedImageHashes = {
+        'lion88.png': crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING)!,
+      };
+      fakeImageFactory.mockFetchedDataUrls = {
+        './img/lion88.png': EMPTY_IMAGE_DATA_STRING,
+      };
+      index.loadImagesFromNetwork();
+
+      int imageId = index.getImageIdByName('lion88.png');
+      await index.addSingleImage('lion88.png');
+
+      expect(index.imageIsLoaded(imageId), isTrue);
+      expect(index.getImageDataUrl(imageId), equals(EMPTY_IMAGE_DATA_STRING));
+      expect(localStorage['imglion88.png'], equals(EMPTY_IMAGE_DATA_STRING));
+    });
+
+    test('Corrupt image decode triggers onError fallback instead of hanging', () async {
+      expectWarningContaining('decode error');
+      index.verifyImageHashes = false;
+      index.loadImagesFromNetwork();
+      int imageId = index.getImageIdByName('lion88.png');
+
+      // Valid base64 prefix, but invalid PNG bytes -> browser fires img.onError.
+      String undecodablePng =
+          'data:image/png;base64,${base64Encode([0, 1, 2, 3, 4, 5])}';
+      await index.addFromImageData(imageId, undecodablePng, true);
+
+      // onError fired and triggered addSingleImage('lion88.png') fallback.
+      expect(index.loadedImages[imageId], isNull);
+      expect(localStorage['imglion88.png'], isNull);
+
+      await fakeImageFactory.completeAllImages();
+      expect(index.loadedImages[imageId], isTrue);
+    });
   });
 }

@@ -38,6 +38,8 @@ void main() {
     connection2 = new TestConnectionWrapper("b", mockNetwork, Clock());
     imageIndex = new MockImageIndex();
     imageIndex2 = new MockImageIndex();
+    when(imageIndex.verifyImageDataHash(any, any)).thenReturn(true);
+    when(imageIndex2.verifyImageDataHash(any, any)).thenReturn(true);
     byteWorld = new MockByteWorld();
     packetListenerBindings = new PacketListenerBindings();
     helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
@@ -307,6 +309,175 @@ void main() {
           connection1, StateUpdate());
       // This cleared the cache for a.
       expect(helper.getByteWorldCache(), equals({'b': 'aaaaaaaaaaaaaaaaaaa'}));
+    });
+
+    test('Pins single image transfer to one peer and drops unpinned peer chunks', () {
+      expectWarningContaining('from unpinned peer');
+      int requestedIndex = 6;
+      Map<String, ConnectionWrapper> connections = {
+        connection1.id: connection1,
+        connection2.id: connection2,
+      };
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+      when(imageIndex2.imageIsLoaded(requestedIndex)).thenReturn(true);
+      when(imageIndex2.getImageDataUrl(requestedIndex)).thenReturn(IMAGE_DATA);
+
+      // Start transfer - pins to whichever peer is chosen first.
+      helper.requestNetworkData(connections, 0.01);
+      String? pinnedPeerId = helper.pinnedPeerForImage(requestedIndex);
+      expect(pinnedPeerId, isNotNull);
+      TestConnectionWrapper pinnedConn =
+          pinnedPeerId == connection1.id ? connection1 : connection2;
+      TestConnectionWrapper otherConn =
+          pinnedPeerId == connection1.id ? connection2 : connection1;
+
+      // Chunk from the unpinned peer must be dropped.
+      ResourceResponse strayChunk = ResourceResponse()
+        ..resourceIndex = requestedIndex
+        ..startByte = 0
+        ..data = utf8.encode('XXXX')
+        ..size = IMAGE_DATA.length;
+      helper.parseImageChunkResponse(strayChunk, otherConn);
+      expect(helper.getImageBuffer()[requestedIndex], equals(''));
+
+      // Complete all chunks via the pinned peer; every request must go to pinnedConn.
+      int otherSendCountBefore = otherConn.sendCount;
+      for (int i = 0; i < 20; i++) {
+        if (imageIndex.imageIsLoaded(requestedIndex)) break;
+        ResourceRequest req =
+            pinnedConn.lastDataSent!.stateUpdate[0].resourceRequest;
+        helper2.replyWithImageData(req, pinnedConn);
+        helper.parseImageChunkResponse(
+            pinnedConn.lastDataSent!.stateUpdate[0].resourceResponse,
+            pinnedConn);
+        if (helper.getImageBuffer().containsKey(requestedIndex)) {
+          helper.requestNetworkData(connections, 0.01);
+        } else {
+          break;
+        }
+      }
+      expect(otherConn.sendCount, equals(otherSendCountBefore));
+      verify(imageIndex.addFromImageData(requestedIndex, IMAGE_DATA, true))
+          .called(1);
+    });
+
+    test('CRC32 mismatch denylists peer+image, switches to healthy peer, and succeeds', () {
+      expectWarningContaining('CRC32 mismatch');
+      int requestedIndex = 6;
+      int otherIndex = 7;
+      const String CORRUPT_DATA = 'corrupt_data_that_fails_crc32_check!';
+      const String VALID_DATA = 'valid_data_that_passes_crc32_check!!';
+
+      Map<String, ConnectionWrapper> connections = {
+        connection1.id: connection1,
+        connection2.id: connection2,
+      };
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+      when(imageIndex.verifyImageDataHash(requestedIndex, CORRUPT_DATA))
+          .thenReturn(false);
+      when(imageIndex.verifyImageDataHash(requestedIndex, VALID_DATA))
+          .thenReturn(true);
+      when(imageIndex.addFromImageData(requestedIndex, VALID_DATA, true))
+          .thenAnswer((_) {
+        when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(true);
+        when(imageIndex.imageIsLoaded(requestedIndex)).thenReturn(true);
+        return Future.value();
+      });
+
+      // Deliver corrupt image completely from connection1.
+      helper.requestNetworkData({connection1.id: connection1}, 0.01);
+      ResourceResponse corruptResp = ResourceResponse()
+        ..resourceIndex = requestedIndex
+        ..startByte = 0
+        ..data = utf8.encode(CORRUPT_DATA)
+        ..size = CORRUPT_DATA.length;
+      helper.parseImageChunkResponse(corruptResp, connection1);
+
+      // Must NOT add corrupt image, and must denylist (connection1, requestedIndex) only.
+      verifyNever(imageIndex.addFromImageData(requestedIndex, CORRUPT_DATA, true));
+      expect(helper.isPeerDenylisted(requestedIndex, connection1.id), isTrue);
+      expect(helper.isPeerDenylisted(otherIndex, connection1.id), isFalse);
+      expect(helper.isPeerDenylisted(requestedIndex, connection2.id), isFalse);
+
+      // Next request with both peers must pick connection2 (connection1 is denylisted).
+      int conn1SendsBefore = connection1.sendCount;
+      helper.requestNetworkData(connections, 0.01);
+      expect(connection1.sendCount, equals(conn1SendsBefore));
+      expect(helper.pinnedPeerForImage(requestedIndex), equals(connection2.id));
+
+      // Deliver valid image from connection2.
+      ResourceResponse validResp = ResourceResponse()
+        ..resourceIndex = requestedIndex
+        ..startByte = 0
+        ..data = utf8.encode(VALID_DATA)
+        ..size = VALID_DATA.length;
+      helper.parseImageChunkResponse(validResp, connection2);
+
+      verify(imageIndex.addFromImageData(requestedIndex, VALID_DATA, true))
+          .called(1);
+    });
+
+    test('Falls back to server when all peers are denylisted for an image', () {
+      expectWarningContaining('CRC32 mismatch');
+      expectWarningContaining('falling back to server');
+      int requestedIndex = 6;
+      const String CORRUPT_DATA = 'bad_image_bytes';
+
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+      when(imageIndex.imageNameFromIndex(requestedIndex)).thenReturn('lion88.png');
+      when(imageIndex.verifyImageDataHash(requestedIndex, CORRUPT_DATA))
+          .thenReturn(false);
+
+      // Single peer sends corrupt image -> gets denylisted.
+      Map<String, ConnectionWrapper> connections = {connection1.id: connection1};
+      helper.requestNetworkData(connections, 0.01);
+      helper.parseImageChunkResponse(
+          ResourceResponse()
+            ..resourceIndex = requestedIndex
+            ..startByte = 0
+            ..data = utf8.encode(CORRUPT_DATA)
+            ..size = CORRUPT_DATA.length,
+          connection1);
+
+      expect(helper.isPeerDenylisted(requestedIndex, connection1.id), isTrue);
+
+      // Fast-path with allowServerFallback: false must NOT trigger server fallback yet.
+      helper.requestNetworkData(connections, 0.0, allowServerFallback: false);
+      verifyNever(imageIndex.addSingleImage('lion88.png'));
+
+      // Full network tick with no remaining eligible peers triggers server fallback.
+      helper.requestNetworkData(connections, 0.01);
+      verify(imageIndex.addSingleImage('lion88.png')).called(1);
+    });
+
+    test('Mid-transfer size change resets transfer cleanly', () {
+      expectWarningContaining('size changed');
+      int requestedIndex = 6;
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+      helper.requestNetworkData({connection1.id: connection1}, 0.01);
+      helper.parseImageChunkResponse(
+          ResourceResponse()
+            ..resourceIndex = requestedIndex
+            ..startByte = 0
+            ..data = utf8.encode('1234')
+            ..size = 10,
+          connection1);
+      expect(helper.getImageBuffer()[requestedIndex], equals('1234'));
+
+      // Next chunk reports a different total size -> buffer resets instead of splicing.
+      helper.parseImageChunkResponse(
+          ResourceResponse()
+            ..resourceIndex = requestedIndex
+            ..startByte = 4
+            ..data = utf8.encode('5678')
+            ..size = 12,
+          connection1);
+      expect(helper.getImageBuffer().containsKey(requestedIndex), isFalse);
+      expect(helper.pinnedPeerForImage(requestedIndex), isNull);
     });
   });
 

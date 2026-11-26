@@ -13,6 +13,7 @@ import 'package:clock/clock.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
+import 'loader_animation.dart';
 import 'player_world_selector.dart';
 
 enum LoaderState {
@@ -83,7 +84,8 @@ class Loader {
   double _nextAllowedAdjustSteps = FRAME_SAMPLE_TIME;
 
   String _currentMessage = "";
-  List<_Spinner> _spinners = [];
+  final LoaderAnimation _animation = LoaderAnimation();
+  double _selectorCenterpieceFade = 0.0;
 
   Loader(
          this._localStorage,
@@ -97,9 +99,6 @@ class Loader {
     _context = canvasElement.context2D;
     _width = canvasElement.width;
     _height = canvasElement.height;
-    for (int i = 0; i < 20; i++) {
-      _spinners.add(_Spinner());
-    }
   }
 
   Map<LoaderState, dynamic> _STATE_PRECONDITIONS = {
@@ -127,18 +126,26 @@ class Loader {
   void _loaderTickInternal([double duration = 0.01]) {
     if (!_localStorage.containsKey('playerName')) {
       setState(LoaderState.WAITING_FOR_NAME);
+      _animation.tick(duration, sharkAvailable: false);
+      _animation.drawBackdrop(_context, _width, _height, showProwlingFin: true);
       // Start loading images while waiting for a name.
       _tickImagesLoad(duration);
       return;
     }
     if (_imageIndex.playerResourcesLoaded() && !_localStorage.containsKey('playerSprite')) {
+      final bool entering = _currentState != LoaderState.PLAYER_SELECT;
       setState(LoaderState.PLAYER_SELECT);
-      _playerWorldSelector.frame(duration);
+      if (entering) {
+        _selectorCenterpieceFade = 1.0;
+        _playerWorldSelector.startFadeIn();
+      }
+      _drawSelectorWithBackdrop(duration);
       // Continue loading other resources while waiting for playerSelect.
       _tickImagesLoad(duration);
       return;
     }
     if (!_imageIndex.finishedLoadingImages()) {
+      _selectorCenterpieceFade = 0.0;
       _advanceConnectionStage(duration);
     } else {
       _loaderGameStateTick(duration);
@@ -147,6 +154,23 @@ class Loader {
       _moveSpinner(duration);
       drawCenteredText(_currentMessage);
     }
+  }
+
+  void _drawSelectorWithBackdrop(double duration) {
+    final HTMLImageElement? shark = _loadedSharkImage();
+    _animation.tick(duration, sharkAvailable: shark != null);
+    _selectorCenterpieceFade =
+        max(0.0, _selectorCenterpieceFade - duration.clamp(0.0, 0.1) * 2.4);
+    _animation.drawBackdrop(
+      _context,
+      _width,
+      _height,
+      sharkImage: shark,
+      centerpieceAlpha: _selectorCenterpieceFade,
+      showProwlingFin: shark == null,
+    );
+    _playerWorldSelector.clearBackground = false;
+    _playerWorldSelector.frame(duration);
   }
 
   void resetToPlayerSelect() {
@@ -335,7 +359,13 @@ class Loader {
     } else if (_playerWorldSelector.selectedWorldName != null) {
       setState(LoaderState.WORLD_LOADING);
     } else {
-      _playerWorldSelector.frame(duration);
+      final bool entering = _currentState != LoaderState.WORLD_SELECT;
+      if (entering) {
+        _selectorCenterpieceFade =
+            _currentState == LoaderState.PLAYER_SELECT ? 0.0 : 1.0;
+        _playerWorldSelector.startFadeIn();
+      }
+      _drawSelectorWithBackdrop(duration);
       setState(LoaderState.WORLD_SELECT);
     }
   }
@@ -375,71 +405,45 @@ class Loader {
     }
   }
 
-  void drawCenteredText(String text, [int? y, int size = 20]) {
-    if (y == null) {
-      y = _height ~/ 2;
+  HTMLImageElement? _loadedSharkImage() {
+    if (_imageIndex.imagesIndexed() && _imageIndex.imageNameIsLoaded(LOADER_SPRITE)) {
+      return _imageIndex.getImageByName(LOADER_SPRITE);
     }
-    _context.save();
-    _context.globalAlpha = 1.0;
-    _context.clearRect(0, 0, _width, _height);
-    _context.fillStyle = "rgb(0, 0, 0)".toJS;
-    _context.strokeStyle = "rgb(0,0,0)".toJS;
-    _context.font = "${size}px Arial";
-    var metrics = _context.measureText(text);
-    _context.fillText(
-        text, _width / 2 - metrics.width / 2, y);
-    _drawSpinner();
-    _context.restore();
+    return null;
+  }
+
+  double? _computeLoadingProgress() {
+    switch (_currentState) {
+      case LoaderState.LOADING_SERVER:
+      case LoaderState.LOADING_OTHER_CLIENT:
+        if (IMAGE_SOURCES.isEmpty) return null;
+        return (_imageIndex.loadedImages.length / IMAGE_SOURCES.length)
+            .clamp(0.0, 1.0);
+      case LoaderState.LOADING_GAMESTATE:
+        return _chunkHelper
+            .getCompleteRatio(GAME_STATE_RESOURCES[0])
+            .clamp(0.0, 1.0);
+      case LoaderState.COMPUTING_BYTE_WORLD:
+        return _byteWorld.percentComplete().clamp(0.0, 1.0);
+      default:
+        return null;
+    }
+  }
+
+  void drawCenteredText(String text, [int? y, int size = 20]) {
+    _animation.draw(
+      _context,
+      _width,
+      _height,
+      message: text,
+      sharkImage: _loadedSharkImage(),
+      progress: _computeLoadingProgress(),
+      isError: _currentState == LoaderState.ERROR,
+    );
   }
 
   void _moveSpinner(double duration) {
-    for (_Spinner s in _spinners) {
-      s.angle += duration * s.speed;
-      if (s.angle > 2 * pi) {
-        s.angle -= 2 * pi;
-      }
-      if (s.angle > pi && s.angle < 2 * pi) {
-        double pd = (s.angle - pi) * 4;
-        s.angle += duration * pd;
-      }
-      if (s.angle > 0 && s.angle < pi) {
-        double pd = (pi - s.angle) * 4;
-        s.angle += duration * pd;
-      }
-    }
-  }
-
-  void _drawSpinner() {
-    HTMLImageElement? image = null;
-    if (_imageIndex.imagesIndexed() && _imageIndex.imageNameIsLoaded(LOADER_SPRITE)) {
-      image = _imageIndex.getImageByName(LOADER_SPRITE);
-    }
-    int height = 4;
-    _context.translate(_width / 2,  _height ~/ 2  + _height ~/ 8);
-    _context.globalCompositeOperation = image != null ? "source-over": "overlay";
-    num numSpinners = image != null ? _spinners.length / 2 : _spinners.length;
-    for (int i = 0; i < numSpinners; i++) {
-      _Spinner s = _spinners[i];
-      _context.save();
-      if (image == null) {
-        _context.rotate(s.angle);
-        _context.beginPath();
-        _context.fillStyle = s.colorString.toJS;
-        _context
-            .rect(-s.width / 15,
-            _height ~/ 15, s.width, height);
-        _context.fill();
-      } else {
-        num width = image.width/5;
-        num height = image.height/5;
-        _context.scale(-1, 1);
-        _context.translate(sin(s.angle) * 70 - width/2,
-            cos(s.angle) * 70+height/2);
-        _context.drawImage(image, 0, 0, width, height);
-
-      }
-      _context.restore();
-    }
+    _animation.tick(duration, sharkAvailable: _loadedSharkImage() != null);
   }
 
   void markCompleted() {
@@ -482,22 +486,6 @@ class Loader {
   }
 
   String? selectedWorldName() => _playerWorldSelector.selectedWorldName;
-}
-
-class _Spinner {
-  double angle = 0.0;
-  double speed = 0.0;
-  int width = 0;
-  String colorString = "";
-
-  _Spinner() {
-    Random r = Random();
-    angle = r.nextDouble() * pi;
-
-    colorString = "rgba(${r.nextInt(255)}, ${r.nextInt(255)}, ${r.nextInt(255)}, 1.0)";
-    speed = 1.0;
-    width = 10 + r.nextInt(15);
-  }
 }
 
 Map<LoaderState, String> _STATE_DESCRIPTIONS = {

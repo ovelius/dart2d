@@ -54,6 +54,8 @@ abstract class ImageFactory {
   dynamic create();
   dynamic createWithSrc(String src);
   dynamic createWithSize(int x,y);
+  bool get supportsRawFetch => false;
+  Future<String?> fetchImageDataUrl(String url) async => null;
 }
 
 abstract class SoundFactory {

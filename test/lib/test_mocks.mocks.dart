@@ -274,6 +274,37 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
   );
 
   @override
+  Map<String, int> get expectedImageHashes =>
+      (super.noSuchMethod(
+            Invocation.getter(#expectedImageHashes),
+            returnValue: <String, int>{},
+            returnValueForMissingStub: <String, int>{},
+          )
+          as Map<String, int>);
+
+  @override
+  set expectedImageHashes(Map<String, int>? _expectedImageHashes) =>
+      super.noSuchMethod(
+        Invocation.setter(#expectedImageHashes, _expectedImageHashes),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  bool get verifyImageHashes =>
+      (super.noSuchMethod(
+            Invocation.getter(#verifyImageHashes),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  set verifyImageHashes(bool? _verifyImageHashes) => super.noSuchMethod(
+    Invocation.setter(#verifyImageHashes, _verifyImageHashes),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   List<_i16.HTMLImageElement> get images =>
       (super.noSuchMethod(
             Invocation.getter(#images),
@@ -395,6 +426,23 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
     Invocation.method(#addImagesFromServer, [path]),
     returnValueForMissingStub: null,
   );
+
+  @override
+  int? expectedImageHash(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#expectedImageHash, [index]),
+            returnValueForMissingStub: null,
+          )
+          as int?);
+
+  @override
+  bool verifyImageDataHash(int? index, String? data) =>
+      (super.noSuchMethod(
+            Invocation.method(#verifyImageDataHash, [index, data]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   _i18.Future<dynamic> addFromImageData(
@@ -3355,11 +3403,42 @@ class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
   );
 
   @override
+  bool isPeerDenylisted(int? index, String? peerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#isPeerDenylisted, [index, peerId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  Map<int, Set<String>> denylistedPeersByImage() =>
+      (super.noSuchMethod(
+            Invocation.method(#denylistedPeersByImage, []),
+            returnValue: <int, Set<String>>{},
+            returnValueForMissingStub: <int, Set<String>>{},
+          )
+          as Map<int, Set<String>>);
+
+  @override
+  String? pinnedPeerForImage(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#pinnedPeerForImage, [index]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
   void requestNetworkData(
     Map<String, _i9.ConnectionWrapper>? connections,
-    double? secondsDuration,
-  ) => super.noSuchMethod(
-    Invocation.method(#requestNetworkData, [connections, secondsDuration]),
+    double? secondsDuration, {
+    bool? allowServerFallback = true,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #requestNetworkData,
+      [connections, secondsDuration],
+      {#allowServerFallback: allowServerFallback},
+    ),
     returnValueForMissingStub: null,
   );
 
@@ -3367,13 +3446,14 @@ class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
   void requestSpecificNetworkData(
     Map<String, _i9.ConnectionWrapper>? connections,
     double? secondsDuration,
-    Iterable<int>? IdsToFetch,
-  ) => super.noSuchMethod(
-    Invocation.method(#requestSpecificNetworkData, [
-      connections,
-      secondsDuration,
-      IdsToFetch,
-    ]),
+    Iterable<int>? IdsToFetch, {
+    bool? allowServerFallback = true,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #requestSpecificNetworkData,
+      [connections, secondsDuration, IdsToFetch],
+      {#allowServerFallback: allowServerFallback},
+    ),
     returnValueForMissingStub: null,
   );
 
@@ -4300,6 +4380,21 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
 class MockPlayerWorldSelector extends _i1.Mock
     implements _i4.PlayerWorldSelector {
   @override
+  bool get clearBackground =>
+      (super.noSuchMethod(
+            Invocation.getter(#clearBackground),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  set clearBackground(bool? _clearBackground) => super.noSuchMethod(
+    Invocation.setter(#clearBackground, _clearBackground),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void maybeSelectPlayerOrMap() => super.noSuchMethod(
     Invocation.method(#maybeSelectPlayerOrMap, []),
     returnValueForMissingStub: null,
@@ -4317,6 +4412,12 @@ class MockPlayerWorldSelector extends _i1.Mock
   @override
   void reset() => super.noSuchMethod(
     Invocation.method(#reset, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void startFadeIn() => super.noSuchMethod(
+    Invocation.method(#startFadeIn, []),
     returnValueForMissingStub: null,
   );
 

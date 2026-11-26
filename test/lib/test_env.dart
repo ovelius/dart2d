@@ -8,6 +8,7 @@ import 'test_factories.dart';
 import 'test_injector.config.dart';
 import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/res/crc32.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'test_injector.dart';
 import 'test_mocks.mocks.dart';
@@ -76,6 +77,12 @@ Future<WormWorld> createTestWorld(String id,  {
     WormWorld world = getIt<WormWorld>();
     ByteWorld byteWorld = getIt<ByteWorld>();
     ImageIndex imageIndex = getIt<ImageIndex>();
+    // Test worlds use EMPTY_IMAGE_DATA_STRING rather than real PNG files from disk;
+    // keep CRC32 verification active using EMPTY_IMAGE_DATA_STRING's hash.
+    final int emptyImageHash = crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING)!;
+    imageIndex.expectedImageHashes = {
+      for (String name in IMAGE_SOURCES) name: emptyImageHash,
+    };
 
     if (signalPeerOpen) {
       await signalOpen(world);

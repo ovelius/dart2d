@@ -39,6 +39,18 @@ class FakeImageFactory extends ImageFactory {
   bool completeImagesAsap = false;
   bool allowDataImages = true;
   bool allowURLImages = true;
+  Map<String, String>? mockFetchedDataUrls;
+
+  @override
+  bool get supportsRawFetch => mockFetchedDataUrls != null;
+
+  @override
+  Future<String?> fetchImageDataUrl(String url) async {
+    if (!allowURLImages && url.startsWith("./")) {
+      throw new ArgumentError("Not allowed to fetch image from URL ${url}");
+    }
+    return mockFetchedDataUrls?[url];
+  }
 
 
   Future completeAllImages() async {

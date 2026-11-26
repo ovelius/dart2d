@@ -63,6 +63,10 @@ class PlayerWorldSelector {
   String? _customMessage = null;
 
   double _nextSendToNetwork = 0.0;
+  bool clearBackground = true;
+  double _fadeInProgress = 0.0;
+  bool _lastFrameWasPlayerSelect = false;
+  bool _hasRenderedOnce = false;
 
   PlayerWorldSelector(
       this._packetListenerBindings,
@@ -194,6 +198,12 @@ class PlayerWorldSelector {
       _localStorage.remove("playerSprite");
     }
     _selectedWorldName = null;
+    startFadeIn();
+  }
+
+  void startFadeIn() {
+    _fadeInProgress = 0.0;
+    _hasRenderedOnce = false;
   }
 
   bool playerSelected() {
@@ -201,7 +211,15 @@ class PlayerWorldSelector {
   }
 
   void frame(double duration) {
-    if (!playerSelected()) {
+    final bool isPlayerSelect = !playerSelected();
+    if (!_hasRenderedOnce || _lastFrameWasPlayerSelect != isPlayerSelect) {
+      _fadeInProgress = 0.0;
+      _hasRenderedOnce = true;
+      _lastFrameWasPlayerSelect = isPlayerSelect;
+    }
+    _fadeInProgress = min(1.0, _fadeInProgress + duration.clamp(0.0, 0.1) * 1.65);
+
+    if (isPlayerSelect) {
       _drawPlayerSprites(duration);
     } else {
       _drawMaps();
@@ -222,12 +240,26 @@ class PlayerWorldSelector {
     }
   }
 
+  double _easedFadeAlpha() {
+    final double u = 1.0 - _fadeInProgress.clamp(0.0, 1.0);
+    return 1.0 - u * u * u;
+  }
+
   void _drawPlayerSprites(double duration) {
     if (_spritePositions == null) {
       _customMessage = null;
       _partitionSprites();
     }
-    _context.clearRect(0, 0, _width, _height);
+    if (clearBackground) {
+      _context.clearRect(0, 0, _width, _height);
+    }
+    final double fade = _easedFadeAlpha();
+    final double slideY = (1.0 - fade) * 26.0;
+
+    _context.save();
+    _context.globalAlpha = fade;
+    _context.translate(0, slideY);
+
     drawCenteredText(
         _customMessage == null
             ? "${_localStorage['playerName']} select your player!"
@@ -239,16 +271,31 @@ class PlayerWorldSelector {
       HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
       int imgWidth = PLAYER_SPRITE_SIZES[i];
       int height = img.height;
+      double drawW = imgWidth * _scale;
+      double drawH = height * _scale;
       _context.save();
       if (_selectedPlayerSprite != i) {
-        _context.globalAlpha = 0.5;
+        _context.globalAlpha = fade * 0.55;
         _context.drawImage(img, 0, 0, imgWidth, height,
-            position.x, position.y, imgWidth * _scale, height * _scale);
+            position.x, position.y, drawW, drawH);
       } else {
         _frameTime += duration;
-        _context.globalAlpha = 1.0;
+        _context.globalAlpha = fade;
+        // Sunny cartoon spotlight halo behind the selected player sprite.
+        double cx = position.x + drawW * 0.5;
+        double cy = position.y + drawH * 0.5;
+        double haloR = max(drawW, drawH) * 0.72;
+        CanvasGradient halo = _context.createRadialGradient(cx, cy, 4, cx, cy, haloR);
+        halo.addColorStop(0.0, "rgba(255, 246, 150, 0.72)");
+        halo.addColorStop(0.6, "rgba(255, 255, 255, 0.26)");
+        halo.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
+        _context.fillStyle = halo;
+        _context.beginPath();
+        _context.arc(cx, cy, haloR, 0, 2 * pi);
+        _context.fill();
+
         _context.drawImage(img, _animateX, 0, imgWidth, height,
-            position.x, position.y, imgWidth * _scale, height * _scale);
+            position.x, position.y, drawW, drawH);
         if (_frameTime > 0.25) {
           _frameTime = 0.0;
           _animateX = _animateX + imgWidth;
@@ -260,6 +307,7 @@ class PlayerWorldSelector {
       }
       _context.restore();
     }
+    _context.restore();
   }
 
   List<Point<int>>? _spritePositions = null;
@@ -292,7 +340,16 @@ class PlayerWorldSelector {
       _customMessage = null;
       _partitionMaps();
     }
-    _context.clearRect(0, 0, _width, _height);
+    if (clearBackground) {
+      _context.clearRect(0, 0, _width, _height);
+    }
+    final double fade = _easedFadeAlpha();
+    final double slideY = (1.0 - fade) * 24.0;
+
+    _context.save();
+    _context.globalAlpha = fade;
+    _context.translate(0, slideY);
+
     String message = "Select world!";
     if (_network.hasOpenConnection()) {
       message = "Hurry to select world!";
@@ -312,24 +369,38 @@ class PlayerWorldSelector {
       double xOffset = 0.0;
       _context.save();
       if (_selectedMap != i) {
-        _context.globalAlpha = 0.3;
+        _context.globalAlpha = fade * 0.42;
       } else {
-        _context.globalAlpha = 1.0;
+        _context.globalAlpha = fade;
         selectScale *= 1.5;
         xOffset = _mapScale * img.width / 2;
       }
-      double x =  position.x - xOffset;
+      double x = position.x - xOffset;
       double drawWidth = img.width * selectScale;
+      double drawHeight = img.height * selectScale;
       if (!otherPlayersSelections.isEmpty) {
         _context.save();
-        _context.globalAlpha = 0.7;
-        _context.font = "12px Arial";
-        for (int i = 0; i < otherPlayersSelections.length; i ++) {
-          String playerName = otherPlayersSelections[i];
+        _context.globalAlpha = fade * 0.92;
+        _context.font = "700 13px 'Trebuchet MS', Arial, sans-serif";
+        _context.lineJoin = "round";
+        _context.lineWidth = 3.0;
+        _context.strokeStyle = "#0b2442".toJS;
+        _context.fillStyle = "#ffffff".toJS;
+        for (int j = 0; j < otherPlayersSelections.length; j++) {
+          String playerName = otherPlayersSelections[j];
           var metrics = _context.measureText(playerName);
-          _context.fillText(playerName, x  + drawWidth /2 - metrics.width / 2, position.y - 20 * i - 20);
+          double tx = x + drawWidth / 2 - metrics.width / 2;
+          double ty = position.y - 20 * j - 20;
+          _context.strokeText(playerName, tx, ty);
+          _context.fillText(playerName, tx, ty);
         }
         _context.restore();
+      }
+      if (_selectedMap == i) {
+        // Cartoon frame highlight around the selected map preview.
+        _context.strokeStyle = "#ffe05c".toJS;
+        _context.lineWidth = 5.0;
+        _context.strokeRect(x - 3, position.y - 3, drawWidth + 6, drawHeight + 6);
       }
       _context.drawImage(
           img,
@@ -340,9 +411,10 @@ class PlayerWorldSelector {
           x,
           position.y,
           drawWidth,
-          img.height * selectScale);
+          drawHeight);
       _context.restore();
     }
+    _context.restore();
   }
 
   List<Point<int>>? _mapPositions = null;
@@ -372,12 +444,24 @@ class PlayerWorldSelector {
   }
 
   void drawCenteredText(String text, [int y = 0, int size = 20]) {
-    _context.clearRect(0, 0, _width, _height);
-    _context.fillStyle = "rgb(0.0.0)".toJS;
-    _context.font = "${size}px Arial";
-    var metrics = _context.measureText(text);
-    _context.fillText(text, _width / 2 - metrics.width / 2, y);
     _context.save();
+    if (clearBackground) {
+      _context.clearRect(0, 0, _width, _height);
+    }
+    _context.font =
+        "800 ${size}px 'Comic Sans MS', 'Trebuchet MS', Arial, sans-serif";
+    _context.textAlign = "center";
+    _context.textBaseline = "middle";
+    _context.lineJoin = "round";
+    // Cartoon drop shadow + bold dark ink outline + bright white/gold fill.
+    _context.fillStyle = "rgba(8, 36, 72, 0.35)".toJS;
+    _context.fillText(text, _width / 2 + 3, y + 4);
+    _context.lineWidth = max(4.0, size * 0.14);
+    _context.strokeStyle = "#0b2442".toJS;
+    _context.strokeText(text, _width / 2, y);
+    _context.fillStyle = "#ffffff".toJS;
+    _context.fillText(text, _width / 2, y);
+    _context.restore();
   }
 
   void setMapForTest(String name) {

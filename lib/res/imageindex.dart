@@ -2,6 +2,8 @@ library imageindex;
 
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
+import 'package:dart2d/res/crc32.dart';
+import 'package:dart2d/res/image_hashes.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/world_data.dart';
 import 'package:injectable/injectable.dart';
@@ -70,6 +72,12 @@ class ImageIndex {
   Map<int, bool> loadedImages = new Map<int, bool>();
   // Map ImageIndex
   Map<int, Future> _imagesLoading = new Map<int, Future>();
+  // Original raw PNG data URLs (from fetch, cache, or P2P) so P2P serving
+  // transmits exact bit-for-bit bytes without canvas re-encoding.
+  Map<int, String> _rawImageDataUrls = new Map<int, String>();
+  // Expected CRC32 hashes for static PNG assets.
+  Map<String, int> expectedImageHashes = IMAGE_CRC32_HASHES;
+  bool verifyImageHashes = true;
   List<HTMLImageElement> images = [];
 
   // Keep track of these types in a Set.
@@ -117,6 +125,7 @@ class ImageIndex {
     images.add(_EMPTY_IMAGE);
     int index = images.length - 1;
     imageByName[name] = index;
+    _rawImageDataUrls[index] = EMPTY_IMAGE_DATA_STRING;
     loadedImages[index] = true;
     _imageComplete(index, false);
   }
@@ -154,13 +163,55 @@ class ImageIndex {
     loadImagesFromServer();
   }
 
+  /// Returns the expected compiled CRC32 hash for the image at [index], or
+  /// `null` if no static hash applies (e.g. dynamic [WORLD_IMAGE_INDEX]).
+  int? expectedImageHash(int index) {
+    if (index <= WORLD_IMAGE_INDEX) {
+      return null;
+    }
+    String? name = _imageNameFromIndexOrNull(index);
+    if (name == null) {
+      return null;
+    }
+    return expectedImageHashes[name];
+  }
+
+  /// Verifies [data] against the expected CRC32 hash for [index] when one is
+  /// configured. Returns `true` if valid or if no static hash applies.
+  bool verifyImageDataHash(int index, String data) {
+    if (!verifyImageHashes) {
+      return true;
+    }
+    int? expected = expectedImageHash(index);
+    if (expected == null) {
+      return true;
+    }
+    int? actual = crc32FromPngDataUrl(data);
+    return actual != null && actual == expected;
+  }
+
   Future addFromImageData(int index, String data, bool allowCaching) {
-    if (!data.startsWith("data:image/png;base64,")) {
-      String imageName = imageNameFromIndex(index);
-      log.warning("Dropping corrupted image data for ${imageName}, fallback to server.");
-      addSingleImage(imageName);
+    if (!data.startsWith(PNG_DATA_URL_PREFIX)) {
+      String? imageName = _imageNameFromIndexOrNull(index);
+      log.warning("Dropping corrupted image data for ${imageName ?? index}, fallback to server.");
+      if (index > WORLD_IMAGE_INDEX && imageName != null) {
+        addSingleImage(imageName);
+      }
       return new Future.value();
     }
+    if (!verifyImageDataHash(index, data)) {
+      String? imageName = _imageNameFromIndexOrNull(index);
+      log.warning(
+          "Dropping corrupted image data (CRC32 mismatch) for ${imageName ?? index}, fallback to server.");
+      if (imageName != null) {
+        _removeFromLocalStorage(imageName);
+      }
+      if (index > WORLD_IMAGE_INDEX && imageName != null) {
+        addSingleImage(imageName);
+      }
+      return new Future.value();
+    }
+    _rawImageDataUrls[index] = data;
     images[index] = _imageFactory.createWithSrc(data);
     _imagesLoading[index] = _imageLoadedFuture(
         images[index], index, allowCaching);
@@ -176,9 +227,13 @@ class ImageIndex {
   }
 
   /**
-   * Return and an img.src represenation of this image.
+   * Return an img.src representation of this image.
    */
   String getImageDataUrl(int index) {
+    String? raw = _rawImageDataUrls[index];
+    if (raw != null) {
+      return raw;
+    }
     HTMLImageElement image = images[index];
     HTMLCanvasElement canvas = _canvasFactory.createCanvas(image.width, image.height);
     canvas.context2D.drawImage(image, 0, 0);
@@ -211,7 +266,9 @@ class ImageIndex {
   Future addSingleImage(String imgName, [String path = "./img/"]) {
     assert(imagesIndexed());
     int? index = imageByName[imgName];
-    var element = this._imageFactory.createWithSrc(path + imgName);
+    HTMLImageElement element = _imageFactory.supportsRawFetch
+        ? this._imageFactory.create()
+        : this._imageFactory.createWithSrc(path + imgName);
     // Already indexed. Update existing item.
     if (index != null) {
       images[index] = element;
@@ -221,29 +278,96 @@ class ImageIndex {
       index = images.length - 1;
       imageByName[imgName] = index;
     }
+    if (_imageFactory.supportsRawFetch) {
+      Future loading = _fetchAndLoadImage(element, index, path + imgName);
+      _imagesLoading[index] = loading;
+      return loading;
+    }
     _imagesLoading[index] = _imageLoadedFuture(element, index, true);
     return _imagesLoading[index]!;
   }
 
+  Future _fetchAndLoadImage(
+      HTMLImageElement element, int index, String url) async {
+    String? dataUrl = await _imageFactory.fetchImageDataUrl(url);
+    Future loaded = _imageLoadedFuture(element, index, true);
+    if (dataUrl != null) {
+      _rawImageDataUrls[index] = dataUrl;
+      element.src = dataUrl;
+    } else {
+      element.src = url;
+    }
+    await loaded;
+  }
+
   Future _imageLoadedFuture(dynamic i, int index, bool allowCaching) {
     HTMLImageElement img = i as HTMLImageElement;
-    Future loaded = img.onLoad.first;
-    loaded.then((e) {
-      String imageName = imageNameFromIndex(index);
+    Completer<void> completer = Completer<void>();
+    StreamSubscription? loadSub;
+    StreamSubscription? errorSub;
+
+    void cleanup() {
+      loadSub?.cancel();
+      errorSub?.cancel();
+    }
+
+    loadSub = img.onLoad.listen((e) {
+      cleanup();
       if (images[index].width == 0 || images[index].height == 0) {
-        log.warning("Dropping corrupted image for ${imageName}, fallback to server.");
-        loadedImages.remove(index);
-        addSingleImage(imageName);
+        _handleCorruptImageLoad(index, "zero dimensions");
       } else {
         loadedImages[index] = true;
+        _imagesLoading.remove(index);
         _imageComplete(index, allowCaching);
       }
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     });
-    loaded.onError((error, _) {
-      log.warning("Error loading image ${error}");
-      _imagesLoading.remove(index);
+
+    errorSub = img.onError.listen((e) {
+      cleanup();
+      _handleCorruptImageLoad(index, "decode error");
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     });
-    return loaded;
+
+    return completer.future;
+  }
+
+  void _handleCorruptImageLoad(int index, String reason) {
+    _imagesLoading.remove(index);
+    loadedImages.remove(index);
+    _rawImageDataUrls.remove(index);
+    String? imageName = _imageNameFromIndexOrNull(index);
+    if (index > WORLD_IMAGE_INDEX && imageName != null) {
+      _removeFromLocalStorage(imageName);
+      log.warning(
+          "Dropping corrupted image for ${imageName} ($reason), fallback to server.");
+      // Only retry from server if the failed source was an inline data URL,
+      // to avoid an infinite loop if the server itself returns an error.
+      if (images[index].src.startsWith("data:")) {
+        addSingleImage(imageName);
+      }
+    } else {
+      log.warning("Dropping corrupted world image ($reason).");
+    }
+  }
+
+  void _removeFromLocalStorage(String imageName) {
+    String key = "img$imageName";
+    _localStorage.remove(key);
+    _localStorage.remove("t$key");
+  }
+
+  String? _imageNameFromIndexOrNull(int index) {
+    for (String name in imageByName.keys) {
+      if (imageByName[name] == index) {
+        return name;
+      }
+    }
+    return null;
   }
 
   loadImagesFromNetwork() {
@@ -326,6 +450,12 @@ class ImageIndex {
         if (cacheTime.add(CACHE_TIME).isAfter(now)) {
           String data = _localStorage[key];
           int imageIndex = imageByName[image]!;
+          if (!verifyImageDataHash(imageIndex, data)) {
+            log.info("Evicting cached image ${image} due to CRC32 mismatch.");
+            _localStorage.remove(key);
+            _localStorage.remove("t$key");
+            continue;
+          }
           log.info("Added image from cache ${image}.");
           addFromImageData(imageIndex, data, false);
         } else {
@@ -344,8 +474,12 @@ class ImageIndex {
     if (index <= WORLD_IMAGE_INDEX || dontCache.contains(image)) {
       return;
     }
-    log.info("putting image in cache $image");
     String imageData = getImageDataUrl(index);
+    if (!verifyImageDataHash(index, imageData)) {
+      log.info("Skipping localStorage cache for $image due to CRC32 mismatch.");
+      return;
+    }
+    log.info("putting image in cache $image");
     String key = "img$image";
     if (!_localStorage.containsKey(key)) {
       _localStorage[key] = imageData;

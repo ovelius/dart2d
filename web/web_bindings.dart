@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:math';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
@@ -97,6 +98,24 @@ class WebSocketServerChannel extends ServerChannel {
 
 @Injectable(as: ImageFactory)
 class HtmlImageFactory implements ImageFactory {
+  @override
+  bool get supportsRawFetch => true;
+
+  @override
+  Future<String?> fetchImageDataUrl(String url) async {
+    try {
+      final Response response = await window.fetch(url.toJS).toDart;
+      if (!response.ok) {
+        return null;
+      }
+      final JSArrayBuffer buffer = await response.arrayBuffer().toDart;
+      final Uint8List bytes = buffer.toDart.asUint8List();
+      return "data:image/png;base64,${base64Encode(bytes)}";
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   create() {
     return HTMLImageElement();

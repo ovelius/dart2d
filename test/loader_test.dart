@@ -4,6 +4,7 @@ import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:dart2d/phys/vec2.dart';
 import 'package:test/test.dart';
 import 'package:dart2d/worlds/loader.dart';
+import 'package:dart2d/worlds/loader_animation.dart';
 import 'package:dart2d/res/imageindex.dart';
 import 'package:mockito/mockito.dart';
 import 'dart:async';
@@ -323,6 +324,36 @@ void main() {
       // Connection fail so we fallback to server path.
       when(mockNetwork.getServerConnection()).thenReturn(null);
       tickAndAssertState(LoaderState.WORLD_SELECT);
+    });
+
+    test('LoaderAnimation renders pre-image vortex, shark spectacle, and error state', () async {
+      FakeCanvas canvas = FakeCanvas();
+      LoaderAnimation anim = LoaderAnimation();
+
+      // Phase 1: no images available yet (abyssal vortex + prowling shark fin).
+      for (int i = 0; i < 40; i++) {
+        anim.tick(0.05, sharkAvailable: false);
+        anim.draw(canvas.context2D, canvas.width, canvas.height,
+            message: 'Loading resources...', progress: i / 40.0);
+      }
+
+      // Phase 2: shark image loaded (transition burst + hero shark + mini-shark swarm + flourish).
+      HTMLImageElement shark = HTMLImageElement();
+      shark.src = EMPTY_IMAGE_DATA_STRING;
+      await shark.onLoad.first;
+      for (int i = 0; i < 120; i++) {
+        anim.tick(0.06, sharkAvailable: true);
+        anim.draw(canvas.context2D, canvas.width, canvas.height,
+            message: 'Loading gamestate...', sharkImage: shark, progress: 0.65);
+      }
+
+      // Continuous backdrop crossfade mode (used during Player Select & World Select).
+      anim.drawBackdrop(canvas.context2D, canvas.width, canvas.height,
+          sharkImage: shark, centerpieceAlpha: 0.5);
+
+      // Error state renders cleanly.
+      anim.draw(canvas.context2D, canvas.width, canvas.height,
+          message: 'ERROR: Connection failed', sharkImage: shark, isError: true);
     });
   });
 }

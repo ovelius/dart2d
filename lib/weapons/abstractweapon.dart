@@ -13,8 +13,11 @@ class Weapon {
   int shotsLeft = 0;
 
   int iconIndex = 0;
-  
-  Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime, this.fireDelay, this.fire) {
+  bool hasLaserSight = false;
+
+  Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime,
+      this.fireDelay, this.fire,
+      {this.hasLaserSight = false}) {
   }
   
   void fireButton(WeaponState weaponState) {
