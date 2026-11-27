@@ -1240,6 +1240,7 @@ class RunningCatProjectile extends WorldDamageProjectile {
 /// pipes with dynamic nitro flames, wind-swept eyestalks, and proper upright
 /// orientation regardless of whether fired left or right!
 class SnailProjectile extends WorldDamageProjectile {
+  static const double TRAIL_CARVE_RADIUS = 13.5;
   int snailVariant = 0;
   double _age = 0.0;
 
@@ -1249,6 +1250,7 @@ class SnailProjectile extends WorldDamageProjectile {
     this.spriteType = SpriteType.CUSTOM;
     this.size = new Vec2(46.0, 24.0);
     this.mod = Mod.SNAIL;
+    this.radius = TRAIL_CARVE_RADIUS;
     this.worldCollide = false;
     this.removeOutOfBounds = true;
     this.gravityAffect = 0.0;
@@ -1263,7 +1265,7 @@ class SnailProjectile extends WorldDamageProjectile {
             positionBase: positionBase, size: new Vec2(46.0, 24.0)) {
     this.spriteType = SpriteType.CUSTOM;
     this.mod = Mod.SNAIL;
-    this.radius = 19.0;
+    this.radius = TRAIL_CARVE_RADIUS;
     this.owner = owner;
     this.worldCollide = false;
     this.removeOutOfBounds = true;
@@ -3223,7 +3225,11 @@ class DartProjectile extends WorldDamageProjectile {
           other.owner!.networkId == owner!.networkId) {
         return;
       }
-      if (other is DartProjectile || other is BrickBuilder) {
+      if (other is DartProjectile ||
+          other is BrickBuilder ||
+          other is HomingBeeProjectile ||
+          other is HedgehogQuillProjectile ||
+          other is PigeonStrikeFlare) {
         other.remove = true;
       } else {
         if (other.owner != null) {

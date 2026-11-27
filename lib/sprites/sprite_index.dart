@@ -26,7 +26,15 @@ enum SpriteConstructor {
   PLAYER_DEATH,
   REMOTE_PLAYER_CLIENT_SPRITE,
   POWERUP,
-  ROPE_SPRITE
+  ROPE_SPRITE,
+  HEDGEHOG_MINE,
+  HEDGEHOG_QUILL,
+  MOLE_DRILL,
+  ANGRY_BEEHIVE,
+  HOMING_BEE,
+  PIGEON_FLARE,
+  BOMBER_PIGEON,
+  PIGEON_BOMB
 }
 
 /**
@@ -92,6 +100,30 @@ class SpriteIndex {
     SpriteConstructor.PLAYER_DEATH:
         (WormWorld world, int spriteId, String connectionId) =>
             new PlayerDeathEffect(world, 0.0, 0.0),
+    SpriteConstructor.HEDGEHOG_MINE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new HedgehogMine(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HEDGEHOG_QUILL:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new HedgehogQuillProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.MOLE_DRILL:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new MoleDrillProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.ANGRY_BEEHIVE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new AngryBeehive(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HOMING_BEE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new HomingBeeProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.PIGEON_FLARE:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new PigeonStrikeFlare(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.BOMBER_PIGEON:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new BomberPigeonProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.PIGEON_BOMB:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new PigeonDroppingBomb(world, 0.0, 0.0, 0, world.imageIndex()),
   };
 
   static MovingSprite? fromWorldByIndex(WormWorld world, int spriteId,

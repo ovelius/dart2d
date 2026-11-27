@@ -1824,6 +1824,526 @@ void main() {
       worldC.frameDraw(0.05);
       expect(worldC.powerupManager()!.activePowerups, equals([mysteryOnC]));
     });
+
+    test('SpikyHedgehog_ArmsTriggersOnProximityBurstsQuillsAndTransfersOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(400, 300));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        w.byteWorld.fillRectAt(Vec2(0.0, 240.0), Vec2(400.0, 60.0), "#444444");
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      playerA.position = Vec2(40.0, 190.0);
+      playerA.velocity = Vec2.ZERO;
+      playerBOnA.position = Vec2(320.0, 190.0);
+      playerBOnA.velocity = Vec2.ZERO;
+      playerBOnB.position = Vec2(320.0, 190.0);
+      playerBOnB.velocity = Vec2.ZERO;
+
+      // Verify WeaponState includes Spiky Hedgehog and fires HedgehogMine.
+      final int idx = playerA.weaponState!.weapons
+          .indexWhere((w) => w.name == "Spiky Hedgehog");
+      expect(idx, greaterThanOrEqualTo(0));
+      playerA.weaponState!.selectedWeaponIndex = idx;
+      playerA.gun.angle = -0.25;
+      playerA.weaponState!.fire();
+
+      worldA.frameDraw(0.02);
+      HedgehogMine mineA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<HedgehogMine>()
+          .single;
+      mineA.setCenter(Vec2(180.0, 228.0));
+      mineA.velocity = Vec2.ZERO;
+      expect(mineA.armed, isFalse);
+
+      // Step past ARM_TIME (1.0s) with enemy far away -> armed, not triggered.
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(0.20);
+        worldB.frameDraw(0.20);
+      }
+      expect(mineA.armed, isTrue);
+      expect(mineA.triggered, isFalse);
+
+      HedgehogMine? mineB = worldB.spriteIndex[mineA.networkId!] as HedgehogMine?;
+      expect(mineB, isNotNull, reason: "Expected HedgehogMine to sync to client B");
+      expect(mineB!.armed, isTrue);
+      FakeCanvas canvas = FakeCanvas();
+      mineB.draw(canvas.context2D, false);
+
+      // Walk enemy player B into the larger outer proximity radius (~84px away > old 62px,
+      // < new 92px PROXIMITY_RADIUS!) -> mine triggers its ~0.55s activation animation!
+      playerBOnA.setCenter(Vec2(264.0, 220.0));
+      playerBOnB.setCenter(Vec2(264.0, 220.0));
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(0.08);
+        worldB.frameDraw(0.08);
+      }
+      expect(mineA.triggered, isTrue);
+      expect(mineA.remove, isFalse,
+          reason: "HedgehogMine must play its ~0.55s activation heads-up before exploding");
+      expect(mineA.activationProgress, greaterThan(0.25));
+      expect(mineB.triggered, isTrue);
+      mineB.draw(canvas.context2D, false);
+
+      // Finish remaining ~0.55s trigger countdown -> explodes and fires radial quills!
+      for (int i = 0; i < 5; i++) {
+        worldA.frameDraw(0.10);
+        worldB.frameDraw(0.10);
+      }
+      expect(mineA.remove, isTrue);
+      final List<HedgehogQuillProjectile> quillsA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<HedgehogQuillProjectile>()
+          .toList();
+      final List<HedgehogQuillProjectile> quillsB = worldB.spriteIndex
+          .spriteIds()
+          .map((id) => worldB.spriteIndex[id])
+          .whereType<HedgehogQuillProjectile>()
+          .toList();
+      expect(quillsA, isNotEmpty, reason: "Expected radial quill burst on detonation");
+      expect(quillsB, isNotEmpty, reason: "Expected quills to sync to client B");
+      quillsB.first.draw(canvas.context2D, false);
+
+      // Also verify HedgehogMine lifetime was doubled to 36s and DartProjectile snipes enemy mines!
+      HedgehogMine enemyMine =
+          HedgehogMine.createWithOwner(worldA, playerBOnA, 38, playerBOnA.gun)
+            ..setCenter(Vec2(120.0, 120.0))
+            ..velocity = Vec2.ZERO;
+      expect(enemyMine.explodeAfter, equals(36.0));
+      worldA.addSprite(enemyMine);
+      DartProjectile dart =
+          DartProjectile.createWithOwner(worldA, playerA, 8, playerA.gun);
+      dart.collide(enemyMine, null, null);
+      expect(enemyMine.remove, isTrue);
+      expect(dart.remove, isTrue);
+    });
+
+    test('TurboMole_DrillsThroughSolidWallCarvesTunnelAndDetonatesOnEmergence', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(500, 300));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        // Build a 45px-thick solid bunker wall from x = 160..205!
+        w.byteWorld.fillRectAt(Vec2(160.0, 40.0), Vec2(45.0, 220.0), "rgb(130, 100, 70)");
+      }
+      expect(worldA.byteWorld.isSolid(182, 150), isTrue);
+      expect(worldB.byteWorld.isSolid(182, 150), isTrue);
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      playerA.collision = false;
+      playerA.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerA.setCenter(Vec2(80.0, 150.0));
+      // Park enemy B right behind the bunker wall at x = 232!
+      playerBOnA.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerBOnB.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerBOnA.setCenter(Vec2(232.0, 150.0));
+      playerBOnB.setCenter(Vec2(232.0, 150.0));
+      final int initialHealthB = playerBOnA.health;
+
+      final int idx = playerA.weaponState!.weapons
+          .indexWhere((w) => w.name == "Turbo Mole");
+      expect(idx, greaterThanOrEqualTo(0));
+      playerA.weaponState!.selectedWeaponIndex = idx;
+      playerA.gun.angle = 0.0;
+      playerA.weaponState!.fire();
+
+      worldA.frameDraw(0.02);
+      MoleDrillProjectile moleA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<MoleDrillProjectile>()
+          .single;
+      moleA.gravityAffect = 0.0;
+      moleA.setCenter(Vec2(135.0, 150.0));
+      moleA.velocity = Vec2(MoleDrillProjectile.LAUNCH_SPEED, 0.0);
+
+      FakeCanvas canvas = FakeCanvas();
+      bool sawDrillingOnClient = false;
+      for (int i = 0; i < 25 && !moleA.remove; i++) {
+        worldA.frameDraw(0.04);
+        worldB.frameDraw(0.04);
+        final MoleDrillProjectile? moleB =
+            worldB.spriteIndex[moleA.networkId!] as MoleDrillProjectile?;
+        if (moleB != null) {
+          moleB.draw(canvas.context2D, false);
+          if (moleB.drilling) {
+            sawDrillingOnClient = true;
+          }
+        }
+      }
+
+      expect(sawDrillingOnClient, isTrue,
+          reason: "Client B must receive MoleDrillProjectile in active drilling state");
+      expect(moleA.remove, isTrue,
+          reason: "Mole should detonate after bursting through the bunker wall");
+      expect(worldA.byteWorld.isSolid(182, 150), isFalse,
+          reason: "Mole must carve a hollow tunnel through the solid wall on commander");
+      // Verify carved tunnel is wide enough (~51.5px diameter, TUNNEL_RADIUS = 25.75) for a player sprite to enter!
+      expect(worldA.byteWorld.isSolid(175, 150 - 22), isFalse,
+          reason: "Upper tunnel clearance must accommodate a walking player");
+      expect(worldA.byteWorld.isSolid(175, 150 + 22), isFalse,
+          reason: "Lower tunnel clearance must accommodate a walking player");
+      expect(worldB.byteWorld.isSolid(182, 150), isFalse,
+          reason: "Carved mole tunnel must sync to client ByteWorld");
+      expect(playerBOnA.health, lessThan(initialHealthB),
+          reason: "Camper hiding behind bunker wall should take bunker-buster damage");
+
+      // Regression 1: Deep mountain (> 250px thick) where Mole drills for the full
+      // MAX_DRILL_TIME (25+ carve ticks) — must NOT die to its own carve ticks and
+      // MUST detonate a full 60px-radius chamber at the end!
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.fillRectAt(Vec2(240.0, 30.0), Vec2(250.0, 240.0), "rgb(110, 85, 60)");
+      }
+      MoleDrillProjectile deepMole =
+          MoleDrillProjectile.createWithOwner(worldA, playerA, 45, playerA.gun);
+      expect(deepMole.gravityAffect, equals(MoleDrillProjectile.AIR_GRAVITY));
+      deepMole.gravityAffect = 0.0;
+      deepMole.setCenter(Vec2(225.0, 150.0));
+      deepMole.velocity = Vec2(MoleDrillProjectile.LAUNCH_SPEED, 0.0);
+      worldA.addSprite(deepMole);
+
+      for (int i = 0; i < 45 && !deepMole.remove; i++) {
+        worldA.frameDraw(0.04);
+        worldB.frameDraw(0.04);
+      }
+      expect(deepMole.remove, isTrue,
+          reason: "Deep-burrowing mole should finish MAX_DRILL_TIME and detonate");
+      expect(deepMole.health, equals(25),
+          reason: "Mole must not lose health to its own tunnel-carving steps");
+      final int endX = deepMole.centerPoint().x.round();
+      // Tunnel radius is 24.5px, whereas final explosion radius is 60px — verify
+      // terrain 42px vertically above the final center was cleared by the blast!
+      expect(worldA.byteWorld.isSolid(endX, 150 - 42), isFalse,
+          reason: "Mole must detonate a full 60px blast chamber at end of deep tunnel");
+      expect(worldB.byteWorld.isSolid(endX, 150 - 42), isFalse,
+          reason: "Deep tunnel final blast chamber must sync to client B");
+
+      // Regression 2: Drilling downward into the bottom map edge must detonate
+      // at the boundary instead of silently removing out-of-bounds!
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.fillRectAt(Vec2(60.0, 250.0), Vec2(120.0, 50.0), "rgb(90, 80, 70)");
+      }
+      MoleDrillProjectile floorMole =
+          MoleDrillProjectile.createWithOwner(worldA, playerA, 45, playerA.gun);
+      floorMole.setCenter(Vec2(120.0, 235.0));
+      floorMole.drillAngle = pi / 2.0;
+      floorMole.angle = pi / 2.0;
+      floorMole.velocity = Vec2(0.0, MoleDrillProjectile.LAUNCH_SPEED);
+      worldA.addSprite(floorMole);
+
+      for (int i = 0; i < 20 && !floorMole.remove; i++) {
+        worldA.frameDraw(0.04);
+        worldB.frameDraw(0.04);
+      }
+      expect(floorMole.remove, isTrue);
+      // 42px horizontally from x = 120 is outside TUNNEL_RADIUS (24.5px) and only cleared
+      // if explode() (BLAST_RADIUS = 60px) ran on hitting the bottom boundary!
+      expect(worldA.byteWorld.isSolid(120 + 42, 285), isFalse,
+          reason: "Mole hitting bottom map boundary must explode rather than vanish");
+    });
+
+    test('AngryBeehive_ShattersIntoHomingBeesSteersTowardEnemyAndCanBeSwattedByDarts', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(500, 300));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        w.byteWorld.fillRectAt(Vec2(0.0, 240.0), Vec2(500.0, 60.0), "#556644");
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      for (final p in [playerA, playerBOnA, playerBOnB]) {
+        p.flags |= Sprite.FLAG_NO_GRAVITY;
+        p.velocity = Vec2.ZERO;
+      }
+      playerA.collision = false;
+      playerA.setCenter(Vec2(60.0, 150.0));
+      playerBOnA.setCenter(Vec2(360.0, 150.0));
+      playerBOnB.setCenter(Vec2(360.0, 150.0));
+
+      final int idx = playerA.weaponState!.weapons
+          .indexWhere((w) => w.name == "Angry Beehive");
+      expect(idx, greaterThanOrEqualTo(0));
+      playerA.weaponState!.selectedWeaponIndex = idx;
+      playerA.gun.angle = 0.0;
+      playerA.weaponState!.fire();
+
+      for (int i = 0; i < 2; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      AngryBeehive hiveA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<AngryBeehive>()
+          .single;
+      expect(hiveA.showCounter, isTrue);
+      expect(hiveA.explodeAfter, isNotNull);
+      // Drop onto solid ground at y = 240 — verify it bounces like CatLitterBox instead of exploding on impact!
+      hiveA.setCenter(Vec2(180.0, 224.0));
+      hiveA.velocity = Vec2(40.0, 140.0);
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.06);
+        worldB.frameDraw(0.06);
+      }
+      expect(hiveA.remove, isFalse,
+          reason: "AngryBeehive should bounce on terrain while its timer counts down");
+
+      AngryBeehive? hiveB = worldB.spriteIndex[hiveA.networkId!] as AngryBeehive?;
+      expect(hiveB, isNotNull, reason: "Expected AngryBeehive to transfer to client B");
+      expect(hiveB!.explodeAfter, isNotNull);
+      FakeCanvas canvas = FakeCanvas();
+      hiveB.draw(canvas.context2D, false);
+
+      // Let the countdown timer expire -> shatters into 5 HomingBeeProjectiles!
+      hiveA.setCenter(Vec2(180.0, 180.0));
+      hiveA.explodeAfter = 0.05;
+      worldA.frameDraw(0.10);
+      worldB.frameDraw(0.10);
+      expect(hiveA.remove, isTrue);
+
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.12);
+        worldB.frameDraw(0.12);
+      }
+
+      List<HomingBeeProjectile> beesA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<HomingBeeProjectile>()
+          .toList();
+      List<HomingBeeProjectile> beesB = worldB.spriteIndex
+          .spriteIds()
+          .map((id) => worldB.spriteIndex[id])
+          .whereType<HomingBeeProjectile>()
+          .toList();
+      expect(beesA.length, equals(AngryBeehive.BEE_COUNT));
+      expect(beesB.length, equals(AngryBeehive.BEE_COUNT));
+      beesB.first.draw(canvas.context2D, false);
+
+      final double avgXBefore =
+          beesA.map((b) => b.centerPoint().x).reduce((a, b) => a + b) / beesA.length;
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(0.06);
+        worldB.frameDraw(0.06);
+      }
+      final double avgXAfter =
+          beesA.map((b) => b.centerPoint().x).reduce((a, b) => a + b) / beesA.length;
+      expect(avgXAfter, greaterThan(avgXBefore + 30.0),
+          reason: "Homing bees should steer toward enemy player B on the right");
+
+      // Verify Dart gun cleanly swats a HomingBeeProjectile out of the air!
+      final HomingBeeProjectile targetBee = beesA.first;
+      DartProjectile swatDart =
+          DartProjectile.createWithOwner(worldA, playerBOnA, 8, playerBOnA.gun);
+      swatDart.collide(targetBee, null, null);
+      expect(targetBee.remove, isTrue);
+      expect(swatDart.remove, isTrue);
+    });
+
+    test('PigeonStrike_FlareSummonsBomberPigeonsThatDropExplosiveBombsAndSyncOverNetwork', () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(500, 320));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        w.byteWorld.fillRectAt(Vec2(0.0, 260.0), Vec2(500.0, 60.0), "#444444");
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      playerA.collision = false;
+      playerA.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerA.setCenter(Vec2(50.0, 210.0));
+      playerBOnA.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerBOnB.flags |= Sprite.FLAG_NO_GRAVITY;
+      playerBOnA.velocity = Vec2.ZERO;
+      playerBOnB.velocity = Vec2.ZERO;
+      playerBOnA.setCenter(Vec2(232.0, 238.0));
+      playerBOnB.setCenter(Vec2(232.0, 238.0));
+
+      final int idx = playerA.weaponState!.weapons
+          .indexWhere((w) => w.name == "Pigeon Strike");
+      expect(idx, greaterThanOrEqualTo(0));
+      playerA.weaponState!.selectedWeaponIndex = idx;
+      playerA.gun.angle = -0.3;
+      playerA.weaponState!.fire();
+
+      worldA.frameDraw(0.02);
+      PigeonStrikeFlare flareA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<PigeonStrikeFlare>()
+          .single;
+      // Land flare on terrain at x = 190 (44.6px > 37.6px clear of playerB at 232, inside carpet spread)!
+      flareA.setCenter(Vec2(190.0, 253.0));
+      flareA.velocity = Vec2(0.0, 20.0);
+
+      FakeCanvas canvas = FakeCanvas();
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(0.14);
+        worldB.frameDraw(0.14);
+      }
+      expect(flareA.landed, isTrue);
+      expect(flareA.strikeConfirmed, isFalse,
+          reason: "Flare must wait the full 2.30s landed fuse before confirming strike");
+      PigeonStrikeFlare? flareB =
+          worldB.spriteIndex[flareA.networkId!] as PigeonStrikeFlare?;
+      expect(flareB, isNotNull);
+      expect(flareB!.landed, isTrue);
+      expect(flareB.strikeConfirmed, isFalse);
+      flareB.draw(canvas.context2D, false);
+
+      // Verify destroying an unconfirmed flare beforehand cancels its airstrike and spawns a fizzle effect!
+      PigeonStrikeFlare doomedFlare =
+          PigeonStrikeFlare.createWithOwner(worldA, playerA, playerA.gun)
+            ..setCenter(Vec2(95.0, 253.0))
+            ..landed = true;
+      worldA.addSprite(doomedFlare);
+      worldA.frameDraw(0.02);
+      doomedFlare.takeDamage(15, playerBOnA, Mod.SHOTGUN);
+      expect(doomedFlare.remove, isTrue);
+      expect(doomedFlare.strikeConfirmed, isFalse);
+
+      // Finish longer landed fuse (2.30s total) -> flare transitions to strikeConfirmed = true
+      // (staying alive on the ground with its INCOMING! beacon animation!) and summons 5 BomberPigeons!
+      for (int i = 0; i < 16; i++) {
+        worldA.frameDraw(0.14);
+        worldB.frameDraw(0.14);
+      }
+      expect(flareA.strikeConfirmed, isTrue);
+      expect(flareA.remove, isFalse,
+          reason: "Confirmed flare stays active to animate INCOMING! airstrike beacon");
+      // Flush network keyframe so client B receives strikeConfirmed = true AND newly spawned pigeons!
+      for (int i = 0; i < 2; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      expect(flareB.strikeConfirmed, isTrue);
+      flareB.draw(canvas.context2D, false);
+
+      List<BomberPigeonProjectile> pigeonsA = worldA.spriteIndex
+          .spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<BomberPigeonProjectile>()
+          .toList();
+      List<BomberPigeonProjectile> pigeonsB = worldB.spriteIndex
+          .spriteIds()
+          .map((id) => worldB.spriteIndex[id])
+          .whereType<BomberPigeonProjectile>()
+          .toList();
+      expect(pigeonsA.length, equals(PigeonStrikeFlare.PIGEON_COUNT));
+      expect(pigeonsB.length, equals(PigeonStrikeFlare.PIGEON_COUNT));
+      // Verify pigeons spawn far away from their drop column (> 200px upwind)!
+      for (final BomberPigeonProjectile p in pigeonsA) {
+        expect((p.centerPoint().x - p.dropX).abs(), greaterThan(200.0));
+      }
+      pigeonsB.first.draw(canvas.context2D, false);
+
+      // Step flight so pigeons fly in from afar, cross dropX across the wider carpet spread, and drop all 5 bird droppings!
+      bool sawDroppingOnClient = false;
+      final int initialHealthB = playerBOnA.health;
+      for (int i = 0; i < 65; i++) {
+        worldA.frameDraw(0.06);
+        worldB.frameDraw(0.06);
+        for (int id in worldB.spriteIndex.spriteIds()) {
+          final Sprite? s = worldB.spriteIndex[id];
+          if (s is PigeonDroppingBomb) {
+            sawDroppingOnClient = true;
+            s.draw(canvas.context2D, false);
+          }
+          if (s is PigeonSplatEffect || s is FlareDestroyedFizzleEffect) {
+            s!.draw(canvas.context2D, false);
+          }
+        }
+      }
+      expect(sawDroppingOnClient, isTrue,
+          reason: "Expected bird droppings (PigeonDroppingBomb) to sync and render on client B");
+      expect(flareA.remove, isTrue,
+          reason: "Confirmed flare beacon should expire cleanly once airstrike finishes");
+      expect(playerBOnA.health, lessThan(initialHealthB),
+          reason: "Enemy standing in Pigeon Strike target zone should take bomb damage");
+
+      // Verify kill & self-kill messages for all 4 new Mods!
+      for (final Mod m in [Mod.HEDGEHOG, Mod.MOLE, Mod.BEEHIVE, Mod.PIGEON]) {
+        expect(killedMessage("Bob", "Alice", m), isNotEmpty);
+        expect(selfKillMessage("Bob", m), isNotEmpty);
+      }
+    });
   });
 }
 

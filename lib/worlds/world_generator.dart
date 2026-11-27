@@ -12,7 +12,7 @@ enum _BedrockStyle {
   frostCrystal,
   peppermintSteel,
   titaniumHazard,
-  cityGirder,
+  toyBrick,
   mayanGold,
 }
 
@@ -126,8 +126,8 @@ class WorldGenerator {
       case WorldThemeId.lunar:
         _generateLunar(tCtx, bCtx, DEFAULT_WIDTH, DEFAULT_HEIGHT, rng);
         break;
-      case WorldThemeId.city:
-        _generateCity(tCtx, bCtx, DEFAULT_WIDTH, DEFAULT_HEIGHT, rng);
+      case WorldThemeId.toyland:
+        _generateToyland(tCtx, bCtx, DEFAULT_WIDTH, DEFAULT_HEIGHT, rng);
         break;
       case WorldThemeId.jungle:
         _generateJungle(tCtx, bCtx, DEFAULT_WIDTH, DEFAULT_HEIGHT, rng);
@@ -194,8 +194,8 @@ class WorldGenerator {
       case WorldThemeId.lunar:
         _drawPreviewLunar(ctx, w, h);
         break;
-      case WorldThemeId.city:
-        _drawPreviewCity(ctx, w, h);
+      case WorldThemeId.toyland:
+        _drawPreviewToyland(ctx, w, h);
         break;
       case WorldThemeId.jungle:
         _drawPreviewJungle(ctx, w, h);
@@ -259,6 +259,7 @@ class WorldGenerator {
         _drawSkyStars(ctx, w, h, compact ? 14 : 40, time, seed);
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.88, time * 0.65, '#5c3c8c',
             0.46, seed);
+        _drawDriftingSpookyGhosts(ctx, w, h, time, seed, compact);
         break;
       case WorldThemeId.volcano:
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.90, time * 0.80, '#59282c',
@@ -282,9 +283,12 @@ class WorldGenerator {
       case WorldThemeId.lunar:
         _drawSkyStars(ctx, w, h, compact ? 22 : 70, time, seed);
         break;
-      case WorldThemeId.city:
-        _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.85, time * 0.72, '#ffffff',
-            0.82, seed);
+      case WorldThemeId.toyland:
+        _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.86, time * 0.70, '#ffffff',
+            0.86, seed);
+        if (!compact) {
+          _drawFloatingToyBalloons(ctx, w, h, time, seed);
+        }
         break;
       case WorldThemeId.jungle:
         _drawSkyClouds(ctx, w, h, compact ? 0.32 : 0.82, time * 0.52, '#fff8de',
@@ -466,22 +470,14 @@ class WorldGenerator {
         ctx.arc(sx, sy, sr, 0, 2 * pi);
         ctx.fill();
         break;
-      case WorldThemeId.city:
-        _drawSkySun(ctx, w * (0.15 + rng.nextDouble() * 0.10), h * 0.18,
-            compact ? 14 : 38, '#fff29c');
-        // Two-layer hazy distant metropolis skyline!
-        final int farTowers = compact ? 9 : 18;
-        final double ftw = w / farTowers;
-        ctx.fillStyle = 'rgba(104, 168, 224, 0.24)'.toJS;
-        for (int i = 0; i < farTowers; i++) {
-          final double th = h * (0.24 + rng.nextDouble() * 0.26);
-          ctx.fillRect(i * ftw + 2, h - th, ftw - 4, th);
-        }
-        ctx.fillStyle = 'rgba(72, 132, 192, 0.28)'.toJS;
-        for (int i = 0; i < farTowers; i++) {
-          final double th = h * (0.16 + rng.nextDouble() * 0.18);
-          ctx.fillRect(i * ftw + 6, h - th, ftw - 8, th);
-        }
+      case WorldThemeId.toyland:
+        final double sunX = w * (0.14 + rng.nextDouble() * 0.10);
+        final double sunY = h * (0.16 + rng.nextDouble() * 0.05);
+        _drawSkySun(ctx, sunX, sunY, compact ? 15 : 42, '#ffe85c');
+        // Festive colorful playroom bunting garlands across the upper sky!
+        _drawToySkyBunting(ctx, w, h, compact, rng);
+        // Distant pastel toy-block castle silhouettes & Ferris wheel on the horizon!
+        _drawToyHorizonCastle(ctx, w, h, compact, rng);
         break;
       case WorldThemeId.jungle:
         _drawSkySun(ctx, w * (0.76 + rng.nextDouble() * 0.08), h * 0.17,
@@ -917,13 +913,13 @@ class WorldGenerator {
           'rivet': '#ffe45e',
           'accent': '#242936',
         };
-      case _BedrockStyle.cityGirder:
+      case _BedrockStyle.toyBrick:
         return {
-          'top': '#ffd23f',
-          'bottom': '#c98812',
-          'trim': '#202633',
-          'rivet': '#f2f5fa',
-          'accent': '#202633',
+          'top': '#ff4d4d',
+          'bottom': '#c41e28',
+          'trim': '#ffe047',
+          'rivet': '#48b8ff',
+          'accent': '#ffe047',
         };
       case _BedrockStyle.mayanGold:
         return {
@@ -2008,10 +2004,33 @@ class WorldGenerator {
     final double cauldronX = w * 0.28;
     _drawWitchCauldron(ctx, cauldronX, _sampleHeight(heights, cauldronX, step) + 2);
 
+    // GIMMICK 2: Giant Half-Buried Ossuary Skull & Grinning Skeletons across the graveyard!
+    final double giantSkullX = w * 0.72;
+    _drawGiantSpookySkull(
+        ctx, giantSkullX, _sampleHeight(heights, giantSkullX, step) + 10.0, 1.0);
+
+    for (final List<double> sk in [
+      [w * 0.11, 1.0, 1.0],
+      [w * 0.34, 0.95, -1.0],
+      [w * 0.56, 0.95, 1.0],
+      [w * 0.89, 1.0, -1.0],
+    ]) {
+      final double sx = sk[0];
+      final double sy = _sampleHeight(heights, sx, step) + 2.0;
+      _drawCartoonSkeleton(ctx, sx, sy, sk[1], facingLeft: sk[2] < 0);
+    }
+    // Bony lookout skeletons perched atop gothic castle battlements!
+    _drawCartoonSkeleton(
+        ctx, towerXs[0], towerTops[0] - 2.0, 0.82, facingLeft: false);
+    _drawCartoonSkeleton(
+        ctx, towerXs[2], towerTops[2] - 2.0, 0.82, facingLeft: true);
+
     // Gnarled dead trees, glowing jack-o'-lanterns & tilted gravestones!
     for (int i = 0; i < 7; i++) {
       final double px = w * (0.07 + i * 0.145 + rng.nextDouble() * 0.02);
-      if ((px - giantPumpX).abs() < 80) continue;
+      if ((px - giantPumpX).abs() < 80 || (px - giantSkullX).abs() < 75) {
+        continue;
+      }
       final double py = _sampleHeight(heights, px, step);
       if (i % 3 == 0) {
         _drawDeadTree(ctx, px, py + 4, 0.95);
@@ -2022,7 +2041,7 @@ class WorldGenerator {
       }
     }
 
-    // 3 Floating haunted stone ledges in the moonlight!
+    // 3 Floating haunted stone ledges in the moonlight + solid ectoplasm ghosts!
     for (int i = 0; i < 3; i++) {
       final double lx = w * (0.27 + i * 0.23);
       final double ly = h * (0.22 + (i == 1 ? -0.04 : 0.06));
@@ -2039,8 +2058,15 @@ class WorldGenerator {
         turfBottom: '#46307d',
         turfOutline: '#1d1238',
       );
-      _drawPumpkin(ctx, lx + (i.isEven ? -40 : 40), ly - 16, 0.95);
+      _drawPumpkin(ctx, lx + (i.isEven ? -44 : 44), ly - 16, 0.92);
+      _drawCartoonSkeleton(
+          ctx, lx + (i.isEven ? 34 : -34), ly - 12, 0.78, facingLeft: i.isOdd);
     }
+
+    // Hovering solid cartoon bedsheet ghosts haunting the castle alleys & mid-air!
+    _drawSolidSpookyGhost(ctx, w * 0.19, h * 0.40, 1.05, facingLeft: false);
+    _drawSolidSpookyGhost(ctx, w * 0.50, h * 0.36, 1.15, facingLeft: true);
+    _drawSolidSpookyGhost(ctx, w * 0.80, h * 0.41, 1.0, facingLeft: true);
 
     // THEMATIC INDESTRUCTIBLE BEDROCK (7 CLEAR SECTIONS):
     // 1-4. Forged black-iron rune foundations anchoring every gothic tower!
@@ -2328,6 +2354,261 @@ class WorldGenerator {
     ctx.restore();
   }
 
+  /// Animated translucent ghosts drifting across the moonlit Spooky skybox!
+  static void _drawDriftingSpookyGhosts(
+    CanvasRenderingContext2D ctx,
+    double w,
+    double h,
+    double time,
+    int seed,
+    bool compact,
+  ) {
+    final int count = compact ? 2 : 5;
+    final int s = seed.abs() % 500;
+    final double scale = compact ? 0.45 : 1.0;
+    ctx.save();
+    for (int i = 0; i < count; i++) {
+      final double dir = i.isEven ? 1.0 : -1.0;
+      final double speed = 0.014 + (i % 3) * 0.005;
+      final double rawU =
+          ((i * 0.23 + (s % 97) / 97.0) + time * speed * dir) % 1.24;
+      final double u = (rawU < 0 ? rawU + 1.24 : rawU) - 0.12;
+      final double gx = u * w;
+      final double gy = h * (0.18 + (i % 3) * 0.12) +
+          sin(time * 2.1 + i * 1.7) * (compact ? 4.0 : 12.0);
+
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.scale(dir < 0 ? -scale : scale, scale);
+      ctx.globalAlpha = compact ? 0.55 : 0.46;
+
+      // Soft ectoplasm aura.
+      ctx.fillStyle = 'rgba(164, 245, 255, 0.30)'.toJS;
+      ctx.beginPath();
+      ctx.arc(0, -2, 24, 0, 2 * pi);
+      ctx.fill();
+
+      // Wavy ghost sheet silhouette.
+      ctx.fillStyle = '#e8fbff'.toJS;
+      ctx.beginPath();
+      ctx.arc(0, -8, 13, pi, 2 * pi);
+      ctx.lineTo(13, 10);
+      ctx.quadraticCurveTo(8, 5, 4, 11);
+      ctx.quadraticCurveTo(0, 5, -4, 11);
+      ctx.quadraticCurveTo(-8, 5, -13, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // Hollow spooky eyes & 'O' mouth.
+      ctx.fillStyle = '#241645'.toJS;
+      ctx.beginPath();
+      ctx.ellipse(-4.2, -9, 2.2, 3.2, 0, 0, 2 * pi);
+      ctx.ellipse(4.2, -9, 2.2, 3.2, 0, 0, 2 * pi);
+      ctx.ellipse(0.5, -2.5, 2.5, 3.4, 0, 0, 2 * pi);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a solid destructible cartoon ghost hovering in the Spooky arena!
+  static void _drawSolidSpookyGhost(
+    CanvasRenderingContext2D ctx,
+    double cx,
+    double cy,
+    double s, {
+    bool facingLeft = false,
+  }) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(facingLeft ? -s : s, s);
+
+    final CanvasGradient body = ctx.createLinearGradient(0, -40, 0, 34);
+    body.addColorStop(0.0, '#f4ffff');
+    body.addColorStop(0.65, '#c7f5ff');
+    body.addColorStop(1.0, '#8ad9f5');
+    ctx.fillStyle = body;
+    ctx.strokeStyle = '#1d1438'.toJS;
+    ctx.lineWidth = 3.8;
+
+    // Classic domed ghost body with stubby outstretched arms & wavy tail!
+    ctx.beginPath();
+    ctx.arc(0, -12, 28, pi, 2 * pi);
+    // Right stubby arm.
+    ctx.quadraticCurveTo(42, -8, 40, 2);
+    ctx.quadraticCurveTo(36, 10, 27, 6);
+    ctx.lineTo(28, 28);
+    // Scalloped sheet hem.
+    ctx.quadraticCurveTo(18, 18, 10, 30);
+    ctx.quadraticCurveTo(0, 18, -10, 30);
+    ctx.quadraticCurveTo(-18, 18, -28, 28);
+    ctx.lineTo(-27, 6);
+    // Left stubby arm.
+    ctx.quadraticCurveTo(-38, 10, -40, 0);
+    ctx.quadraticCurveTo(-40, -10, -28, -12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Spooky glowing eyes & wailing mouth!
+    ctx.fillStyle = '#1d1438'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(-8, -14, 5.2, 7.2, -0.1, 0, 2 * pi);
+    ctx.ellipse(9, -14, 5.2, 7.2, 0.1, 0, 2 * pi);
+    ctx.fill();
+    ctx.fillStyle = '#7affd4'.toJS;
+    ctx.beginPath();
+    ctx.arc(-7, -15, 2.0, 0, 2 * pi);
+    ctx.arc(10, -15, 2.0, 0, 2 * pi);
+    ctx.fill();
+
+    ctx.fillStyle = '#1d1438'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(1, 2, 7.0, 9.0, 0, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /// Draws a giant half-buried grinning cartoon bone skull & crossed femurs!
+  static void _drawGiantSpookySkull(
+      CanvasRenderingContext2D ctx, double cx, double baseY, double s) {
+    ctx.save();
+    ctx.translate(cx, baseY);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#1c132b'.toJS;
+    ctx.lineWidth = 4.0;
+
+    // Crossed femur bones jutting out behind the giant cranium!
+    ctx.fillStyle = '#e8dec8'.toJS;
+    for (final double rot in const [-0.46, 0.46]) {
+      ctx.save();
+      ctx.translate(0, -34);
+      ctx.rotate(rot);
+      ctx.fillRect(-68, -7, 136, 14);
+      ctx.strokeRect(-68, -7, 136, 14);
+      for (final double ex in const [-68.0, 68.0]) {
+        for (final double ey in const [-6.0, 6.0]) {
+          ctx.beginPath();
+          ctx.arc(ex, ey, 8.0, 0, 2 * pi);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // Giant ivory cranium + blocky grinning jaw!
+    final CanvasGradient bone = ctx.createLinearGradient(0, -96, 0, 4);
+    bone.addColorStop(0.0, '#fff9eb');
+    bone.addColorStop(1.0, '#cfc2a6');
+    ctx.fillStyle = bone;
+    ctx.beginPath();
+    ctx.arc(0, -50, 46, pi * 0.88, pi * 2.12);
+    ctx.lineTo(32, -4);
+    ctx.lineTo(-32, -4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Dark eye sockets with eerie purple pinpoints + triangular nose!
+    ctx.fillStyle = '#1c132b'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(-16, -48, 11, 13, -0.12, 0, 2 * pi);
+    ctx.ellipse(16, -48, 11, 13, 0.12, 0, 2 * pi);
+    ctx.fill();
+    ctx.fillStyle = '#d47aff'.toJS;
+    ctx.beginPath();
+    ctx.arc(-16, -48, 3.5, 0, 2 * pi);
+    ctx.arc(16, -48, 3.5, 0, 2 * pi);
+    ctx.fill();
+
+    ctx.fillStyle = '#1c132b'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(0, -38);
+    ctx.lineTo(7, -26);
+    ctx.lineTo(-7, -26);
+    ctx.closePath();
+    ctx.fill();
+
+    // Grinning teeth row!
+    ctx.fillStyle = '#fffdf5'.toJS;
+    for (double tx = -22; tx <= 14; tx += 9) {
+      ctx.fillRect(tx, -20, 8, 13);
+      ctx.strokeRect(tx, -20, 8, 13);
+    }
+    ctx.restore();
+  }
+
+  /// Draws a full standing cartoon skeleton (skull, ribcage, pelvis, waving arms)!
+  static void _drawCartoonSkeleton(
+    CanvasRenderingContext2D ctx,
+    double x,
+    double y,
+    double s, {
+    bool facingLeft = false,
+  }) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(facingLeft ? -s : s, s);
+    ctx.strokeStyle = '#1a1129'.toJS;
+    ctx.fillStyle = '#f7f0de'.toJS;
+    ctx.lineWidth = 2.8;
+    ctx.lineCap = 'round';
+
+    // Leg bones.
+    for (final double lx in const [-7.0, 7.0]) {
+      ctx.fillRect(lx - 2.5, -24, 5, 24);
+      ctx.strokeRect(lx - 2.5, -24, 5, 24);
+    }
+    // Pelvis & spine.
+    ctx.beginPath();
+    ctx.roundRect(-11, -30, 22, 8, 4.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-2.5, -58, 5, 28);
+    ctx.strokeRect(-2.5, -58, 5, 28);
+
+    // 3 curved ribs!
+    for (int r = 0; r < 3; r++) {
+      final double ry = -54.0 + r * 7.5;
+      ctx.beginPath();
+      ctx.roundRect(-13, ry, 26, 4.5, 2.2.toJS);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Waving bony arms!
+    ctx.strokeStyle = '#1a1129'.toJS;
+    ctx.lineWidth = 6.5;
+    ctx.beginPath();
+    ctx.moveTo(-12, -53);
+    ctx.lineTo(-23, -40);
+    ctx.moveTo(12, -53);
+    ctx.lineTo(24, -68);
+    ctx.stroke();
+    ctx.strokeStyle = '#f7f0de'.toJS;
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+
+    // Grinning skull head!
+    ctx.strokeStyle = '#1a1129'.toJS;
+    ctx.lineWidth = 2.8;
+    ctx.fillStyle = '#fff9eb'.toJS;
+    ctx.beginPath();
+    ctx.arc(0, -72, 13, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-7, -63, 14, 7);
+    ctx.strokeRect(-7, -63, 14, 7);
+
+    ctx.fillStyle = '#1a1129'.toJS;
+    ctx.beginPath();
+    ctx.arc(-4.5, -73, 3.2, 0, 2 * pi);
+    ctx.arc(4.5, -73, 3.2, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // =========================================================================
   // 3. VOLCANO CRATER (Vulkan & Lavakrater)
   // =========================================================================
@@ -2396,9 +2677,30 @@ class WorldGenerator {
     // GIMMICK 1: Giant Fossil Ribcage Bridge arching over the central lava caldera!
     _drawFossilRibBridge(ctx, w * 0.50, h * 0.57, 250.0);
 
+    // GIMMICK 1B: Giant Dinosaur Skeletons (T-Rex, Triceratops Skull, & Embedded Ammonites/Bones)!
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    for (int f = 0; f < 8; f++) {
+      final double fx = w * (0.10 + f * 0.112);
+      final double fy = _sampleHeight(heights, fx, step) + 64.0 + (f % 3) * 32.0;
+      _drawEmbeddedDinoFossil(ctx, fx, min(h - 48.0, fy), isSpiral: f.isEven);
+    }
+    ctx.restore();
+
+    final double trexX = w * 0.23;
+    _drawTRexSkeleton(
+        ctx, trexX, _sampleHeight(heights, trexX, step) + 8.0, 1.0,
+        facingLeft: false);
+
+    final double trikeX = w * 0.77;
+    _drawTriceratopsSkullFossil(
+        ctx, trikeX, _sampleHeight(heights, trikeX, step) + 10.0, 1.05,
+        facingLeft: true);
+
     // GIMMICK 2: Glowing Magma Crystal Clusters & Steaming Fumarole Chimneys!
     for (int i = 0; i < 6; i++) {
       final double cx = w * (0.11 + i * 0.155);
+      if ((cx - trexX).abs() < 88 || (cx - trikeX).abs() < 82) continue;
       final double cy = _sampleHeight(heights, cx, step) + 4.0;
       if (i == 1 || i == 4) {
         _drawFumaroleChimney(ctx, cx, cy);
@@ -2407,7 +2709,7 @@ class WorldGenerator {
       }
     }
 
-    // 4 Floating obsidian-and-lava sky islets!
+    // 4 Floating obsidian-and-lava sky islets (+ skeletal Pterodactyl roost)!
     for (int i = 0; i < 4; i++) {
       final double ix = w * (0.15 + i * 0.235 + (rng.nextDouble() - 0.5) * 0.03);
       final double iy = h * (0.24 + (i.isOdd ? -0.04 : 0.05));
@@ -2424,7 +2726,9 @@ class WorldGenerator {
         turfBottom: '#c23426',
         turfOutline: '#381010',
       );
-      if (i.isEven) {
+      if (i == 1) {
+        _drawPterodactylSkeleton(ctx, ix, iy - 16, 0.92);
+      } else if (i.isEven) {
         _drawCrystalCluster(ctx, ix + 34, iy - 10, '#ff6a22', '#fff078', '#42100a');
       }
     }
@@ -2500,6 +2804,267 @@ class WorldGenerator {
       ctx.strokeStyle = '#f5eedc'.toJS;
       ctx.lineWidth = 5.5;
       ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a massive towering T-Rex fossil skeleton standing on a volcanic ridge!
+  static void _drawTRexSkeleton(
+    CanvasRenderingContext2D ctx,
+    double x,
+    double groundY,
+    double s, {
+    bool facingLeft = false,
+  }) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.scale(facingLeft ? -s : s, s);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    void boneStroke(void Function() pathFn, double width) {
+      ctx.strokeStyle = '#291a16'.toJS;
+      ctx.lineWidth = width + 5.0;
+      ctx.beginPath();
+      pathFn();
+      ctx.stroke();
+      ctx.strokeStyle = '#f5ebd6'.toJS;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    }
+
+    // 1. Sweeping segmented dinosaur tail ramp (-120..0) + arched spine & neck (0..42)!
+    boneStroke(() {
+      ctx.moveTo(-122, -16);
+      ctx.quadraticCurveTo(-64, -34, -18, -74);
+      ctx.quadraticCurveTo(14, -96, 36, -128);
+    }, 9.0);
+
+    // Vertebrae dorsal spikes along tail & back.
+    for (int v = 0; v < 8; v++) {
+      final double t = v / 7.0;
+      final double vx = -104.0 + t * 130.0;
+      final double vy = -22.0 - t * 88.0;
+      boneStroke(() {
+        ctx.moveTo(vx, vy);
+        ctx.lineTo(vx - 4, vy - 11);
+      }, 4.5);
+    }
+
+    // 2. Powerful hind leg bones & 3-toed talons!
+    for (final double dx in const [-16.0, 6.0]) {
+      boneStroke(() {
+        ctx.moveTo(dx, -72);
+        ctx.lineTo(dx - 12, -38);
+        ctx.lineTo(dx + 6, -8);
+        ctx.lineTo(dx + 20, -2);
+      }, 8.0);
+    }
+
+    // 3. Curved thoracic dinosaur ribs + tiny 2-clawed T-Rex arms!
+    for (int r = 0; r < 5; r++) {
+      final double rx = -10.0 + r * 9.5;
+      final double ry = -78.0 - r * 7.5;
+      boneStroke(() {
+        ctx.moveTo(rx, ry);
+        ctx.quadraticCurveTo(rx + 8, ry + 20, rx - 4, ry + 34);
+      }, 5.0);
+    }
+    boneStroke(() {
+      ctx.moveTo(30, -106);
+      ctx.lineTo(46, -94);
+      ctx.lineTo(52, -98);
+    }, 4.2);
+
+    // 4. Fierce fossilized T-Rex skull with fenestrae & jagged teeth!
+    ctx.fillStyle = '#f7efe0'.toJS;
+    ctx.strokeStyle = '#291a16'.toJS;
+    ctx.lineWidth = 3.8;
+    // Upper cranium & snout.
+    ctx.beginPath();
+    ctx.moveTo(26, -152);
+    ctx.lineTo(86, -146);
+    ctx.lineTo(90, -126);
+    ctx.lineTo(32, -124);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Open lower mandible jaw.
+    ctx.beginPath();
+    ctx.moveTo(30, -122);
+    ctx.lineTo(82, -108);
+    ctx.lineTo(78, -100);
+    ctx.lineTo(26, -112);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Sharp ivory teeth!
+    ctx.fillStyle = '#ffffff'.toJS;
+    for (double tx = 48; tx <= 82; tx += 9) {
+      ctx.beginPath();
+      ctx.moveTo(tx, -125);
+      ctx.lineTo(tx + 3.5, -116);
+      ctx.lineTo(tx + 7, -125);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Dark skull eye & temporal fenestra sockets.
+    ctx.fillStyle = '#291a16'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(46, -138, 7.5, 6.5, -0.15, 0, 2 * pi);
+    ctx.ellipse(68, -136, 6.5, 4.8, 0, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /// Draws a giant half-buried Triceratops horned fossil skull & crest!
+  static void _drawTriceratopsSkullFossil(
+    CanvasRenderingContext2D ctx,
+    double x,
+    double groundY,
+    double s, {
+    bool facingLeft = false,
+  }) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.scale(facingLeft ? -s : s, s);
+    ctx.fillStyle = '#f2e8d0'.toJS;
+    ctx.strokeStyle = '#291a16'.toJS;
+    ctx.lineWidth = 3.8;
+    ctx.lineJoin = 'round';
+
+    // Trailing spine vertebrae emerging behind the frill.
+    for (int i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.roundRect(-92.0 + i * 16.0, -28.0 - i * 4.0, 14, 20, 4.0.toJS);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Broad scalloped Triceratops bony neck frill!
+    ctx.beginPath();
+    ctx.moveTo(-18, -18);
+    ctx.quadraticCurveTo(-56, -68, -22, -96);
+    ctx.quadraticCurveTo(8, -100, 14, -52);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Beaked horned skull!
+    ctx.beginPath();
+    ctx.moveTo(-12, -58);
+    ctx.lineTo(58, -32);
+    ctx.lineTo(66, -12);
+    ctx.lineTo(-8, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Two long sweeping brow horns + nose horn!
+    ctx.fillStyle = '#fff9eb'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(8, -62);
+    ctx.lineTo(68, -96);
+    ctx.lineTo(20, -50);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(42, -38);
+    ctx.lineTo(64, -58);
+    ctx.lineTo(54, -28);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Hollow eye socket.
+    ctx.fillStyle = '#291a16'.toJS;
+    ctx.beginPath();
+    ctx.arc(12, -40, 8.0, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /// Draws a skeletal winged Pterodactyl fossil perched atop an obsidian sky islet!
+  static void _drawPterodactylSkeleton(
+      CanvasRenderingContext2D ctx, double cx, double y, double s) {
+    ctx.save();
+    ctx.translate(cx, y);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#291a16'.toJS;
+    ctx.fillStyle = '#f5ebd6'.toJS;
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = 'round';
+
+    // Outstretched bony wing spars!
+    for (final double side in const [-1.0, 1.0]) {
+      ctx.strokeStyle = '#291a16'.toJS;
+      ctx.lineWidth = 7.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -26);
+      ctx.lineTo(side * 38, -54);
+      ctx.lineTo(side * 76, -28);
+      ctx.stroke();
+      ctx.strokeStyle = '#f5ebd6'.toJS;
+      ctx.lineWidth = 3.8;
+      ctx.stroke();
+    }
+
+    // Ribbed torso & long crested beak skull!
+    ctx.strokeStyle = '#291a16'.toJS;
+    ctx.lineWidth = 3.0;
+    ctx.fillRect(-5, -42, 10, 34);
+    ctx.strokeRect(-5, -42, 10, 34);
+    ctx.beginPath();
+    ctx.moveTo(-18, -62);
+    ctx.lineTo(0, -56);
+    ctx.lineTo(38, -48);
+    ctx.lineTo(0, -42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Draws an embedded ammonite spiral shell or dino femur fossil inside volcanic rock!
+  static void _drawEmbeddedDinoFossil(
+      CanvasRenderingContext2D ctx, double x, double y,
+      {bool isSpiral = true}) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = 'rgba(245, 232, 204, 0.42)'.toJS;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    if (isSpiral) {
+      ctx.beginPath();
+      for (int i = 0; i <= 26; i++) {
+        final double a = i * 0.42;
+        final double r = 2.0 + i * 0.85;
+        if (i == 0) {
+          ctx.moveTo(cos(a) * r, sin(a) * r);
+        } else {
+          ctx.lineTo(cos(a) * r, sin(a) * r);
+        }
+      }
+      ctx.stroke();
+    } else {
+      ctx.rotate(-0.28);
+      ctx.beginPath();
+      ctx.moveTo(-22, 0);
+      ctx.lineTo(22, 0);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(245, 232, 204, 0.42)'.toJS;
+      for (final double ex in const [-24.0, 24.0]) {
+        ctx.beginPath();
+        ctx.arc(ex, -4, 5, 0, 2 * pi);
+        ctx.arc(ex, 4, 5, 0, 2 * pi);
+        ctx.fill();
+      }
     }
     ctx.restore();
   }
@@ -2914,35 +3479,79 @@ class WorldGenerator {
     }
 
     // GIMMICK 1: Gingerbread Cottage with hollow archway + Giant Cupcake Tower!
-    final double gHouseX = w * 0.28;
+    final double gHouseX = w * 0.25;
     _drawGingerbreadHouse(ctx, gHouseX, _sampleHeight(heights, gHouseX, step) + 6);
 
-    final double cupX = w * 0.72;
+    final double cupX = w * 0.74;
     _drawGiantCupcake(ctx, cupX, _sampleHeight(heights, cupX, step) + 8);
+
+    // GIMMICK 1B: Rich Candy Variations — Triple-Scoop Ice Cream Cone, Segmented Chocolate Bar
+    // Ramp, Pastel French Macaron Stack, Giant Gummy Bears, Licorice Allsorts & Wrapped Bonbons!
+    final double coneX = w * 0.11;
+    _drawIceCreamConeTower(
+        ctx, coneX, _sampleHeight(heights, coneX, step) + 10.0);
+
+    final double chocoX = w * 0.40;
+    _drawChocolateBarRamp(
+        ctx, chocoX, _sampleHeight(heights, chocoX, step) + 10.0, -0.26);
+
+    final double macaronX = w * 0.61;
+    _drawMacaronStack(
+        ctx, macaronX, _sampleHeight(heights, macaronX, step) + 8.0);
+
+    final double licoriceX = w * 0.89;
+    _drawLicoriceAllsortsStack(
+        ctx, licoriceX, _sampleHeight(heights, licoriceX, step) + 8.0);
+
+    // Giant glossy Gummy Bears in 4 fruity flavors!
+    _drawGummyBear(ctx, w * 0.18, _sampleHeight(heights, w * 0.18, step) + 4.0,
+        '#ff5277', '#b8143a', 1.05, 0.08);
+    _drawGummyBear(ctx, w * 0.50, _sampleHeight(heights, w * 0.50, step) + 4.0,
+        '#68f27c', '#1c9636', 1.12, -0.06);
+    _drawGummyBear(ctx, w * 0.82, _sampleHeight(heights, w * 0.82, step) + 4.0,
+        '#ffe047', '#cc8800', 1.05, -0.10);
 
     // GIMMICK 2: Arched Red-and-White Candy Cane Bridge spanning the center valley!
     _drawCandyCaneBridge(ctx, w * 0.50, h * 0.56, 260.0);
 
-    // GIMMICK 3: 4 GIANT FLOATING FROSTED DONUTS (with genuine playable holes!)
+    // GIMMICK 3: GIANT FLOATING FROSTED DONUTS + TWISTED-WRAPPER HARD CANDY PLATFORMS!
     final List<List<double>> donuts = [
-      [w * 0.16, h * 0.29, 82.0, 29.0],
-      [w * 0.39, h * 0.22, 92.0, 33.0],
-      [w * 0.62, h * 0.24, 90.0, 32.0],
-      [w * 0.84, h * 0.30, 82.0, 28.0],
+      [w * 0.16, h * 0.29, 80.0, 28.0],
+      [w * 0.39, h * 0.21, 90.0, 32.0],
+      [w * 0.62, h * 0.23, 88.0, 31.0],
+      [w * 0.84, h * 0.29, 80.0, 27.0],
     ];
     const List<String> glazes = ['#ff6eb8', '#66ecff', '#ffe054', '#7dff74'];
     for (int i = 0; i < donuts.length; i++) {
-      final double dx = donuts[i][0] + (rng.nextDouble() - 0.5) * 30;
-      final double dy = donuts[i][1] + (rng.nextDouble() - 0.5) * 24;
+      final double dx = donuts[i][0] + (rng.nextDouble() - 0.5) * 26;
+      final double dy = donuts[i][1] + (rng.nextDouble() - 0.5) * 20;
       _drawFrostedDonut(ctx, dx, dy, donuts[i][2], donuts[i][3], glazes[i]);
     }
 
-    // Giant swirled lollipops & stacked golden waffles along the hills!
+    // Floating twisted-wrapper hard candy bonbons in mid-air!
+    _drawWrappedBonbonCandy(
+        ctx, w * 0.28, h * 0.35, '#ff62b0', '#fff0fa', 1.05, -0.08);
+    _drawWrappedBonbonCandy(
+        ctx, w * 0.50, h * 0.16, '#4be6ff', '#fff9d2', 1.10, 0.0);
+    _drawWrappedBonbonCandy(
+        ctx, w * 0.73, h * 0.35, '#b26bff', '#ffe866', 1.05, 0.08);
+
+    // Giant swirled lollipops & candy corn peaks along the hills!
     for (int i = 0; i < 6; i++) {
-      final double lx = w * (0.09 + i * 0.162 + rng.nextDouble() * 0.02);
-      if ((lx - gHouseX).abs() < 85 || (lx - cupX).abs() < 85) continue;
+      final double lx = w * (0.06 + i * 0.168 + rng.nextDouble() * 0.015);
+      if ((lx - gHouseX).abs() < 80 ||
+          (lx - cupX).abs() < 80 ||
+          (lx - coneX).abs() < 55 ||
+          (lx - chocoX).abs() < 65 ||
+          (lx - macaronX).abs() < 60) {
+        continue;
+      }
       final double ly = _sampleHeight(heights, lx, step);
-      _drawLollipop(ctx, lx, ly, i.isEven ? '#ff5488' : '#4be6ff', 1.05);
+      if (i.isOdd) {
+        _drawCandyCornCluster(ctx, lx, ly + 4.0);
+      } else {
+        _drawLollipop(ctx, lx, ly, i % 4 == 0 ? '#ff5488' : '#4be6ff', 1.05);
+      }
     }
 
     // THEMATIC INDESTRUCTIBLE BEDROCK (7 CLEAR SECTIONS):
@@ -3160,6 +3769,360 @@ class WorldGenerator {
     ctx.beginPath();
     ctx.arc(0, -68 * s, 12 * s, 0, 1.5 * pi);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Draws a glossy translucent-style giant cartoon Gummy Bear!
+  static void _drawGummyBear(
+    CanvasRenderingContext2D ctx,
+    double x,
+    double groundY,
+    String lightColor,
+    String darkColor,
+    double s,
+    double tilt,
+  ) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.rotate(tilt);
+    ctx.scale(s, s);
+
+    final CanvasGradient g = ctx.createLinearGradient(-22, -78, 22, 0);
+    g.addColorStop(0.0, lightColor);
+    g.addColorStop(1.0, darkColor);
+    ctx.fillStyle = g;
+    ctx.strokeStyle = '#380e24'.toJS;
+    ctx.lineWidth = 3.4;
+
+    // Chubby ears.
+    for (final double ex in const [-15.0, 15.0]) {
+      ctx.beginPath();
+      ctx.arc(ex, -72, 9.0, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Plump gummy torso & feet.
+    ctx.beginPath();
+    ctx.roundRect(-24, -48, 48, 46, 18.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    for (final double fx in const [-16.0, 16.0]) {
+      ctx.beginPath();
+      ctx.arc(fx, -8, 10.5, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(fx * 1.25, -34, 8.5, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Round gummy head!
+    ctx.beginPath();
+    ctx.arc(0, -58, 20.0, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+
+    // Jelly gloss highlights & cute face!
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(-7, -65, 5.5, 3.5, -0.4, 0, 2 * pi);
+    ctx.ellipse(-8, -28, 5.0, 10.0, -0.15, 0, 2 * pi);
+    ctx.fill();
+
+    ctx.fillStyle = '#380e24'.toJS;
+    ctx.beginPath();
+    ctx.arc(-7, -58, 2.5, 0, 2 * pi);
+    ctx.arc(7, -58, 2.5, 0, 2 * pi);
+    ctx.arc(0, -52, 3.2, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /// Draws a giant twisted-wrapper hard candy bonbon platform!
+  static void _drawWrappedBonbonCandy(
+    CanvasRenderingContext2D ctx,
+    double cx,
+    double cy,
+    String mainColor,
+    String stripeColor,
+    double s,
+    double angle,
+  ) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#47152e'.toJS;
+    ctx.lineWidth = 3.4;
+
+    // Left & right crinkled fan wrapper tails!
+    ctx.fillStyle = mainColor.toJS;
+    for (final double side in const [-1.0, 1.0]) {
+      ctx.beginPath();
+      ctx.moveTo(side * 34, 0);
+      ctx.lineTo(side * 66, -20);
+      ctx.lineTo(side * 60, -6);
+      ctx.lineTo(side * 68, 0);
+      ctx.lineTo(side * 60, 6);
+      ctx.lineTo(side * 66, 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Plump oval hard-candy body with diagonal sugar stripes!
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 38, 24, 0, 0, 2 * pi);
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = stripeColor.toJS;
+    for (double sx = -42; sx <= 36; sx += 18) {
+      ctx.beginPath();
+      ctx.moveTo(sx, -28);
+      ctx.lineTo(sx + 9, -28);
+      ctx.lineTo(sx - 5, 28);
+      ctx.lineTo(sx - 14, 28);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.42)'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(-8, -10, 18, 5, -0.15, 0, 2 * pi);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 38, 24, 0, 0, 2 * pi);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Draws a tall crispy waffle-cone triple-scoop ice cream tower!
+  static void _drawIceCreamConeTower(
+      CanvasRenderingContext2D ctx, double x, double groundY) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.strokeStyle = '#4a230b'.toJS;
+    ctx.lineWidth = 3.6;
+
+    // Golden waffle cone base!
+    ctx.fillStyle = '#e09b48'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(-36, -86);
+    ctx.lineTo(36, -86);
+    ctx.lineTo(14, 6);
+    ctx.lineTo(-14, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(110, 52, 14, 0.45)'.toJS;
+    ctx.lineWidth = 2.0;
+    for (double d = -90; d <= 50; d += 16) {
+      ctx.beginPath();
+      ctx.moveTo(-40, d);
+      ctx.lineTo(40, d + 48);
+      ctx.moveTo(40, d);
+      ctx.lineTo(-40, d + 48);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = '#4a230b'.toJS;
+    ctx.lineWidth = 3.6;
+    ctx.stroke();
+
+    // Rolled wafer stick jutting out the top!
+    ctx.save();
+    ctx.translate(18, -168);
+    ctx.rotate(0.35);
+    ctx.fillStyle = '#f2be72'.toJS;
+    ctx.fillRect(-6, -34, 12, 44);
+    ctx.strokeRect(-6, -34, 12, 44);
+    ctx.restore();
+
+    // 3 stacked scoops: Mint-chip, Mango-gold, Strawberry!
+    const List<List<dynamic>> scoops = [
+      [0.0, -98.0, 36.0, '#72f2b8'],
+      [-6.0, -134.0, 31.0, '#ffd84d'],
+      [4.0, -166.0, 26.0, '#ff78b4'],
+    ];
+    for (final List<dynamic> sc in scoops) {
+      ctx.fillStyle = (sc[3] as String).toJS;
+      ctx.beginPath();
+      ctx.arc(sc[0] as double, sc[1] as double, sc[2] as double, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Chocolate chips on mint scoop!
+    ctx.fillStyle = '#4a230b'.toJS;
+    for (final List<double> ch in const [
+      [-14.0, -100.0],
+      [8.0, -94.0],
+      [16.0, -106.0],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(ch[0], ch[1], 3.2, 0, 2 * pi);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a giant segmented milk-chocolate bar angled as a climbable ramp!
+  static void _drawChocolateBarRamp(
+      CanvasRenderingContext2D ctx, double x, double groundY, double tilt) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.rotate(tilt);
+
+    // Molded cocoa slab.
+    ctx.fillStyle = '#6e3619'.toJS;
+    ctx.strokeStyle = '#2b1105'.toJS;
+    ctx.lineWidth = 3.8;
+    ctx.beginPath();
+    ctx.roundRect(-64, -92, 128, 86, 6.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // 2x4 beveled chocolate pips!
+    for (int r = 0; r < 2; r++) {
+      for (int c = 0; c < 4; c++) {
+        final double px = -56.0 + c * 28.5;
+        final double py = -84.0 + r * 36.0;
+        ctx.fillStyle = '#874522'.toJS;
+        ctx.fillRect(px, py, 24, 30);
+        ctx.strokeRect(px, py, 24, 30);
+        ctx.fillStyle = 'rgba(255, 210, 175, 0.25)'.toJS;
+        ctx.fillRect(px + 3, py + 3, 18, 5);
+      }
+    }
+
+    // Torn golden foil & pink paper wrapper around the lower half!
+    ctx.fillStyle = '#ffd845'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(-68, -36);
+    ctx.lineTo(-32, -48);
+    ctx.lineTo(4, -34);
+    ctx.lineTo(38, -46);
+    ctx.lineTo(68, -32);
+    ctx.lineTo(68, 4);
+    ctx.lineTo(-68, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff5c9e'.toJS;
+    ctx.fillRect(-68, -20, 136, 24);
+    ctx.strokeRect(-68, -20, 136, 24);
+    ctx.restore();
+  }
+
+  /// Draws a stack of 3 pastel French Macaron cookies!
+  static void _drawMacaronStack(
+      CanvasRenderingContext2D ctx, double x, double groundY) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    const List<List<dynamic>> macs = [
+      [0.0, -18.0, 50.0, '#b98aff', '#fff5fa'],
+      [6.0, -54.0, 44.0, '#6ef2b8', '#fff8cc'],
+      [-4.0, -86.0, 38.0, '#ff9c6e', '#ffffff'],
+    ];
+    ctx.strokeStyle = '#471b33'.toJS;
+    ctx.lineWidth = 3.2;
+    for (final List<dynamic> m in macs) {
+      final double mx = m[0] as double;
+      final double my = m[1] as double;
+      final double hw = m[2] as double;
+      final String shell = m[3] as String;
+      final String cream = m[4] as String;
+
+      // Bottom shell.
+      ctx.fillStyle = shell.toJS;
+      ctx.beginPath();
+      ctx.roundRect(mx - hw, my + 4, hw * 2, 13, 6.5.toJS);
+      ctx.fill();
+      ctx.stroke();
+      // Cream filling.
+      ctx.fillStyle = cream.toJS;
+      ctx.beginPath();
+      ctx.roundRect(mx - hw * 0.94, my - 3, hw * 1.88, 9, 4.5.toJS);
+      ctx.fill();
+      ctx.stroke();
+      // Domed top shell.
+      ctx.fillStyle = shell.toJS;
+      ctx.beginPath();
+      ctx.roundRect(mx - hw, my - 16, hw * 2, 15, 7.5.toJS);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a colorful stack of classic layered Licorice Allsorts cubes!
+  static void _drawLicoriceAllsortsStack(
+      CanvasRenderingContext2D ctx, double x, double groundY) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.strokeStyle = '#1c1218'.toJS;
+    ctx.lineWidth = 3.2;
+    const List<List<dynamic>> blocks = [
+      [-4.0, -44.0, 68.0, 46.0, '#ff74b8', '#262026', '#ffe44d'],
+      [6.0, -84.0, 54.0, 40.0, '#5ce6ff', '#262026', '#ffffff'],
+    ];
+    for (final List<dynamic> b in blocks) {
+      final double bx = (b[0] as double) - (b[2] as double) * 0.5;
+      final double by = b[1] as double;
+      final double bw = b[2] as double;
+      final double bh = b[3] as double;
+      final double lh = bh / 3.0;
+      final List<String> layers = [
+        b[4] as String,
+        b[5] as String,
+        b[6] as String,
+      ];
+      for (int l = 0; l < 3; l++) {
+        ctx.fillStyle = layers[l].toJS;
+        ctx.fillRect(bx, by + l * lh, bw, lh + 1);
+      }
+      ctx.strokeRect(bx, by, bw, bh);
+    }
+    ctx.restore();
+  }
+
+  /// Draws a trio of tri-color Candy Corn wedges!
+  static void _drawCandyCornCluster(
+      CanvasRenderingContext2D ctx, double x, double groundY) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    for (final List<double> c in const [
+      [-18.0, 0.78, -0.18],
+      [18.0, 0.82, 0.18],
+      [0.0, 1.05, 0.0],
+    ]) {
+      ctx.save();
+      ctx.translate(c[0], 0);
+      ctx.rotate(c[2]);
+      ctx.scale(c[1], c[1]);
+      ctx.beginPath();
+      ctx.moveTo(-18, 2);
+      ctx.lineTo(-4, -46);
+      ctx.quadraticCurveTo(0, -54, 4, -46);
+      ctx.lineTo(18, 2);
+      ctx.closePath();
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = '#ffe038'.toJS;
+      ctx.fillRect(-22, -14, 44, 18);
+      ctx.fillStyle = '#ff841f'.toJS;
+      ctx.fillRect(-22, -34, 44, 20);
+      ctx.fillStyle = '#ffffff'.toJS;
+      ctx.fillRect(-22, -56, 44, 22);
+      ctx.restore();
+      ctx.strokeStyle = '#4a1f08'.toJS;
+      ctx.lineWidth = 3.0;
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -3502,227 +4465,810 @@ class WorldGenerator {
   }
 
   // =========================================================================
-  // 7. CARTOON CITY (Storstads-Takåsar)
+  // 7. TOY LAND (Playroom Blocks & Giant Toys)
   // =========================================================================
-  static void _generateCity(
+  static void _drawToySkyBunting(
+    CanvasRenderingContext2D ctx,
+    double w,
+    double h,
+    bool compact,
+    Random rng,
+  ) {
+    const List<String> flagColors = [
+      'rgba(255, 82, 82, 0.72)',
+      'rgba(255, 212, 59, 0.75)',
+      'rgba(56, 178, 255, 0.72)',
+      'rgba(76, 217, 100, 0.72)',
+      'rgba(185, 108, 255, 0.72)',
+    ];
+    final int spans = compact ? 2 : 3;
+    final double spanW = w / spans;
+    final double sag = compact ? 12.0 : 34.0;
+    final double flagW = compact ? 9.0 : 22.0;
+    final double flagH = compact ? 11.0 : 26.0;
+    final int colorOffset = rng.nextInt(flagColors.length);
+
+    ctx.save();
+    for (int s = 0; s < spans; s++) {
+      final double x0 = s * spanW;
+      final double x1 = (s + 1) * spanW;
+      final double y0 = h * (0.04 + (s.isEven ? 0.0 : 0.03));
+      final double y1 = h * (0.04 + (s.isOdd ? 0.0 : 0.03));
+
+      ctx.strokeStyle = 'rgba(82, 56, 36, 0.45)'.toJS;
+      ctx.lineWidth = compact ? 1.4 : 2.6;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo((x0 + x1) * 0.5, (y0 + y1) * 0.5 + sag, x1, y1);
+      ctx.stroke();
+
+      final int count = max(4, (spanW ~/ (flagW * 1.35)));
+      for (int i = 0; i < count; i++) {
+        final double t = (i + 0.5) / count;
+        final double px = x0 + (x1 - x0) * t;
+        final double py = (1 - t) * (1 - t) * y0 +
+            2 * (1 - t) * t * ((y0 + y1) * 0.5 + sag) +
+            t * t * y1;
+        ctx.fillStyle =
+            flagColors[(i + s + colorOffset) % flagColors.length].toJS;
+        ctx.beginPath();
+        ctx.moveTo(px - flagW * 0.48, py);
+        ctx.lineTo(px + flagW * 0.48, py);
+        ctx.lineTo(px, py + flagH);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  static void _drawToyHorizonCastle(
+    CanvasRenderingContext2D ctx,
+    double w,
+    double h,
+    bool compact,
+    Random rng,
+  ) {
+    ctx.save();
+    // Soft rolling pastel playroom hills in the background.
+    _drawHorizonRidge(
+        ctx, w, h, h * 0.78, compact ? 10 : 28, 'rgba(120, 214, 152, 0.30)', rng);
+
+    // Distant pastel toy-block towers & conical roofs!
+    const List<String> pastelTowers = [
+      'rgba(255, 118, 118, 0.28)',
+      'rgba(98, 182, 255, 0.28)',
+      'rgba(255, 208, 86, 0.30)',
+      'rgba(168, 128, 255, 0.26)',
+    ];
+    final int towerCount = compact ? 5 : 9;
+    final double slotW = w / towerCount;
+    for (int i = 0; i < towerCount; i++) {
+      final double tw = slotW * (0.36 + rng.nextDouble() * 0.18);
+      final double tx = i * slotW + (slotW - tw) * 0.5;
+      final double th = h * (0.16 + rng.nextDouble() * 0.18);
+      final double ty = h - th;
+      ctx.fillStyle = pastelTowers[i % pastelTowers.length].toJS;
+      ctx.fillRect(tx, ty, tw, th);
+      // Conical toy castle turret cap!
+      ctx.beginPath();
+      ctx.moveTo(tx - tw * 0.12, ty);
+      ctx.lineTo(tx + tw * 0.5, ty - tw * 0.65);
+      ctx.lineTo(tx + tw * 1.12, ty);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Distant pastel Ferris wheel silhouette on one side!
+    if (!compact) {
+      final double wx = w * (0.74 + rng.nextDouble() * 0.12);
+      final double wy = h * 0.64;
+      final double wr = h * 0.16;
+      ctx.strokeStyle = 'rgba(255, 126, 168, 0.32)'.toJS;
+      ctx.lineWidth = 4.0;
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr, 0, 2 * pi);
+      ctx.stroke();
+      for (int s = 0; s < 8; s++) {
+        final double a = (s / 8.0) * 2 * pi;
+        ctx.beginPath();
+        ctx.moveTo(wx, wy);
+        ctx.lineTo(wx + cos(a) * wr, wy + sin(a) * wr);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(wx - wr * 0.55, h);
+      ctx.lineTo(wx, wy);
+      ctx.lineTo(wx + wr * 0.55, h);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  static void _drawFloatingToyBalloons(
+    CanvasRenderingContext2D ctx,
+    double w,
+    double h,
+    double time,
+    int seed,
+  ) {
+    const List<String> colors = [
+      'rgba(255, 86, 94, 0.78)',
+      'rgba(255, 208, 56, 0.80)',
+      'rgba(66, 184, 255, 0.78)',
+      'rgba(92, 224, 118, 0.78)',
+      'rgba(196, 116, 255, 0.78)',
+    ];
+    final int s = seed.abs() % 500;
+    ctx.save();
+    for (int i = 0; i < 6; i++) {
+      final double baseU = ((i * 173 + s * 11 + 40) % 920 + 40) / 1000.0;
+      final double bob = sin(time * 1.3 + i * 1.9) * 14.0;
+      final double sway = cos(time * 0.9 + i * 1.4) * 10.0;
+      final double bx = baseU * w + sway;
+      final double by = h * (0.20 + (i % 3) * 0.10) + bob;
+      // Wavy string.
+      ctx.strokeStyle = 'rgba(90, 72, 60, 0.42)'.toJS;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(bx, by + 16);
+      ctx.quadraticCurveTo(bx + 5, by + 28, bx - 2, by + 40);
+      ctx.stroke();
+      // Balloon oval.
+      ctx.fillStyle = colors[(i + s) % colors.length].toJS;
+      ctx.beginPath();
+      ctx.ellipse(bx, by, 13.0, 16.5, 0, 0, 2 * pi);
+      ctx.fill();
+      // Gloss highlight.
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.48)'.toJS;
+      ctx.beginPath();
+      ctx.ellipse(bx - 4.5, by - 5.5, 3.2, 5.2, -0.3, 0, 2 * pi);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  static void _generateToyland(
     CanvasRenderingContext2D ctx,
     CanvasRenderingContext2D bCtx,
     int w,
     int h,
     Random rng,
   ) {
-    // Solid urban street & foundation extending flush to the bottom edge!
-    final double streetY = h - 122.0;
-    ctx.fillStyle = '#586275'.toJS;
-    ctx.strokeStyle = '#1b202e'.toJS;
-    ctx.lineWidth = 4.2;
-    ctx.fillRect(-4.0, streetY, w.toDouble() + 8.0, (h - streetY) + 8.0);
-    ctx.strokeRect(-4.0, streetY, w.toDouble() + 8.0, (h - streetY) + 8.0);
+    const int step = 20;
+    // Rolling playroom hills keeping deep ground 100% solid down to bottom edge!
+    final List<double> heights = _buildHeightfield(
+      w,
+      h * 0.69,
+      86.0,
+      rng,
+      step: step,
+      edgeDrop: 68.0,
+      minY: 500.0,
+      maxY: 752.0,
+    );
 
-    // Yellow dashed road lane markings along top of street!
-    ctx.fillStyle = '#ffe047'.toJS;
-    for (double rx = 26; rx < w - 26; rx += 64) {
-      ctx.fillRect(rx, streetY + 10, 32, 6);
+    // Warm honey-maple wooden toybox floor with colorful rainbow playmat strata
+    // and bright stitched green felt playmat turf on top!
+    _drawCartoonGround(
+      ctx,
+      w,
+      h,
+      heights,
+      step,
+      rng,
+      fillTop: '#e8b068',
+      fillMid: '#c98842',
+      fillBottom: '#965d24',
+      outlineColor: '#361d0a',
+      turfTop: '#56e36f',
+      turfBottom: '#22a648',
+      turfOutline: '#104a22',
+      pebbleColor: 'rgba(130, 74, 24, 0.28)',
+      turfThickness: 28.0,
+      layerBands: const [
+        'rgba(255, 92, 92, 0.24)',
+        'rgba(56, 174, 255, 0.24)',
+        'rgba(255, 214, 56, 0.24)',
+      ],
+    );
+
+    // 1. Stacked Wooden ABC / 1-2-3 Alphabet Block Forts on left, center-left, and right!
+    final List<String> blockLetters = ['A', 'B', 'C', '1', '2', '3'];
+    final List<String> blockTrimColors = [
+      '#ff4d4d',
+      '#2e8cff',
+      '#30c95b',
+      '#ff9924',
+      '#a864ff',
+      '#ff5ca8',
+    ];
+    final double leftFortX = w * (0.14 + rng.nextDouble() * 0.03);
+    final double leftBaseY = _sampleHeight(heights, leftFortX, step) + 10.0;
+    _drawAlphabetBlock(ctx, leftFortX - 46, leftBaseY - 86, 88,
+        blockLetters[0], blockTrimColors[0]);
+    _drawAlphabetBlock(ctx, leftFortX + 46, leftBaseY - 86, 88,
+        blockLetters[1], blockTrimColors[1]);
+    _drawAlphabetBlock(ctx, leftFortX, leftBaseY - 174, 88,
+        blockLetters[2], blockTrimColors[2]);
+
+    final double rightFortX = w * (0.84 + rng.nextDouble() * 0.03);
+    final double rightBaseY = _sampleHeight(heights, rightFortX, step) + 10.0;
+    _drawAlphabetBlock(ctx, rightFortX - 46, rightBaseY - 86, 88,
+        blockLetters[3], blockTrimColors[3]);
+    _drawAlphabetBlock(ctx, rightFortX + 46, rightBaseY - 86, 88,
+        blockLetters[4], blockTrimColors[4]);
+    _drawAlphabetBlock(ctx, rightFortX, rightBaseY - 174, 88,
+        blockLetters[5], blockTrimColors[5]);
+
+    // 2. Interlocking Studded Plastic LEGO-style Brick Towers & Battlements!
+    final List<double> towerXs = [
+      w * (0.31 + rng.nextDouble() * 0.03),
+      w * (0.67 + rng.nextDouble() * 0.03),
+    ];
+    for (int t = 0; t < towerXs.length; t++) {
+      final double tx = towerXs[t];
+      final double baseY = _sampleHeight(heights, tx, step) + 14.0;
+      _drawPlasticBrickTower(ctx, tx, baseY, rows: 5 + (rng.nextInt(2)), seedOffset: t * 3);
     }
 
-    // 8 colorful detailed cartoon skyscrapers spanning the 2080px skyline!
-    const List<List<String>> palettes = [
-      ['#f26a5a', '#c4453a'],
-      ['#5ab2f2', '#347ec2'],
-      ['#f5c542', '#cc9620'],
-      ['#6ad482', '#3aa354'],
-      ['#a67ef2', '#6f4bc4'],
-      ['#ff9848', '#cf6a22'],
-      ['#f274b0', '#ba417b'],
-      ['#52d4cc', '#289994'],
+    // 3. Giant Bright Cartoon Wooden Toy Steam Train in the central playroom valley!
+    final double trainX = w * (0.48 + rng.nextDouble() * 0.04);
+    final double trainY = _sampleHeight(heights, trainX, step) + 6.0;
+    _drawWoodenToyTrain(ctx, trainX, trainY);
+
+    // 4. Giant Retro Tin Wind-Up Robot & Rainbow Ring-Stacker Props!
+    final double robotX = w * 0.23;
+    _drawTinWindUpRobot(ctx, robotX, _sampleHeight(heights, robotX, step) + 8.0);
+
+    final double stackerX = w * 0.76;
+    _drawRingStackerToy(
+        ctx, stackerX, _sampleHeight(heights, stackerX, step) + 8.0);
+
+    // 5. Floating Domino & Studded Plastic Brick Aerial Platforms linked by Xylophone Bridges!
+    final List<List<dynamic>> skyPlatforms = [
+      [w * 0.20, h * 0.27, 236.0, '#ff4d4d', '#c41e28'],
+      [w * 0.50, h * 0.22, 260.0, '#2e8cff', '#1859b8'],
+      [w * 0.80, h * 0.27, 236.0, '#ffd426', '#c99708'],
     ];
-    const int buildingCount = 8;
-    final double slotW = (w - 110.0) / buildingCount;
-    final List<double> roofYs = [];
-    final List<double> bXs = [];
-    final List<double> bWs = [];
-
-    for (int i = 0; i < buildingCount; i++) {
-      final double bw = slotW * (0.68 + rng.nextDouble() * 0.14);
-      final double bx = 55.0 + i * slotW + (slotW - bw) * 0.5;
-      final double bh = 250.0 + rng.nextDouble() * 305.0;
-      final double by = streetY - bh;
-      roofYs.add(by);
-      bXs.add(bx);
-      bWs.add(bw);
-
-      final List<String> pal = palettes[(i + rng.nextInt(3)) % palettes.length];
-      final CanvasGradient bGrad =
-          ctx.createLinearGradient(bx, by, bx + bw, by);
-      bGrad.addColorStop(0.0, pal[0]);
-      bGrad.addColorStop(1.0, pal[1]);
-      ctx.fillStyle = bGrad;
-      ctx.strokeStyle = '#1b202e'.toJS;
-      ctx.lineWidth = 4.2;
-      ctx.fillRect(bx, by, bw, bh);
-      ctx.strokeRect(bx, by, bw, bh);
-
-      // Rooftop ledge cap.
-      ctx.fillStyle = '#d6deeb'.toJS;
-      ctx.fillRect(bx - 6, by - 10, bw + 12, 14);
-      ctx.strokeRect(bx - 6, by - 10, bw + 12, 14);
-
-      // Striped storefront awning at street level!
-      ctx.fillStyle = (i.isEven ? '#ff4d5e' : '#38b5ff').toJS;
-      ctx.fillRect(bx + 10, streetY - 28, bw - 20, 14);
-      ctx.strokeRect(bx + 10, streetY - 28, bw - 20, 14);
-
-      // Grid of glowing & sky-reflected windows.
-      final int cols = max(2, (bw ~/ 42));
-      final int rows = max(3, ((bh - 42) ~/ 52));
-      for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {
-          final double wx = bx + 14 + c * ((bw - 28) / cols);
-          final double wy = by + 18 + r * ((bh - 58) / rows);
-          final bool lit = rng.nextDouble() > 0.36;
-          ctx.fillStyle = (lit ? '#fff29c' : '#2d466b').toJS;
-          ctx.strokeStyle = '#1b202e'.toJS;
-          ctx.lineWidth = 2.0;
-          ctx.fillRect(wx, wy, 22, 26);
-          ctx.strokeRect(wx, wy, 22, 26);
-        }
-      }
-
-      // GIMMICK 2: Rooftop Water Towers, Neon Billboards & Antennas!
-      if (i == 1 || i == 6) {
-        _drawWaterTower(ctx, bx + bw * 0.5, by - 10);
-      } else if (i == 3 || i == 5) {
-        _drawRooftopBillboard(
-            ctx, bx + bw * 0.5, by - 10, i == 3 ? 'ZOO!' : 'BLAST!');
-      }
-
-      // THEMATIC BEDROCK: Riveted yellow construction I-beam inside each skyscraper!
-      _drawBedrockBlock(
-        bCtx,
-        x: bx + 10,
-        y: by + bh * 0.48,
-        w: bw - 20,
-        h: 28,
-        style: _BedrockStyle.cityGirder,
-        diagonalStripes: true,
+    for (int i = 0; i < skyPlatforms.length; i++) {
+      final List<dynamic> p = skyPlatforms[i];
+      _drawFloatingToyBrickPlatform(
+        ctx,
+        cx: p[0] as double,
+        cy: p[1] as double,
+        width: p[2] as double,
+        height: 44.0,
+        topColor: p[3] as String,
+        bottomColor: p[4] as String,
       );
     }
+    // Rainbow xylophone bridges connecting the upper floating brick platforms!
+    _drawXylophoneBridge(ctx, w * 0.20 + 110, h * 0.27 + 8, w * 0.50 - 122,
+        h * 0.22 + 8);
+    _drawXylophoneBridge(ctx, w * 0.50 + 122, h * 0.22 + 8, w * 0.80 - 110,
+        h * 0.27 + 8);
 
-    // GIMMICK 3: Giant Yellow Construction Crane arching over the skyline!
-    final double craneX = bXs[2] + bWs[2] * 0.5;
-    final double craneTopY = min(roofYs[2], roofYs[3]) - 95.0;
-    _drawBedrockPillar(
+    // 6. THEMATIC INDESTRUCTIBLE BEDROCK: Heavy Studded Toy Baseplates & Bolted Beams
+    // distributed cleanly across left, center, and right zones!
+    _drawToyStuddedBedrockPlate(
       bCtx,
-      cx: craneX,
-      topY: max(85.0, craneTopY),
-      height: max(80.0, roofYs[2] - max(85.0, craneTopY)),
-      width: 30,
-      style: _BedrockStyle.cityGirder,
+      x: leftFortX - 96,
+      y: leftBaseY - 4,
+      w: 192,
+      h: 28,
+      topColor: '#ff4d4d',
+      bottomColor: '#b81822',
     );
-    _drawBedrockGirder(
+    _drawToyStuddedBedrockPlate(
       bCtx,
-      x: craneX - 60,
-      y: max(85.0, craneTopY),
-      w: 310,
+      x: towerXs[0] - 88,
+      y: _sampleHeight(heights, towerXs[0], step) - 96,
+      w: 176,
       h: 26,
-      style: _BedrockStyle.cityGirder,
+      topColor: '#2e8cff',
+      bottomColor: '#1656b0',
     );
-
-    // Armored steel sky-bridge truss girders connecting skyscrapers across the alleys!
-    for (int i = 0; i < buildingCount - 1; i += 2) {
-      final double bridgeY = min(roofYs[i], roofYs[i + 1]) + 72.0;
-      final double startX = bXs[i] + bWs[i] - 8.0;
-      final double spanW = (bXs[i + 1] + 8.0) - startX;
-      if (spanW > 24.0) {
-        _drawBedrockGirder(
-          bCtx,
-          x: startX,
-          y: bridgeY,
-          w: spanW,
-          h: 28,
-          style: _BedrockStyle.cityGirder,
-        );
-      }
-    }
-
-    // Armored steel subway roof girders protecting the underground tunnel!
-    _drawBedrockGirder(
+    _drawToyStuddedBedrockPlate(
       bCtx,
-      x: w * 0.30,
-      y: streetY + 18,
-      w: 220,
-      h: 24,
-      style: _BedrockStyle.cityGirder,
+      x: trainX - 118,
+      y: trainY + 12,
+      w: 236,
+      h: 28,
+      topColor: '#ffd426',
+      bottomColor: '#c7920a',
     );
-    _drawBedrockGirder(
+    _drawToyStuddedBedrockPlate(
       bCtx,
-      x: w * 0.62,
-      y: streetY + 18,
-      w: 220,
-      h: 24,
-      style: _BedrockStyle.cityGirder,
+      x: towerXs[1] - 88,
+      y: _sampleHeight(heights, towerXs[1], step) - 96,
+      w: 176,
+      h: 26,
+      topColor: '#30c95b',
+      bottomColor: '#178737',
+    );
+    _drawToyStuddedBedrockPlate(
+      bCtx,
+      x: rightFortX - 96,
+      y: rightBaseY - 4,
+      w: 192,
+      h: 28,
+      topColor: '#ff4d4d',
+      bottomColor: '#b81822',
     );
   }
 
-  static void _drawWaterTower(CanvasRenderingContext2D ctx, double x, double y) {
+  /// Draws an indestructible LEGO-style studded armored baseplate onto [bCtx].
+  static void _drawToyStuddedBedrockPlate(
+    CanvasRenderingContext2D bCtx, {
+    required double x,
+    required double y,
+    required double w,
+    required double h,
+    required String topColor,
+    required String bottomColor,
+  }) {
+    bCtx.save();
+    // Raised plastic studs along the top edge!
+    const double studW = 18.0;
+    const double studH = 8.0;
+    for (double sx = x + 10; sx <= x + w - studW - 8; sx += 28.0) {
+      bCtx.fillStyle = topColor.toJS;
+      bCtx.strokeStyle = '#12151f'.toJS;
+      bCtx.lineWidth = 3.0;
+      bCtx.beginPath();
+      bCtx.roundRect(sx, y - studH + 2, studW, studH, 3.0.toJS);
+      bCtx.fill();
+      bCtx.stroke();
+      bCtx.fillStyle = 'rgba(255, 255, 255, 0.40)'.toJS;
+      bCtx.fillRect(sx + 3, y - studH + 4, studW - 6, 2.5);
+    }
+
+    // Main armored baseplate body with bold comic outline and rivets.
+    _drawBedrockBlock(
+      bCtx,
+      x: x,
+      y: y,
+      w: w,
+      h: h,
+      style: _BedrockStyle.toyBrick,
+    );
+
+    // Tinted plastic overlay band so left/center/right baseplates showcase primary toy colors.
+    bCtx.save();
+    bCtx.beginPath();
+    bCtx.roundRect(x + 5, y + 5, w - 10, h - 10, 4.0.toJS);
+    bCtx.clip();
+    final CanvasGradient g = bCtx.createLinearGradient(x, y, x, y + h);
+    g.addColorStop(0.0, topColor);
+    g.addColorStop(1.0, bottomColor);
+    bCtx.fillStyle = g;
+    bCtx.fillRect(x + 5, y + 5, w - 10, h - 10);
+    bCtx.fillStyle = 'rgba(255, 255, 255, 0.30)'.toJS;
+    bCtx.fillRect(x + 6, y + 6, w - 12, 5.0);
+    // Silver Meccano bolts across the baseplate!
+    bCtx.fillStyle = '#fff5bd'.toJS;
+    bCtx.strokeStyle = '#12151f'.toJS;
+    bCtx.lineWidth = 1.8;
+    for (double bx = x + 22; bx < x + w - 16; bx += 36.0) {
+      bCtx.beginPath();
+      bCtx.arc(bx, y + h * 0.5, 4.0, 0, 2 * pi);
+      bCtx.fill();
+      bCtx.stroke();
+    }
+    bCtx.restore();
+    bCtx.restore();
+  }
+
+  /// Draws a classic beveled wooden ABC / 123 toy block centered horizontally at [cx]
+  /// with top edge at [topY].
+  static void _drawAlphabetBlock(
+    CanvasRenderingContext2D ctx,
+    double cx,
+    double topY,
+    double size,
+    String letter,
+    String accentColor,
+  ) {
+    final double x = cx - size * 0.5;
+    final double y = topY;
     ctx.save();
-    ctx.translate(x, y);
-    // Steel stilts.
-    ctx.strokeStyle = '#242938'.toJS;
-    ctx.lineWidth = 4.2;
+    // Colored painted outer frame.
+    ctx.fillStyle = accentColor.toJS;
+    ctx.strokeStyle = '#291507'.toJS;
+    ctx.lineWidth = 4.0;
     ctx.beginPath();
-    ctx.moveTo(-22, 0);
-    ctx.lineTo(-14, -30);
-    ctx.moveTo(22, 0);
-    ctx.lineTo(14, -30);
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, -30);
+    ctx.roundRect(x, y, size, size, 8.0.toJS);
+    ctx.fill();
     ctx.stroke();
 
-    // Wooden barrel tank.
-    ctx.fillStyle = '#b8763e'.toJS;
-    ctx.strokeStyle = '#361e0d'.toJS;
-    ctx.lineWidth = 3.2;
-    ctx.fillRect(-24, -72, 48, 42);
-    ctx.strokeRect(-24, -72, 48, 42);
-    // Cone roof.
-    ctx.fillStyle = '#6e7b91'.toJS;
+    // Recessed warm cream maple wood face.
+    final double inset = size * 0.14;
+    final CanvasGradient wood =
+        ctx.createLinearGradient(x, y + inset, x, y + size - inset);
+    wood.addColorStop(0.0, '#fff3cf');
+    wood.addColorStop(1.0, '#edd08a');
+    ctx.fillStyle = wood;
+    ctx.strokeStyle = '#6e3f19'.toJS;
+    ctx.lineWidth = 2.6;
     ctx.beginPath();
-    ctx.moveTo(-28, -72);
-    ctx.lineTo(0, -96);
-    ctx.lineTo(28, -72);
+    ctx.roundRect(
+        x + inset, y + inset, size - inset * 2, size - inset * 2, 4.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Bold painted block letter in the center!
+    ctx.fillStyle = accentColor.toJS;
+    ctx.strokeStyle = '#291507'.toJS;
+    ctx.lineWidth = 3.0;
+    ctx.font = '900 ${(size * 0.50).round()}px "Comic Sans MS", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeText(letter, cx, y + size * 0.53);
+    ctx.fillText(letter, cx, y + size * 0.53);
+    ctx.restore();
+  }
+
+  /// Draws a multi-course interlocking studded plastic LEGO-style brick tower!
+  static void _drawPlasticBrickTower(
+    CanvasRenderingContext2D ctx,
+    double cx,
+    double baseY, {
+    int rows = 5,
+    int seedOffset = 0,
+  }) {
+    const List<List<String>> brickPalettes = [
+      ['#ff4d4d', '#c71e29'],
+      ['#2e8cff', '#185ab8'],
+      ['#ffd426', '#cfa00c'],
+      ['#34c759', '#1c8c38'],
+      ['#ff8c24', '#c95c0c'],
+    ];
+    const double rowH = 38.0;
+    const double baseW = 168.0;
+
+    ctx.save();
+    for (int r = 0; r < rows; r++) {
+      final double rw = baseW - (r >= rows - 1 ? 28.0 : 0.0);
+      final double rx = cx - rw * 0.5 + (r.isOdd ? 6.0 : -6.0);
+      final double ry = baseY - (r + 1) * rowH;
+      final List<String> pal =
+          brickPalettes[(r + seedOffset) % brickPalettes.length];
+
+      // Top cylindrical plastic studs on the uppermost course (and exposed shoulders).
+      for (double sx = rx + 10; sx <= rx + rw - 24; sx += 28.0) {
+        ctx.fillStyle = pal[0].toJS;
+        ctx.strokeStyle = '#1b202e'.toJS;
+        ctx.lineWidth = 2.8;
+        ctx.fillRect(sx, ry - 8, 16, 9);
+        ctx.strokeRect(sx, ry - 8, 16, 9);
+      }
+
+      final CanvasGradient bg = ctx.createLinearGradient(rx, ry, rx, ry + rowH);
+      bg.addColorStop(0.0, pal[0]);
+      bg.addColorStop(1.0, pal[1]);
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = '#1b202e'.toJS;
+      ctx.lineWidth = 3.8;
+      ctx.fillRect(rx, ry, rw, rowH);
+      ctx.strokeRect(rx, ry, rw, rowH);
+
+      // Vertical seam splitting each course into 2 interlocking bricks + specular shine!
+      final double seamX = rx + rw * (r.isEven ? 0.5 : 0.38);
+      ctx.beginPath();
+      ctx.moveTo(seamX, ry);
+      ctx.lineTo(seamX, ry + rowH);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.30)'.toJS;
+      ctx.fillRect(rx + 4, ry + 4, rw - 8, 6);
+    }
+    ctx.restore();
+  }
+
+  /// Draws a giant cheerful painted wooden toy steam locomotive!
+  static void _drawWoodenToyTrain(
+      CanvasRenderingContext2D ctx, double cx, double groundY) {
+    ctx.save();
+    ctx.translate(cx, groundY);
+
+    // Solid red chassis beam.
+    ctx.fillStyle = '#d92b38'.toJS;
+    ctx.strokeStyle = '#24140e'.toJS;
+    ctx.lineWidth = 4.0;
+    ctx.beginPath();
+    ctx.roundRect(-124, -46, 248, 28, 6.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Royal-blue engineer cab at the rear (-116..-22).
+    final CanvasGradient cabG = ctx.createLinearGradient(-116, -142, -116, -46);
+    cabG.addColorStop(0.0, '#3898ff');
+    cabG.addColorStop(1.0, '#1d5ec4');
+    ctx.fillStyle = cabG;
+    ctx.fillRect(-114, -138, 94, 92);
+    ctx.strokeRect(-114, -138, 94, 92);
+
+    // Golden curved cab roof overhang.
+    ctx.fillStyle = '#ffd426'.toJS;
+    ctx.beginPath();
+    ctx.roundRect(-124, -152, 114, 18, 7.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Bright sky-tinted cab window (solid painted glass so no tricky tiny holes).
+    ctx.fillStyle = '#bff0ff'.toJS;
+    ctx.beginPath();
+    ctx.roundRect(-94, -120, 54, 44, 6.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Cherry-red cylindrical boiler (-20..96).
+    final CanvasGradient boilerG = ctx.createLinearGradient(0, -118, 0, -46);
+    boilerG.addColorStop(0.0, '#ff5454');
+    boilerG.addColorStop(1.0, '#b81d28');
+    ctx.fillStyle = boilerG;
+    ctx.fillRect(-20, -114, 118, 68);
+    ctx.strokeRect(-20, -114, 118, 68);
+    // Golden brass boiler bands.
+    ctx.fillStyle = '#ffd426'.toJS;
+    ctx.fillRect(12, -114, 12, 68);
+    ctx.strokeRect(12, -114, 12, 68);
+    ctx.fillRect(56, -114, 12, 68);
+    ctx.strokeRect(56, -114, 12, 68);
+
+    // Flared smokestack & puffy solid cotton-ball steam clouds (climbable steps!).
+    ctx.fillStyle = '#364054'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(64, -114);
+    ctx.lineTo(54, -158);
+    ctx.lineTo(94, -158);
+    ctx.lineTo(84, -114);
     ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff9eb'.toJS;
+    for (final List<double> puff in const [
+      [74.0, -176.0, 18.0],
+      [52.0, -196.0, 22.0],
+      [22.0, -212.0, 25.0],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(puff[0], puff[1], puff[2], 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Yellow cowcatcher wedge at the front (+98..+138).
+    ctx.fillStyle = '#ffd426'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(98, -46);
+    ctx.lineTo(138, -20);
+    ctx.lineTo(98, -20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Big painted wooden spoked wheels!
+    for (final List<double> wh in const [
+      [-72.0, -22.0, 28.0],
+      [4.0, -20.0, 24.0],
+      [68.0, -20.0, 24.0],
+    ]) {
+      ctx.fillStyle = '#ffd426'.toJS;
+      ctx.beginPath();
+      ctx.arc(wh[0], wh[1], wh[2], 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ff4d4d'.toJS;
+      ctx.beginPath();
+      ctx.arc(wh[0], wh[1], wh[2] * 0.42, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a retro painted tin wind-up robot with a brass key on its side!
+  static void _drawTinWindUpRobot(
+      CanvasRenderingContext2D ctx, double cx, double groundY) {
+    ctx.save();
+    ctx.translate(cx, groundY);
+    ctx.strokeStyle = '#182232'.toJS;
+    ctx.lineWidth = 3.8;
+
+    // Chunky red tin boots & legs.
+    ctx.fillStyle = '#ff4d4d'.toJS;
+    ctx.fillRect(-34, -44, 26, 44);
+    ctx.strokeRect(-34, -44, 26, 44);
+    ctx.fillRect(8, -44, 26, 44);
+    ctx.strokeRect(8, -44, 26, 44);
+
+    // Brass wind-up key sticking out the left side!
+    ctx.fillStyle = '#ffd426'.toJS;
+    ctx.fillRect(-68, -98, 24, 12);
+    ctx.strokeRect(-68, -98, 24, 12);
+    ctx.beginPath();
+    ctx.arc(-76, -106, 12, 0, 2 * pi);
+    ctx.arc(-76, -80, 12, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+
+    // Teal tin torso.
+    final CanvasGradient bodyG = ctx.createLinearGradient(-44, -128, 44, -44);
+    bodyG.addColorStop(0.0, '#45d9d2');
+    bodyG.addColorStop(1.0, '#1f9199');
+    ctx.fillStyle = bodyG;
+    ctx.beginPath();
+    ctx.roundRect(-44, -128, 88, 86, 8.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Chest meter panel.
+    ctx.fillStyle = '#fff5bd'.toJS;
+    ctx.fillRect(-26, -110, 52, 34);
+    ctx.strokeRect(-26, -110, 52, 34);
+    ctx.strokeStyle = '#ff4d4d'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(-18, -86);
+    ctx.lineTo(-4, -102);
+    ctx.lineTo(8, -90);
+    ctx.lineTo(18, -104);
+    ctx.stroke();
+
+    // Robot head + glowing yellow eyes + red bulb antenna!
+    ctx.strokeStyle = '#182232'.toJS;
+    ctx.fillStyle = '#45d9d2'.toJS;
+    ctx.beginPath();
+    ctx.roundRect(-30, -176, 60, 48, 8.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffe047'.toJS;
+    ctx.beginPath();
+    ctx.arc(-12, -154, 7.5, 0, 2 * pi);
+    ctx.arc(12, -154, 7.5, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillRect(-4, -194, 8, 18);
+    ctx.strokeRect(-4, -194, 8, 18);
+    ctx.fillStyle = '#ff4d4d'.toJS;
+    ctx.beginPath();
+    ctx.arc(0, -200, 9.0, 0, 2 * pi);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
   }
 
-  static void _drawRooftopBillboard(
-      CanvasRenderingContext2D ctx, double x, double y, String label) {
+  /// Draws a giant rainbow toddler ring-stacker pyramid!
+  static void _drawRingStackerToy(
+      CanvasRenderingContext2D ctx, double cx, double groundY) {
     ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = '#364054'.toJS;
-    ctx.fillRect(-26, -24, 6, 26);
-    ctx.fillRect(20, -24, 6, 26);
+    ctx.translate(cx, groundY);
+    ctx.strokeStyle = '#26170b'.toJS;
+    ctx.lineWidth = 3.8;
 
-    ctx.fillStyle = '#ff4f79'.toJS;
-    ctx.strokeStyle = '#1b202e'.toJS;
-    ctx.lineWidth = 3.6;
+    // Wooden rocking base & center peg.
+    ctx.fillStyle = '#e8b068'.toJS;
     ctx.beginPath();
-    ctx.roundRect(-52, -74, 104, 52, 8.0.toJS);
+    ctx.roundRect(-64, -20, 128, 22, 10.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-10, -148, 20, 130);
+    ctx.strokeRect(-10, -148, 20, 130);
+
+    const List<List<dynamic>> rings = [
+      [56.0, '#ff4d4d'],
+      [48.0, '#ff9824'],
+      [40.0, '#ffd426'],
+      [32.0, '#34c759'],
+      [24.0, '#2e8cff'],
+    ];
+    for (int i = 0; i < rings.length; i++) {
+      final double hw = rings[i][0] as double;
+      final double ry = -44.0 - i * 22.0;
+      ctx.fillStyle = (rings[i][1] as String).toJS;
+      ctx.beginPath();
+      ctx.roundRect(-hw, ry, hw * 2, 22.0, 11.0.toJS);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Yellow topper ball.
+    ctx.fillStyle = '#ffe047'.toJS;
+    ctx.beginPath();
+    ctx.arc(0, -158, 14.0, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Draws a floating oversized LEGO-style plastic building brick platform!
+  static void _drawFloatingToyBrickPlatform(
+    CanvasRenderingContext2D ctx, {
+    required double cx,
+    required double cy,
+    required double width,
+    required double height,
+    required String topColor,
+    required String bottomColor,
+  }) {
+    final double x = cx - width * 0.5;
+    final double y = cy - height * 0.5;
+    ctx.save();
+    // Top studs!
+    for (double sx = x + 12; sx <= x + width - 28; sx += 30.0) {
+      ctx.fillStyle = topColor.toJS;
+      ctx.strokeStyle = '#1b202e'.toJS;
+      ctx.lineWidth = 3.0;
+      ctx.fillRect(sx, y - 9, 18, 10);
+      ctx.strokeRect(sx, y - 9, 18, 10);
+    }
+
+    final CanvasGradient g = ctx.createLinearGradient(x, y, x, y + height);
+    g.addColorStop(0.0, topColor);
+    g.addColorStop(1.0, bottomColor);
+    ctx.fillStyle = g;
+    ctx.strokeStyle = '#1b202e'.toJS;
+    ctx.lineWidth = 4.0;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, 6.0.toJS);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#fff36b'.toJS;
-    ctx.font = '900 22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, 0, -47);
+    // Gloss highlight & domino-style white pips along the front!
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.34)'.toJS;
+    ctx.fillRect(x + 6, y + 5, width - 12, 6);
+    ctx.fillStyle = '#ffffff'.toJS;
+    for (double px = x + 28; px < x + width - 20; px += 44.0) {
+      ctx.beginPath();
+      ctx.arc(px, y + height * 0.58, 4.5, 0, 2 * pi);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /// Draws a colorful rainbow xylophone-bar suspension bridge between two ledges!
+  static void _drawXylophoneBridge(
+      CanvasRenderingContext2D ctx, double x0, double y0, double x1, double y1,
+      {double sag = 24.0}) {
+    const List<String> barColors = [
+      '#ff4d4d',
+      '#ff9824',
+      '#ffd426',
+      '#34c759',
+      '#2e8cff',
+      '#a864ff',
+    ];
+    ctx.save();
+    final int bars = max(6, ((x1 - x0).abs() ~/ 24));
+    ctx.strokeStyle = '#4a2e16'.toJS;
+    ctx.lineWidth = 3.8;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 + 2);
+    ctx.quadraticCurveTo((x0 + x1) * 0.5, (y0 + y1) * 0.5 + sag + 2, x1, y1 + 2);
+    ctx.stroke();
+
+    for (int i = 0; i <= bars; i++) {
+      final double t = i / bars;
+      final double px = x0 + (x1 - x0) * t;
+      final double py = (1 - t) * (1 - t) * y0 +
+          2 * (1 - t) * t * ((y0 + y1) * 0.5 + sag) +
+          t * t * y1;
+      ctx.fillStyle = barColors[i % barColors.length].toJS;
+      ctx.strokeStyle = '#1b202e'.toJS;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.roundRect(px - 9, py - 5, 18, 11, 3.0.toJS);
+      ctx.fill();
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
   // =========================================================================
-  // 8. JUNGLE TEMPLE (Djungeltempel & Ruiner)
+  // 8. JUNGLE TEMPLE (Vertikal Djungelravin & Mystiska Statyer)
   // =========================================================================
   static void _generateJungle(
     CanvasRenderingContext2D ctx,
@@ -3732,8 +5278,33 @@ class WorldGenerator {
     Random rng,
   ) {
     const int step = 20;
-    final List<double> heights =
-        _buildHeightfield(w, h * 0.65, 118.0, rng, step: step, edgeDrop: 100.0);
+    final List<double> heights = _buildHeightfield(
+      w,
+      h * 0.68,
+      95.0,
+      rng,
+      step: step,
+      edgeDrop: 65.0,
+      minY: 360.0,
+      maxY: 752.0,
+    );
+
+    // Sculpt steep vertical jungle mesas & deep canyon shafts so Jungle plays
+    // noticeably more vertically than the other worlds while keeping bottom ground solid!
+    for (int i = 0; i < heights.length; i++) {
+      final double u = (i * step) / w;
+      if ((u - 0.22).abs() < 0.085) {
+        final double t = cos(((u - 0.22) / 0.085) * pi * 0.5);
+        heights[i] -= t * t * 210.0;
+      } else if ((u - 0.78).abs() < 0.085) {
+        final double t = cos(((u - 0.78) / 0.085) * pi * 0.5);
+        heights[i] -= t * t * 205.0;
+      } else if ((u - 0.50).abs() < 0.10) {
+        final double t = cos(((u - 0.50) / 0.10) * pi * 0.5);
+        heights[i] += t * 72.0;
+      }
+      heights[i] = heights[i].clamp(370.0, 754.0);
+    }
 
     // Rich deep emerald rainforest terrain (distinctly darker/lusher than Villa!).
     _drawCartoonGround(
@@ -3754,36 +5325,48 @@ class WorldGenerator {
       turfThickness: 32.0,
     );
 
-    // 2 Massive Stepped Mayan/Aztec Stone Pyramids with hollow inner treasure rooms!
-    final List<double> pyrXs = [
-      w * (0.26 + rng.nextDouble() * 0.04),
-      w * (0.72 + rng.nextDouble() * 0.04),
+    // 1. Stepped Ancient Stone Temple in the deep central canyon + Towering Multi-Faced
+    // Strange Totem Pillars rising vertically out of the side valleys!
+    final double centerTempleX = w * (0.50 + (rng.nextDouble() - 0.5) * 0.03);
+    _drawJunglePyramid(
+      ctx,
+      centerTempleX,
+      _sampleHeight(heights, centerTempleX, step) + 18.0,
+      230.0,
+      195.0,
+    );
+
+    final double leftTotemX = w * 0.09;
+    _drawStrangeTotemColumn(
+        ctx, leftTotemX, _sampleHeight(heights, leftTotemX, step) + 10.0, 3);
+    final double rightTotemX = w * 0.91;
+    _drawStrangeTotemColumn(
+        ctx, rightTotemX, _sampleHeight(heights, rightTotemX, step) + 10.0, 3);
+
+    // 2. Strange Ancient Jungle Statues perched on the tall vertical cliff mesas!
+    final double leftMesaX = w * 0.22;
+    final double leftMesaY = _sampleHeight(heights, leftMesaX, step) + 8.0;
+    _drawStrangeMoaiFrogIdol(ctx, leftMesaX, leftMesaY, 1.05, facingLeft: false);
+    _drawSerpentHeadLedge(ctx, leftMesaX + 86, leftMesaY + 62, facingLeft: false);
+
+    final double rightMesaX = w * 0.78;
+    final double rightMesaY = _sampleHeight(heights, rightMesaX, step) + 8.0;
+    _drawStrangeMoaiFrogIdol(ctx, rightMesaX, rightMesaY, 1.05, facingLeft: true);
+    _drawSerpentHeadLedge(ctx, rightMesaX - 86, rightMesaY + 62, facingLeft: true);
+
+    // 3. Multi-tiered Vertical Canopy Cliff Platforms (Mid-Canopy & High-Canopy Tiers!)
+    // creating 3 distinct vertical combat elevations connected by bridges & hanging vines!
+    final List<List<double>> midLedges = [
+      [w * 0.36, h * 0.43, 195.0, 74.0],
+      [w * 0.64, h * 0.42, 195.0, 74.0],
     ];
-    for (final double px in pyrXs) {
-      final double baseY = _sampleHeight(heights, px, step) + 18.0;
-      _drawJunglePyramid(ctx, px, baseY, 260.0, 190.0);
-    }
-
-    // GIMMICK 1: Giant Carved Stone Tiki Statue with glowing emerald eyes in center valley!
-    final double tikiX = w * 0.50;
-    _drawTikiStatue(ctx, tikiX, _sampleHeight(heights, tikiX, step) + 8.0);
-
-    // GIMMICK 2: Lush Bamboo Clusters, Giant Palms & Hanging Rope Vine Bridges!
-    for (final double frac in const [0.10, 0.41, 0.59, 0.89]) {
-      final double px = w * frac;
-      final double py = _sampleHeight(heights, px, step);
-      _drawPalmTree(ctx, px, py, 1.05, (frac < 0.5 ? 28 : -28));
-      _drawBambooCluster(ctx, px + 36, py + 4);
-    }
-
-    // 3 Overgrown floating jungle cliff ledges linked by vine bridges!
-    final List<List<double>> ledges = [
-      [w * 0.18, h * 0.25, 240.0, 88.0],
-      [w * 0.50, h * 0.21, 250.0, 90.0],
-      [w * 0.82, h * 0.26, 240.0, 88.0],
+    final List<List<double>> highLedges = [
+      [w * 0.18, h * 0.19, 215.0, 78.0],
+      [w * 0.50, h * 0.14, 235.0, 82.0],
+      [w * 0.82, h * 0.19, 215.0, 78.0],
     ];
-    for (int i = 0; i < ledges.length; i++) {
-      final List<double> l = ledges[i];
+
+    for (final List<double> l in [...midLedges, ...highLedges]) {
       _drawFloatingCartoonIsland(
         ctx,
         cx: l[0],
@@ -3797,72 +5380,114 @@ class WorldGenerator {
         turfBottom: '#1a7538',
         turfOutline: '#0d3b1c',
       );
-      _drawPalmTree(ctx, l[0], l[1] - 12, 0.78, i == 0 ? 20 : -20);
+      // Hanging vertical jungle vines trailing below every canopy island!
+      _drawHangingJungleVines(ctx, l[0] - l[2] * 0.34, l[1] + l[3] * 0.52, 3, 92.0);
+      _drawHangingJungleVines(ctx, l[0] + l[2] * 0.24, l[1] + l[3] * 0.52, 2, 78.0);
     }
+
+    // Four-armed mystery guardian idol crowning the highest central canopy altar!
+    _drawFourArmedJungleDeity(
+        ctx, highLedges[1][0], highLedges[1][1] - 10.0, 0.96);
+    _drawPalmTree(ctx, highLedges[0][0] - 42, highLedges[0][1] - 10, 0.76, 18);
+    _drawPalmTree(ctx, highLedges[2][0] + 42, highLedges[2][1] - 10, 0.76, -18);
+
+    // Steep ascending vine-plank bridges linking mesas -> mid-canopy -> high-canopy!
     _drawRopeBridge(
       ctx,
-      ledges[0][0] + 108,
-      ledges[0][1] - 2,
-      ledges[1][0] - 114,
-      ledges[1][1] - 2,
-      sag: 34.0,
+      leftMesaX + 54,
+      leftMesaY + 6,
+      midLedges[0][0] - 84,
+      midLedges[0][1] - 2,
+      sag: 22.0,
       woodColor: '#8c6239',
     );
     _drawRopeBridge(
       ctx,
-      ledges[1][0] + 114,
-      ledges[1][1] - 2,
-      ledges[2][0] - 108,
-      ledges[2][1] - 2,
-      sag: 34.0,
+      midLedges[1][0] + 84,
+      midLedges[1][1] - 2,
+      rightMesaX - 54,
+      rightMesaY + 6,
+      sag: 22.0,
+      woodColor: '#8c6239',
+    );
+    _drawRopeBridge(
+      ctx,
+      highLedges[0][0] + 96,
+      highLedges[0][1] - 2,
+      highLedges[1][0] - 106,
+      highLedges[1][1] + 4,
+      sag: 26.0,
+      woodColor: '#8c6239',
+    );
+    _drawRopeBridge(
+      ctx,
+      highLedges[1][0] + 106,
+      highLedges[1][1] + 4,
+      highLedges[2][0] - 96,
+      highLedges[2][1] - 2,
+      sag: 26.0,
       woodColor: '#8c6239',
     );
 
-    // THEMATIC INDESTRUCTIBLE BEDROCK (8 CLEAR SECTIONS):
-    // 1-2. Gold-inlaid ancient temple doorway lintels & bases inside both pyramids!
-    for (final double px in pyrXs) {
-      final double baseY = _sampleHeight(heights, px, step);
-      _drawBedrockBlock(
-        bCtx,
-        x: px - 68,
-        y: baseY - 46,
-        w: 136,
-        h: 34,
-        style: _BedrockStyle.mayanGold,
-      );
-      _drawBedrockPillar(
-        bCtx,
-        cx: px - 68,
-        topY: baseY - 16,
-        height: 98,
-        width: 42,
-        style: _BedrockStyle.mayanGold,
-      );
-      _drawBedrockPillar(
-        bCtx,
-        cx: px + 68,
-        topY: baseY - 16,
-        height: 98,
-        width: 42,
-        style: _BedrockStyle.mayanGold,
-      );
+    // Lush Bamboo Clusters & Giant Palms along canyon edges!
+    for (final double frac in const [0.35, 0.64]) {
+      final double px = w * frac;
+      final double py = _sampleHeight(heights, px, step);
+      _drawPalmTree(ctx, px, py, 1.02, frac < 0.5 ? 24 : -24);
+      _drawBambooCluster(ctx, px + (frac < 0.5 ? -34 : 34), py + 4);
     }
-    // 7. Ancient gold-trimmed temple vault arch shielding the underground chamber!
-    _drawBedrockArchVault(
+
+    // THEMATIC INDESTRUCTIBLE BEDROCK (VERTICAL GOLDEN RUIN COLUMNS & SKY ALTARS):
+    // 1-2. Tall vertical golden obelisk pillars inside the left & right cliff mesas!
+    _drawBedrockPillar(
       bCtx,
-      cx: w * 0.50,
-      y: h * 0.75,
-      span: 190,
-      thickness: 26,
+      cx: leftMesaX,
+      topY: leftMesaY + 26,
+      height: 185,
+      width: 46,
       style: _BedrockStyle.mayanGold,
     );
-    // 8. Sacred golden temple altar bridge in the center sky!
+    _drawBedrockPillar(
+      bCtx,
+      cx: rightMesaX,
+      topY: rightMesaY + 26,
+      height: 185,
+      width: 46,
+      style: _BedrockStyle.mayanGold,
+    );
+    // 3-4. Elevated golden sky-altar girders at mid-canopy height on both sides!
     _drawBedrockGirder(
       bCtx,
-      x: w * 0.50 - 95,
-      y: h * 0.39,
-      w: 190,
+      x: midLedges[0][0] - 78,
+      y: midLedges[0][1] + 18,
+      w: 156,
+      h: 26,
+      style: _BedrockStyle.mayanGold,
+    );
+    _drawBedrockGirder(
+      bCtx,
+      x: midLedges[1][0] - 78,
+      y: midLedges[1][1] + 18,
+      w: 156,
+      h: 26,
+      style: _BedrockStyle.mayanGold,
+    );
+    // 5. High-canopy sacred golden sun-altar slab beneath the top center deity!
+    _drawBedrockBlock(
+      bCtx,
+      x: highLedges[1][0] - 84,
+      y: highLedges[1][1] + 14,
+      w: 168,
       h: 28,
+      style: _BedrockStyle.mayanGold,
+    );
+    // 6. Ancient gold-trimmed temple vault arch shielding the deep central chamber!
+    _drawBedrockArchVault(
+      bCtx,
+      cx: centerTempleX,
+      y: h * 0.77,
+      span: 188,
+      thickness: 26,
       style: _BedrockStyle.mayanGold,
     );
   }
@@ -3907,30 +5532,297 @@ class WorldGenerator {
     ctx.restore();
   }
 
-  static void _drawTikiStatue(CanvasRenderingContext2D ctx, double x, double y) {
+  /// Towering multi-faced strange stone totem pillar (3 stacked bizarre masks)!
+  static void _drawStrangeTotemColumn(
+      CanvasRenderingContext2D ctx, double x, double baseY, int faces) {
     ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = '#9e9278'.toJS;
-    ctx.strokeStyle = '#2e291e'.toJS;
+    ctx.translate(x, baseY);
+    const double faceH = 74.0;
+    ctx.strokeStyle = '#241e14'.toJS;
+    ctx.lineWidth = 3.8;
+
+    for (int i = 0; i < faces; i++) {
+      final double ty = -(i + 1) * faceH;
+      final double w = 68.0 - i * 4.0;
+      final CanvasGradient stone =
+          ctx.createLinearGradient(-w * 0.5, ty, w * 0.5, ty);
+      stone.addColorStop(0.0, i.isEven ? '#aba082' : '#968c6e');
+      stone.addColorStop(1.0, '#695f47');
+      ctx.fillStyle = stone;
+      ctx.beginPath();
+      ctx.roundRect(-w * 0.5, ty, w, faceH + 2, 8.0.toJS);
+      ctx.fill();
+      ctx.stroke();
+
+      // Jutting stone ears / wings on middle & top masks!
+      if (i > 0) {
+        ctx.fillStyle = '#877c60'.toJS;
+        for (final double side in const [-1.0, 1.0]) {
+          ctx.beginPath();
+          ctx.moveTo(side * w * 0.5, ty + 14);
+          ctx.lineTo(side * (w * 0.5 + 24), ty + 4);
+          ctx.lineTo(side * (w * 0.5 + 18), ty + 36);
+          ctx.lineTo(side * w * 0.5, ty + 42);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      if (i == 0) {
+        // Bottom mask: Wide-mouthed fanged guardian!
+        ctx.fillStyle = '#45ff82'.toJS;
+        ctx.fillRect(-22, ty + 16, 14, 10);
+        ctx.strokeRect(-22, ty + 16, 14, 10);
+        ctx.fillRect(8, ty + 16, 14, 10);
+        ctx.strokeRect(8, ty + 16, 14, 10);
+        ctx.fillStyle = '#241e14'.toJS;
+        ctx.fillRect(-20, ty + 42, 40, 18);
+        ctx.fillStyle = '#efe6cf'.toJS;
+        ctx.fillRect(-16, ty + 44, 8, 12);
+        ctx.fillRect(8, ty + 44, 8, 12);
+      } else if (i == 1) {
+        // Middle mask: Upside-down spiral-eyed trickster face!
+        ctx.fillStyle = '#5cf2ff'.toJS;
+        ctx.beginPath();
+        ctx.arc(-13, ty + 44, 8, 0, 2 * pi);
+        ctx.arc(13, ty + 44, 8, 0, 2 * pi);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ffd238'.toJS;
+        ctx.beginPath();
+        ctx.moveTo(-14, ty + 20);
+        ctx.lineTo(14, ty + 20);
+        ctx.lineTo(0, ty + 34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        // Top mask: Strange 3-eyed horned sky-cyclops idol!
+        ctx.fillStyle = '#ff52a8'.toJS;
+        ctx.beginPath();
+        ctx.arc(0, ty + 28, 12, 0, 2 * pi);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#241e14'.toJS;
+        ctx.beginPath();
+        ctx.ellipse(0, ty + 28, 3.5, 9.0, 0, 0, 2 * pi);
+        ctx.fill();
+        // Golden crescent horns!
+        ctx.fillStyle = '#ffd638'.toJS;
+        ctx.beginPath();
+        ctx.moveTo(-26, ty + 2);
+        ctx.lineTo(-34, ty - 24);
+        ctx.lineTo(-10, ty + 2);
+        ctx.moveTo(26, ty + 2);
+        ctx.lineTo(34, ty - 24);
+        ctx.lineTo(10, ty + 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /// Enigmatic tilted Moai-meets-Aztec-frog monolith with glowing mystic third eye
+  /// and a protruding carved stone tongue step!
+  static void _drawStrangeMoaiFrogIdol(
+    CanvasRenderingContext2D ctx,
+    double x,
+    double baseY,
+    double s, {
+    bool facingLeft = false,
+  }) {
+    ctx.save();
+    ctx.translate(x, baseY);
+    ctx.scale(facingLeft ? -s : s, s);
+    ctx.rotate(-0.08);
+    ctx.strokeStyle = '#241e14'.toJS;
     ctx.lineWidth = 4.0;
+
+    final CanvasGradient body = ctx.createLinearGradient(-44, -148, 44, 0);
+    body.addColorStop(0.0, '#b5aa8c');
+    body.addColorStop(1.0, '#6e644b');
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.roundRect(-36, -124, 72, 128, 10.0.toJS);
+    ctx.moveTo(-42, 6);
+    ctx.lineTo(-34, -138);
+    ctx.lineTo(28, -146);
+    ctx.lineTo(44, -64);
+    ctx.lineTo(36, 6);
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Glowing emerald eyes!
-    ctx.fillStyle = '#45ff82'.toJS;
-    ctx.fillRect(-22, -96, 16, 12);
-    ctx.strokeRect(-22, -96, 16, 12);
-    ctx.fillRect(6, -96, 16, 12);
-    ctx.strokeRect(6, -96, 16, 12);
+    // Mossy stone headdress crown!
+    ctx.fillStyle = '#38ba48'.toJS;
+    ctx.beginPath();
+    ctx.roundRect(-38, -154, 72, 16, 6.0.toJS);
+    ctx.fill();
+    ctx.stroke();
 
-    // Carved wide stone grin!
-    ctx.fillStyle = '#2e291e'.toJS;
-    ctx.fillRect(-24, -52, 48, 18);
-    ctx.fillStyle = '#e8dfc8'.toJS;
-    for (int t = -18; t <= 12; t += 12) {
-      ctx.fillRect(t.toDouble(), -50, 8, 14);
+    // Spiral stone ear-spool on the back!
+    ctx.fillStyle = '#ffd238'.toJS;
+    ctx.beginPath();
+    ctx.arc(-34, -78, 14, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+
+    // Heavy brow ridge, long angular Moai nose & glowing cyan mystic forehead gem!
+    ctx.fillStyle = '#5cf7ff'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(4, -132);
+    ctx.lineTo(13, -120);
+    ctx.lineTo(4, -108);
+    ctx.lineTo(-5, -120);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#45ff82'.toJS;
+    ctx.beginPath();
+    ctx.ellipse(14, -94, 10, 7, -0.1, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#998e72'.toJS;
+    ctx.beginPath();
+    ctx.moveTo(18, -104);
+    ctx.lineTo(50, -68);
+    ctx.lineTo(22, -64);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Protruding carved stone tongue ledge!
+    ctx.fillStyle = '#d96c75'.toJS;
+    ctx.beginPath();
+    ctx.roundRect(14, -42, 46, 16, 7.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Strange ancient four-armed stone deity statue crowning the highest canopy terrace!
+  static void _drawFourArmedJungleDeity(
+      CanvasRenderingContext2D ctx, double cx, double baseY, double s) {
+    ctx.save();
+    ctx.translate(cx, baseY);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#241e14'.toJS;
+    ctx.lineWidth = 3.6;
+
+    // 4 outstretched stone arms holding glowing emerald & gold orbs!
+    for (final double side in const [-1.0, 1.0]) {
+      for (final List<double> arm in const [
+        [-48.0, -78.0],
+        [-30.0, -44.0],
+      ]) {
+        ctx.strokeStyle = '#241e14'.toJS;
+        ctx.lineWidth = 12.0;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(side * 18, arm[0]);
+        ctx.lineTo(side * 52, arm[1]);
+        ctx.stroke();
+        ctx.strokeStyle = '#aba082'.toJS;
+        ctx.lineWidth = 6.5;
+        ctx.stroke();
+
+        ctx.strokeStyle = '#241e14'.toJS;
+        ctx.lineWidth = 2.8;
+        ctx.fillStyle = (arm[1] < -60 ? '#45ff82' : '#ffd638').toJS;
+        ctx.beginPath();
+        ctx.arc(side * 54, arm[1] - 6, 8.0, 0, 2 * pi);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // Cross-legged stone pedestal & torso + tall stepped sun headdress!
+    ctx.fillStyle = '#a39778'.toJS;
+    ctx.lineWidth = 3.6;
+    ctx.beginPath();
+    ctx.roundRect(-38, -24, 76, 26, 10.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(-24, -68, 48, 46, 8.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(-22, -108, 44, 42, 8.0.toJS);
+    ctx.fill();
+    ctx.stroke();
+
+    // Weird 3-eyed mask & golden fan crown!
+    ctx.fillStyle = '#ffd638'.toJS;
+    ctx.beginPath();
+    ctx.arc(0, -108, 26, pi, 2 * pi);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#5cf7ff'.toJS;
+    for (final double ex in const [-10.0, 0.0, 10.0]) {
+      ctx.beginPath();
+      ctx.arc(ex, -88 - (ex == 0.0 ? 7.0 : 0.0), 4.2, 0, 2 * pi);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /// Carved stone feathered-serpent head jutting horizontally from a vertical cliff wall!
+  static void _drawSerpentHeadLedge(
+      CanvasRenderingContext2D ctx, double x, double y,
+      {bool facingLeft = false}) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (facingLeft) ctx.scale(-1, 1);
+    ctx.fillStyle = '#9e9274'.toJS;
+    ctx.strokeStyle = '#241e14'.toJS;
+    ctx.lineWidth = 3.6;
+    ctx.beginPath();
+    ctx.moveTo(-26, -22);
+    ctx.lineTo(44, -22);
+    ctx.lineTo(54, -4);
+    ctx.lineTo(36, 14);
+    ctx.lineTo(-26, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Moss top cap & glowing eye + fang!
+    ctx.fillStyle = '#3ecf5e'.toJS;
+    ctx.fillRect(-24, -26, 66, 8);
+    ctx.strokeRect(-24, -26, 66, 8);
+    ctx.fillStyle = '#ffd638'.toJS;
+    ctx.beginPath();
+    ctx.arc(24, -8, 5.5, 0, 2 * pi);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /// Hanging vertical jungle vines with leaves dangling below canopy islands!
+  static void _drawHangingJungleVines(CanvasRenderingContext2D ctx, double startX,
+      double startY, int count, double maxLen) {
+    ctx.save();
+    for (int i = 0; i < count; i++) {
+      final double vx = startX + i * 24.0;
+      final double len = maxLen * (0.68 + (i % 3) * 0.16);
+      ctx.strokeStyle = '#0d3b1c'.toJS;
+      ctx.lineWidth = 7.0;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(vx, startY);
+      ctx.quadraticCurveTo(vx + (i.isEven ? 8 : -8), startY + len * 0.5, vx, startY + len);
+      ctx.stroke();
+      ctx.strokeStyle = '#2eb84b'.toJS;
+      ctx.lineWidth = 3.6;
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -3988,19 +5880,21 @@ class WorldGenerator {
     ctx.fillStyle = '#5a4c7a'.toJS;
     ctx.strokeStyle = '#151024'.toJS;
     ctx.lineWidth = 2.4;
-    ctx.fillRect(w * 0.33, h * 0.42, w * 0.34, h * 0.45);
-    ctx.strokeRect(w * 0.33, h * 0.42, w * 0.34, h * 0.45);
+    ctx.fillRect(w * 0.34, h * 0.42, w * 0.30, h * 0.45);
+    ctx.strokeRect(w * 0.34, h * 0.42, w * 0.30, h * 0.45);
     ctx.fillStyle = '#2a1847'.toJS;
     ctx.beginPath();
-    ctx.moveTo(w * 0.28, h * 0.42);
-    ctx.lineTo(w * 0.53, h * 0.16);
-    ctx.lineTo(w * 0.72, h * 0.42);
+    ctx.moveTo(w * 0.30, h * 0.42);
+    ctx.lineTo(w * 0.50, h * 0.16);
+    ctx.lineTo(w * 0.68, h * 0.42);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffd24d'.toJS;
-    ctx.fillRect(w * 0.45, h * 0.52, w * 0.10, h * 0.14);
-    _drawPumpkin(ctx, w * 0.24, h * 0.82, 0.65);
+    ctx.fillRect(w * 0.45, h * 0.52, w * 0.08, h * 0.13);
+    _drawSolidSpookyGhost(ctx, w * 0.21, h * 0.44, 0.44, facingLeft: false);
+    _drawCartoonSkeleton(ctx, w * 0.78, h * 0.84, 0.48, facingLeft: true);
+    _drawPumpkin(ctx, w * 0.22, h * 0.82, 0.58);
   }
 
   static void _drawPreviewVolcano(CanvasRenderingContext2D ctx, double w, double h) {
@@ -4023,6 +5917,7 @@ class WorldGenerator {
     ctx.beginPath();
     ctx.arc(w * 0.5, h * 0.34, 10, 0, 2 * pi);
     ctx.fill();
+    _drawTRexSkeleton(ctx, w * 0.54, h * 0.86, 0.34, facingLeft: false);
   }
 
   static void _drawPreviewGlacier(CanvasRenderingContext2D ctx, double w, double h) {
@@ -4042,9 +5937,11 @@ class WorldGenerator {
   }
 
   static void _drawPreviewCandy(CanvasRenderingContext2D ctx, double w, double h) {
-    _drawFrostedDonut(ctx, w * 0.5, h * 0.54, 38, 13, '#ff6eb8');
-    _drawLollipop(ctx, w * 0.20, h * 0.88, '#4be6ff', 0.55);
-    _drawLollipop(ctx, w * 0.80, h * 0.88, '#ffe054', 0.55);
+    _drawFrostedDonut(ctx, w * 0.50, h * 0.44, 32, 11, '#ff6eb8');
+    _drawGummyBear(ctx, w * 0.21, h * 0.86, '#68f27c', '#1c9636', 0.48, 0.08);
+    _drawWrappedBonbonCandy(
+        ctx, w * 0.77, h * 0.72, '#4be6ff', '#fff9d2', 0.42, -0.15);
+    _drawLollipop(ctx, w * 0.82, h * 0.52, '#ffe054', 0.44);
   }
 
   static void _drawPreviewLunar(CanvasRenderingContext2D ctx, double w, double h) {
@@ -4057,35 +5954,57 @@ class WorldGenerator {
     ctx.restore();
   }
 
-  static void _drawPreviewCity(CanvasRenderingContext2D ctx, double w, double h) {
-    const List<List<dynamic>> bldgs = [
-      [0.10, 0.44, 0.24, '#f26a5a'],
-      [0.36, 0.26, 0.28, '#5ab2f2'],
-      [0.66, 0.38, 0.24, '#f5c542'],
+  static void _drawPreviewToyland(
+      CanvasRenderingContext2D ctx, double w, double h) {
+    // Playmat turf base.
+    ctx.fillStyle = '#3ad65c'.toJS;
+    ctx.strokeStyle = '#104a22'.toJS;
+    ctx.lineWidth = 2.4;
+    ctx.fillRect(0, h * 0.74, w, h * 0.26);
+    ctx.strokeRect(-2, h * 0.74, w + 4, h * 0.28);
+
+    // Mini studded LEGO-style brick stack on the left!
+    const List<List<dynamic>> bricks = [
+      [0.10, 0.56, 0.34, 0.18, '#2e8cff'],
+      [0.14, 0.38, 0.28, 0.18, '#ffd426'],
+      [0.17, 0.22, 0.22, 0.16, '#ff4d4d'],
     ];
-    for (final List<dynamic> b in bldgs) {
+    for (final List<dynamic> b in bricks) {
       final double bx = (b[0] as double) * w;
       final double by = (b[1] as double) * h;
       final double bw = (b[2] as double) * w;
-      ctx.fillStyle = (b[3] as String).toJS;
+      final double bh = (b[3] as double) * h;
+      ctx.fillStyle = (b[4] as String).toJS;
       ctx.strokeStyle = '#1b202e'.toJS;
-      ctx.lineWidth = 2.4;
-      ctx.fillRect(bx, by, bw, h - by);
-      ctx.strokeRect(bx, by, bw, h - by);
-      ctx.fillStyle = '#fff29c'.toJS;
-      for (double wy = by + 8; wy < h - 14; wy += 14) {
-        ctx.fillRect(bx + 6, wy, 8, 8);
-        ctx.fillRect(bx + bw - 14, wy, 8, 8);
+      ctx.lineWidth = 2.2;
+      // Top studs.
+      for (double sx = bx + 5; sx <= bx + bw - 12; sx += 13) {
+        ctx.fillRect(sx, by - 4, 8, 5);
+        ctx.strokeRect(sx, by - 4, 8, 5);
       }
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeRect(bx, by, bw, bh);
     }
+
+    // Wooden 'A' alphabet block on the right!
+    _drawAlphabetBlock(ctx, w * 0.68, h * 0.40, h * 0.35, 'A', '#ff4d4d');
   }
 
   static void _drawPreviewJungle(CanvasRenderingContext2D ctx, double w, double h) {
-    ctx.save();
-    ctx.translate(w * 0.52, h * 0.88);
-    ctx.scale(0.42, 0.42);
-    _drawJunglePyramid(ctx, 0, 0, 220, 155);
-    ctx.restore();
-    _drawPalmTree(ctx, w * 0.16, h * 0.84, 0.44, 12);
+    _drawFloatingCartoonIsland(
+      ctx,
+      cx: w * 0.72,
+      cy: h * 0.32,
+      width: w * 0.42,
+      height: h * 0.18,
+      rockTop: '#806d52',
+      rockBottom: '#473826',
+      rockOutline: '#1f160c',
+      turfTop: '#3ecf5e',
+      turfBottom: '#1a7538',
+      turfOutline: '#0d3b1c',
+    );
+    _drawStrangeTotemColumn(ctx, w * 0.28, h * 0.90, 3);
+    _drawStrangeMoaiFrogIdol(ctx, w * 0.72, h * 0.88, 0.42, facingLeft: true);
   }
 }

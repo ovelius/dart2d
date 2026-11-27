@@ -16,6 +16,10 @@ enum Mod {
   SNAIL,
   BRICK,
   SHOTGUN,
+  HEDGEHOG,
+  MOLE,
+  BEEHIVE,
+  PIGEON,
   UNKNOWN,
 }
 
@@ -85,6 +89,26 @@ Map<Mod, List<KillMessageBuilder>> _killedMessages = {
     (killed, killer) => "$killer gave $killed a whole bucket of pellets!",
     (killed, killer) => "$killed walked right into $killer's shotgun scatter!",
   ],
+  Mod.HEDGEHOG: [
+    (killed, killer) => "$killed stepped right on $killer's snoozing hedgehog!",
+    (killed, killer) => "$killer's Spiky Hedgehog turned $killed into a pincushion!",
+    (killed, killer) => "$killed woke up $killer's grumpy hedgehog mine!",
+  ],
+  Mod.MOLE: [
+    (killed, killer) => "$killed got bunker-busted by $killer's Turbo Mole!",
+    (killed, killer) => "$killer's hard-hat mole tunneled right under $killed!",
+    (killed, killer) => "$killed couldn't hide behind walls from $killer's Turbo Mole!",
+  ],
+  Mod.BEEHIVE: [
+    (killed, killer) => "$killed got swarmed by $killer's angry bees!",
+    (killed, killer) => "$killer's buzzing beehive stung $killed into orbit!",
+    (killed, killer) => "$killed poked $killer's Angry Beehive!",
+  ],
+  Mod.PIGEON: [
+    (killed, killer) => "$killed got carpet-bombed by $killer's chubby pigeons!",
+    (killed, killer) => "$killer called a Pigeon Strike right on $killed's head!",
+    (killed, killer) => "$killed forgot to bring an umbrella for $killer's pigeons!",
+  ],
   Mod.UNKNOWN: [
     (killed, killer) => "$killed went poof thanks to $killer!",
     (killed, killer) => "$killed met a cartoon end courtesy of $killer!",
@@ -100,6 +124,10 @@ Map<Mod, String Function(String player)> _selfKillMessages = {
   Mod.HYPER: (p) => "$p got toasted by their own Neon Blaster!",
   Mod.TV: (p) => "$p bounced into their own jellybeans!",
   Mod.SNAIL: (p) => "$p got caught by their own snails!",
+  Mod.HEDGEHOG: (p) => "$p tripped over their own Spiky Hedgehog!",
+  Mod.MOLE: (p) => "$p tunneled into their own Turbo Mole blast!",
+  Mod.BEEHIVE: (p) => "$p got stung by their own Angry Beehive!",
+  Mod.PIGEON: (p) => "$p stood right under their own Pigeon Strike!",
 };
 
 final List<String Function(String player)> _genericSelfKillMessages = [

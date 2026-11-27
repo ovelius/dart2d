@@ -65,6 +65,7 @@ void main() {
       LocalPlayerSprite player = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       player.position = new Vec2();
       player.velocity = new Vec2();
+      player.size = new Vec2(42.0, 48.0);
 
       // 10 damage at 0 distance.
       int damageDone = 10;

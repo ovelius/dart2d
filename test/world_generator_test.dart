@@ -102,7 +102,7 @@ void main() {
             'glacier',
             'candy',
             'lunar',
-            'city',
+            'toyland',
             'jungle',
           ]));
       for (final WorldThemeSpec t in WORLD_THEMES) {
@@ -166,7 +166,7 @@ void main() {
 
     test('ByteWorld preserves generated bedrock pixels when blasting terrain', () async {
       final GeneratedWorldResult gen = WorldGenerator.generate(
-        WorldThemeId.city,
+        WorldThemeId.toyland,
         99,
         width: 320,
         height: 180,
@@ -617,6 +617,85 @@ void main() {
         }
         expect(deepCenterEmpty, equals(0),
             reason: 'Theme ${theme.key} must not have pre-destroyed carved holes in the ground');
+      }
+    });
+
+    test('Toy Land theme replaces City and populates terrain, bedrock, and animated skybox', () {
+      expect(worldThemeByKey('city'), isNull);
+      final WorldThemeSpec? toyland = worldThemeByKey('toyland');
+      expect(toyland, isNotNull);
+      expect(toyland!.id, equals(WorldThemeId.toyland));
+      expect(toyland.name, equals('TOY LAND'));
+      expect(toyland.gravity, equals(DEFAULT_WORLD_GRAVITY));
+
+      final GeneratedWorldResult? res =
+          WorldGenerator.generateFromMapKey('gen:toyland:2026');
+      expect(res, isNotNull);
+      final int third = 2080 ~/ 3;
+      for (int zone = 0; zone < 3; zone++) {
+        final int x0 = zone * third;
+        final int x1 = (zone == 2) ? 2080 : (zone + 1) * third;
+        expect(_countOpaquePixels(res!.terrainCanvas, startX: x0, endX: x1),
+            greaterThan(80000));
+        expect(_countOpaquePixels(res.bedrockCanvas, startX: x0, endX: x1),
+            greaterThan(2000));
+      }
+
+      final HTMLCanvasElement sky0 = HTMLCanvasElement()
+        ..width = 240
+        ..height = 135;
+      final HTMLCanvasElement sky1 = HTMLCanvasElement()
+        ..width = 240
+        ..height = 135;
+      WorldGenerator.drawGameplaySky(sky0.context2D, 240, 135, toyland, 0.0,
+          seed: 77);
+      WorldGenerator.drawGameplaySky(sky1.context2D, 240, 135, toyland, 6.0,
+          seed: 77);
+      expect(_countPixelDifferences(sky0, sky1), greaterThan(50));
+    });
+
+    test('Jungle has strong multi-tier verticality and Spooky/Volcano/Candy render enriched landmarks cleanly', () {
+      const int w = 416;
+      const int h = 180;
+      final GeneratedWorldResult jungle =
+          WorldGenerator.generate(WorldThemeId.jungle, 2026, width: w, height: h);
+      final GeneratedWorldResult villa =
+          WorldGenerator.generate(WorldThemeId.villa, 2026, width: w, height: h);
+
+      // Count solid pixels in the upper-canopy band (top 22% of map height: y = 0..39).
+      // Vertically-focused Jungle (high canopy altar + strange deity + stacked tiers)
+      // should have substantially more high-altitude playable terrain than Villa!
+      int countBandOpaque(HTMLCanvasElement c, int y0, int y1) {
+        final Uint8ClampedList d =
+            c.context2D.getImageData(0, y0, w, y1 - y0).data.toDart;
+        int n = 0;
+        for (int i = 3; i < d.length; i += 4) {
+          if (d[i] > 128) n++;
+        }
+        return n;
+      }
+
+      final int jungleUpper = countBandOpaque(jungle.terrainCanvas, 0, 40);
+      final int villaUpper = countBandOpaque(villa.terrainCanvas, 0, 40);
+      expect(jungleUpper, greaterThan(villaUpper + 800),
+          reason: 'Jungle should be more vertically focused in the upper canopy than Villa');
+      expect(countBandOpaque(jungle.terrainCanvas, 40, 100), greaterThan(2500),
+          reason: 'Jungle mid-canopy cliff mesas and strange statues should populate middle band');
+
+      // Verify Spooky (skeletons & drifting ghosts), Volcano (dino skeletons), and Candy
+      // (varied confections) generate rich terrain and previews cleanly!
+      for (final WorldThemeId id in const [
+        WorldThemeId.spooky,
+        WorldThemeId.volcano,
+        WorldThemeId.candy,
+        WorldThemeId.jungle,
+      ]) {
+        final WorldThemeSpec spec = worldThemeById(id);
+        final GeneratedWorldResult gen =
+            WorldGenerator.generate(id, 888, width: w, height: h);
+        expect(_countOpaquePixels(gen.terrainCanvas), greaterThan(12000));
+        final HTMLCanvasElement preview = WorldGenerator.getThemePreview(spec);
+        expect(_countOpaquePixels(preview), greaterThan(2000));
       }
     });
   });

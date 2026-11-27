@@ -7,7 +7,7 @@ enum WorldThemeId {
   glacier,
   candy,
   lunar,
-  city,
+  toyland,
   jungle,
 }
 
@@ -95,13 +95,13 @@ const List<WorldThemeSpec> WORLD_THEMES = [
     skyColors: ['#0a1026', '#16224a', '#263870'],
   ),
   WorldThemeSpec(
-    id: WorldThemeId.city,
-    key: 'city',
-    name: 'CITY',
-    subtitle: 'Skyline Roofs',
+    id: WorldThemeId.toyland,
+    key: 'toyland',
+    name: 'TOY LAND',
+    subtitle: 'Playroom Blocks',
     gravity: DEFAULT_WORLD_GRAVITY,
-    accentColor: '#48b8ff',
-    skyColors: ['#38a4f0', '#86d6ff', '#e8f7ff'],
+    accentColor: '#ff5252',
+    skyColors: ['#36b2ff', '#9be4ff', '#fff7d4'],
   ),
   WorldThemeSpec(
     id: WorldThemeId.jungle,

@@ -37,7 +37,7 @@ class PlayerWorldSelector {
   /// surrounding the player sprite in the center cell (1, 1):
   ///   [0: Villa   ] [1: Spooky] [2: Volcano]
   ///   [7: Jungle  ] [ PLAYER  ] [3: Glacier]
-  ///   [6: City    ] [5: Lunar ] [4: Candy  ]
+  ///   [6: Toy Land] [5: Lunar ] [4: Candy  ]
   static const List<Point<int>> _GRID_COORDS = [
     Point(0, 0),
     Point(1, 0),

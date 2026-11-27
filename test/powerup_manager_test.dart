@@ -174,5 +174,91 @@ void main() {
       manager.pruneRemoved();
       expect(manager.activePowerups, equals([remote2]));
     });
+
+    test('trackPowerup ignores removed powerups and deduplicates by matching networkId', () {
+      Powerup removed = Powerup(Vec2(5.0, 5.0), PowerUpType.HEALTH, mockImageIndex)
+        ..networkId = 10
+        ..remove = true;
+      manager.trackPowerup(removed);
+      expect(manager.activePowerups, isEmpty);
+
+      Powerup firstInstance =
+          Powerup(Vec2(10.0, 10.0), PowerUpType.SHIELD, mockImageIndex)
+            ..networkId = 77;
+      Powerup duplicateIdInstance =
+          Powerup(Vec2(10.0, 10.0), PowerUpType.SHIELD, mockImageIndex)
+            ..networkId = 77;
+
+      manager.trackPowerup(firstInstance);
+      manager.trackPowerup(duplicateIdInstance);
+      expect(manager.activePowerups, hasLength(1));
+      expect(identical(manager.activePowerups.single, firstInstance), isTrue);
+    });
+
+    test('syncWithSpriteIndex handles pending sprites, pending removals, vanished IDs, and command-transfer timer scaling', () {
+      // 1. Unchanged active count must NOT overwrite a custom test timer (e.g. 999s).
+      when(mockSpriteIndex.spriteIds()).thenReturn(const <int>[]);
+      when(mockSpriteIndex.pendingSprites()).thenReturn(const <Sprite>[]);
+      manager.setNextPowerForTest(999.0);
+      manager.syncWithSpriteIndex();
+      expect(manager.nextPowerupIn, equals(999.0));
+
+      // 2. Adopting existing world + pending powerups (e.g. on command transfer) scales
+      // a short initial timer up to match the adopted active count!
+      manager.reset();
+      expect(manager.nextPowerupIn, equals(PowerupManager.MIN_POWERUP_SPAWN_TIME));
+
+      Powerup inWorld =
+          Powerup(Vec2(20.0, 30.0), PowerUpType.HEALTH, mockImageIndex)
+            ..networkId = 101;
+      Powerup inPendingQueue =
+          Powerup(Vec2(50.0, 60.0), PowerUpType.POWERUP, mockImageIndex)
+            ..networkId = 102;
+      Powerup pendingRemovalPowerup =
+          Powerup(Vec2(80.0, 90.0), PowerUpType.JETPACK, mockImageIndex)
+            ..networkId = 103;
+
+      when(mockSpriteIndex.spriteIds()).thenReturn([101, 103]);
+      when(mockSpriteIndex[101]).thenReturn(inWorld);
+      when(mockSpriteIndex[103]).thenReturn(pendingRemovalPowerup);
+      when(mockSpriteIndex.hasSprite(101)).thenReturn(true);
+      when(mockSpriteIndex.hasSprite(102)).thenReturn(false);
+      when(mockSpriteIndex.hasSprite(103)).thenReturn(true);
+      when(mockSpriteIndex.getPendingSprite(102)).thenReturn(inPendingQueue);
+      when(mockSpriteIndex.pendingSprites()).thenReturn([inPendingQueue]);
+      when(mockSpriteIndex.isPendingRemoval(101)).thenReturn(false);
+      when(mockSpriteIndex.isPendingRemoval(102)).thenReturn(false);
+      when(mockSpriteIndex.isPendingRemoval(103)).thenReturn(true);
+
+      manager.syncWithSpriteIndex();
+      // Adopts 101 (in world) and 102 (in pending queue), skips 103 (pending removal)!
+      expect(manager.activePowerups, unorderedEquals([inWorld, inPendingQueue]));
+      expect(manager.nextPowerupIn, equals(manager.nextSpawnInterval()));
+      expect(manager.nextPowerupIn, greaterThan(PowerupManager.MIN_POWERUP_SPAWN_TIME));
+
+      // 3. When 101 vanishes from SpriteIndex and 102 becomes pending removal,
+      // syncWithSpriteIndex prunes both and clamps timer back down to MIN_POWERUP_SPAWN_TIME.
+      when(mockSpriteIndex.spriteIds()).thenReturn(const <int>[]);
+      when(mockSpriteIndex.pendingSprites()).thenReturn(const <Sprite>[]);
+      when(mockSpriteIndex.hasSprite(101)).thenReturn(false);
+      when(mockSpriteIndex.getPendingSprite(101)).thenReturn(null);
+      when(mockSpriteIndex.isPendingRemoval(102)).thenReturn(true);
+
+      manager.syncWithSpriteIndex();
+      expect(manager.activePowerups, isEmpty);
+      expect(manager.nextPowerupIn, equals(PowerupManager.MIN_POWERUP_SPAWN_TIME));
+    });
+
+    test('addNewRandomPowerup directly enforces MAX_POWERUPS and spawns valid PowerUpTypes', () {
+      for (int i = 0; i < PowerupManager.MAX_POWERUPS + 3; i++) {
+        manager.addNewRandomPowerup();
+      }
+      expect(manager.activePowerups, hasLength(PowerupManager.MAX_POWERUPS));
+      verify(mockSpriteIndex.addSprite(any)).called(PowerupManager.MAX_POWERUPS);
+      for (final Powerup p in manager.activePowerups) {
+        expect(PowerUpType.values, contains(p.type));
+        expect(p.lifeTime, equals(Powerup.LIFETIME));
+      }
+    });
   });
 }

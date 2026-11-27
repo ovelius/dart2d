@@ -13,3 +13,4 @@ export 'sprite_index.dart';
 export 'stickysprite.dart';
 export 'world_damage_projectile.dart';
 export 'worm_player.dart';
+export 'zoo_weapons.dart';

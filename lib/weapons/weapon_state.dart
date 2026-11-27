@@ -16,9 +16,9 @@ import '../util/mobile_controls.dart';
 class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = 1.3;
-  static const int ICON_TILE_SIZE = 80;
+  static const int ICON_TILE_SIZE = 68;
   static const int ICON_SIZE_HALF = ICON_TILE_SIZE ~/ 2;
-  static const int WHEEL_SIZE = 145;
+  static const int WHEEL_SIZE = 172;
   WormWorld world;
   LocalPlayerSprite owner;
   Sprite gun;
@@ -124,7 +124,7 @@ class WeaponState {
           -sprite.size.y * sin(sprite.angle)).multiply(0.35);
 
       Particles p = new Particles(weaponState.world, sprite, sprite.position, sprite.velocity.multiply(0.2),
-          count: 60, lifeTime: 160, shrinkPerStep: 0.2, followOffset: offset);
+          radius: 6.8, count: 42, lifeTime: 115, shrinkPerStep: 0.25, followOffset: offset);
       p.sendToNetwork = true;
       // The order is important here.
       weaponState.world.addSprite(sprite);
@@ -174,6 +174,30 @@ class WeaponState {
       sprite.spawn_sound = Sound.HYPER;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;
+      weaponState.world.addSprite(sprite);
+    }),
+    new Weapon("Spiky Hedgehog", 10, 2, 5.5, 0.9, (WeaponState weaponState) {
+      HedgehogMine sprite = new HedgehogMine.createWithOwner(
+          weaponState.world, weaponState.owner, 38, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.SWOSH;
+      weaponState.world.addSprite(sprite);
+    }),
+    new Weapon("Turbo Mole", 11, 2, 5.0, 1.0, (WeaponState weaponState) {
+      MoleDrillProjectile sprite = new MoleDrillProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, 45, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.ZOOKA;
+      weaponState.world.addSprite(sprite);
+    }),
+    new Weapon("Angry Beehive", 12, 2, 5.5, 1.0, (WeaponState weaponState) {
+      AngryBeehive sprite = new AngryBeehive.createWithOwner(
+          weaponState.world, weaponState.owner, 18, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.SWOSH;
+      weaponState.world.addSprite(sprite);
+    }),
+    new Weapon("Pigeon Strike", 13, 1, 6.5, 1.0, (WeaponState weaponState) {
+      PigeonStrikeFlare sprite = new PigeonStrikeFlare.createWithOwner(
+          weaponState.world, weaponState.owner, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
     }),
   ];
@@ -233,10 +257,19 @@ class WeaponState {
 
   _drawIconImageAt(CanvasRenderingContext2D context,
       HTMLImageElement iconImages, int index, num x, num y) {
-    context.drawImage(iconImages,
-        index * 128, 0, 128, 128,
-        x, y
-        ,ICON_TILE_SIZE, ICON_TILE_SIZE);
+    if ((index + 1) * 128 <= iconImages.width && iconImages.height >= 128) {
+      context.drawImage(iconImages,
+          index * 128, 0, 128, 128,
+          x, y,
+          ICON_TILE_SIZE, ICON_TILE_SIZE);
+    } else {
+      context.save();
+      context.fillStyle = "#424b54".toJS;
+      context.beginPath();
+      context.roundRect(x, y, ICON_TILE_SIZE, ICON_TILE_SIZE, 12.0.toJS);
+      context.fill();
+      context.restore();
+    }
   }
 
   _drawChangeTime(CanvasRenderingContext2D context,
@@ -470,6 +503,16 @@ class WeaponState {
     final double ownerAlpha = (isLocalOwner ? 1.0 : 0.68) * reloadDim;
     final double pulse = 0.88 + 0.12 * sin(_laserTime * 14.0);
     final double alpha = ownerAlpha * pulse;
+    final bool lockedOnPlayer = trace.hasLivePlayerInPath;
+
+    final String outerGlowRgb = lockedOnPlayer ? "32, 248, 112" : "255, 32, 48";
+    final String coreBeamRgb = lockedOnPlayer ? "56, 255, 128" : "255, 48, 62";
+    final String hotFilamentRgb =
+        lockedOnPlayer ? "224, 255, 236" : "255, 232, 234";
+    final String pierceGlowRgb =
+        lockedOnPlayer ? "42, 240, 116" : "255, 52, 68";
+    final String pierceDashRgb =
+        lockedOnPlayer ? "96, 255, 156" : "255, 92, 102";
 
     final double startX = trace.start.x;
     final double startY = trace.start.y;
@@ -482,23 +525,23 @@ class WeaponState {
     context.save();
     context.lineCap = "round";
 
-    // 1. Primary open-air laser beam (soft outer glow + bright crimson + hot core).
+    // 1. Primary open-air laser beam (turns neon lock-on green when a live player is in path!).
     if (solidEndDist > 0.5) {
-      context.strokeStyle = "rgba(255, 32, 48, ${0.26 * alpha})".toJS;
+      context.strokeStyle = "rgba($outerGlowRgb, ${0.28 * alpha})".toJS;
       context.lineWidth = 6.5;
       context.beginPath();
       context.moveTo(startX, startY);
       context.lineTo(solidEndX, solidEndY);
       context.stroke();
 
-      context.strokeStyle = "rgba(255, 48, 62, ${0.84 * alpha})".toJS;
+      context.strokeStyle = "rgba($coreBeamRgb, ${0.86 * alpha})".toJS;
       context.lineWidth = 2.2;
       context.beginPath();
       context.moveTo(startX, startY);
       context.lineTo(solidEndX, solidEndY);
       context.stroke();
 
-      context.strokeStyle = "rgba(255, 232, 234, ${0.92 * alpha})".toJS;
+      context.strokeStyle = "rgba($hotFilamentRgb, ${0.94 * alpha})".toJS;
       context.lineWidth = 0.9;
       context.beginPath();
       context.moveTo(startX, startY);
@@ -517,7 +560,7 @@ class WeaponState {
       final double phase = (_laserTime * 55.0) % period;
 
       // Soft outer piercing glow.
-      context.strokeStyle = "rgba(255, 52, 68, ${0.22 * alpha})".toJS;
+      context.strokeStyle = "rgba($pierceGlowRgb, ${0.24 * alpha})".toJS;
       context.lineWidth = 4.2;
       context.beginPath();
       for (double d = pierceStart + phase; d < trace.totalDistance; d += period) {
@@ -528,7 +571,7 @@ class WeaponState {
       context.stroke();
 
       // Crisp inner piercing laser dashes.
-      context.strokeStyle = "rgba(255, 92, 102, ${0.72 * alpha})".toJS;
+      context.strokeStyle = "rgba($pierceDashRgb, ${0.76 * alpha})".toJS;
       context.lineWidth = 1.5;
       context.beginPath();
       for (double d = pierceStart + phase; d < trace.totalDistance; d += period) {
@@ -540,41 +583,215 @@ class WeaponState {
 
       // Glowing laser contact dot right where the beam hits terrain.
       final double dotR = 3.2 + 0.8 * sin(_laserTime * 18.0);
-      context.fillStyle = "rgba(255, 42, 58, ${0.38 * alpha})".toJS;
+      context.fillStyle = "rgba($coreBeamRgb, ${0.40 * alpha})".toJS;
       context.beginPath();
       context.arc(solidEndX, solidEndY, dotR * 2.1, 0, 2 * pi);
       context.fill();
 
-      context.fillStyle = "rgba(255, 225, 228, ${0.95 * alpha})".toJS;
+      context.fillStyle = "rgba($hotFilamentRgb, ${0.95 * alpha})".toJS;
       context.beginPath();
       context.arc(solidEndX, solidEndY, dotR * 0.85, 0, 2 * pi);
       context.fill();
     }
 
-    // 3. Target-lock laser dots on any enemy player along the snail's trajectory!
+    // 3. Target-lock laser reticle on any live enemy player along the snail's trajectory!
     for (final Vec2 hit in trace.playerHits) {
-      final double lockPulse = 1.0 + 0.25 * sin(_laserTime * 20.0);
-      context.strokeStyle = "rgba(255, 48, 64, ${0.9 * alpha})".toJS;
-      context.lineWidth = 1.8;
+      final double lockPulse = 1.0 + 0.22 * sin(_laserTime * 20.0);
+      final double ringR = 8.0 * lockPulse;
+      context.strokeStyle = "rgba($coreBeamRgb, ${0.92 * alpha})".toJS;
+      context.lineWidth = 2.0;
       context.beginPath();
-      context.arc(hit.x, hit.y, 7.5 * lockPulse, 0, 2 * pi);
+      context.arc(hit.x, hit.y, ringR, 0, 2 * pi);
       context.stroke();
 
-      context.fillStyle = "rgba(255, 240, 240, ${0.95 * alpha})".toJS;
+      // Crisp lock-on cardinal ticks around the green target ring.
+      context.lineWidth = 1.6;
+      context.beginPath();
+      context.moveTo(hit.x - ringR - 3.5, hit.y);
+      context.lineTo(hit.x - ringR + 1.5, hit.y);
+      context.moveTo(hit.x + ringR - 1.5, hit.y);
+      context.lineTo(hit.x + ringR + 3.5, hit.y);
+      context.moveTo(hit.x, hit.y - ringR - 3.5);
+      context.lineTo(hit.x, hit.y - ringR + 1.5);
+      context.moveTo(hit.x, hit.y + ringR - 1.5);
+      context.lineTo(hit.x, hit.y + ringR + 3.5);
+      context.stroke();
+
+      context.fillStyle = "rgba($hotFilamentRgb, ${0.96 * alpha})".toJS;
       context.beginPath();
       context.arc(hit.x, hit.y, 2.8, 0, 2 * pi);
       context.fill();
     }
 
     // 4. Tiny glowing emitter dot at the gun barrel tip.
-    context.fillStyle = "rgba(255, 58, 72, ${0.5 * alpha})".toJS;
+    context.fillStyle = "rgba($coreBeamRgb, ${0.52 * alpha})".toJS;
     context.beginPath();
     context.arc(startX, startY, 3.8, 0, 2 * pi);
     context.fill();
-    context.fillStyle = "rgba(255, 240, 240, ${0.95 * alpha})".toJS;
+    context.fillStyle = "rgba($hotFilamentRgb, ${0.95 * alpha})".toJS;
     context.beginPath();
     context.arc(startX, startY, 1.6, 0, 2 * pi);
     context.fill();
+
+    context.restore();
+  }
+
+  static const double AIM_GUIDE_DISTANCE = 170.0;
+
+  static WeaponBallisticsProfile ballisticsForWeapon(String weaponName) {
+    switch (weaponName) {
+      case "Zooka":
+        return const WeaponBallisticsProfile(launchSpeed: 500.0, gravityAffect: 0.05);
+      case "Neon Blaster":
+        return const WeaponBallisticsProfile(launchSpeed: 150.0, gravityAffect: 0.0);
+      case "Snailgun":
+        return const WeaponBallisticsProfile(launchSpeed: 500.0, gravityAffect: 0.0);
+      case "Jellybean Jet":
+        return const WeaponBallisticsProfile(launchSpeed: 435.0, gravityAffect: 0.10);
+      case "Dart gun":
+        return const WeaponBallisticsProfile(launchSpeed: 530.0, gravityAffect: 0.30);
+      case "Shotgun":
+        return const WeaponBallisticsProfile(launchSpeed: 540.0, gravityAffect: 0.50);
+      case "Brick builder":
+        return const WeaponBallisticsProfile(launchSpeed: 500.0, gravityAffect: 1.0);
+      case "Coffee Burn":
+        return const WeaponBallisticsProfile(launchSpeed: 400.0, gravityAffect: 0.0);
+      case "Pigeon Strike":
+        return const WeaponBallisticsProfile(launchSpeed: 360.0, gravityAffect: 0.72);
+      case "Turbo Mole":
+        return const WeaponBallisticsProfile(launchSpeed: 320.0, gravityAffect: 0.85);
+      case "Spiky Hedgehog":
+        return const WeaponBallisticsProfile(launchSpeed: 240.0, gravityAffect: 1.0);
+      case "Banana pancake":
+      case "Angry Beehive":
+        return const WeaponBallisticsProfile(launchSpeed: 200.0, gravityAffect: 1.0);
+      case "Cat litter box":
+        return const WeaponBallisticsProfile(launchSpeed: 100.0, gravityAffect: 1.0);
+      default:
+        return const WeaponBallisticsProfile(launchSpeed: 350.0, gravityAffect: 0.5);
+    }
+  }
+
+  /// Computes a simple, static, fixed-distance ballistic aim guide from the gun
+  /// muzzle based solely on `gun.angle` and the selected weapon's launch speed
+  /// and gravity (ignoring player velocity and world terrain collisions).
+  TrajectoryGuideTrace computeTrajectoryGuide() {
+    final WeaponBallisticsProfile profile =
+        ballisticsForWeapon(getSelectedWeapon().name);
+    final Vec2 center = owner.centerPoint();
+    final double dirX = cos(gun.angle);
+    final double dirY = sin(gun.angle);
+    final double muzzleOffset = gun.size.x * 0.5;
+
+    final double startX = center.x + dirX * muzzleOffset;
+    final double startY = center.y + dirY * muzzleOffset;
+    final double vx = dirX * profile.launchSpeed;
+    final double vy = dirY * profile.launchSpeed;
+
+    double worldGravityY = 300.0;
+    try {
+      worldGravityY = world.gravity.y;
+    } catch (_) {}
+    final double gy = worldGravityY * profile.gravityAffect;
+
+    const double dt = 0.025;
+    const int maxSteps = 60;
+    final List<Vec2> points = [Vec2(startX, startY)];
+    double px = startX;
+    double py = startY;
+    double traveled = 0.0;
+
+    for (int i = 1; i <= maxSteps; i++) {
+      final double t = i * dt;
+      final double nx = startX + vx * t;
+      final double ny = startY + vy * t + 0.5 * gy * t * t;
+      final double segDx = nx - px;
+      final double segDy = ny - py;
+      final double segLen = sqrt(segDx * segDx + segDy * segDy);
+
+      if (traveled + segLen >= AIM_GUIDE_DISTANCE && segLen > 1e-6) {
+        final double frac = (AIM_GUIDE_DISTANCE - traveled) / segLen;
+        points.add(Vec2(px + segDx * frac, py + segDy * frac));
+        break;
+      }
+      traveled += segLen;
+      px = nx;
+      py = ny;
+      points.add(Vec2(px, py));
+    }
+
+    return TrajectoryGuideTrace(
+      points: points,
+      crosshair: points.last,
+    );
+  }
+
+  void _drawTrajectoryGuide(CanvasRenderingContext2D context) {
+    final TrajectoryGuideTrace guide = computeTrajectoryGuide();
+    if (guide.points.length < 2) return;
+
+    final double alpha = reloading() ? 0.32 : 0.82;
+    final List<double> cumDist = [0.0];
+    for (int i = 1; i < guide.points.length; i++) {
+      final double dx = guide.points[i].x - guide.points[i - 1].x;
+      final double dy = guide.points[i].y - guide.points[i - 1].y;
+      cumDist.add(cumDist.last + sqrt(dx * dx + dy * dy));
+    }
+    final double totalArc = cumDist.last;
+    if (totalArc < 6.0) return;
+
+    context.save();
+    context.globalAlpha = alpha;
+
+    // Static, evenly-spaced guide dots out to the fixed crosshair distance.
+    const double dotSpacing = 22.0;
+    int segIdx = 0;
+    for (double d = 18.0; d < totalArc - 14.0; d += dotSpacing) {
+      while (segIdx < cumDist.length - 2 && cumDist[segIdx + 1] < d) {
+        segIdx++;
+      }
+      final double segStart = cumDist[segIdx];
+      final double segSpan = max(1e-6, cumDist[segIdx + 1] - segStart);
+      final double t = ((d - segStart) / segSpan).clamp(0.0, 1.0);
+      final double x = guide.points[segIdx].x +
+          (guide.points[segIdx + 1].x - guide.points[segIdx].x) * t;
+      final double y = guide.points[segIdx].y +
+          (guide.points[segIdx + 1].y - guide.points[segIdx].y) * t;
+
+      context.fillStyle = "rgba(16, 22, 34, 0.80)".toJS;
+      context.beginPath();
+      context.arc(x, y, 3.0, 0, 2 * pi);
+      context.fill();
+
+      context.fillStyle = "#fffdf0".toJS;
+      context.beginPath();
+      context.arc(x, y, 1.9, 0, 2 * pi);
+      context.fill();
+    }
+
+    // Simple static crosshair reticle at the fixed endpoint.
+    final Vec2 ch = guide.crosshair;
+    const double ringR = 6.8;
+    const double tickIn = 2.0;
+    const double tickOut = 3.2;
+    context.lineCap = "round";
+
+    for (int pass = 0; pass < 2; pass++) {
+      context.strokeStyle =
+          (pass == 0 ? "rgba(16, 22, 34, 0.85)" : "#fffdf0").toJS;
+      context.lineWidth = pass == 0 ? 3.0 : 1.5;
+      context.beginPath();
+      context.arc(ch.x, ch.y, ringR, 0, 2 * pi);
+      context.moveTo(ch.x - ringR - tickOut, ch.y);
+      context.lineTo(ch.x - ringR + tickIn, ch.y);
+      context.moveTo(ch.x + ringR - tickIn, ch.y);
+      context.lineTo(ch.x + ringR + tickOut, ch.y);
+      context.moveTo(ch.x, ch.y - ringR - tickOut);
+      context.lineTo(ch.x, ch.y - ringR + tickIn);
+      context.moveTo(ch.x, ch.y + ringR - tickIn);
+      context.lineTo(ch.x, ch.y + ringR + tickOut);
+      context.stroke();
+    }
 
     context.restore();
   }
@@ -583,6 +800,8 @@ class WeaponState {
     context.save();
     if (getSelectedWeapon().hasLaserSight) {
       _drawLaserSight(context);
+    } else if (owner.drawWeaponHelpers()) {
+      _drawTrajectoryGuide(context);
     }
     if (owner.drawWeaponHelpers()) {
       _drawMagazineIndicator(context);
@@ -847,6 +1066,30 @@ class LaserSightTrace {
     required this.playerHits,
   });
 
+  bool get hasLivePlayerInPath => playerHits.isNotEmpty;
+
+  String get beamColorMode => hasLivePlayerInPath ? "green" : "red";
+
   Vec2 get end =>
       Vec2(start.x + dir.x * totalDistance, start.y + dir.y * totalDistance);
+}
+
+class WeaponBallisticsProfile {
+  final double launchSpeed;
+  final double gravityAffect;
+
+  const WeaponBallisticsProfile({
+    required this.launchSpeed,
+    required this.gravityAffect,
+  });
+}
+
+class TrajectoryGuideTrace {
+  final List<Vec2> points;
+  final Vec2 crosshair;
+
+  const TrajectoryGuideTrace({
+    required this.points,
+    required this.crosshair,
+  });
 }

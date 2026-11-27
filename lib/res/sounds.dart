@@ -37,7 +37,9 @@ enum Sound {
   // This is a version of the powerup sound from
   // https://freesound.org/people/AbbasGamez/
   JUMP("jump.mp3"),
-  KILL("kill.wav");
+  // AI generated.
+  KILL("kill.wav"),
+  SPAWN("spawn.wav");
 
   const Sound(this.url);
 

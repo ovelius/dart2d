@@ -67,6 +67,7 @@ class PowerupManager {
   }
 
   void syncWithSpriteIndex() {
+    final int prevCount = activePowerups.length;
     activePowerups.removeWhere((p) {
       if (p.remove) {
         return true;
@@ -99,10 +100,11 @@ class PowerupManager {
         trackPowerup(s);
       }
     }
-    if (activePowerups.length >= MAX_POWERUPS) {
-      _nextPowerupin = nextSpawnInterval();
-    } else {
+    if (activePowerups.length < prevCount) {
       _nextPowerupin = min(_nextPowerupin, nextSpawnInterval());
+    } else if (activePowerups.length > prevCount &&
+        _nextPowerupin < nextSpawnInterval()) {
+      _nextPowerupin = nextSpawnInterval();
     }
   }
 

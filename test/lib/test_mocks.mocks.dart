@@ -3693,6 +3693,15 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
+  double get spawnEffectRemaining =>
+      (super.noSuchMethod(
+            Invocation.getter(#spawnEffectRemaining),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
+
+  @override
   int get shieldPoints =>
       (super.noSuchMethod(
             Invocation.getter(#shieldPoints),
@@ -4169,6 +4178,12 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  void triggerSpawnEffect() => super.noSuchMethod(
+    Invocation.method(#triggerSpawnEffect, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   dynamic draw(_i16.CanvasRenderingContext2D? context, bool? debug) =>

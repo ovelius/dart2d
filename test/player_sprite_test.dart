@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'package:dart2d/weapons/abstractweapon.dart';
 import 'package:test/test.dart';
 import 'package:web/helpers.dart';
@@ -146,13 +147,22 @@ void main() {
     // Detects terrain surface at x = 200 -> distance ~99 from muzzle.
     expect(trace.terrainHitDistance, isNotNull);
     expect(trace.terrainHitDistance!, closeTo(99.0, 2.0));
-    // Detects enemy sitting behind the wall at x ~ 341.
+    // Detects enemy sitting behind the wall at x ~ 341 and turns beam green!
     expect(trace.playerHits, hasLength(1));
     expect(trace.playerHits.first.x, closeTo(341.0, 1.0));
+    expect(trace.hasLivePlayerInPath, isTrue);
+    expect(trace.beamColorMode, equals("green"));
 
-    // Renders cleanly on canvas.
+    // Renders green lock-on beam cleanly on canvas.
     FakeCanvas canvas = FakeCanvas();
     ws.think(0.05);
+    ws.draw(canvas.context2D);
+
+    // When enemy is dead (!inGame) or off-axis, laser sight reverts to red!
+    enemy.info.inGame = false;
+    LaserSightTrace deadEnemyTrace = ws.computeLaserSightTrace();
+    expect(deadEnemyTrace.hasLivePlayerInPath, isFalse);
+    expect(deadEnemyTrace.beamColorMode, equals("red"));
     ws.draw(canvas.context2D);
   });
 
@@ -229,5 +239,153 @@ void main() {
 
     FakeCanvas canvas = FakeCanvas();
     ws.drawWeaponHelper(canvas.context2D, const Point(400, 400), true);
+  });
+
+  test("PlayerGunSprite renders upright aiming right and left with firing recoil", () {
+    final HTMLImageElement gunImg = HTMLImageElement()
+      ..width = 180
+      ..height = 54;
+    when(mockImageIndex.getImageById(3)).thenReturn(gunImg);
+
+    expect(commanderSprite.gun, isA<PlayerGunSprite>());
+    expect(commanderSprite.gun.size.x, equals(60.0));
+
+    FakeCanvas canvas = FakeCanvas();
+    commanderSprite.gun.angle = 0.0;
+    commanderSprite.gun.frame(0.016, 1);
+    commanderSprite.gun.draw(canvas.context2D, false);
+
+    // Spend one shot -> triggers recoil kick cleanly; also verify left-aiming upright draw!
+    commanderSprite.weaponState!.getSelectedWeapon().shotsLeft--;
+    commanderSprite.gun.angle = -2.6;
+    commanderSprite.gun.frame(0.016, 1);
+    commanderSprite.gun.draw(canvas.context2D, false);
+  });
+
+  test("Static fixed-distance crosshair guide reflects straight Zooka, lobbed Banana, and short-dropped Cat Litter Box while ignoring player velocity and walls", () {
+    MockByteWorld mockByteWorld = MockByteWorld();
+    when(mockByteWorld.byteWorldReady()).thenReturn(true);
+    when(mockByteWorld.width).thenReturn(600);
+    when(mockByteWorld.height).thenReturn(400);
+    // Solid wall right at x = 140 — guide must ignore terrain collisions!
+    when(mockByteWorld.isSolid(any, any)).thenAnswer((inv) {
+      final int x = inv.positionalArguments[0] as int;
+      return x >= 140;
+    });
+    when(mockCommanderWormWorld.byteWorld).thenReturn(mockByteWorld);
+    when(mockCommanderWormWorld.gravity).thenReturn(Vec2(0.0, 300.0));
+    MockSpriteIndex mockSprites = MockSpriteIndex();
+    when(mockSprites.spriteIds()).thenReturn([1]);
+    when(mockSprites[1]).thenReturn(commanderSprite);
+    when(mockCommanderWormWorld.spriteIndex).thenReturn(mockSprites);
+
+    MockPeerWrapper mockPeer = MockPeerWrapper();
+    when(mockPeer.getId()).thenReturn("a");
+    when(mockCommanderNetwork.peer).thenReturn(mockPeer);
+
+    commanderSprite.position = Vec2(80.0, 140.0);
+    commanderSprite.velocity = Vec2.ZERO;
+    commanderSprite.gun.angle = 0.0; // Aiming straight right
+    final WeaponState ws = commanderSprite.weaponState!;
+
+    // 1. Zooka goes virtually straight horizontally to fixed AIM_GUIDE_DISTANCE (ignoring solid wall at x=140).
+    ws.selectedWeaponIndex = ws.weapons.indexWhere((w) => w.name == "Zooka");
+    final TrajectoryGuideTrace zookaGuide = ws.computeTrajectoryGuide();
+    final double muzzleY = zookaGuide.points.first.y;
+    expect(zookaGuide.crosshair.x - zookaGuide.points.first.x,
+        closeTo(WeaponState.AIM_GUIDE_DISTANCE, 1.5));
+    expect((zookaGuide.crosshair.y - muzzleY).abs(), lessThan(2.5));
+
+    // 2. Banana pancake curves moderately downward over the fixed guide distance.
+    ws.selectedWeaponIndex =
+        ws.weapons.indexWhere((w) => w.name == "Banana pancake");
+    final TrajectoryGuideTrace bananaGuide = ws.computeTrajectoryGuide();
+    expect(bananaGuide.crosshair.y - muzzleY, greaterThan(40.0));
+
+    // 3. Cat litter box drops much more steeply right in front of the player!
+    ws.selectedWeaponIndex =
+        ws.weapons.indexWhere((w) => w.name == "Cat litter box");
+    final TrajectoryGuideTrace litterGuide = ws.computeTrajectoryGuide();
+    expect(litterGuide.crosshair.x, lessThan(bananaGuide.crosshair.x - 30.0));
+    expect(litterGuide.crosshair.y - muzzleY, greaterThan(75.0));
+
+    // 4. Player velocity is ignored — guide stays completely identical while moving/jumping!
+    commanderSprite.velocity = Vec2(120.0, -250.0);
+    ws.selectedWeaponIndex =
+        ws.weapons.indexWhere((w) => w.name == "Banana pancake");
+    final TrajectoryGuideTrace movingBananaGuide = ws.computeTrajectoryGuide();
+    expect(movingBananaGuide.crosshair.x, closeTo(bananaGuide.crosshair.x, 1e-6));
+    expect(movingBananaGuide.crosshair.y, closeTo(bananaGuide.crosshair.y, 1e-6));
+
+    // 5. Renders cleanly for every weapon on canvas.
+    FakeCanvas canvas = FakeCanvas();
+    for (int i = 0; i < ws.weapons.length; i++) {
+      ws.selectedWeaponIndex = i;
+      ws.think(0.03);
+      ws.draw(canvas.context2D);
+    }
+  });
+
+  test("Spawn into game triggers short visual pop-in effect and Sound.SPAWN on inGame transition", () {
+    MockPeerWrapper mockPeer = MockPeerWrapper();
+    when(mockPeer.getId()).thenReturn("a");
+    when(mockCommanderNetwork.peer).thenReturn(mockPeer);
+
+    expect(commanderSprite.inGame(), isFalse);
+    expect(commanderSprite.spawnEffectRemaining, equals(0.0));
+
+    // Transitioning into game triggers the 0.65s spawn effect and plays Sound.SPAWN!
+    commanderSprite.info.inGame = true;
+    commanderSprite.frame(0.05, 1);
+    expect(commanderSprite.spawnEffectRemaining, closeTo(0.60, 0.02));
+    verify(mockCommanderWormWorld.playSound(Sound.SPAWN,
+            volume: anyNamed('volume'), multiPlay: true))
+        .called(1);
+
+    // Renders backdrop beam, elastic squash-stretch player, and foreground poof/stars cleanly,
+    // then expires after SPAWN_EFFECT_DURATION.
+    FakeCanvas canvas = FakeCanvas();
+    commanderSprite.draw(canvas.context2D, false);
+    commanderSprite.frame(0.30, 1);
+    commanderSprite.draw(canvas.context2D, false);
+    commanderSprite.frame(0.40, 1);
+    expect(commanderSprite.spawnEffectRemaining, equals(0.0));
+  });
+
+  test("Player aim speed is 2.8 rad/s, Mole tunnel radius is 25.75, and Snailgun trail is smaller", () {
+    MockPeerWrapper mockPeer = MockPeerWrapper();
+    when(mockPeer.getId()).thenReturn("a");
+    when(mockCommanderNetwork.peer).thenReturn(mockPeer);
+    when(mockCommanderWormWorld.imageIndex()).thenReturn(mockImageIndex);
+    when(mockImageIndex.getImageIdByName("zooka.png")).thenReturn(3);
+    when(mockImageIndex.getImageIdByName("snails.png")).thenReturn(3);
+
+    final KeyState ks =
+        mockCommanderNetwork.getGameState().getKeyStateFor("a")!;
+    commanderSprite.info.inGame = true;
+    commanderSprite.angle = 0.0;
+    commanderSprite.gun.angle = 0.0;
+
+    // Aim up for 0.25s -> rotates by -0.25 * 2.8 = -0.70 rad (30% slower than 4.0 rad/s).
+    final int aimUpKey = commanderSprite.getControls()["Aim up"]!;
+    final int aimDownKey = commanderSprite.getControls()["Aim down"]!;
+    ks.keysDown[aimUpKey] = 1.0;
+    commanderSprite.checkControlKeys(0.25);
+    ks.keysDown.remove(aimUpKey);
+    expect(commanderSprite.gun.angle, closeTo(-0.25 * LocalPlayerSprite.AIM_SPEED, 1e-6));
+    expect(LocalPlayerSprite.AIM_SPEED, closeTo(2.8, 1e-6));
+
+    // Aim down for 0.25s -> returns back to 0.0 rad.
+    ks.keysDown[aimDownKey] = 1.0;
+    commanderSprite.checkControlKeys(0.25);
+    ks.keysDown.remove(aimDownKey);
+    expect(commanderSprite.gun.angle, closeTo(0.0, 1e-6));
+
+    // Mole tunnel radius (+5% from 24.5 -> 25.75) vs narrower Snailgun trail carve radius (13.5).
+    expect(MoleDrillProjectile.TUNNEL_RADIUS, closeTo(25.75, 1e-6));
+    final SnailProjectile snail = SnailProjectile.createWithOwner(
+        mockCommanderWormWorld, commanderSprite, 12, commanderSprite.gun);
+    expect(snail.radius, equals(SnailProjectile.TRAIL_CARVE_RADIUS));
+    expect(SnailProjectile.TRAIL_CARVE_RADIUS, lessThan(15.0));
   });
 }

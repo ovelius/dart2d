@@ -30,6 +30,8 @@ class LocalPlayerSprite extends MovingSprite {
   static int MAX_HEALTH = 100;
   static int MAX_SHIELD = 200;
   static const double RESPAWN_TIME = 5.0;
+  static const double SPAWN_EFFECT_DURATION = 0.65;
+  static const double AIM_SPEED = 2.8;
   static const MAX_SPEED = 500.0;
 
   static Map<String, int> _default_controls = {
@@ -76,11 +78,14 @@ class LocalPlayerSprite extends MovingSprite {
 
   double _shieldSec = -1.0;
   double _nextDamageAnimation = 0.0;
+  double _spawnEffectRemaining = 0.0;
+  bool _wasInGame = false;
   late StickySprite _shield;
 
   PlayerInfoProto? get killer => _killer;
   Mod? get killedByMod => _killedByMod;
   String? get killedByMessage => _killedByMessage;
+  double get spawnEffectRemaining => _spawnEffectRemaining;
 
   /**
    * Server constructor.
@@ -95,6 +100,7 @@ class LocalPlayerSprite extends MovingSprite {
       : super.imageBasedSprite(position, imageId, imageIndex) {
     this.world = world;
     this.info = info;
+    this._wasInGame = info.inGame == true;
     this._mobileControls = mobileControls;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
@@ -110,10 +116,10 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   StickySprite _createGun(ImageIndex index) {
-    StickySprite sprite = new StickySprite(this, index.getImageIdByName("gun.png"),
-        index, Sprite.UNLIMITED_LIFETIME);
-    // Gun size here.
-    sprite.size = new Vec2(30, 7).multiply(2.0);
+    PlayerGunSprite sprite = new PlayerGunSprite(
+        this, index.getImageIdByName("gun.png"), index);
+    // Keep width at 60.0 so muzzleOffset (gun.size.x * 0.5 == 30.0) stays exact.
+    sprite.size = new Vec2(60.0, 19.0);
     return sprite;
   }
 
@@ -260,6 +266,153 @@ class LocalPlayerSprite extends MovingSprite {
     return info.inGame == true;
   }
 
+  void triggerSpawnEffect() {
+    _spawnEffectRemaining = SPAWN_EFFECT_DURATION;
+    try {
+      if (_ownedByThisWorld()) {
+        world.playSound(Sound.SPAWN, volume: 0.90, multiPlay: true);
+      } else {
+        world.playSoundAtSprite(this, Sound.SPAWN, multiPlay: true);
+      }
+    } catch (_) {}
+  }
+
+  void _drawSpawnEffectBackdrop(CanvasRenderingContext2D context) {
+    final double elapsed =
+        (SPAWN_EFFECT_DURATION - _spawnEffectRemaining).clamp(0.0, SPAWN_EFFECT_DURATION);
+    final double t = (elapsed / SPAWN_EFFECT_DURATION).clamp(0.0, 1.0);
+    final Vec2 c = centerPoint();
+    final double footY = position.y + size.y;
+
+    context.save();
+
+    // 1. Narrowing golden-cyan sky drop beam during the first 0.38s!
+    if (t < 0.58) {
+      final double bt = (t / 0.58).clamp(0.0, 1.0);
+      final double beamAlpha = (1.0 - bt) * 0.72;
+      final double halfW = (size.x * 0.62) * (1.0 - bt * 0.72);
+      final CanvasGradient beamGrad =
+          context.createLinearGradient(c.x, footY, c.x, footY - 125.0);
+      beamGrad.addColorStop(0.0, "rgba(255, 244, 158, ${beamAlpha.toStringAsFixed(2)})");
+      beamGrad.addColorStop(0.45, "rgba(110, 244, 255, ${(beamAlpha * 0.65).toStringAsFixed(2)})");
+      beamGrad.addColorStop(1.0, "rgba(110, 244, 255, 0.0)");
+      context.fillStyle = beamGrad;
+      context.fillRect(c.x - halfW, footY - 125.0, halfW * 2.0, 125.0);
+    }
+
+    // 2. Expanding ground arrival shockwave ring at the player's feet.
+    final double ringR = 10.0 + t * 42.0;
+    final double ringAlpha = (1.0 - t) * 0.85;
+    context.strokeStyle =
+        "rgba(255, 238, 128, ${ringAlpha.toStringAsFixed(2)})".toJS;
+    context.lineWidth = 3.0 * (1.0 - t * 0.6) + 0.8;
+    context.beginPath();
+    context.ellipse(c.x, footY - 2.0, ringR, ringR * 0.36, 0.0, 0.0, pi * 2.0);
+    context.stroke();
+
+    // Soft warm glow behind the arriving player.
+    if (t < 0.65) {
+      final double ga = (1.0 - t / 0.65) * 0.45;
+      final CanvasGradient halo = context.createRadialGradient(
+          c.x, c.y, 2.0, c.x, c.y, size.x * 0.9);
+      halo.addColorStop(0.0, "rgba(255, 252, 200, ${ga.toStringAsFixed(2)})");
+      halo.addColorStop(1.0, "rgba(255, 230, 110, 0.0)");
+      context.fillStyle = halo;
+      context.beginPath();
+      context.arc(c.x, c.y, size.x * 0.9, 0.0, pi * 2.0);
+      context.fill();
+    }
+
+    context.restore();
+  }
+
+  void _applySpawnPopTransform(CanvasRenderingContext2D context) {
+    final double elapsed =
+        (SPAWN_EFFECT_DURATION - _spawnEffectRemaining).clamp(0.0, SPAWN_EFFECT_DURATION);
+    if (elapsed >= 0.44) return;
+    final double p = (elapsed / 0.44).clamp(0.0, 1.0);
+    // Elastic cartoon drop-squash-bounce curve!
+    double sx = 1.0;
+    double sy = 1.0;
+    if (p < 0.32) {
+      final double u = p / 0.32;
+      sx = 0.56 + (1.20 - 0.56) * u;
+      sy = 1.42 + (0.82 - 1.42) * u;
+    } else if (p < 0.68) {
+      final double u = (p - 0.32) / 0.36;
+      sx = 1.20 + (0.94 - 1.20) * u;
+      sy = 0.82 + (1.06 - 0.82) * u;
+    } else {
+      final double u = (p - 0.68) / 0.32;
+      sx = 0.94 + (1.0 - 0.94) * u;
+      sy = 1.06 + (1.0 - 1.06) * u;
+    }
+    final double pivotX = position.x + size.x * 0.5;
+    final double pivotY = position.y + size.y;
+    context.translate(pivotX, pivotY);
+    context.scale(sx, sy);
+    context.translate(-pivotX, -pivotY);
+  }
+
+  void _drawSpawnEffectForeground(CanvasRenderingContext2D context) {
+    final double elapsed =
+        (SPAWN_EFFECT_DURATION - _spawnEffectRemaining).clamp(0.0, SPAWN_EFFECT_DURATION);
+    final double t = (elapsed / SPAWN_EFFECT_DURATION).clamp(0.0, 1.0);
+    final double ease = 1.0 - pow(1.0 - t, 2.4).toDouble();
+    final double alpha = (1.0 - t).clamp(0.0, 1.0);
+    final Vec2 c = centerPoint();
+    final double footY = position.y + size.y - 3.0;
+
+    context.save();
+    context.globalAlpha = alpha;
+
+    // 1. Six cartoon arrival poof clouds billow outward around the feet!
+    for (int i = 0; i < 6; i++) {
+      final double side = i < 3 ? -1.0 : 1.0;
+      final int idx = i % 3;
+      final double px = c.x + side * (8.0 + idx * 7.5 + ease * (16.0 + idx * 8.0));
+      final double py = footY - idx * 3.5 - ease * (6.0 + idx * 5.0);
+      final double pr = (6.8 - idx * 1.1) * (1.0 - t * 0.45);
+      context.fillStyle = "#fffdf2".toJS;
+      context.strokeStyle = "#1a2230".toJS;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.arc(px, py, max(1.2, pr), 0.0, pi * 2.0);
+      context.fill();
+      context.stroke();
+    }
+
+    // 2. Seven twinkling 4-point cartoon stars popping outward & upward!
+    for (int i = 0; i < 7; i++) {
+      final double a = -pi * 0.92 + (pi * 0.84) * (i / 6.0);
+      final double dist = 12.0 + ease * (28.0 + (i.isEven ? 10.0 : 0.0));
+      final double sx = c.x + cos(a) * dist;
+      final double sy = c.y + sin(a) * dist - ease * 10.0;
+      final double sr = (4.8 - (i % 2) * 1.0) * (1.0 - t * 0.35);
+      context.save();
+      context.translate(sx, sy);
+      context.rotate(t * 2.6 * (i.isEven ? 1.0 : -1.0));
+      context.fillStyle = (i.isEven ? "#ffe44d" : "#7df9ff").toJS;
+      context.strokeStyle = "#18202c".toJS;
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.moveTo(0.0, -sr);
+      context.lineTo(sr * 0.30, -sr * 0.30);
+      context.lineTo(sr, 0.0);
+      context.lineTo(sr * 0.30, sr * 0.30);
+      context.lineTo(0.0, sr);
+      context.lineTo(-sr * 0.30, sr * 0.30);
+      context.lineTo(-sr, 0.0);
+      context.lineTo(-sr * 0.30, -sr * 0.30);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    context.restore();
+  }
+
   draw(CanvasRenderingContext2D context, bool debug) {
     context.save();
     if (!inGame()) {
@@ -272,12 +425,16 @@ class LocalPlayerSprite extends MovingSprite {
       context.restore();
       return;
     }
+    if (_spawnEffectRemaining > 0.0) {
+      _drawSpawnEffectBackdrop(context);
+    }
     weaponState?.draw(context);
     context.save();
-    gun.draw(context, debug);
-    context.restore();
+    if (_spawnEffectRemaining > 0.0) {
+      _applySpawnPopTransform(context);
+    }
     context.save();
-    drawHealthBar(context);
+    gun.draw(context, debug);
     context.restore();
     if (_shieldSec > 0) {
       context.save();
@@ -289,6 +446,13 @@ class LocalPlayerSprite extends MovingSprite {
     } else {
       super.draw(context, debug);
     }
+    context.restore();
+    if (_spawnEffectRemaining > 0.0) {
+      _drawSpawnEffectForeground(context);
+    }
+    context.save();
+    drawHealthBar(context);
+    context.restore();
     context.restore();
   }
 
@@ -465,6 +629,14 @@ class LocalPlayerSprite extends MovingSprite {
 
   frame(double duration, int frames, [Vec2? gravity]) {
     maybeRespawn(duration);
+    final bool nowInGame = inGame();
+    if (nowInGame && !_wasInGame) {
+      triggerSpawnEffect();
+    }
+    _wasInGame = nowInGame;
+    if (_spawnEffectRemaining > 0.0) {
+      _spawnEffectRemaining = max(0.0, _spawnEffectRemaining - duration);
+    }
     checkControlKeys(duration);
     checkShouldFire();
     super.frame(duration, frames, gravity);
@@ -540,22 +712,24 @@ class LocalPlayerSprite extends MovingSprite {
       _fireRope();
     }
 
-    assert(_mobileControls != null);
-    Point<int>? delta = _mobileControls!.getTouchDeltaForButton();
-    if (_mobileControls!.buttonIsDown()) {
-      if (_gunAngleTouchLock == null) {
-        _gunAngleTouchLock = gun.angle;
+    if (_mobileControls != null) {
+      Point<int>? delta = _mobileControls!.getTouchDeltaForButton();
+      if (_mobileControls!.buttonIsDown()) {
+        if (_gunAngleTouchLock == null) {
+          _gunAngleTouchLock = gun.angle;
+        }
+        if (delta != null) {
+          checkMobileControls(delta.x, delta.y);
+        }
+      } else {
+        _gunAngleTouchLock = null;
       }
-      if (delta != null) {
-        checkMobileControls(delta.x, delta.y);
-      }
-    } else {
-      _gunAngleTouchLock = null;
-    }
-    if (_mobileControls!.buttonIsDown(MobileControls.WEAPON_SELECT_BUTTON)) {
-      Point<int>? delta = _mobileControls!.getTouchDeltaForButton(MobileControls.WEAPON_SELECT_BUTTON);
-      if (delta != null) {
-        weaponState?.weaponStateSelector(delta);
+      if (_mobileControls!.buttonIsDown(MobileControls.WEAPON_SELECT_BUTTON)) {
+        Point<int>? delta = _mobileControls!
+            .getTouchDeltaForButton(MobileControls.WEAPON_SELECT_BUTTON);
+        if (delta != null) {
+          weaponState?.weaponStateSelector(delta);
+        }
       }
     }
     return true;
@@ -647,12 +821,12 @@ class LocalPlayerSprite extends MovingSprite {
 
   void _gunDown(double duration) {
     if (angle != 0.0) {
-      gun.angle -= duration * 4.0;
+      gun.angle -= duration * AIM_SPEED;
       if (gun.angle < -(pi + pi / 3)) {
         gun.angle = -(pi + pi / 3);
       }
     } else {
-      gun.angle += duration * 4.0;
+      gun.angle += duration * AIM_SPEED;
       if (gun.angle > pi / 3) {
         gun.angle = pi / 3;
       }
@@ -662,12 +836,12 @@ class LocalPlayerSprite extends MovingSprite {
   void _gunUp(double duration) {
     // Diffent if facing left or right.
     if (angle != 0.0) {
-      gun.angle += duration * 4.0;
+      gun.angle += duration * AIM_SPEED;
       if (gun.angle > -pi / 2) {
         gun.angle = -pi / 2;
       }
     } else {
-      gun.angle -= duration * 4.0;
+      gun.angle -= duration * AIM_SPEED;
       if (gun.angle < -pi / 2) {
         gun.angle = -pi / 2;
       }
@@ -858,4 +1032,74 @@ class LocalPlayerSprite extends MovingSprite {
   }
 
   String toString() => "PlayerSprite for ${info.name}";
+}
+
+/// Renders the player's equipped cartoon blaster (`gun.png`), keeping the sight
+/// rail upright when aiming left (`cos(angle) < 0`) and adding a snappy barrel
+/// recoil kick whenever a shot is fired.
+class PlayerGunSprite extends StickySprite {
+  final LocalPlayerSprite player;
+  final ImageIndex _gunImageIndex;
+  double _recoil = 0.0;
+  int _lastShotsLeft = -1;
+  int _lastWeaponIdx = -1;
+
+  PlayerGunSprite(this.player, int imageId, this._gunImageIndex)
+      : super(player, imageId, _gunImageIndex, Sprite.UNLIMITED_LIFETIME);
+
+  @override
+  frame(double duration, int frames, [Vec2? gravity]) {
+    super.frame(duration, frames, gravity);
+    final WeaponState? ws = player.weaponState;
+    if (ws != null) {
+      final int idx = ws.selectedWeaponIndex;
+      final int shots = ws.getSelectedWeapon().shotsLeft;
+      if (idx == _lastWeaponIdx && _lastShotsLeft >= 0 && shots < _lastShotsLeft) {
+        _recoil = 1.0;
+      }
+      _lastWeaponIdx = idx;
+      _lastShotsLeft = shots;
+    }
+    if (_recoil > 0.0) {
+      _recoil = max(0.0, _recoil - duration * 9.0);
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 c = centerPoint();
+    context.save();
+    context.translate(c.x, c.y);
+    context.rotate(angle);
+    // Flip vertically when aiming left so the orange top sight & grip stay upright!
+    if (cos(angle) < 0.0) {
+      context.scale(1.0, -1.0);
+    }
+
+    final double kick = sin(_recoil * pi * 0.5) * 4.5;
+    const double forwardVisualShift = 4.0;
+    try {
+      final HTMLImageElement image = _gunImageIndex.getImageById(imageId);
+      final num srcW = frameWidth > 0 ? frameWidth : image.width;
+      final num srcH = image.height;
+      if (srcW > 0 && srcH > 0) {
+        context.drawImage(
+          image,
+          frameWidth * frameIndex,
+          0,
+          srcW,
+          srcH,
+          -size.x * 0.5 + forwardVisualShift - kick,
+          -size.y * 0.5,
+          size.x,
+          size.y,
+        );
+      }
+    } catch (_) {}
+
+    context.restore();
+    if (debug) {
+      super.draw(context, true);
+    }
+  }
 }
