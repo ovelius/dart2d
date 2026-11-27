@@ -11,11 +11,14 @@ class PowerupManager {
   static int MAX_POWERUPS = 4;
   static double POWERUP_SPAWN_TIME = 10.0;
   static double MIN_POWERUP_SPAWN_TIME = 2.5;
+  static const double MYSTERY_POWERUP_PROBABILITY = 0.55;
 
   SpriteIndex _spriteIndex;
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
   List<Powerup> activePowerups = [];
+  bool mysteryPowerupEnabled = true;
+  final Random _random = new Random();
 
   double _nextPowerupin = MIN_POWERUP_SPAWN_TIME;
 
@@ -121,11 +124,41 @@ class PowerupManager {
 
   double get nextPowerupIn => _nextPowerupin;
 
+  List<PowerUpType> get spawnableTypes => mysteryPowerupEnabled
+      ? PowerUpType.values
+      : PowerUpType.values
+          .where((PowerUpType t) => t != PowerUpType.POWERUP)
+          .toList(growable: false);
+
+  PowerUpType _chooseNextPowerupType() {
+    final List<PowerUpType> nonMystery = PowerUpType.values
+        .where((PowerUpType t) => t != PowerUpType.POWERUP)
+        .toList(growable: false);
+    if (!mysteryPowerupEnabled) {
+      return nonMystery[_random.nextInt(nonMystery.length)];
+    }
+
+    // Guarantee at least half of active powerups are mystery powerups whenever
+    // >= 2 powerups are active, AND roll >= 55% mystery probability otherwise.
+    final int activeMysteryCount = activePowerups
+        .where((Powerup p) => !p.remove && p.type == PowerUpType.POWERUP)
+        .length;
+    final int nextTotal = activePowerups.length + 1;
+    final int minMysteryRequired = nextTotal ~/ 2;
+    if (activeMysteryCount < minMysteryRequired) {
+      return PowerUpType.POWERUP;
+    }
+    if (_random.nextDouble() < MYSTERY_POWERUP_PROBABILITY) {
+      return PowerUpType.POWERUP;
+    }
+    return nonMystery[_random.nextInt(nonMystery.length)];
+  }
+
   void addNewRandomPowerup() {
     if (activePowerups.length >= MAX_POWERUPS) {
       return;
     }
-    PowerUpType type = PowerUpType.values[new Random().nextInt(PowerUpType.values.length)];
+    final PowerUpType type = _chooseNextPowerupType();
     Powerup p = new Powerup(_byteWorld.randomNotSolidPoint(
         Powerup.SIZE_OFFSET), type, _imageIndex);
     _spriteIndex.addSprite(p);

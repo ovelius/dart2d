@@ -39,7 +39,11 @@ enum Sound {
   JUMP("jump.mp3"),
   // AI generated.
   KILL("kill.wav"),
-  SPAWN("spawn.wav");
+  SPAWN("spawn.wav"),
+  ROULETTE_TICK("roulette_tick.wav"),
+  ROULETTE_WIN("roulette_win.wav"),
+  EXTRA_BINGO("extra_bingo.wav"),
+  SUPER_BINGO("super_bingo.wav");
 
   const Sound(this.url);
 
@@ -88,13 +92,16 @@ class Sounds {
   }
 
   Future _playElement(HTMLAudioElement element, double volume) {
-    element.pause();
+    if (!element.paused) {
+      element.pause();
+    }
     element.volume = volume;
     element.currentTime = 0;
     if (element.readyState == HTMLMediaElement.HAVE_NOTHING) {
-      return element.onCanPlay.first.then((_) => element.play().toDart);
+      return element.onCanPlay.first
+          .then((_) => element.play().toDart.catchError((_) => null));
     } else {
-      return element.play().toDart;
+      return element.play().toDart.catchError((_) => null);
     }
   }
 

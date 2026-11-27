@@ -79,6 +79,9 @@ class LocalPlayerSprite extends MovingSprite {
   double _shieldSec = -1.0;
   double _nextDamageAnimation = 0.0;
   double _spawnEffectRemaining = 0.0;
+  double _bingoEffectRemaining = 0.0;
+  double _bingoEffectDuration = 1.6;
+  int _bingoEffectTier = 0;
   bool _wasInGame = false;
   late StickySprite _shield;
 
@@ -86,6 +89,28 @@ class LocalPlayerSprite extends MovingSprite {
   Mod? get killedByMod => _killedByMod;
   String? get killedByMessage => _killedByMessage;
   double get spawnEffectRemaining => _spawnEffectRemaining;
+  double get bingoEffectRemaining => _bingoEffectRemaining;
+  int get bingoEffectTier => _bingoEffectTier;
+
+  void applyExtraBingoBonus() {
+    if (inGame() && health < MAX_HEALTH) {
+      health = MAX_HEALTH;
+    }
+    _bingoEffectTier = 1;
+    _bingoEffectDuration = 1.6;
+    _bingoEffectRemaining = 1.6;
+  }
+
+  void applySuperBingoBonus() {
+    if (inGame()) {
+      health = MAX_HEALTH;
+      _shieldPoints = MAX_SHIELD;
+      _shieldSec = max(_shieldSec, 2.6);
+    }
+    _bingoEffectTier = 2;
+    _bingoEffectDuration = 2.4;
+    _bingoEffectRemaining = 2.4;
+  }
 
   /**
    * Server constructor.
@@ -155,6 +180,15 @@ class LocalPlayerSprite extends MovingSprite {
       data.extraInt.add(w.shotsLeft);
     }
     data.extraFloat.add(_jetPackSec);
+    if (weaponState != null) {
+      data.extraInt
+        ..add(weaponState!.unlockedWeaponsBitmask)
+        ..add(weaponState!.rouletteNonce)
+        ..add(weaponState!.rouletteTargetWeaponIndex)
+        ..add(weaponState!.selectedWeaponIndex)
+        ..add(weaponState!.rouletteBingoTier.index);
+      data.extraFloat.add(weaponState!.rouletteSpinRemaining);
+    }
     return data;
   }
 
@@ -180,11 +214,27 @@ class LocalPlayerSprite extends MovingSprite {
         );
       }
     }
+    if (weaponState != null &&
+        data.extraInt.length >= 6 &&
+        data.extraFloat.length >= 6) {
+      final int bingoIdx = data.extraInt.length >= 8 ? data.extraInt[7] : 0;
+      weaponState!.applyCommanderSync(
+        unlockedMask: data.extraInt[3],
+        rouletteNonce: data.extraInt[4],
+        rouletteTarget: data.extraInt[5],
+        rouletteSpinRem: data.extraFloat[5],
+        rouletteBingoIndex: bingoIdx,
+      );
+    }
     if (data.extraFloat.length > 3 && weaponState != null) {
-      Weapon w = weaponState!.getSelectedWeapon();
-      w.untilReload = data.extraFloat[2];
-      w.untilNextFire = data.extraFloat[3];
-      w.shotsLeft = data.extraInt[2];
+      final bool weaponMatches = data.extraInt.length < 7 ||
+          data.extraInt[6] == weaponState!.selectedWeaponIndex;
+      if (weaponMatches) {
+        Weapon w = weaponState!.getSelectedWeapon();
+        w.untilReload = data.extraFloat[2];
+        w.untilNextFire = data.extraFloat[3];
+        w.shotsLeft = data.extraInt[2];
+      }
     }
     final int jetPackIdx = weaponState != null ? 4 : 2;
     if (data.extraFloat.length > jetPackIdx) {
@@ -450,9 +500,95 @@ class LocalPlayerSprite extends MovingSprite {
     if (_spawnEffectRemaining > 0.0) {
       _drawSpawnEffectForeground(context);
     }
+    if (_bingoEffectRemaining > 0.0) {
+      _drawBingoAuraEffect(context);
+    }
     context.save();
     drawHealthBar(context);
     context.restore();
+    context.restore();
+  }
+
+  void _drawBingoAuraEffect(CanvasRenderingContext2D context) {
+    final bool isSuper = _bingoEffectTier >= 2;
+    final double total = max(0.2, _bingoEffectDuration);
+    final double elapsed = (total - _bingoEffectRemaining).clamp(0.0, total);
+    final double t = (elapsed / total).clamp(0.0, 1.0);
+    final double alpha = (1.0 - t * 0.85).clamp(0.0, 1.0);
+    final Vec2 c = centerPoint();
+
+    context.save();
+    context.globalAlpha = alpha;
+
+    // 1. Expanding jackpot shockwave ring(s) around the player!
+    final double ringR = size.x * 0.55 + t * (isSuper ? 78.0 : 44.0);
+    context.strokeStyle =
+        (isSuper ? "rgba(255, 238, 96, 0.90)" : "rgba(104, 255, 156, 0.85)")
+            .toJS;
+    context.lineWidth = (isSuper ? 4.2 : 3.0) * (1.0 - t * 0.65) + 0.8;
+    context.beginPath();
+    context.arc(c.x, c.y, ringR, 0.0, pi * 2.0);
+    context.stroke();
+
+    if (isSuper) {
+      final double innerR = size.x * 0.42 + t * 52.0;
+      context.strokeStyle = "rgba(96, 245, 255, 0.85)".toJS;
+      context.lineWidth = 3.0 * (1.0 - t * 0.5) + 0.8;
+      context.beginPath();
+      context.arc(c.x, c.y, innerR, 0.0, pi * 2.0);
+      context.stroke();
+
+      final CanvasGradient halo =
+          context.createRadialGradient(c.x, c.y, 4.0, c.x, c.y, size.x * 1.15);
+      halo.addColorStop(0.0, "rgba(255, 244, 130, 0.42)");
+      halo.addColorStop(0.55, "rgba(110, 245, 255, 0.24)");
+      halo.addColorStop(1.0, "rgba(255, 110, 236, 0.0)");
+      context.fillStyle = halo;
+      context.beginPath();
+      context.arc(c.x, c.y, size.x * 1.15, 0.0, pi * 2.0);
+      context.fill();
+    }
+
+    // 2. Orbiting / rising stars around the player.
+    final int count = isSuper ? 8 : 5;
+    for (int i = 0; i < count; i++) {
+      final double a = (i / count) * pi * 2.0 + elapsed * (isSuper ? 5.2 : 3.4);
+      final double orbitR = size.x * 0.72 + (isSuper ? 10.0 * sin(elapsed * 8.0 + i) : 4.0);
+      final double sx = c.x + cos(a) * orbitR;
+      final double sy = c.y + sin(a) * orbitR * 0.75 - t * 14.0;
+      final double sr = isSuper ? 5.2 : 4.0;
+      context.fillStyle = (isSuper
+              ? (i.isEven ? "#ffe96b" : "#7df9ff")
+              : "#7dff9e")
+          .toJS;
+      context.beginPath();
+      for (int p = 0; p < 8; p++) {
+        final double pa = p * pi / 4.0;
+        final double pr = p.isEven ? sr : sr * 0.34;
+        if (p == 0) {
+          context.moveTo(sx + cos(pa) * pr, sy + sin(pa) * pr);
+        } else {
+          context.lineTo(sx + cos(pa) * pr, sy + sin(pa) * pr);
+        }
+      }
+      context.closePath();
+      context.fill();
+    }
+
+    // 3. Floating world-space comic callout above remote players so opponents see it too!
+    if (!_ownedByThisWorld()) {
+      final String badge = isSuper ? "⚡ SUPERBINGO! ⚡" : "★ EXTRA BINGO! ★";
+      context.font = '900 12px "Trebuchet MS", Arial, sans-serif';
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.strokeStyle = "#101824".toJS;
+      context.lineWidth = 3.2;
+      final double labelY = position.y - 18.0 - t * 16.0;
+      context.strokeText(badge, c.x, labelY);
+      context.fillStyle = (isSuper ? "#fff066" : "#7dff9e").toJS;
+      context.fillText(badge, c.x, labelY);
+    }
+
     context.restore();
   }
 
@@ -637,6 +773,9 @@ class LocalPlayerSprite extends MovingSprite {
     if (_spawnEffectRemaining > 0.0) {
       _spawnEffectRemaining = max(0.0, _spawnEffectRemaining - duration);
     }
+    if (_bingoEffectRemaining > 0.0) {
+      _bingoEffectRemaining = max(0.0, _bingoEffectRemaining - duration);
+    }
     checkControlKeys(duration);
     checkShouldFire();
     super.frame(duration, frames, gravity);
@@ -727,7 +866,8 @@ class LocalPlayerSprite extends MovingSprite {
       if (_mobileControls!.buttonIsDown(MobileControls.WEAPON_SELECT_BUTTON)) {
         Point<int>? delta = _mobileControls!
             .getTouchDeltaForButton(MobileControls.WEAPON_SELECT_BUTTON);
-        if (delta != null) {
+        if (delta != null &&
+            (delta.x * delta.x + delta.y * delta.y) >= 18 * 18) {
           weaponState?.weaponStateSelector(delta);
         }
       }
@@ -801,10 +941,13 @@ class LocalPlayerSprite extends MovingSprite {
       }
     }
 
-    if (xD > 0) {
-      _applyVel(null, xD.abs() / 40);
+    const int moveDeadzonePx = 12;
+    if (xD > moveDeadzonePx) {
+      _applyVel(null, ((xD.abs() - moveDeadzonePx) / 36.0).clamp(0.0, 1.0));
+    } else if (xD < -moveDeadzonePx) {
+      _applyVel(((xD.abs() - moveDeadzonePx) / 36.0).clamp(0.0, 1.0), null);
     } else {
-      _applyVel(xD.abs() / 40, null);
+      _applyVel(null, null);
     }
     return true;
   }
@@ -996,15 +1139,40 @@ class LocalPlayerSprite extends MovingSprite {
       data.extraFloat
         ..add(_shieldSec)
         ..add(_jetPackSec);
+      if (weaponState != null) {
+        data.extraInt
+          ..add(weaponState!.unlockedWeaponsBitmask)
+          ..add(weaponState!.rouletteNonce)
+          ..add(weaponState!.rouletteTargetWeaponIndex)
+          ..add(weaponState!.rouletteBingoTier.index);
+        data.extraFloat.add(weaponState!.rouletteSpinRemaining);
+      }
     }
     return data;
   }
 
   void parseExtraNetworkData(ExtraSpriteData data) {
     gun.angle = data.extraFloat[0];
+    if (weaponState != null &&
+        data.extraInt.length >= 6 &&
+        data.extraFloat.length >= 4 &&
+        !world.network().isCommander()) {
+      final int bingoIdx = data.extraInt.length >= 7 ? data.extraInt[6] : 0;
+      weaponState!.applyCommanderSync(
+        unlockedMask: data.extraInt[3],
+        rouletteNonce: data.extraInt[4],
+        rouletteTarget: data.extraInt[5],
+        rouletteSpinRem: data.extraFloat[3],
+        rouletteBingoIndex: bingoIdx,
+      );
+    }
     if (weaponState != null) {
       if (!_ownedByThisWorld()) {
-        weaponState!.selectedWeaponIndex = data.extraInt[0];
+        final int requestedIdx = data.extraInt[0];
+        if (!world.network().isCommander() ||
+            weaponState!.isWeaponAvailable(requestedIdx)) {
+          weaponState!.selectedWeaponIndex = requestedIdx;
+        }
       }
     }
     if (data.extraInt.length > 1) {

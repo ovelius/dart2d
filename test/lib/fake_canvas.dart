@@ -26,10 +26,22 @@ class FakeCanvas implements WorldCanvas {
 }
 
 
+class _FakeScreenOrientation {
+  final String type;
+  const _FakeScreenOrientation(this.type);
+}
+
 @Injectable(as: HtmlScreen)
 class FakeScreen implements HtmlScreen {
+  static String? mockOrientationType;
+
   @override
-  get orientation => throw UnimplementedError();
+  get orientation {
+    if (mockOrientationType != null) {
+      return _FakeScreenOrientation(mockOrientationType!);
+    }
+    throw UnimplementedError();
+  }
 }
 
 @Singleton(as: ImageFactory, scope:'world')

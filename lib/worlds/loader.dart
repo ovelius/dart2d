@@ -78,6 +78,11 @@ class Loader {
   LoaderState _currentState = LoaderState.WEB_RTC_INIT;
   bool _completed = false;
   double _nextClientConnectSendTime = 0.0;
+  String? _activeJoinCommanderId = null;
+  String? _lastClientEnterCommanderId = null;
+  double _nextClientEnterSendTime = 0.0;
+
+  PlayerWorldSelector get playerWorldSelector => _playerWorldSelector;
 
   int _byteWorldComputeSteps = 15;
   // How long until we can adjust _byteWorldComputeSteps again.
@@ -177,6 +182,40 @@ class Loader {
     _currentState = LoaderState.PLAYER_SELECT;
     _playerWorldSelector.reset();
     _completed = false;
+    _activeJoinCommanderId = null;
+    _lastClientEnterCommanderId = null;
+    _nextClientEnterSendTime = 0.0;
+  }
+
+  void rollbackForMapTieBreak() {
+    _completed = false;
+    bufferDestruction.clear();
+    bufferDraws.clear();
+    _nextClientConnectSendTime = 0.0;
+    _activeJoinCommanderId = null;
+    _lastClientEnterCommanderId = null;
+    _nextClientEnterSendTime = 0.0;
+    _chunkHelper.resetTransferForIndex(ImageIndex.WORLD_IMAGE_INDEX);
+    _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
+    _byteWorld.reset();
+    setState(LoaderState.WORLD_LOADING);
+  }
+
+  void resetPartialJoinForNewCommander() {
+    bufferDestruction.clear();
+    bufferDraws.clear();
+    _nextClientConnectSendTime = 0.0;
+    _activeJoinCommanderId = null;
+    _lastClientEnterCommanderId = null;
+    _nextClientEnterSendTime = 0.0;
+    _chunkHelper.resetTransferForIndex(ImageIndex.WORLD_IMAGE_INDEX);
+    _imageIndex.clearImageLoader(ImageIndex.WORLD_IMAGE_INDEX);
+    _byteWorld.reset();
+    if (_currentState == LoaderState.LOADING_GAMESTATE ||
+        _currentState == LoaderState.COMPUTING_BYTE_WORLD ||
+        _currentState == LoaderState.LOADING_ENTERING_GAME) {
+      setState(LoaderState.CONNECTING_TO_GAME);
+    }
   }
 
 
@@ -316,9 +355,29 @@ class Loader {
     }
     ConnectionWrapper? serverConnection = _network.getServerConnection();
     if (serverConnection == null) {
+      _activeJoinCommanderId = null;
+      _lastClientEnterCommanderId = null;
       _tickWorldSelect(duration);
       return;
     }
+
+    if (_activeJoinCommanderId != null &&
+        _activeJoinCommanderId != serverConnection.id) {
+      log.info(
+          "Commander changed from $_activeJoinCommanderId to ${serverConnection.id} while in $_currentState");
+      _nextClientConnectSendTime = 0.0;
+      _lastClientEnterCommanderId = null;
+      _nextClientEnterSendTime = 0.0;
+      if (!_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX) &&
+          !_playerWorldSelector.worldSelectedAndLoaded()) {
+        // Restart world image download from the new commander, whose ByteWorld
+        // already includes prior mutations.
+        _chunkHelper.resetTransferForIndex(ImageIndex.WORLD_IMAGE_INDEX);
+        bufferDestruction.clear();
+        bufferDraws.clear();
+      }
+    }
+    _activeJoinCommanderId = serverConnection.id;
 
     // Maybe trigger resend of reliable data.
     serverConnection.tick(duration, []);
@@ -344,7 +403,7 @@ class Loader {
 
     if (_byteWorld.byteWorldReady()) {
       // Actually enter game.
-      _enterGame(serverConnection);
+      _enterGame(serverConnection, duration);
     } else if (_imageIndex.imageIsLoaded(ImageIndex.WORLD_IMAGE_INDEX)) {
       // World loaded compute bedrock data.
       _stepByteWorld(duration);
@@ -375,11 +434,19 @@ class Loader {
     }
   }
 
-  void _enterGame(ConnectionWrapper serverConnection) {
-    PlayerInfoProto? ourPlayerInfo =_network.getGameState().playerInfoByConnectionId(_network.getPeer().getId());
+  void _enterGame(ConnectionWrapper serverConnection,
+      [double duration = 0.01]) {
+    PlayerInfoProto? ourPlayerInfo = _network
+        .getGameState()
+        .playerInfoByConnectionId(_network.getPeer().getId());
     if (ourPlayerInfo == null || !ourPlayerInfo.inGame) {
-      if (_currentState != LoaderState.LOADING_ENTERING_GAME) {
+      _nextClientEnterSendTime -= duration;
+      if (_currentState != LoaderState.LOADING_ENTERING_GAME ||
+          _lastClientEnterCommanderId != serverConnection.id ||
+          _nextClientEnterSendTime < 0) {
         serverConnection.sendClientEnter();
+        _lastClientEnterCommanderId = serverConnection.id;
+        _nextClientEnterSendTime = CLIENT_CONNECT_RETRY_TIMER;
       }
       setState(LoaderState.LOADING_ENTERING_GAME);
     } else {

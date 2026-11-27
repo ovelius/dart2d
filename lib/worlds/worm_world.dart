@@ -116,8 +116,16 @@ class WormWorld extends World {
     });
     this.hudMessages = hudMessages;
     this._network.world = this;
+    this._powerupManager.mysteryPowerupEnabled =
+        !this._configParams.getBool(ConfigParam.SANDBOX);
     worldListener.setWorld(this);
     this._spatialGrid = new SpatialGrid(128.0);
+    try {
+      this.loader.playerWorldSelector.registerRollbackHandler(
+          (String winnerId, String winnerMapName) {
+        this.rollbackToRemoteMapSelection(winnerId, winnerMapName);
+      });
+    } catch (_) {}
   }
   
   void collisionCheck(int networkId, duration) {
@@ -237,6 +245,9 @@ class WormWorld extends World {
   void frameDraw([double duration = 0.01, bool slowDown = false]) {
     // Keep track on how often we do this :)
     _drawFps.timeWithFrames(duration, 1);
+    try {
+      loader.playerWorldSelector.tickTieBreakTimer(duration);
+    } catch (_) {}
 
     if (!loader.completed()) {
       if (loader.loadedAsServer()) {
@@ -892,6 +903,20 @@ class WormWorld extends World {
    * We also ensure the sprites in the world have consistent owners.
    */
   void connectToAllPeersInGameState() {
+    final String? selfId = _network.peer.id;
+    final String commanderId =
+        _network.gameState.gameStateProto.actingCommanderId;
+    if (!_network.isCommander() &&
+        selfId != null &&
+        commanderId.isNotEmpty &&
+        commanderId != selfId &&
+        !_network.peer.hasConnectionTo(commanderId) &&
+        !_network.peer.hasHadConnectionTo(commanderId)) {
+      _network.peer.connectTo(commanderId);
+    }
+    final bool selfJoinedGame =
+        selfId != null && _network.gameState.isInGame(selfId);
+
     for (PlayerInfoProto info in _network.gameState.playerInfoList()) {
       Sprite? sprite = spriteIndex[info.spriteId];
       if (sprite is LocalPlayerSprite) {
@@ -901,14 +926,23 @@ class WormWorld extends World {
       }
       if (!_network.peer.hasConnectionTo(info.connectionId) && !_network.peer.hasHadConnectionTo(info.connectionId)) {
         // Decide if I'm responsible for the connection.
-        if (_network.peer.id!.compareTo(info.connectionId) < 0) {
+        // Joining clients (!loader.completed()) proactively connect to all
+        // in-game peers so a direct connection already exists if the commander
+        // changes mid-join before existing peers know about the joiner.
+        if (selfId != null &&
+            info.connectionId != selfId &&
+            (selfId.compareTo(info.connectionId) < 0 || !loader.completed())) {
           hudMessages.display(
               "Creating neighbour connection to ${info.name}");
-          _network.peer.connectTo(info.connectionId).markAsClientToClientConnection();
+          ConnectionWrapper conn = _network.peer.connectTo(info.connectionId);
+          if (selfJoinedGame && info.connectionId != commanderId) {
+            conn.markAsClientToClientConnection();
+          }
         }
       } else if (!_network.isCommander() &&
-          info.connectionId != _network.peer.id &&
-          info.connectionId != _network.gameState.gameStateProto.actingCommanderId) {
+          selfJoinedGame &&
+          info.connectionId != selfId &&
+          info.connectionId != commanderId) {
         // Connection may have been opened early via autoConnectToPeers() before
         // this peer appeared in GameState; promote it to a valid client-to-client
         // game connection so frames and sprites flow immediately.
@@ -1038,22 +1072,8 @@ class WormWorld extends World {
   LocalStorage get localStorage => _localStorage;
 
   toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
-}
 
-final Expando<PerformanceGovernor> _worldGovernors =
-    Expando<PerformanceGovernor>('WormWorldPerformanceGovernor');
-
-/// Attaches a per-world [PerformanceGovernor] without altering [WormWorld]'s
-/// generated mock interface.
-extension WormWorldPerformance on WormWorld {
-  PerformanceGovernor get performanceGovernor {
-    PerformanceGovernor? gov = _worldGovernors[this];
-    if (gov == null) {
-      gov = PerformanceGovernor();
-      _worldGovernors[this] = gov;
-    }
-    return gov;
-  }
+  final PerformanceGovernor performanceGovernor = PerformanceGovernor();
 
   QualityTier get qualityTier => performanceGovernor.tier;
 
@@ -1066,5 +1086,29 @@ extension WormWorldPerformance on WormWorld {
     } catch (_) {}
     return performanceGovernor.effectiveDetailScale(fps,
         isCommander: commander);
+  }
+
+  void rollbackToRemoteMapSelection(String winnerId, String winnerMapName) {
+    clearScreen();
+    playerSprite = null;
+    _inDeathCamera = false;
+    _cameraZoom = 1.0;
+    _network.gameState.reset();
+    _network.gameState.gameStateProto.actingCommanderId = winnerId;
+    if (winnerMapName.isNotEmpty) {
+      _network.gameState.gameStateProto.mapName = winnerMapName;
+    }
+    _network.resetGameConnections();
+    loader.rollbackForMapTieBreak();
+    if (!_network.peer.connectedToServer() && _network.peer.id != null) {
+      _network.peer.reconnect();
+    }
+  }
+
+  void resetPartialJoinForNewCommander(ConnectionWrapper? newCommanderConn) {
+    clearScreen();
+    playerSprite = null;
+    newCommanderConn?.resetHandshakeReceived();
+    loader.resetPartialJoinForNewCommander();
   }
 }

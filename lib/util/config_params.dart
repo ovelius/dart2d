@@ -10,6 +10,7 @@ enum ConfigParam {
   DISABLE_CACHE,
   MAX_NETWORK_FRAMERATE,
   BLOOD,
+  SANDBOX,
 }
 
 @Singleton(scope: 'world')
@@ -27,6 +28,8 @@ class ConfigParams {
     ConfigParam.BLOOD: "blood",
     // How often to send data to network.
     ConfigParam.MAX_NETWORK_FRAMERATE: "max_net_frame",
+    // Unlock all weapons permanently and disable the mystery weapon powerup.
+    ConfigParam.SANDBOX: "sandbox",
   };
   static Map<ConfigParam, dynamic> _defaults = {
     ConfigParam.MAX_FRAGS: 10,
@@ -37,6 +40,7 @@ class ConfigParams {
     ConfigParam.DISABLE_CACHE: false,
     ConfigParam.BLOOD: -1,
     ConfigParam.MAX_NETWORK_FRAMERATE: -1,
+    ConfigParam.SANDBOX: false,
   };
 
   late Map<String, List<String>> _uriParams;
@@ -72,6 +76,10 @@ class ConfigParams {
   bool getBool(ConfigParam p) {
     List<String>? data = _uriParams[_names[p]];
     if (data != null && data.length > 0) {
+      final String raw = data[0].trim().toLowerCase();
+      if (raw == "false" || raw == "0") {
+        return false;
+      }
       return true;
     }
     return _defaults[p];

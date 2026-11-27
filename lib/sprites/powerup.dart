@@ -54,8 +54,10 @@ class Powerup extends MovingSprite {
       s.jetPackSec = 60.0;
       self.remove = true;
     },
-    PowerUpType.POWERUP:  (Powerup self, LocalPlayerSprite s) {
-      print("You took it, congrats!");
+    PowerUpType.POWERUP: (Powerup self, LocalPlayerSprite s) {
+      if (s.weaponState != null && !s.weaponState!.isSandboxMode) {
+        s.weaponState!.triggerMysteryRoulette();
+      }
       self.remove = true;
     },
   };

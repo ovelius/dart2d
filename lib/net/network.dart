@@ -214,24 +214,39 @@ class Network {
     return connectedPeers.length;
   }
 
+  bool _isCandidateReadyToCommand(String candidateId) {
+    final PlayerInfoProto? info = gameState.playerInfoByConnectionId(candidateId);
+    if (candidateId == peer.id) {
+      return safeLoaderCompleted() && (info?.inGame ?? false);
+    }
+    return info?.inGame ?? false;
+  }
+
   /**
    * When the commander dies unexpectedly we need to make a collective decision on
-   * who will be the next commander. Prefer the reachable peer with the most
-   * confirmed peer-to-peer connections in GameState so partial-mesh games keep
-   * the largest connected group together, breaking ties deterministically by
-   * natural order peerId.
+   * who will be the next commander. Prefer in-game peers over still-loading
+   * peers, then the reachable peer with the most confirmed peer-to-peer
+   * connections in GameState, breaking ties deterministically by natural order
+   * peerId.
    */
   String _naturalOrderPeerId(List<String> validKeys) {
     String oldCommanderId = gameState.gameStateProto.actingCommanderId;
     List<String> candidates = [peer.id!, ...validKeys];
     String bestPeerKey = peer.id!;
+    bool bestReady = _isCandidateReadyToCommand(bestPeerKey);
     int bestConnections = -1;
     for (String candidateId in candidates) {
+      bool ready = _isCandidateReadyToCommand(candidateId);
       int connCount = _countConfirmedPeerConnections(
           candidateId, excludePeerId: oldCommanderId);
-      if (connCount > bestConnections ||
-          (connCount == bestConnections &&
+      bool betterReady = ready && !bestReady;
+      bool sameReady = ready == bestReady;
+      if (betterReady ||
+          (sameReady && connCount > bestConnections) ||
+          (sameReady &&
+              connCount == bestConnections &&
               candidateId.compareTo(bestPeerKey) < 0)) {
+        bestReady = ready;
         bestConnections = connCount;
         bestPeerKey = candidateId;
       }
@@ -240,11 +255,13 @@ class Network {
   }
 
   /**
-   * Select the best next commander when handing off command: prioritize the
-   * candidate with the most confirmed peer connections first, breaking ties by
-   * highest FPS and then natural peerId order.
+   * Select the best next commander when handing off command: prioritize
+   * in-game peers first, then the candidate with the most confirmed peer
+   * connections, breaking ties by highest FPS and then natural peerId order.
    */
   String? _bestCommanderPeerId(List<String> validKeys) {
+    bool bestReady = false;
+    bool hasAnyCandidate = false;
     int bestConnections = -1;
     double bestFps = -1;
     String? bestKey = null;
@@ -253,16 +270,25 @@ class Network {
       if (info == null) {
         continue;
       }
+      bool ready = info.inGame;
       int connCount =
           _countConfirmedPeerConnections(peerId, excludePeerId: peer.id);
-      bool betterConnections = connCount > bestConnections;
+      bool betterReady = !hasAnyCandidate || (ready && !bestReady);
+      bool sameReady = hasAnyCandidate && (ready == bestReady);
+      bool betterConnections = sameReady && connCount > bestConnections;
       bool tiedConnectionsBetterFps =
-          connCount == bestConnections && info.fps > bestFps;
-      bool tiedBothBetterOrder = connCount == bestConnections &&
+          sameReady && connCount == bestConnections && info.fps > bestFps;
+      bool tiedBothBetterOrder = sameReady &&
+          connCount == bestConnections &&
           info.fps == bestFps &&
           bestKey != null &&
           peerId.compareTo(bestKey) < 0;
-      if (betterConnections || tiedConnectionsBetterFps || tiedBothBetterOrder) {
+      if (betterReady ||
+          betterConnections ||
+          tiedConnectionsBetterFps ||
+          tiedBothBetterOrder) {
+        hasAnyCandidate = true;
+        bestReady = ready;
         bestConnections = connCount;
         bestFps = info.fps;
         bestKey = peerId;
@@ -322,24 +348,25 @@ class Network {
         continue;
       }
       connection.sendPing();
-      if (connection.isValidGameConnection()) {
-        PlayerInfoProto? info = gameState.playerInfoByConnectionId(id);
-        if (info == null) {
-          info = gameState.getRemovedPlayerInfo(id);
-          if (info != null) {
-            log.info("Recycling player ${id} back into GameState");
-            gameState.addPlayerInfo(info);
-          }
-        }
-        // Make it our responsibility to forward data from other players.
+      PlayerInfoProto? info = gameState.playerInfoByConnectionId(id);
+      if (info == null && connection.isValidGameConnection()) {
+        info = gameState.getRemovedPlayerInfo(id);
         if (info != null) {
-          Sprite? sprite = _spriteIndex[info.spriteId];
-          if (sprite == null) {
-            sprite = world.spriteIndex.maybeResurrectPlayerSprite(info.spriteId);
-          }
-          if (sprite?.networkType == NetworkType.REMOTE) {
-            sprite?.networkType = NetworkType.REMOTE_FORWARD;
-          }
+          log.info("Recycling player ${id} back into GameState");
+          gameState.addPlayerInfo(info);
+        }
+      }
+      if (info != null) {
+        // Ensure connections to peers already in GameState (including clients
+        // mid-join with inGame == false) are marked handshake-ready.
+        connection.setHandshakeReceived();
+        // Make it our responsibility to forward data from other players.
+        Sprite? sprite = _spriteIndex[info.spriteId];
+        if (sprite == null) {
+          sprite = world.spriteIndex.maybeResurrectPlayerSprite(info.spriteId);
+        }
+        if (sprite?.networkType == NetworkType.REMOTE) {
+          sprite?.networkType = NetworkType.REMOTE_FORWARD;
         }
         // Also promote any client-owned auxiliary sprites (e.g. Rope) from
         // active peers so the new commander forwards them across missing P2P links.
@@ -351,10 +378,21 @@ class Network {
             s.networkType = NetworkType.REMOTE_FORWARD;
           }
         }
+      } else {
+        // Peer is not in GameState yet (e.g. a joining client still in
+        // CONNECTING_TO_GAME); keep handshake false so we accept their
+        // ClientPlayerSpec!
+        connection.resetHandshakeReceived();
       }
     }
     world.powerupManager()?.syncWithSpriteIndex();
     gameState.markAsUrgent();
+    for (ConnectionWrapper connection in connections.values) {
+      if (connection.isActiveConnection()) {
+        connection.sendSingleUpdate(
+            StateUpdate()..gameState = gameState.gameStateProto);
+      }
+    }
   }
 
   PeerWrapper getPeer() => peer;
@@ -387,6 +425,16 @@ class Network {
 
   _handleGameState(ConnectionWrapper connection, StateUpdate stateUpdate) {
     GameStateProto newGameState = stateUpdate.gameState;
+    CommanderTieBreakOutcome tieBreakOutcome = CommanderTieBreakOutcome.none;
+    try {
+      tieBreakOutcome = world.loader.playerWorldSelector
+          .resolveIncomingCommanderGameState(connection, newGameState);
+    } catch (_) {}
+    if (tieBreakOutcome == CommanderTieBreakOutcome.localWinsIgnoreRemote) {
+      log.info(
+          "Ignoring simultaneous commander GameState from ${connection.id} after winning map tie-break.");
+      return;
+    }
     if (isCommander() && pendingCommandTransfer() == null) {
       log.warning(
           "Not parsing gamestate from ${connection.id} because we are commander!");
@@ -399,20 +447,48 @@ class Network {
       }
       return;
     }
+    final String oldCommanderId = gameState.gameStateProto.actingCommanderId;
     if (gameState.playerInfoByConnectionId(peer.id!) != null &&
       !GameState.updateContainsPlayerWithId(newGameState, peer.id!)) {
       // We are in the old GameState, but the new GameState does not have us :(
-      if (gameState.gameStateProto.actingCommanderId != newGameState.actingCommanderId &&
+      if (oldCommanderId != newGameState.actingCommanderId &&
           newGameState.actingCommanderId == connection.id) {
-        // Also this GameState doesn't match out expected CommanderId.
-        // So we don't want to listen to this connection.
-        connection.close("multiple commander connections");
-        _gaReporter.reportEvent(
-            "network", "multiple_commanders_connection_closed");
-        return;
+        final bool oldCommanderStillActive = oldCommanderId.isNotEmpty &&
+            safeActiveConnections().containsKey(oldCommanderId);
+        final bool newCommanderWasPeerInOurGame =
+            gameState.playerInfoByConnectionId(connection.id) != null ||
+                gameState.getRemovedPlayerInfo(connection.id) != null;
+        if (!safeLoaderCompleted() &&
+            (!oldCommanderStillActive || newCommanderWasPeerInOurGame)) {
+          log.info(
+              "Commander changed from $oldCommanderId to ${connection.id} mid-join before our join synced; re-handshaking.");
+          world.resetPartialJoinForNewCommander(connection);
+        } else {
+          // Also this GameState doesn't match out expected CommanderId.
+          // So we don't want to listen to this connection.
+          connection.close("multiple commander connections");
+          _gaReporter.reportEvent(
+              "network", "multiple_commanders_connection_closed");
+          return;
+        }
       }
     }
     gameState.updateFromMap(newGameState);
+
+    if (!safeLoaderCompleted() && !isCommander()) {
+      ConnectionWrapper? serverConn = getServerConnection();
+      if (serverConn != null) {
+        bool hasLocalSprite = false;
+        try {
+          hasLocalSprite = world.playerSprite != null;
+        } catch (_) {}
+        if (hasLocalSprite && gameState.isInGame(peer.id!)) {
+          serverConn.setHandshakeReceived();
+        } else if (!hasLocalSprite) {
+          serverConn.resetHandshakeReceived();
+        }
+      }
+    }
 
     // Command transfer successful.
     if (_pendingCommandTransfer != null &&
@@ -502,6 +578,11 @@ class Network {
       }
     }
     if (connections.isEmpty) {
+      final bool hasOpeningConnection = peer.connections.values
+          .any((c) => !c.isClosedConnection() && !c.isActiveConnection());
+      if (hasOpeningConnection) {
+        return false;
+      }
       if (!peer.autoConnectToPeers()) {
         // We didn't add any new peers. Bail.
         return true;
@@ -683,9 +764,12 @@ class Network {
         MovingSprite? sprite = (world.spriteIndex[update.spriteId] ??
             world.spriteIndex.getPendingSprite(update.spriteId)) as MovingSprite?;
         if (sprite == null) {
+          final PlayerInfoProto? ownerInfo =
+              gameState.maybePlayerInfoBySpriteId(update.spriteId);
           if (world.loaderCompleted() &&
               peer.id != null &&
-              (gameState.playerInfoByConnectionId(peer.id!)?.inGame ?? false)) {
+              (gameState.playerInfoByConnectionId(peer.id!)?.inGame ?? false) &&
+              (ownerInfo?.inGame ?? true)) {
             log.warning(
                 "Commander data update for missing sprite ${update.spriteId}");
           }
@@ -790,7 +874,8 @@ class Network {
           // ropes) on the commander's regular monotonic keyframes.
           updates.spriteUpdates.add(toSpriteUpdate(sprite, true));
         }
-        if (sprite.hasCommanderToOwnerData()) {
+        if (_pendingCommandTransfer == null &&
+            sprite.hasCommanderToOwnerData()) {
           SpriteUpdate update = SpriteUpdate()
             ..spriteId = networkId
             ..flags = Sprite.FLAG_COMMANDER_DATA
@@ -834,15 +919,13 @@ class Network {
     }
     return clientStatusData;
   }
-}
 
-final Expando<Map<String, PerformanceGovernor>> _remotePeerGovernors =
-    Expando<Map<String, PerformanceGovernor>>('RemotePeerPerformanceGovernors');
+  final Map<String, PerformanceGovernor> _remotePeerGovernors =
+      <String, PerformanceGovernor>{};
 
-/// Bridges [WormWorld.performanceGovernor] (and per-peer governors) into
-/// [ConnectionFrameHandler] so visual detail is lowered first and network FPS
-/// is only reduced once visual quality has already stepped down.
-extension NetworkPerformanceGovernor on Network {
+  /// Bridges [WormWorld.performanceGovernor] (and per-peer governors) into
+  /// [ConnectionFrameHandler] so visual detail is lowered first and network FPS
+  /// is only reduced once visual quality has already stepped down.
   double governedSelfFpsForNetwork() {
     try {
       return world.performanceGovernor.equivalentDrawFpsForNetwork(
@@ -865,13 +948,8 @@ extension NetworkPerformanceGovernor on Network {
     if (reportedPeerFps <= 0.0) {
       return 60.0;
     }
-    Map<String, PerformanceGovernor>? map = _remotePeerGovernors[this];
-    if (map == null) {
-      map = <String, PerformanceGovernor>{};
-      _remotePeerGovernors[this] = map;
-    }
     final PerformanceGovernor peerGov =
-        map.putIfAbsent(peerId, () => PerformanceGovernor());
+        _remotePeerGovernors.putIfAbsent(peerId, () => PerformanceGovernor());
     final bool peerIsCommander =
         getGameState().gameStateProto.actingCommanderId == peerId;
     peerGov.update(
@@ -884,5 +962,63 @@ extension NetworkPerformanceGovernor on Network {
       minRate: ConnectionFrameHandler.MIN_FRAMERATE,
       maxRate: ConnectionFrameHandler.MAX_FRAMERATE,
     );
+  }
+
+  bool safeLoaderCompleted() {
+    try {
+      return world.loaderCompleted();
+    } catch (_) {
+      return true;
+    }
+  }
+
+  void handleCommanderLostWhileJoining(
+    String droppedCommanderId,
+    Map<String, ConnectionWrapper> remainingConnections,
+  ) {
+    final String? selfId = peer.id;
+    // Clear the dropped actingCommanderId FIRST so any fresh WebRTC OFFERs to
+    // surviving peers go over serverChannel rather than routing via the dead
+    // commander.
+    if (gameState.gameStateProto.actingCommanderId == droppedCommanderId) {
+      gameState.gameStateProto.actingCommanderId = "";
+    }
+
+    // Connect (or re-initiate never-opened commander-relayed attempts) to any
+    // surviving peers we knew from GameState so we can discover the new commander.
+    for (PlayerInfoProto p in gameState.playerInfoList()) {
+      final String pid = p.connectionId;
+      if (pid.isEmpty || pid == droppedCommanderId || pid == selfId) {
+        continue;
+      }
+      final ConnectionWrapper? existing = peer.connections[pid];
+      if (existing != null &&
+          !existing.wasOpen() &&
+          !existing.isActiveConnection()) {
+        // Previous OFFER was likely relayed via the dead commander and never
+        // reached `pid`; re-initiate cleanly over serverChannel.
+        peer.connections.remove(pid);
+      }
+      if (!peer.hasConnectionTo(pid) && !peer.hasHadConnectionTo(pid)) {
+        try {
+          peer.connectTo(pid);
+        } catch (_) {}
+      }
+    }
+
+    bool anyOtherOpenOrOpening = false;
+    for (ConnectionWrapper c in peer.connections.values) {
+      if (!c.isClosedConnection()) {
+        anyOtherOpenOrOpening = true;
+        c.resetInitialPingForCommanderSearch();
+      }
+    }
+
+    if (anyOtherOpenOrOpening) {
+      world.resetPartialJoinForNewCommander(null);
+    } else {
+      gameState.reset();
+      world.resetPartialJoinForNewCommander(null);
+    }
   }
 }

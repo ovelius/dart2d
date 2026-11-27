@@ -14,13 +14,16 @@ class Weapon {
 
   int iconIndex = 0;
   bool hasLaserSight = false;
+  bool isMysteryWeapon = false;
+  bool unlocked = true;
 
   Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime,
       this.fireDelay, this.fire,
-      {this.hasLaserSight = false}) {
+      {this.hasLaserSight = false, this.isMysteryWeapon = false}) {
     this.shotsLeft = shotsPerClip;
+    this.unlocked = !this.isMysteryWeapon;
   }
-  
+
   void fireButton(WeaponState weaponState) {
     if (shotsLeft > 0) {
       if (untilNextFire <= 0) {
@@ -28,18 +31,26 @@ class Weapon {
         shotsLeft--;
         fire(weaponState);
         if (shotsLeft <= 0) {
-          untilReload = reloadTime;
+          if (isMysteryWeapon && !weaponState.isSandboxMode) {
+            unlocked = false;
+            untilReload = 0.0;
+            weaponState.onMysteryWeaponDepleted(this);
+          } else {
+            untilReload = reloadTime;
+          }
         }
       }
     }
   }
-  
-  void think (double duration) {
+
+  void think(double duration, {bool allowAutoReload = true}) {
     untilNextFire -= duration;
     untilReload -= duration;
     if (shotsLeft <= 0 && untilReload < 0) {
-      shotsLeft = shotsPerClip;
-      untilNextFire = 0.0;
+      if (!isMysteryWeapon || allowAutoReload) {
+        shotsLeft = shotsPerClip;
+        untilNextFire = 0.0;
+      }
     }
   }
   

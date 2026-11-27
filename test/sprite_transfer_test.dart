@@ -1431,9 +1431,11 @@ void main() {
         worldB.frameDraw(KEY_FRAME_DEFAULT);
       }
 
-      // Now switch weapons until Banana weapon is selected.
+      // Unlock Banana pancake (a mystery powerup weapon) so B can cycle to it via Next weapon.
       int nextWeaponKey = bSelfSprite.getControls()["Next weapon"]!;
       Weapon bananaWeapons = findBananaWeapons(bSelfSprite);
+      bananaWeapons.unlocked = true;
+      findBananaWeapons(aBSprite).unlocked = true;
       int guard = 0;
       while (bSelfSprite.weaponState!.selectedWeaponName != bananaWeapons.name && guard++ < 30) {
         worldB.localKeyState.onKeyDown(nextWeaponKey);

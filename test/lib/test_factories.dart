@@ -214,7 +214,9 @@ class FakeSoundFactory extends SoundFactory {
   Future loadAllAudio() async {
     List<Future> loads = [];
     for (HTMLAudioElement el in _audios) {
-      loads.add(el.onCanPlay.first);
+      if (el.readyState == HTMLMediaElement.HAVE_NOTHING) {
+        loads.add(el.onCanPlay.first);
+      }
     }
     return Future.wait(loads);
   }

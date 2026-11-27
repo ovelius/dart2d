@@ -331,9 +331,10 @@ class ChunkHelper {
       if (!allowServerFallback) {
         return false;
       }
-      // Pinned connection removed or denylisted; reset partial transfer.
+      // Pinned connection removed or denylisted; reset partial transfer and
+      // immediately request from remaining eligible connections if any.
       _resetImageTransfer(index);
-      return false;
+      return _requestImageData(index, eligibleConnections);
     }
     double? lastRequestTimeout = _retryTimer[index];
     if (lastRequestTimeout == null || lastRequestTimeout < 0) {
@@ -429,6 +430,10 @@ class ChunkHelper {
 
   void setChunkSizeForTest(int chunkSize) {
     this._chunkSize = chunkSize;
+  }
+
+  void resetTransferForIndex(int index) {
+    _resetImageTransfer(index);
   }
 }
 

@@ -1,8 +1,10 @@
 import 'dart:js_interop';
 import 'dart:math';
+import 'package:clock/clock.dart';
 import 'package:dart2d/net/net.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
 import 'package:injectable/injectable.dart';
+import 'package:logging/logging.dart' show Logger;
 import 'package:web/web.dart';
 
 import '../net/connection.dart';
@@ -17,6 +19,9 @@ import 'package:dart2d/res/imageindex.dart';
 
 @Singleton(scope: 'world')
 class PlayerWorldSelector {
+  static final Logger _log = Logger('PlayerWorldSelector');
+  static const double MAP_TIE_BREAK_WINDOW_SECONDS = 1.0;
+  static const double _TIE_BREAK_IN_FLIGHT_GRACE_SECONDS = 2.5;
   static final double UPDATE_SELECTION_TO_NETWORK_TIME = 0.3;
   static final List<String> PLAYER_SPRITES = [
     "sheep98.png",
@@ -81,6 +86,15 @@ class PlayerWorldSelector {
   String? _selectedWorldName = null;
   String? get selectedWorldName => _selectedWorldName;
 
+  String? _selectedWorldOwnerId = null;
+  bool _selectedLocally = false;
+  DateTime? _localSelectionWallTime = null;
+  double _localSelectionTickSeconds = 0.0;
+  DateTime? _remoteSelectionWallTime = null;
+  double _remoteSelectionTickSeconds = 0.0;
+  void Function(String winnerId, String winnerMapName)?
+      _onRollbackMapSelection = null;
+
   String? _customMessage = null;
 
   double _nextSendToNetwork = 0.0;
@@ -141,10 +155,20 @@ class PlayerWorldSelector {
     _keyState.registerListener(KeyCodeDart.ENTER, maybeSelectPlayerOrMap);
     _keyState.registerListener(KeyCodeDart.CTRL, maybeSelectPlayerOrMap);
     _mobileControls.listenForTouch((int x, int y) {
+      // Ignore touches once a world has been chosen or we have already joined a
+      // multiplayer GameState!
+      final String? selfId = _network.getPeer().getId();
+      if (_selectedWorldName != null ||
+          (selfId != null && _network.gameState.isInGame(selfId)) ||
+          _network.getServerConnection() != null) {
+        return;
+      }
       if (_spritePositions != null && !playerSelected()) {
         double scaledWidth = _maxWidth * _scale;
         for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-          if (_onPoint(_spritePositions![i], x, y, scaledWidth)) {
+          HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
+          double scaledHeight = max(scaledWidth, img.height * _scale);
+          if (_onPointRect(_spritePositions![i], x, y, scaledWidth, scaledHeight)) {
             if (_selectedPlayerSprite == i) {
               maybeSelectPlayerOrMap();
             } else {
@@ -184,7 +208,7 @@ class PlayerWorldSelector {
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.commanderMapSelected,
         (ConnectionWrapper connection, StateUpdate update) {
-      _loadSelectedWorldMap(update.commanderMapSelected);
+      _handleRemoteCommanderMapSelected(connection, update.commanderMapSelected);
     });
     // Always allow to reselect the player image again.
     _localStorage.remove('playerSprite');
@@ -216,12 +240,137 @@ class PlayerWorldSelector {
   }
 
   bool _onPoint(Point<int> p, int x, int y, double scaledWidth) {
+    return _onPointRect(p, x, y, scaledWidth, scaledWidth);
+  }
+
+  bool _onPointRect(
+      Point<int> p, int x, int y, double scaledWidth, double scaledHeight) {
     if (x >= p.x && x <= p.x + scaledWidth) {
-      if (y >= p.y && y <= p.y + scaledWidth) {
+      if (y >= p.y && y <= p.y + scaledHeight) {
         return true;
       }
     }
     return false;
+  }
+
+  double _effectiveLocalSelectionElapsedSeconds() {
+    if (_localSelectionWallTime == null) {
+      return double.infinity;
+    }
+    final double wallSeconds =
+        clock.now().difference(_localSelectionWallTime!).inMicroseconds / 1e6;
+    return max(_localSelectionTickSeconds, wallSeconds);
+  }
+
+  double _effectiveRemoteSelectionElapsedSeconds() {
+    if (_remoteSelectionWallTime == null) {
+      return double.infinity;
+    }
+    final double wallSeconds =
+        clock.now().difference(_remoteSelectionWallTime!).inMicroseconds / 1e6;
+    return max(_remoteSelectionTickSeconds, wallSeconds);
+  }
+
+  bool _isWithinLocalTieBreakWindow() =>
+      _selectedLocally &&
+      _effectiveLocalSelectionElapsedSeconds() <= MAP_TIE_BREAK_WINDOW_SECONDS;
+
+  bool _isWithinLocalInFlightGrace() =>
+      _selectedLocally &&
+      _effectiveLocalSelectionElapsedSeconds() <=
+          _TIE_BREAK_IN_FLIGHT_GRACE_SECONDS;
+
+  bool _isWithinRemoteTieBreakWindow() =>
+      !_selectedLocally &&
+      _selectedWorldOwnerId != null &&
+      _effectiveRemoteSelectionElapsedSeconds() <= MAP_TIE_BREAK_WINDOW_SECONDS;
+
+  bool _isWithinRemoteInFlightGrace() =>
+      !_selectedLocally &&
+      _selectedWorldOwnerId != null &&
+      _effectiveRemoteSelectionElapsedSeconds() <=
+          _TIE_BREAK_IN_FLIGHT_GRACE_SECONDS;
+
+  void _resendLocalWinningMapTo(ConnectionWrapper connection) {
+    final String? mapName = _selectedWorldName;
+    if (mapName == null || mapName.isEmpty) {
+      return;
+    }
+    _network.gameState.gameStateProto.mapName = mapName;
+    connection.sendSingleUpdate(StateUpdate()
+      ..attachSingleTonUniqueDataReceipt()
+      ..commanderMapSelected = mapName);
+    connection.sendSingleUpdate(StateUpdate()
+      ..gameState = _network.gameState.gameStateProto);
+  }
+
+  void _applyRemoteWinningSelection(String winnerId, String winnerMapName) {
+    _selectedLocally = false;
+    _selectedWorldOwnerId = winnerId;
+    _localSelectionWallTime = null;
+    _localSelectionTickSeconds = 0.0;
+    _remoteSelectionWallTime = clock.now();
+    _remoteSelectionTickSeconds = 0.0;
+    _onRollbackMapSelection?.call(winnerId, winnerMapName);
+    if (winnerMapName.isNotEmpty) {
+      _loadSelectedWorldMap(winnerMapName);
+    }
+  }
+
+  void _handleRemoteCommanderMapSelected(
+      ConnectionWrapper connection, String remoteMap) {
+    if (remoteMap.isEmpty) {
+      return;
+    }
+    final String remoteId = connection.id;
+    final String localId = _network.getPeer().getId() ?? '';
+
+    if (_selectedWorldName == null) {
+      _selectedLocally = false;
+      _selectedWorldOwnerId = remoteId;
+      _remoteSelectionWallTime = clock.now();
+      _remoteSelectionTickSeconds = 0.0;
+      if (_network.gameState.gameStateProto.actingCommanderId.isEmpty) {
+        _network.gameState.gameStateProto.actingCommanderId = remoteId;
+      }
+      _loadSelectedWorldMap(remoteMap);
+      return;
+    }
+
+    if (_selectedWorldName == remoteMap && _selectedWorldOwnerId == remoteId) {
+      return;
+    }
+
+    if (_selectedLocally) {
+      if (!_isWithinLocalTieBreakWindow()) {
+        _log.info(
+            "Ignoring remote map '$remoteMap' from '$remoteId' (> ${MAP_TIE_BREAK_WINDOW_SECONDS}s after local map selection '$_selectedWorldName').");
+        return;
+      }
+      if (remoteId.compareTo(localId) > 0) {
+        _log.info(
+            "Map tie-break won by higher natural ID '$remoteId' over '$localId'; rolling back '$_selectedWorldName' -> '$remoteMap'.");
+        _applyRemoteWinningSelection(remoteId, remoteMap);
+      } else {
+        _log.info(
+            "Map tie-break won by local higher natural ID '$localId' over '$remoteId'; keeping '$_selectedWorldName'.");
+        _resendLocalWinningMapTo(connection);
+      }
+      return;
+    }
+
+    // Bystander peer: if two other peers selected maps within 1s, converge on
+    // the higher natural ID peer's map.
+    final String? currentOwner = _selectedWorldOwnerId;
+    if (_isWithinRemoteTieBreakWindow() &&
+        currentOwner != null &&
+        remoteId.compareTo(currentOwner) > 0) {
+      _log.info(
+          "Bystander switching simultaneous map selection from '$currentOwner' to higher ID '$remoteId' ('$remoteMap').");
+      _applyRemoteWinningSelection(remoteId, remoteMap);
+    } else if (_selectedWorldName != remoteMap && currentOwner == remoteId) {
+      _loadSelectedWorldMap(remoteMap);
+    }
   }
 
   void _loadSelectedWorldMap(String mapName) {
@@ -248,6 +397,12 @@ class PlayerWorldSelector {
           WORLD_THEMES[_selectedMap % WORLD_THEMES.length];
       final int seed = Random().nextInt(0x7FFFFFFF);
       final String mapFullName = encodeGeneratedMapName(theme.id, seed);
+      _selectedLocally = true;
+      _selectedWorldOwnerId = _network.getPeer().getId();
+      _localSelectionWallTime = clock.now();
+      _localSelectionTickSeconds = 0.0;
+      _remoteSelectionWallTime = null;
+      _remoteSelectionTickSeconds = 0.0;
       _loadSelectedWorldMap(mapFullName);
       _gaReporter.reportEvent(theme.key, "WorldSelect");
       _mapTileRects = null;
@@ -278,6 +433,13 @@ class PlayerWorldSelector {
       _localStorage.remove("playerSprite");
     }
     _selectedWorldName = null;
+    _mapTileRects = null;
+    _selectedWorldOwnerId = null;
+    _selectedLocally = false;
+    _localSelectionWallTime = null;
+    _localSelectionTickSeconds = 0.0;
+    _remoteSelectionWallTime = null;
+    _remoteSelectionTickSeconds = 0.0;
     for (List s in _otherPlayersSelections) {
       s.clear();
     }
@@ -786,5 +948,79 @@ class PlayerWorldSelector {
 
   void setMapForTest(String name) {
     _selectedWorldName = name;
+    _selectedWorldOwnerId = null;
+    _selectedLocally = false;
+    _localSelectionWallTime = null;
+    _localSelectionTickSeconds = 0.0;
+    _remoteSelectionWallTime = null;
+    _remoteSelectionTickSeconds = 0.0;
   }
+
+  void registerRollbackHandler(
+      void Function(String winnerId, String winnerMapName) handler) {
+    _onRollbackMapSelection = handler;
+  }
+
+  void tickTieBreakTimer(double duration) {
+    if (duration <= 0.0) {
+      return;
+    }
+    if (_localSelectionWallTime != null) {
+      _localSelectionTickSeconds += duration;
+    }
+    if (_remoteSelectionWallTime != null) {
+      _remoteSelectionTickSeconds += duration;
+    }
+  }
+
+  String? get selectedWorldOwnerId => _selectedWorldOwnerId;
+
+  void setSelectedMapIndexForTest(int index) {
+    _selectedMap = index % PlayerWorldSelector.AVAILABLE_MAPS.length;
+  }
+
+  CommanderTieBreakOutcome resolveIncomingCommanderGameState(
+      ConnectionWrapper connection, GameStateProto newGameState) {
+    if (newGameState.actingCommanderId != connection.id) {
+      return CommanderTieBreakOutcome.none;
+    }
+    final String remoteId = connection.id;
+    final String localId = _network.getPeer().getId() ?? '';
+
+    if (_selectedLocally) {
+      if (_isWithinLocalTieBreakWindow() &&
+          remoteId.compareTo(localId) > 0) {
+        PlayerWorldSelector._log.info(
+            "GameState tie-break won by higher natural ID '$remoteId' over '$localId'; rolling back local selection.");
+        _applyRemoteWinningSelection(remoteId, newGameState.mapName);
+        return CommanderTieBreakOutcome.remoteWinsRollbackToRemote;
+      }
+      if (_isWithinLocalInFlightGrace() &&
+          localId.compareTo(remoteId) > 0) {
+        _resendLocalWinningMapTo(connection);
+        return CommanderTieBreakOutcome.localWinsIgnoreRemote;
+      }
+      return CommanderTieBreakOutcome.none;
+    }
+
+    if (_selectedWorldName != null && _selectedWorldOwnerId != null) {
+      final String currentOwner = _selectedWorldOwnerId!;
+      if (_isWithinRemoteTieBreakWindow() &&
+          remoteId.compareTo(currentOwner) > 0) {
+        _applyRemoteWinningSelection(remoteId, newGameState.mapName);
+        return CommanderTieBreakOutcome.remoteWinsRollbackToRemote;
+      }
+      if (_isWithinRemoteInFlightGrace() &&
+          currentOwner.compareTo(remoteId) > 0) {
+        return CommanderTieBreakOutcome.localWinsIgnoreRemote;
+      }
+    }
+    return CommanderTieBreakOutcome.none;
+  }
+}
+
+enum CommanderTieBreakOutcome {
+  none,
+  localWinsIgnoreRemote,
+  remoteWinsRollbackToRemote,
 }

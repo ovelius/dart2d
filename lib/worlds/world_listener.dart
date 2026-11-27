@@ -55,9 +55,16 @@ class WorldListener {
       }
     });
     _packetListenerBindings.bindHandler(StateUpdate_Update.clientEnter, (ConnectionWrapper c, StateUpdate data) {
-      assert(_network.isCommander());
+      if (!_network.isCommander()) {
+        log.info("Ignoring clientEnter from ${c.id} because we are not commander.");
+        return;
+      }
       GameState game = _gameState;
-      PlayerInfoProto info = game.playerInfoByConnectionId(c.id)!;
+      PlayerInfoProto? info = game.playerInfoByConnectionId(c.id);
+      if (info == null) {
+        log.info("Ignoring clientEnter from ${c.id} not yet in GameState.");
+        return;
+      }
       info.inGame = true;
       game.markAsUrgent();
     });
@@ -78,12 +85,16 @@ class WorldListener {
           return;
         default:
       }
-      assert(!_network.isCommander());
+      if (_network.isCommander()) {
+        log.info("Ignoring stale server reply from ${connection.id} while commander.");
+        return;
+      }
       hudMessages.display("Got server challenge from ${connection.id}");
       _gameState.updateFromMap(reply.gameState);
       Vec2 position = Vec2.fromProto(reply.startingPosition);
       _world.createLocalClient(reply.spriteIndexStart, position);
       connection.setHandshakeReceived();
+      _world.connectToAllPeersInGameState();
     } else {
       log.warning("Duplicate handshake received from ${connection}!");
     }
@@ -97,6 +108,43 @@ class WorldListener {
       ..attachUniqueDataReceipt(connection);
     if (!_world.loader.completed()) {
       log.warning("Got client enter before loading completed, dropping");
+      return;
+    }
+    if (!_network.isCommander() || _network.pendingCommandTransfer() != null) {
+      log.info("Ignoring client connect from ${connection.id} while not active commander.");
+      return;
+    }
+    final PlayerInfoProto? existingInfo =
+        _gameState.playerInfoByConnectionId(connection.id);
+    if (existingInfo != null && !existingInfo.inGame) {
+      // Joining client was already registered in GameState by a previous
+      // commander before command transferred, but still needs CommanderGameReply.
+      final int spriteId = existingInfo.spriteId;
+      final int spriteIndex = spec.playerImageId;
+      existingInfo.name = spec.name;
+      Sprite? existingSprite = _world.spriteIndex[spriteId] ??
+          _world.spriteIndex.getPendingSprite(spriteId);
+      Vec2 position;
+      if (existingSprite is LocalPlayerSprite) {
+        position = existingSprite.position;
+        existingSprite.networkType = NetworkType.REMOTE_FORWARD;
+        existingSprite.ownerId = connection.id;
+      } else {
+        position =
+            _byteWorld.randomNotSolidPoint(LocalPlayerSprite.DEFAULT_PLAYER_SIZE);
+        LocalPlayerSprite sprite = new LocalPlayerSprite(
+            _world, _world.imageIndex(), _mobileControls, existingInfo, position, spriteIndex);
+        _world.adjustPlayerSprite(sprite, spriteIndex);
+        sprite.networkType = NetworkType.REMOTE_FORWARD;
+        sprite.networkId = spriteId;
+        sprite.ownerId = connection.id;
+        _world.addSprite(sprite);
+      }
+      reply.spriteIndexStart = spriteId;
+      reply.startingPosition = position.toProto();
+      reply.gameState = _gameState.gameStateProto;
+      connection.sendSingleUpdate(updateReply);
+      connection.setHandshakeReceived();
       return;
     }
     if (connection.isValidGameConnection()) {

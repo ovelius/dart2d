@@ -436,7 +436,10 @@ class ConnectionWrapper {
           KEY_FRAME_DEFAULT,
         );
         final double governedSelfFps = _network.governedSelfFpsForNetwork();
-        _connectionFrameHandler.reportFrameRates(governedPeerFps, governedSelfFps);
+        if (governedPeerFps > 0.0 && governedSelfFps > 0.0) {
+          _connectionFrameHandler.reportFrameRates(
+              governedPeerFps, governedSelfFps);
+        }
       }
     } else {
       // Send regular data.
@@ -609,5 +612,10 @@ class ConnectionWrapper {
 
   int uniqueDataReceiptString(String key) {
     return "${key}_$id".hashCode;
+  }
+
+  void resetInitialPingForCommanderSearch() {
+    _initialPingSent = false;
+    _initialPongReceived = false;
   }
 }

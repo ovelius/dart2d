@@ -294,32 +294,48 @@ class PeerWrapper {
     ConnectionWrapper? wrapper = connectionsCopy.remove(id);
     this.connections = connectionsCopy;
     log.info("Removing connection for ${id}");
+    final String oldCommanderId =
+        _network.gameState.gameStateProto.actingCommanderId;
     if (_network.isCommander()) {
       log.info("Removing GameState for ${id}");
       _network.gameState.removeByConnectionId(_network.world, id);
       // The crucial step of verifying we still have a server.
     } else {
+      final bool loaderDone = _network.safeLoaderCompleted();
       String? commanderId = _network.findNewCommander(connectionsCopy);
       if (commanderId != null) {
         // We got elected the new commander, first task is to remove the old.
         if (commanderId == this.id) {
-          log.info("Server ${this.id}: Removing GameState for ${id}");
-          PlayerInfoProto? info = _network.gameState.removeByConnectionId(_network.world, id);
-          if (info != null) {
-            _network.convertToCommander(connectionsCopy, info);
-            _network.gameState.markAsUrgent();
+          if (!loaderDone) {
+            log.info(
+                "Commander $id dropped while ${this.id} is still loading; resetting partial join to search remaining peers.");
+            _network.handleCommanderLostWhileJoining(id, connectionsCopy);
+          } else {
+            log.info("Server ${this.id}: Removing GameState for ${id}");
+            PlayerInfoProto? info =
+                _network.gameState.removeByConnectionId(_network.world, id);
+            if (info != null) {
+              _network.convertToCommander(connectionsCopy, info);
+              _network.gameState.markAsUrgent();
+            }
           }
         } else {
-          // crash here..
-          PlayerInfoProto info = _network.gameState.playerInfoByConnectionId(commanderId)!;
+          PlayerInfoProto? info =
+              _network.gameState.playerInfoByConnectionId(commanderId);
           // Start treating the other peer as commander.
           _network.gameState.gameStateProto.actingCommanderId = commanderId;
           log.info("Commander is now ${commanderId}");
-          _hudMessages.display("Elected new commander ${info.name}");
+          if (info != null) {
+            _hudMessages.display("Elected new commander ${info.name}");
+          }
           sendSingleStateUpdate(StateUpdate()
             ..commanderSwitchFromClosedConnection = commanderId
             ..attachSingleTonUniqueDataReceipt());
         }
+      } else if (!loaderDone && id == oldCommanderId) {
+        log.info(
+            "Commander $id dropped before ${this.id} finished joining; searching remaining peers for new commander.");
+        _network.handleCommanderLostWhileJoining(id, connectionsCopy);
       } else {
         log.info("Not switching commander after dropping ${id}");
       }

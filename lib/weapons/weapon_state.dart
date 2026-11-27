@@ -11,11 +11,43 @@ import 'package:web/web.dart';
 
 import '../net/state_updates.pb.dart';
 import '../res/sounds.dart';
+import '../util/config_params.dart';
 import '../util/mobile_controls.dart';
+
+enum BingoTier {
+  none,
+  extraBingo,
+  superBingo,
+}
+
+class BingoProbabilities {
+  final double extraBingo;
+  final double superBingo;
+
+  const BingoProbabilities({
+    required this.extraBingo,
+    required this.superBingo,
+  });
+}
 
 class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = 1.3;
+  static const double ROULETTE_SPIN_DURATION = 1.85;
+  static const double ROULETTE_REVEAL_DURATION = 1.50;
+  static const double EXTRA_BINGO_REVEAL_DURATION = 2.00;
+  static const double SUPER_BINGO_REVEAL_DURATION = 2.35;
+  static const int ROULETTE_TOTAL_STEPS = 16;
+  static const int _SANDBOX_MASK_BIT = 1 << 20;
+
+  // Handicap Bingo probability tuning:
+  // - Leader (0% behind): 5% Extra Bingo (if hurt), 1% Superbingo.
+  // - 50% of maxFrags behind leader: 80% Superbingo, 15% Extra Bingo (if hurt).
+  static const double LEADER_EXTRA_BINGO_PROB = 0.05;
+  static const double LEADER_SUPER_BINGO_PROB = 0.01;
+  static const double HALF_DEFICIT_SUPER_BINGO_PROB = 0.80;
+  static const double HALF_DEFICIT_EXTRA_BINGO_PROB = 0.15;
+
   static const int ICON_TILE_SIZE = 68;
   static const int ICON_SIZE_HALF = ICON_TILE_SIZE ~/ 2;
   static const int WHEEL_SIZE = 172;
@@ -30,9 +62,47 @@ class WeaponState {
   double _reloadReadyFlash = 0.0;
   String _longestWeaponName = "";
   int selectedWeaponIndex = 2;
+  int _lastStarterWeaponIndex = 2;
   double _anglePerWeapon = 0.0;
+  bool _remoteSandboxActive = false;
+
+  // Mario Kart-style mystery weapon roulette + handicap bingo state.
+  int _rouletteTargetWeaponIndex = -1;
+  int _rouletteDisplayWeaponIndex = -1;
+  double _rouletteSpinRemaining = 0.0;
+  double _rouletteRevealRemaining = 0.0;
+  double _rouletteRevealTotalDuration = ROULETTE_REVEAL_DURATION;
+  double _rouletteVisualPhase = 0.0;
+  int _lastRouletteStepPlayed = -1;
+  int _rouletteNonce = 0;
+  BingoTier _rouletteBingoTier = BingoTier.none;
 
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
+  bool get isRouletteSpinning =>
+      _rouletteSpinRemaining > 0.0 && _rouletteTargetWeaponIndex >= 0;
+  bool get isRouletteRevealing =>
+      _rouletteSpinRemaining <= 0.0 &&
+      _rouletteRevealRemaining > 0.0 &&
+      _rouletteTargetWeaponIndex >= 0;
+  bool get isRouletteActive => isRouletteSpinning || isRouletteRevealing;
+  int get rouletteTargetWeaponIndex => _rouletteTargetWeaponIndex;
+  int get rouletteDisplayWeaponIndex => _rouletteDisplayWeaponIndex;
+  int get rouletteNonce => _rouletteNonce;
+  double get rouletteSpinRemaining => _rouletteSpinRemaining;
+  BingoTier get rouletteBingoTier => _rouletteBingoTier;
+
+  bool get isSandboxMode {
+    if (_remoteSandboxActive) {
+      return true;
+    }
+    try {
+      final dynamic cfg = world.config();
+      if (cfg != null) {
+        return cfg.getBool(ConfigParam.SANDBOX) == true;
+      }
+    } catch (_) {}
+    return false;
+  }
 
   WeaponState(this.world, this.owner, this.gun,  this.mobileControls) {
     for (Weapon w in weapons) {
@@ -41,10 +111,24 @@ class WeaponState {
       }
     }
     mobileControls?.listenForTouch((int x, int y) {
-      if (changeTime > 0) {
-        Point<int> location = mobileControls!.buttonLocation(MobileControls.WEAPON_SELECT_BUTTON);
-        Point<int> deltaLocation = Point(location.x - x, location.y - y);
-        weaponStateSelector(deltaLocation);
+      if (changeTime > 0 && owner.drawWeaponHelpers()) {
+        // Do not hijack taps meant for action/weapon/mute buttons!
+        if (mobileControls!.isButtonTouch(x, y)) {
+          return;
+        }
+        final Point<int> wheelCenter = _clampedWheelCenter(
+          mobileControls!.buttonLocation(MobileControls.WEAPON_SELECT_BUTTON),
+        );
+        final double wheelR = _effectiveWheelRadius();
+        final int dx = wheelCenter.x - x;
+        final int dy = wheelCenter.y - y;
+        final double dist = sqrt(dx * dx + dy * dy);
+        // Only select a weapon on direct tap if the tap actually landed on the
+        // open radial weapon wheel!
+        if (dist >= wheelR * 0.38 &&
+            dist <= wheelR + ICON_SIZE_HALF + 16.0) {
+          weaponStateSelector(Point(dx, dy));
+        }
       }
     });
     _anglePerWeapon =  (pi * 2)/weapons.length;
@@ -53,14 +137,14 @@ class WeaponState {
   Weapon getSelectedWeapon() => weapons[selectedWeaponIndex];
 
   List<Weapon> weapons = [
-    new Weapon("Banana pancake", 4, 2, 5.0, 1.0,  (WeaponState weaponState) {
+    new Weapon("Banana pancake", 4, 2, 5.0, 1.0, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BananaCake.createWithOwner(weaponState.world,  weaponState.owner, 50, weaponState.owner.gun);
       sprite.explodeAfter = 4.0;
       sprite.owner = weaponState.owner;
       sprite.radius = 50.0;
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
     new Weapon("Brick builder", 9, 20, 5.0, 0.3, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new BrickBuilder.createWithOwner(weaponState.world, weaponState.owner, 2, weaponState.owner.gun);
       sprite.mod = Mod.BRICK;
@@ -69,7 +153,7 @@ class WeaponState {
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Shotgun",0, 4, 2.0, .8, (WeaponState weaponState) {
+    new Weapon("Shotgun", 0, 4, 2.0, .8, (WeaponState weaponState) {
       weaponState.world.playSoundAtSprite(weaponState.owner, Sound.SHOTGUN);
       for (int i = 0; i < 8; i++) {
         WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, positionBase:weaponState.owner.gun);
@@ -97,8 +181,8 @@ class WeaponState {
       JellybeanProjectile sprite = new JellybeanProjectile.createWithOwner(
           weaponState.world, weaponState.owner, 8, weaponState.owner.gun);
       weaponState.world.addSprite(sprite);
-    }),
-    new Weapon("Coffee Burn",2, 150, 2.0, .05, (WeaponState weaponState) {
+    }, isMysteryWeapon: true),
+    new Weapon("Coffee Burn", 2, 150, 2.0, .05, (WeaponState weaponState) {
       Vec2 vel = new Vec2(cos(weaponState.gun.angle), sin(weaponState.gun.angle));
       Vec2 position = weaponState.gun.centerPoint();
       double gunRadius = weaponState.gun.size.sum() / 2;
@@ -115,8 +199,8 @@ class WeaponState {
       p.spawn_sound = Sound.BURN;
       p.owner = weaponState.owner;
       weaponState.world.addSprite(p);
-    }),
-    new Weapon("Snailgun",3, 4, 1.0, 0.3, (WeaponState weaponState) {
+    }, isMysteryWeapon: true),
+    new Weapon("Snailgun", 3, 3, 1.0, 0.6, (WeaponState weaponState) {
       SnailProjectile sprite = new SnailProjectile.createWithOwner(
           weaponState.world, weaponState.owner, 12, weaponState.owner.gun);
 
@@ -129,13 +213,13 @@ class WeaponState {
       // The order is important here.
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
-    }, hasLaserSight: true),
+    }, hasLaserSight: true, isMysteryWeapon: true),
     new Weapon("Cat litter box", 5, 1, 5.0, 0.01, (WeaponState weaponState) {
       CatLitterBox sprite = new CatLitterBox.createWithOwner(
           weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
     /*
     new Weapon("Black sheep down", 1, 5.0, 0.01, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.gun, 100);
@@ -149,7 +233,7 @@ class WeaponState {
       sprite.setImage(weaponState.world.imageIndex().getImageIdByName("sheep_black58.png"), 58);
       weaponState.world.addSprite(sprite);
     }), */
-    new Weapon("Zooka",6, 5, 2.5, 0.8, (WeaponState weaponState) {
+    new Weapon("Zooka", 6, 5, 2.5, 0.8, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(
           weaponState.world, weaponState.owner, 40,
           positionBase: weaponState.owner.gun, size: new Vec2(38.0, 16.0));
@@ -168,65 +252,426 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }),
-    new Weapon("Neon Blaster",7, 5, 2.5, 1.20, (WeaponState weaponState) {
+    new Weapon("Neon Blaster", 7, 5, 2.5, 1.20, (WeaponState weaponState) {
       WorldDamageProjectile sprite = new Hyper.createWithOwner(weaponState.world, weaponState.owner, 30, weaponState.owner.gun);
       sprite.radius = Hyper.DEFAULT_BLAST_RADIUS;
       sprite.spawn_sound = Sound.HYPER;
       sprite.owner = weaponState.owner;
       sprite.gravityAffect = 0.00;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
     new Weapon("Spiky Hedgehog", 10, 2, 5.5, 0.9, (WeaponState weaponState) {
       HedgehogMine sprite = new HedgehogMine.createWithOwner(
           weaponState.world, weaponState.owner, 38, weaponState.owner.gun);
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
-    }),
-    new Weapon("Turbo Mole", 11, 2, 5.0, 1.0, (WeaponState weaponState) {
+    }, isMysteryWeapon: true),
+    new Weapon("Turbo Mole", 11, 4, 5.0, 1.0, (WeaponState weaponState) {
       MoleDrillProjectile sprite = new MoleDrillProjectile.createWithOwner(
           weaponState.world, weaponState.owner, 45, weaponState.owner.gun);
       sprite.spawn_sound = Sound.ZOOKA;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
     new Weapon("Angry Beehive", 12, 2, 5.5, 1.0, (WeaponState weaponState) {
       AngryBeehive sprite = new AngryBeehive.createWithOwner(
           weaponState.world, weaponState.owner, 18, weaponState.owner.gun);
       sprite.spawn_sound = Sound.SWOSH;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
     new Weapon("Pigeon Strike", 13, 1, 6.5, 1.0, (WeaponState weaponState) {
       PigeonStrikeFlare sprite = new PigeonStrikeFlare.createWithOwner(
           weaponState.world, weaponState.owner, weaponState.owner.gun);
       sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
-    }),
+    }, isMysteryWeapon: true),
   ];
   
-  nextWeapon() {
-    selectedWeaponIndex++;
-    selectedWeaponIndex = selectedWeaponIndex % weapons.length;
-    changeTime = SHOW_WEAPON_NAME_TIME;
+  bool isWeaponAvailable(int index) {
+    if (index < 0 || index >= weapons.length) {
+      return false;
+    }
+    final Weapon w = weapons[index];
+    if (!w.isMysteryWeapon || isSandboxMode) {
+      return true;
+    }
+    return w.unlocked && w.shotsLeft > 0;
   }
-  
-  prevWeapon() {
-    selectedWeaponIndex--;
-    if (selectedWeaponIndex < 0) {
-      selectedWeaponIndex = weapons.length - 1;
+
+  List<int> availableWeaponIndices() {
+    final List<int> indices = <int>[];
+    for (int i = 0; i < weapons.length; i++) {
+      if (isWeaponAvailable(i)) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  List<int> mysteryWeaponIndices() {
+    final List<int> indices = <int>[];
+    for (int i = 0; i < weapons.length; i++) {
+      if (weapons[i].isMysteryWeapon) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  int get unlockedWeaponsBitmask {
+    int mask = isSandboxMode ? _SANDBOX_MASK_BIT : 0;
+    for (int i = 0; i < weapons.length; i++) {
+      if (isWeaponAvailable(i)) {
+        mask |= (1 << i);
+      }
+    }
+    return mask;
+  }
+
+  static BingoProbabilities computeBingoProbabilitiesFor({
+    required int playerScore,
+    required int leaderScore,
+    required int maxFrags,
+    required bool hasFullHealth,
+  }) {
+    final int safeMaxFrags = max(1, maxFrags);
+    final int fragsBehind = max(0, leaderScore - playerScore);
+    final double deficitRatio = fragsBehind / safeMaxFrags;
+
+    double superProb;
+    double extraProb;
+    if (deficitRatio <= 0.5) {
+      final double t = (deficitRatio / 0.5).clamp(0.0, 1.0);
+      superProb = LEADER_SUPER_BINGO_PROB +
+          (HALF_DEFICIT_SUPER_BINGO_PROB - LEADER_SUPER_BINGO_PROB) * t;
+      extraProb = LEADER_EXTRA_BINGO_PROB +
+          (HALF_DEFICIT_EXTRA_BINGO_PROB - LEADER_EXTRA_BINGO_PROB) * t;
+    } else {
+      final double overT = ((deficitRatio - 0.5) / 0.5).clamp(0.0, 1.0);
+      superProb = HALF_DEFICIT_SUPER_BINGO_PROB + 0.10 * overT;
+      extraProb = HALF_DEFICIT_EXTRA_BINGO_PROB;
+    }
+    superProb = superProb.clamp(0.0, 1.0);
+    if (hasFullHealth) {
+      // Extra Bingo is only eligible when the player doesn't have full health.
+      extraProb = 0.0;
+    } else {
+      extraProb = extraProb.clamp(0.0, max(0.0, 1.0 - superProb));
+    }
+    return BingoProbabilities(
+      extraBingo: extraProb,
+      superBingo: superProb,
+    );
+  }
+
+  BingoProbabilities currentBingoProbabilities() {
+    int maxFrags = 10;
+    int leaderScore = owner.info.score;
+    try {
+      final dynamic cfg = world.config();
+      if (cfg != null) {
+        final int configured = cfg.getInt(ConfigParam.MAX_FRAGS);
+        if (configured > 0) {
+          maxFrags = configured;
+        }
+      }
+    } catch (_) {}
+    try {
+      final List<PlayerInfoProto> players =
+          world.network().getGameState().playerInfoList();
+      for (final PlayerInfoProto p in players) {
+        if (p.score > leaderScore) {
+          leaderScore = p.score;
+        }
+      }
+    } catch (_) {}
+    return computeBingoProbabilitiesFor(
+      playerScore: owner.info.score,
+      leaderScore: leaderScore,
+      maxFrags: maxFrags,
+      hasFullHealth: owner.health >= LocalPlayerSprite.MAX_HEALTH,
+    );
+  }
+
+  BingoTier rollBingoTier([double? rollOverride]) {
+    final BingoProbabilities probs = currentBingoProbabilities();
+    final double r = (rollOverride ?? random.nextDouble()).clamp(0.0, 0.999999);
+    if (r < probs.superBingo) {
+      return BingoTier.superBingo;
+    }
+    if (probs.extraBingo > 0.0 && r < probs.superBingo + probs.extraBingo) {
+      return BingoTier.extraBingo;
+    }
+    return BingoTier.none;
+  }
+
+  void applyCommanderSync({
+    required int unlockedMask,
+    required int rouletteNonce,
+    required int rouletteTarget,
+    required double rouletteSpinRem,
+    int rouletteBingoIndex = 0,
+  }) {
+    _remoteSandboxActive = (unlockedMask & _SANDBOX_MASK_BIT) != 0;
+    for (int i = 0; i < weapons.length; i++) {
+      final Weapon w = weapons[i];
+      if (!w.isMysteryWeapon) {
+        w.unlocked = true;
+        continue;
+      }
+      final bool nowUnlocked = (unlockedMask & (1 << i)) != 0;
+      if (nowUnlocked && !w.unlocked) {
+        w.unlocked = true;
+        if (w.shotsLeft <= 0) {
+          w.shotsLeft = w.shotsPerClip;
+        }
+        w.untilReload = 0.0;
+        w.untilNextFire = 0.0;
+      } else if (!nowUnlocked && w.unlocked && !isSandboxMode) {
+        // Don't strip a weapon on client while the local roulette hasn't finished revealing yet.
+        if (!(_rouletteSpinRemaining > 0.0 && _rouletteTargetWeaponIndex == i)) {
+          w.unlocked = false;
+          w.shotsLeft = 0;
+          w.untilReload = 0.0;
+          if (selectedWeaponIndex == i) {
+            selectedWeaponIndex = _fallbackStarterIndex();
+          }
+        }
+      }
+    }
+
+    if (rouletteNonce > _rouletteNonce &&
+        rouletteTarget >= 0 &&
+        rouletteTarget < weapons.length) {
+      _rouletteNonce = rouletteNonce;
+      _rouletteTargetWeaponIndex = rouletteTarget;
+      final int safeBingo =
+          rouletteBingoIndex.clamp(0, BingoTier.values.length - 1);
+      _rouletteBingoTier = BingoTier.values[safeBingo];
+      if (rouletteSpinRem > 0.05) {
+        _rouletteSpinRemaining = rouletteSpinRem;
+        _rouletteRevealRemaining = 0.0;
+        _lastRouletteStepPlayed = -1;
+        _updateRouletteStep(playTickSound: false);
+      } else {
+        // Spin already finished on commander before packet arrived -> award & reveal!
+        _completeMysteryRoulette();
+      }
+    }
+  }
+
+  int _fallbackStarterIndex() {
+    if (isWeaponAvailable(_lastStarterWeaponIndex) &&
+        !weapons[_lastStarterWeaponIndex].isMysteryWeapon) {
+      return _lastStarterWeaponIndex;
+    }
+    for (int i = 0; i < weapons.length; i++) {
+      if (!weapons[i].isMysteryWeapon) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  void onMysteryWeaponDepleted(Weapon depletedWeapon) {
+    if (isSandboxMode) {
+      return;
+    }
+    final int idx = weapons.indexOf(depletedWeapon);
+    if (idx >= 0 && selectedWeaponIndex == idx) {
+      selectedWeaponIndex = _fallbackStarterIndex();
+      changeTime = 0.85;
+    }
+  }
+
+  int triggerMysteryRoulette({
+    int? forcedWeaponIndex,
+    BingoTier? forcedBingoTier,
+    double? bingoRollOverride,
+  }) {
+    if (isSandboxMode) {
+      return -1;
+    }
+    // If a previous spin was still active, grant its pending weapon & bingo
+    // immediately before starting the new spin so picking up two boxes never drops one.
+    if (_rouletteSpinRemaining > 0.0 &&
+        _rouletteTargetWeaponIndex >= 0 &&
+        _rouletteTargetWeaponIndex < weapons.length) {
+      final Weapon prev = weapons[_rouletteTargetWeaponIndex];
+      prev.unlocked = true;
+      prev.shotsLeft = prev.shotsPerClip;
+      prev.untilReload = 0.0;
+      _applyBingoRewardToOwner(_rouletteBingoTier);
+    }
+
+    final List<int> allMystery = mysteryWeaponIndices();
+    if (allMystery.isEmpty) {
+      return -1;
+    }
+    final List<int> lockedPool = allMystery
+        .where((int i) => !weapons[i].unlocked || weapons[i].shotsLeft <= 0)
+        .toList();
+    final List<int> pool = lockedPool.isNotEmpty ? lockedPool : allMystery;
+
+    final int winnerIdx = (forcedWeaponIndex != null &&
+            forcedWeaponIndex >= 0 &&
+            forcedWeaponIndex < weapons.length &&
+            weapons[forcedWeaponIndex].isMysteryWeapon)
+        ? forcedWeaponIndex
+        : pool[random.nextInt(pool.length)];
+
+    BingoTier rolledTier = forcedBingoTier ?? rollBingoTier(bingoRollOverride);
+    if (rolledTier == BingoTier.extraBingo &&
+        owner.health >= LocalPlayerSprite.MAX_HEALTH) {
+      // Enforce rule: Extra Bingo only applies if player doesn't have full health.
+      rolledTier = BingoTier.none;
+    }
+
+    _rouletteNonce++;
+    _rouletteTargetWeaponIndex = winnerIdx;
+    _rouletteBingoTier = rolledTier;
+    _rouletteSpinRemaining = ROULETTE_SPIN_DURATION;
+    _rouletteRevealRemaining = 0.0;
+    _lastRouletteStepPlayed = -1;
+    _updateRouletteStep(playTickSound: true);
+    return winnerIdx;
+  }
+
+  void _applyBingoRewardToOwner(BingoTier tier) {
+    if (tier == BingoTier.extraBingo) {
+      owner.applyExtraBingoBonus();
+    } else if (tier == BingoTier.superBingo) {
+      owner.applySuperBingoBonus();
+    }
+  }
+
+  void _updateRouletteStep({required bool playTickSound}) {
+    final List<int> mystery = mysteryWeaponIndices();
+    if (mystery.isEmpty || _rouletteTargetWeaponIndex < 0) {
+      return;
+    }
+    final double progress = (1.0 -
+            (_rouletteSpinRemaining / ROULETTE_SPIN_DURATION))
+        .clamp(0.0, 1.0);
+    // Mario Kart-style deceleration: fast blur at first, dramatic slow-down on final ticks.
+    final double eased = 1.0 - pow(1.0 - progress, 2.8).toDouble();
+    final double exactStep = eased * ROULETTE_TOTAL_STEPS;
+    _rouletteVisualPhase = exactStep;
+    final int step = exactStep.floor().clamp(0, ROULETTE_TOTAL_STEPS);
+    final int targetPos = max(0, mystery.indexOf(_rouletteTargetWeaponIndex));
+    final int n = mystery.length;
+    final int remainingSteps = ROULETTE_TOTAL_STEPS - step;
+    _rouletteDisplayWeaponIndex =
+        mystery[((targetPos - (remainingSteps % n)) + n) % n];
+
+    if (step > _lastRouletteStepPlayed && step < ROULETTE_TOTAL_STEPS) {
+      _lastRouletteStepPlayed = step;
+      if (playTickSound && owner.drawWeaponHelpers()) {
+        try {
+          world.playSound(Sound.ROULETTE_TICK, volume: 0.72, multiPlay: true);
+        } catch (_) {}
+      }
+    }
+  }
+
+  void _completeMysteryRoulette() {
+    _rouletteSpinRemaining = 0.0;
+    if (_rouletteTargetWeaponIndex < 0 ||
+        _rouletteTargetWeaponIndex >= weapons.length) {
+      return;
+    }
+    _rouletteDisplayWeaponIndex = _rouletteTargetWeaponIndex;
+    _rouletteVisualPhase = ROULETTE_TOTAL_STEPS.toDouble();
+    if (_rouletteBingoTier == BingoTier.superBingo) {
+      _rouletteRevealTotalDuration = SUPER_BINGO_REVEAL_DURATION;
+    } else if (_rouletteBingoTier == BingoTier.extraBingo) {
+      _rouletteRevealTotalDuration = EXTRA_BINGO_REVEAL_DURATION;
+    } else {
+      _rouletteRevealTotalDuration = ROULETTE_REVEAL_DURATION;
+    }
+    _rouletteRevealRemaining = _rouletteRevealTotalDuration;
+
+    final Weapon won = weapons[_rouletteTargetWeaponIndex];
+    won.unlocked = true;
+    won.shotsLeft = won.shotsPerClip;
+    won.untilReload = 0.0;
+    won.untilNextFire = 0.0;
+    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
+      _lastStarterWeaponIndex = selectedWeaponIndex;
+    }
+    selectedWeaponIndex = _rouletteTargetWeaponIndex;
+
+    _applyBingoRewardToOwner(_rouletteBingoTier);
+
+    final Sound landingSound = _rouletteBingoTier == BingoTier.superBingo
+        ? Sound.SUPER_BINGO
+        : (_rouletteBingoTier == BingoTier.extraBingo
+            ? Sound.EXTRA_BINGO
+            : Sound.ROULETTE_WIN);
+
+    try {
+      if (owner.drawWeaponHelpers()) {
+        world.playSound(landingSound, volume: 0.98, multiPlay: true);
+      } else {
+        world.playSoundAtSprite(owner, landingSound, multiPlay: true);
+      }
+    } catch (_) {}
+  }
+
+  nextWeapon() {
+    final List<int> avail = availableWeaponIndices();
+    if (avail.isEmpty) return;
+    final int pos = avail.indexOf(selectedWeaponIndex);
+    selectedWeaponIndex =
+        pos < 0 ? avail.first : avail[(pos + 1) % avail.length];
+    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
+      _lastStarterWeaponIndex = selectedWeaponIndex;
     }
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
-  
+
+  prevWeapon() {
+    final List<int> avail = availableWeaponIndices();
+    if (avail.isEmpty) return;
+    final int pos = avail.indexOf(selectedWeaponIndex);
+    selectedWeaponIndex = pos <= 0 ? avail.last : avail[pos - 1];
+    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
+      _lastStarterWeaponIndex = selectedWeaponIndex;
+    }
+    changeTime = SHOW_WEAPON_NAME_TIME;
+  }
+
   fire() {
     weapons[selectedWeaponIndex].fireButton(this);
   }
-  
+
   think(double duration) {
     changeTime -= duration;
     _laserTime += duration;
     if (_reloadReadyFlash > 0.0) {
       _reloadReadyFlash = max(0.0, _reloadReadyFlash - duration * 3.6);
     }
-    weapons[selectedWeaponIndex].think(duration);
+
+    if (_rouletteSpinRemaining > 0.0) {
+      _rouletteSpinRemaining -= duration;
+      if (_rouletteSpinRemaining <= 0.0) {
+        _completeMysteryRoulette();
+      } else {
+        _updateRouletteStep(playTickSound: true);
+      }
+    } else if (_rouletteRevealRemaining > 0.0) {
+      _rouletteRevealRemaining = max(0.0, _rouletteRevealRemaining - duration);
+    }
+
+    final bool sandbox = isSandboxMode;
+    weapons[selectedWeaponIndex].think(duration, allowAutoReload: sandbox);
+    // Also advance reload timers on starter weapons in the background so switching
+    // away and back feels smooth, while depleted mystery weapons stay gone.
+    for (int i = 0; i < weapons.length; i++) {
+      if (i != selectedWeaponIndex && (!weapons[i].isMysteryWeapon || sandbox)) {
+        weapons[i].think(duration, allowAutoReload: sandbox);
+      }
+    }
+
     final bool nowReloading = reloading();
     if (_wasReloading && !nowReloading) {
       _reloadReadyFlash = 1.0;
@@ -234,25 +679,69 @@ class WeaponState {
     _wasReloading = nowReloading;
   }
 
+  int _viewportWidth() {
+    final int mcW = mobileControls?.width ?? 0;
+    return mcW > 0 ? mcW : world.width().toInt();
+  }
+
+  int _viewportHeight() {
+    final int mcH = mobileControls?.height ?? 0;
+    return mcH > 0 ? mcH : world.height().toInt();
+  }
+
+  double _effectiveWheelRadius() {
+    final double w = _viewportWidth().toDouble();
+    final double h = _viewportHeight().toDouble();
+    if (w <= 0 || h <= 0) {
+      return WHEEL_SIZE.toDouble();
+    }
+    return min(WHEEL_SIZE.toDouble(), min(w, h) * 0.34)
+        .clamp(92.0, WHEEL_SIZE.toDouble());
+  }
+
+  Point<int> _clampedWheelCenter(Point<int> center) {
+    final int w = _viewportWidth();
+    final int h = _viewportHeight();
+    if (w <= 0 || h <= 0) {
+      return center;
+    }
+    final int margin = (_effectiveWheelRadius() + ICON_SIZE_HALF + 8.0).ceil();
+    final int cx = w > margin * 2
+        ? center.x.clamp(margin, w - margin)
+        : w ~/ 2;
+    final int cy = h > margin * 2
+        ? center.y.clamp(margin, h - margin)
+        : h ~/ 2;
+    return Point<int>(cx, cy);
+  }
+
   weaponStateSelector(Point<int> delta) {
+    final List<int> avail = availableWeaponIndices();
+    if (avail.isEmpty) {
+      return;
+    }
     changeTime = SHOW_WEAPON_NAME_TIME;
+    final double wheelR = _effectiveWheelRadius();
+    final double angleStep = (pi * 2) / avail.length;
 
     double currentAngle = 0.0;
-    int weaponCount = weapons.length;
-    int closestWeapon = 0;
+    int closestWeapon = avail.first;
     double closest = 9999999.0;
 
-    for (int i = 0; i < weaponCount; i++) {
-      double deltaX = ((sin(currentAngle) * WHEEL_SIZE) - ICON_SIZE_HALF) + delta.x;
-      double deltaY = ((cos(currentAngle) * WHEEL_SIZE) - ICON_SIZE_HALF) + delta.y;
+    for (final int weaponIdx in avail) {
+      double deltaX = (sin(currentAngle) * wheelR) + delta.x;
+      double deltaY = (cos(currentAngle) * wheelR) + delta.y;
       double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
       if (distance < closest) {
-        closestWeapon = i;
+        closestWeapon = weaponIdx;
         closest = distance;
       }
-      currentAngle += _anglePerWeapon;
+      currentAngle += angleStep;
     }
     selectedWeaponIndex = closestWeapon;
+    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
+      _lastStarterWeaponIndex = selectedWeaponIndex;
+    }
   }
 
   _drawIconImageAt(CanvasRenderingContext2D context,
@@ -273,25 +762,32 @@ class WeaponState {
   }
 
   _drawChangeTime(CanvasRenderingContext2D context,
-      HTMLImageElement iconImages, Point<int> center) {
+      HTMLImageElement iconImages, Point<int> buttonCenter) {
+    final List<int> avail = availableWeaponIndices();
+    if (avail.isEmpty) {
+      return;
+    }
+    final Point<int> center = _clampedWheelCenter(buttonCenter);
+    final double wheelR = _effectiveWheelRadius();
+    final double angleStep = (pi * 2) / avail.length;
     context.save();
     int baseX = center.x - ICON_SIZE_HALF;
     int baseY = center.y - ICON_SIZE_HALF;
 
-    int weaponCount = weapons.length;
-
     double currentAngle = 0.0;
 
-    for (int i = 0; i < weaponCount; i++) {
-      final double x = sin(currentAngle) * WHEEL_SIZE;
-      final double y = cos(currentAngle) * WHEEL_SIZE;
+    for (final int weaponIdx in avail) {
+      final double x = sin(currentAngle) * wheelR;
+      final double y = cos(currentAngle) * wheelR;
       final double tileX = baseX + x;
       final double tileY = baseY + y;
-      final bool isSelected = selectedWeaponIndex == i;
+      final bool isSelected = selectedWeaponIndex == weaponIdx;
       context.globalAlpha = isSelected ? 1.0 : 0.55;
-      _drawIconImageAt(context, iconImages, weapons[i].iconIndex, tileX, tileY);
-      _drawWheelClipBadge(context, weapons[i], tileX, tileY, isSelected);
-      currentAngle += _anglePerWeapon;
+      _drawIconImageAt(
+          context, iconImages, weapons[weaponIdx].iconIndex, tileX, tileY);
+      _drawWheelClipBadge(
+          context, weapons[weaponIdx], tileX, tileY, isSelected);
+      currentAngle += angleStep;
     }
     // Draw the weapon name in bold cartoon outlined style.
     context.font = 'bold 20px "Trebuchet MS", Arial, sans-serif';
@@ -411,6 +907,319 @@ class WeaponState {
           weapons[selectedWeaponIndex].iconIndex,  center.x  -ICON_SIZE_HALF,  center.y -ICON_SIZE_HALF);
       context.globalAlpha = 1.0;
     }
+    if (isRouletteActive && owner.drawWeaponHelpers()) {
+      _drawMysteryRouletteHud(context, iconImages);
+    }
+  }
+
+  /// Draws a Mario Kart-style spinning weapon roulette box in upper-center
+  /// screen space, followed by a celebratory winner pop & one-time clip banner!
+  void _drawMysteryRouletteHud(
+      CanvasRenderingContext2D context, HTMLImageElement iconImages) {
+    final List<int> mystery = mysteryWeaponIndices();
+    if (mystery.isEmpty || _rouletteTargetWeaponIndex < 0) {
+      return;
+    }
+    final int vw = _viewportWidth();
+    final int vh = _viewportHeight();
+    final double cx = (vw > 0 ? vw : 800) * 0.5;
+    final double cy = max(92.0, (vh > 0 ? vh : 600) * 0.24);
+    const double boxSize = 96.0;
+    const double halfBox = boxSize * 0.5;
+
+    final bool revealing = isRouletteRevealing;
+    final BingoTier bingo = revealing ? _rouletteBingoTier : BingoTier.none;
+    final bool isSuper = bingo == BingoTier.superBingo;
+    final bool isExtra = bingo == BingoTier.extraBingo;
+    double scale = 1.0;
+    double alpha = 1.0;
+    if (revealing) {
+      final double elapsed =
+          _rouletteRevealTotalDuration - _rouletteRevealRemaining;
+      if (elapsed < 0.42) {
+        final double u = (elapsed / 0.42).clamp(0.0, 1.0);
+        final double popAmp = isSuper ? 0.48 : (isExtra ? 0.38 : 0.32);
+        scale = 1.0 + popAmp * sin(u * pi);
+      } else if (isSuper) {
+        scale = 1.06 + 0.05 * sin(_laserTime * 14.0);
+      }
+      if (_rouletteRevealRemaining < 0.28) {
+        alpha = (_rouletteRevealRemaining / 0.28).clamp(0.0, 1.0);
+      }
+    }
+
+    context.save();
+    context.globalAlpha = alpha;
+    context.translate(cx, cy);
+    context.scale(scale, scale);
+
+    // 1. Radiant rotating comic sunburst rays (+ double shockwave ring on Superbingo!).
+    if (isSuper) {
+      final double elapsed =
+          _rouletteRevealTotalDuration - _rouletteRevealRemaining;
+      final double ringT = (elapsed / 1.1).clamp(0.0, 1.0);
+      if (ringT < 1.0) {
+        context.strokeStyle =
+            "rgba(255, 240, 110, ${(1.0 - ringT) * 0.85 * alpha})".toJS;
+        context.lineWidth = 4.5 * (1.0 - ringT) + 1.0;
+        context.beginPath();
+        context.arc(0, 0, 52.0 + ringT * 88.0, 0, pi * 2);
+        context.stroke();
+
+        context.strokeStyle =
+            "rgba(90, 245, 255, ${(1.0 - ringT) * 0.72 * alpha})".toJS;
+        context.lineWidth = 3.0 * (1.0 - ringT) + 0.8;
+        context.beginPath();
+        context.arc(0, 0, 38.0 + ringT * 68.0, 0, pi * 2);
+        context.stroke();
+      }
+    }
+
+    context.save();
+    context.rotate(_laserTime * (isSuper ? 3.8 : (revealing ? 2.4 : 4.2)));
+    final int rayCount = isSuper ? 16 : 12;
+    for (int i = 0; i < rayCount; i++) {
+      final double a0 = (i / rayCount) * pi * 2;
+      final double a1 = a0 + (isSuper ? 0.16 : 0.19);
+      final double rLen =
+          (isSuper ? 104.0 : (revealing ? 84.0 : 68.0)) +
+              (i.isEven ? 12.0 : 0.0);
+      String rayFill;
+      if (isSuper) {
+        const List<String> rainbowRays = <String>[
+          "rgba(255, 236, 96, 0.55)",
+          "rgba(92, 244, 255, 0.48)",
+          "rgba(255, 112, 232, 0.48)",
+          "rgba(116, 255, 148, 0.48)",
+        ];
+        rayFill = rainbowRays[i % rainbowRays.length];
+      } else if (isExtra) {
+        rayFill = i.isEven
+            ? "rgba(104, 255, 156, 0.48)"
+            : "rgba(255, 236, 102, 0.36)";
+      } else if (revealing) {
+        rayFill = i.isEven
+            ? "rgba(255, 232, 92, 0.45)"
+            : "rgba(255, 126, 226, 0.32)";
+      } else {
+        rayFill = i.isEven
+            ? "rgba(96, 236, 255, 0.30)"
+            : "rgba(218, 122, 255, 0.26)";
+      }
+      context.fillStyle = rayFill.toJS;
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.arc(0, 0, rLen, a0, a1);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+
+    // 2. Drop shadow + glossy deep arcade item-box body.
+    context.fillStyle = "rgba(8, 12, 24, 0.55)".toJS;
+    context.beginPath();
+    context.roundRect(
+        -halfBox + 3.0, -halfBox + 4.5, boxSize, boxSize, 18.0.toJS);
+    context.fill();
+
+    final CanvasGradient boxGrad =
+        context.createLinearGradient(0, -halfBox, 0, halfBox);
+    if (revealing) {
+      boxGrad.addColorStop(0.0, "#47256e");
+      boxGrad.addColorStop(0.5, "#281748");
+      boxGrad.addColorStop(1.0, "#160d2b");
+    } else {
+      boxGrad.addColorStop(0.0, "#253966");
+      boxGrad.addColorStop(1.0, "#121b33");
+    }
+    context.fillStyle = boxGrad;
+    context.beginPath();
+    context.roundRect(-halfBox, -halfBox, boxSize, boxSize, 18.0.toJS);
+    context.fill();
+
+    // 3. Clipped interior slot reel (vertical scrolling icons while spinning;
+    //    locked glowing winner icon when revealed!).
+    context.save();
+    context.beginPath();
+    context.roundRect(
+        -halfBox + 6.0, -halfBox + 6.0, boxSize - 12.0, boxSize - 12.0, 13.0.toJS);
+    context.clip();
+
+    if (revealing) {
+      final Weapon won = weapons[_rouletteTargetWeaponIndex];
+      final CanvasGradient glow =
+          context.createRadialGradient(0, 0, 4.0, 0, 0, halfBox);
+      glow.addColorStop(0.0, "rgba(255, 240, 128, 0.55)");
+      glow.addColorStop(1.0, "rgba(255, 240, 128, 0.0)");
+      context.fillStyle = glow;
+      context.fillRect(-halfBox, -halfBox, boxSize, boxSize);
+
+      _drawIconImageAt(
+        context,
+        iconImages,
+        won.iconIndex,
+        -ICON_SIZE_HALF,
+        -ICON_SIZE_HALF,
+      );
+    } else {
+      final int n = mystery.length;
+      final int targetPos = max(0, mystery.indexOf(_rouletteTargetWeaponIndex));
+      final int baseStep = _rouletteVisualPhase.floor();
+      final double frac = _rouletteVisualPhase - baseStep;
+      const double slotStride = 74.0;
+
+      for (int offset = -1; offset <= 1; offset++) {
+        final int stepIdx = baseStep + offset;
+        final int rem = ROULETTE_TOTAL_STEPS - stepIdx;
+        final int wIdx = mystery[((targetPos - (rem % n)) + n) % n];
+        final double yCenter = (offset - frac) * slotStride;
+        context.globalAlpha =
+            alpha * (1.0 - (yCenter.abs() / (slotStride * 1.15)).clamp(0.0, 0.55));
+        _drawIconImageAt(
+          context,
+          iconImages,
+          weapons[wIdx].iconIndex,
+          -ICON_SIZE_HALF,
+          yCenter - ICON_SIZE_HALF,
+        );
+      }
+      context.globalAlpha = alpha;
+    }
+    context.restore();
+
+    // 4. Crisp outer dark ink border + rainbow/gold Mario Kart inner rim!
+    context.strokeStyle = "#0e1322".toJS;
+    context.lineWidth = 4.5;
+    context.beginPath();
+    context.roundRect(-halfBox, -halfBox, boxSize, boxSize, 18.0.toJS);
+    context.stroke();
+
+    final CanvasGradient rimGrad =
+        context.createLinearGradient(-halfBox, -halfBox, halfBox, halfBox);
+    if (revealing) {
+      rimGrad.addColorStop(0.0, "#fff49c");
+      rimGrad.addColorStop(0.5, "#ffcf40");
+      rimGrad.addColorStop(1.0, "#ff7ae6");
+    } else {
+      rimGrad.addColorStop(0.0, "#5ef2ff");
+      rimGrad.addColorStop(0.5, "#ffe45e");
+      rimGrad.addColorStop(1.0, "#ff73d0");
+    }
+    context.strokeStyle = rimGrad;
+    context.lineWidth = 3.0;
+    context.beginPath();
+    context.roundRect(
+        -halfBox + 2.0, -halfBox + 2.0, boxSize - 4.0, boxSize - 4.0, 16.0.toJS);
+    context.stroke();
+
+    // 5. Celebratory sparkle stars on winner reveal (extra lush for Bingo & Superbingo)!
+    if (revealing) {
+      final double elapsed =
+          _rouletteRevealTotalDuration - _rouletteRevealRemaining;
+      final double burstT =
+          (elapsed / _rouletteRevealTotalDuration).clamp(0.0, 1.0);
+      final int starCount = isSuper ? 14 : (isExtra ? 10 : 8);
+      for (int i = 0; i < starCount; i++) {
+        final double a = (i / starCount) * pi * 2 + burstT * (isSuper ? 2.0 : 1.2);
+        final double dist =
+            (isSuper ? 60.0 : 54.0) + burstT * (isSuper ? 40.0 : 26.0) + (i.isEven ? 6.0 : 0.0);
+        final double sx = cos(a) * dist;
+        final double sy = sin(a) * dist;
+        final double sr =
+            ((isSuper ? 7.6 : 6.0) - burstT * 3.0).clamp(2.2, 8.0);
+        context.save();
+        context.translate(sx, sy);
+        context.rotate(burstT * 4.5);
+        final String starColor = isSuper
+            ? (const <String>["#ffe96b", "#7df9ff", "#ff85f2", "#7dff9b"])[i % 4]
+            : (isExtra
+                ? (i.isEven ? "#6dff9c" : "#ffe96b")
+                : (i.isEven ? "#ffe96b" : "#7df9ff"));
+        context.fillStyle = starColor.toJS;
+        context.beginPath();
+        for (int p = 0; p < 8; p++) {
+          final double pa = p * pi / 4.0;
+          final double pr = p.isEven ? sr : sr * 0.32;
+          if (p == 0) {
+            context.moveTo(cos(pa) * pr, sin(pa) * pr);
+          } else {
+            context.lineTo(cos(pa) * pr, sin(pa) * pr);
+          }
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+      }
+    }
+
+    // 6. Header & Winner Weapon Name + One-Time Magazine / Bingo Bonus Callout!
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.lineJoin = "round";
+
+    final String topHeader = isSuper
+        ? "⚡ SUPERBINGO! ⚡"
+        : (isExtra
+            ? "★ EXTRA BINGO! ★"
+            : (revealing ? "★ WINNER! ★" : "★ MYSTERY SPIN ★"));
+    context.font = isSuper
+        ? '900 18px "Trebuchet MS", Arial, sans-serif'
+        : (isExtra
+            ? '900 15px "Trebuchet MS", Arial, sans-serif'
+            : '900 13px "Trebuchet MS", Arial, sans-serif');
+    context.strokeStyle = "#120c24".toJS;
+    context.lineWidth = isSuper ? 4.6 : 3.8;
+    context.strokeText(topHeader, 0, -halfBox - 15.0);
+    context.fillStyle = (isSuper
+            ? "#fff066"
+            : (isExtra
+                ? "#7dff9e"
+                : (revealing ? "#ffe96b" : "#9ef4ff")))
+        .toJS;
+    context.fillText(topHeader, 0, -halfBox - 15.0);
+
+    final int shownIdx = revealing
+        ? _rouletteTargetWeaponIndex
+        : (_rouletteDisplayWeaponIndex >= 0
+            ? _rouletteDisplayWeaponIndex
+            : _rouletteTargetWeaponIndex);
+    final Weapon shownWeapon = weapons[shownIdx];
+    final String weaponTitle =
+        revealing ? "${shownWeapon.name.toUpperCase()}!" : shownWeapon.name;
+    context.font = revealing
+        ? '900 20px "Trebuchet MS", Arial, sans-serif'
+        : 'bold 15px "Trebuchet MS", Arial, sans-serif';
+    context.strokeStyle = "#120c24".toJS;
+    context.lineWidth = 4.5;
+    context.strokeText(weaponTitle, 0, halfBox + 17.0);
+    context.fillStyle = (revealing ? "#ffe96b" : "#ffffff").toJS;
+    context.fillText(weaponTitle, 0, halfBox + 17.0);
+
+    if (revealing) {
+      final int clip = shownWeapon.shotsPerClip;
+      final String subText =
+          "ONE-TIME MAG · $clip ${clip == 1 ? 'SHOT' : 'SHOTS'}";
+      context.font = 'bold 12px "Trebuchet MS", Arial, sans-serif';
+      context.strokeStyle = "#120c24".toJS;
+      context.lineWidth = 3.2;
+      context.strokeText(subText, 0, halfBox + 36.0);
+      context.fillStyle = "#ff9ef5".toJS;
+      context.fillText(subText, 0, halfBox + 36.0);
+
+      if (isSuper || isExtra) {
+        final String bonusCallout = isSuper
+            ? "+ FULL SHIELD & FULL HEALTH!"
+            : "+ FULL HEALTH RESTORED!";
+        context.font = '900 14px "Trebuchet MS", Arial, sans-serif';
+        context.strokeStyle = "#101824".toJS;
+        context.lineWidth = 3.8;
+        context.strokeText(bonusCallout, 0, halfBox + 55.0);
+        context.fillStyle = (isSuper ? "#7df9ff" : "#7dff9e").toJS;
+        context.fillText(bonusCallout, 0, halfBox + 55.0);
+      }
+    }
+
+    context.restore();
   }
 
   LaserSightTrace computeLaserSightTrace() {

@@ -49,26 +49,79 @@ void init() {
         "${window.localStorage.getItem('playerName')}: ${message}");
   });
 
-  // TODO register using named keys instead.
+  // Register non-passive touch listeners and map viewport touch coordinates to
+  // internal canvas coordinates so CSS scaling, centering, and fullscreen work
+  // accurately on all mobile browsers.
   MobileControls controls = getIt<MobileControls>();
-  canvasElement.onTouchStart.listen((TouchEvent e) {
+  final AddEventListenerOptions touchOpts =
+      AddEventListenerOptions(passive: false);
+
+  Point<int> toCanvasPoint(Touch t) {
+    final DOMRect rect = canvasElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return Point<int>(t.clientX.round(), t.clientY.round());
+    }
+    final double scaleX = canvasElement.width / rect.width;
+    final double scaleY = canvasElement.height / rect.height;
+    final int x = ((t.clientX - rect.left) * scaleX).round();
+    final int y = ((t.clientY - rect.top) * scaleY).round();
+    return Point<int>(
+      x.clamp(0, max(0, canvasElement.width - 1)),
+      y.clamp(0, max(0, canvasElement.height - 1)),
+    );
+  }
+
+  canvasElement.addEventListener(
+      'touchstart',
+      ((Event ev) {
+        final TouchEvent e = ev as TouchEvent;
+        e.preventDefault();
+        final TouchList touches = e.changedTouches;
+        for (int i = 0; i < touches.length; i++) {
+          final Touch? t = touches.item(i);
+          if (t != null) {
+            final Point<int> pt = toCanvasPoint(t);
+            controls.touchDown(t.identifier, pt.x, pt.y);
+          }
+        }
+      }).toJS,
+      touchOpts);
+
+  canvasElement.addEventListener(
+      'touchmove',
+      ((Event ev) {
+        final TouchEvent e = ev as TouchEvent;
+        e.preventDefault();
+        final TouchList touches = e.changedTouches;
+        for (int i = 0; i < touches.length; i++) {
+          final Touch? t = touches.item(i);
+          if (t != null) {
+            final Point<int> pt = toCanvasPoint(t);
+            controls.touchMove(t.identifier, pt.x, pt.y);
+          }
+        }
+      }).toJS,
+      touchOpts);
+
+  final JSFunction onTouchEndOrCancel = ((Event ev) {
+    final TouchEvent e = ev as TouchEvent;
     e.preventDefault();
-    e.changedTouches.toList().forEach((Touch t) {
-      controls.touchDown(t.identifier, t.pageX.toInt(), t.pageY.toInt());
-    });
-  });
-  canvasElement.onTouchEnd.listen((TouchEvent e) {
-    e.preventDefault();
-    e.changedTouches.toList().forEach((Touch t) {
-      controls.touchUp(t.identifier);
-    });
-  });
-  canvasElement.onTouchMove.listen((TouchEvent e) {
-    e.preventDefault();
-    e.changedTouches.toList().forEach((Touch t) {
-      controls.touchMove(t.identifier, t.pageX.toInt(), t.pageY.toInt());
-    });
-  });
+    final TouchList touches = e.changedTouches;
+    for (int i = 0; i < touches.length; i++) {
+      final Touch? t = touches.item(i);
+      if (t != null) {
+        controls.touchUp(t.identifier);
+      }
+    }
+  }).toJS;
+
+  canvasElement.addEventListener('touchend', onTouchEndOrCancel, touchOpts);
+  canvasElement.addEventListener('touchcancel', onTouchEndOrCancel, touchOpts);
+  window.addEventListener(
+      'blur',
+      ((Event _) {
+        controls.releaseAllTouches();
+      }).toJS);
 
   startTimer();
 }

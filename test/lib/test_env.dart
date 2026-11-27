@@ -22,6 +22,7 @@ Map<String, List<TestConnection>> testConnections = {};
 bool logConnectionData = true;
 
 Map<String, List<String>> configParameters = {};
+bool testTouchSupported = false;
 
 @module
 abstract class EnvModule {
@@ -32,7 +33,7 @@ abstract class EnvModule {
   @Named(WORLD_HEIGHT)
   int get height => 768;
   @Named(TOUCH_SUPPORTED)
-  bool get touch => false;
+  bool get touch => testTouchSupported;
   @Named(RELOAD_FUNCTION)
   Function get reload => () { };
   TestConnectionFactory get getConnectionFactory =>
@@ -59,6 +60,8 @@ class TestLocalStorage extends LocalStorage {
 clearEnvironment() {
   testConnections.clear();
   testPeers.clear();
+  testTouchSupported = false;
+  FakeScreen.mockOrientationType = null;
   (getIt<ConnectionFactory>() as TestConnectionFactory).reset();
 }
 
