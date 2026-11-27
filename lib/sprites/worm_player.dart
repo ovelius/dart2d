@@ -921,13 +921,15 @@ class LocalPlayerSprite extends MovingSprite {
     if (_nextDamageAnimation < 0) {
       int blood = world.config().getInt(ConfigParam.BLOOD);
       int countLifeTime = blood > 0 ? blood : 120;
+      final double lod = world.effectiveDetailScale;
+      final int scaledCount = max(3, ((countLifeTime / 10) * lod).round());
       Particles p = Particles(
           world,
           null,
           centerPoint(),
           Vec2(200, 300),
           radius: 8.0,
-          count: (countLifeTime / 10).toInt(),
+          count: scaledCount,
           lifeTime: (countLifeTime / 2).toInt(),
           shrinkPerStep: 0.3,
           particleType: blood > 0 ?

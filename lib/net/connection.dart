@@ -426,10 +426,17 @@ class ConnectionWrapper {
     if (_connectionFrameHandler.keyFrame()) {
       _network.stateBundle(true, data, recipientId: id);
       data.keyFrame = _connectionFrameHandler.currentKeyFrame();
-      // Maybe adjust connection framerate.
+      // Maybe adjust connection framerate via PerformanceGovernor (visuals drop
+      // first; network FPS only steps down once visual quality has stepped down).
       PlayerInfoProto? info = _network.getGameState().playerInfoByConnectionId(id);
       if (info != null) {
-        _connectionFrameHandler.reportFrameRates(info.fps, _network.getCurrentFps());
+        final double governedPeerFps = _network.governedRemoteFpsForNetwork(
+          id,
+          info.fps,
+          KEY_FRAME_DEFAULT,
+        );
+        final double governedSelfFps = _network.governedSelfFpsForNetwork();
+        _connectionFrameHandler.reportFrameRates(governedPeerFps, governedSelfFps);
       }
     } else {
       // Send regular data.

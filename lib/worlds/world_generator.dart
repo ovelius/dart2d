@@ -225,6 +225,7 @@ class WorldGenerator {
     double time, {
     bool compact = false,
     int seed = 0,
+    double detailScale = 1.0,
   }) {
     if (width <= 0 || height <= 0) return;
 
@@ -246,53 +247,71 @@ class WorldGenerator {
     ctx.save();
     ctx.drawImage(staticSky, 0, 0);
 
+    // At LOW quality tier, render only the cached offscreen static skybox (`1 drawImage`,
+    // zero per-frame animated vector loops) to immediately recover frame rate!
+    if (!compact && detailScale <= 0.35) {
+      ctx.restore();
+      return;
+    }
+
     final double w = width.toDouble();
     final double h = height.toDouble();
+    final double skyLod = compact ? 1.0 : detailScale.clamp(0.45, 1.0);
 
     // Lightweight live animated overlay (clouds, twinkles, embers, snow, aurora).
     switch (theme.id) {
       case WorldThemeId.villa:
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.92, time * 0.85, '#ffffff',
-            0.84, seed);
+            0.84, seed,
+            detailScale: skyLod);
         break;
       case WorldThemeId.spooky:
-        _drawSkyStars(ctx, w, h, compact ? 14 : 40, time, seed);
+        _drawSkyStars(
+            ctx, w, h, ((compact ? 14 : 40) * skyLod).round(), time, seed);
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.88, time * 0.65, '#5c3c8c',
-            0.46, seed);
-        _drawDriftingSpookyGhosts(ctx, w, h, time, seed, compact);
+            0.46, seed,
+            detailScale: skyLod);
+        _drawDriftingSpookyGhosts(ctx, w, h, time, seed, compact,
+            detailScale: skyLod);
         break;
       case WorldThemeId.volcano:
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.90, time * 0.80, '#59282c',
-            0.48, seed);
+            0.48, seed,
+            detailScale: skyLod);
         if (!compact) {
-          _drawRisingEmbers(ctx, w, h, time, seed);
+          _drawRisingEmbers(ctx, w, h, time, seed, detailScale: skyLod);
         }
         break;
       case WorldThemeId.glacier:
-        _drawAuroraRibbon(ctx, w, h, compact, time);
+        _drawAuroraRibbon(ctx, w, h, compact, time, detailScale: skyLod);
         _drawSkyClouds(ctx, w, h, compact ? 0.32 : 0.82, time * 0.50, '#ffffff',
-            0.66, seed);
+            0.66, seed,
+            detailScale: skyLod);
         if (!compact) {
-          _drawDriftingSnow(ctx, w, h, time, seed);
+          _drawDriftingSnow(ctx, w, h, time, seed, detailScale: skyLod);
         }
         break;
       case WorldThemeId.candy:
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.86, time * 0.65, '#fff0fa',
-            0.86, seed);
+            0.86, seed,
+            detailScale: skyLod);
         break;
       case WorldThemeId.lunar:
-        _drawSkyStars(ctx, w, h, compact ? 22 : 70, time, seed);
+        _drawSkyStars(
+            ctx, w, h, ((compact ? 22 : 70) * skyLod).round(), time, seed);
         break;
       case WorldThemeId.toyland:
         _drawSkyClouds(ctx, w, h, compact ? 0.34 : 0.86, time * 0.70, '#ffffff',
-            0.86, seed);
+            0.86, seed,
+            detailScale: skyLod);
         if (!compact) {
-          _drawFloatingToyBalloons(ctx, w, h, time, seed);
+          _drawFloatingToyBalloons(ctx, w, h, time, seed, detailScale: skyLod);
         }
         break;
       case WorldThemeId.jungle:
         _drawSkyClouds(ctx, w, h, compact ? 0.32 : 0.82, time * 0.52, '#fff8de',
-            0.64, seed);
+            0.64, seed,
+            detailScale: skyLod);
         break;
     }
 
@@ -550,12 +569,14 @@ class WorldGenerator {
   }
 
   static void _drawSkyClouds(CanvasRenderingContext2D ctx, double w, double h,
-      double scale, double time, String color, double alpha, int seed) {
+      double scale, double time, String color, double alpha, int seed,
+      {double detailScale = 1.0}) {
     final double offset = (seed.abs() % 100) / 100.0;
+    final int cloudCount = max(2, (6 * detailScale).round());
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color.toJS;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < cloudCount; i++) {
       final double speed = 0.007 + (i % 3) * 0.0045;
       final double cx =
           (((i * 0.19 + offset) + time * speed) % 1.26 - 0.13) * w;
@@ -572,9 +593,11 @@ class WorldGenerator {
   }
 
   static void _drawAuroraRibbon(CanvasRenderingContext2D ctx, double w, double h,
-      bool compact, double time) {
+      bool compact, double time,
+      {double detailScale = 1.0}) {
     ctx.save();
-    for (int band = 0; band < 2; band++) {
+    final int bands = detailScale < 0.8 ? 1 : 2;
+    for (int band = 0; band < bands; band++) {
       ctx.strokeStyle = (band == 0
               ? 'rgba(116, 255, 212, 0.30)'
               : 'rgba(130, 210, 255, 0.24)')
@@ -599,9 +622,11 @@ class WorldGenerator {
   }
 
   static void _drawRisingEmbers(
-      CanvasRenderingContext2D ctx, double w, double h, double time, int seed) {
+      CanvasRenderingContext2D ctx, double w, double h, double time, int seed,
+      {double detailScale = 1.0}) {
     final int s = seed.abs() % 500;
-    for (int i = 0; i < 24; i++) {
+    final int count = max(6, (24 * detailScale).round());
+    for (int i = 0; i < count; i++) {
       final double u = ((i * 71 + s) % 100) / 100.0;
       final double v = 1.0 - (((i * 0.17) + time * (0.08 + (i % 3) * 0.03)) % 1.0);
       final double x = u * w + sin(time * 2.2 + i) * 14.0;
@@ -617,10 +642,12 @@ class WorldGenerator {
   }
 
   static void _drawDriftingSnow(
-      CanvasRenderingContext2D ctx, double w, double h, double time, int seed) {
+      CanvasRenderingContext2D ctx, double w, double h, double time, int seed,
+      {double detailScale = 1.0}) {
     final int s = seed.abs() % 500;
+    final int count = max(6, (26 * detailScale).round());
     ctx.fillStyle = 'rgba(255, 255, 255, 0.68)'.toJS;
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < count; i++) {
       final double u = ((i * 83 + s) % 100) / 100.0;
       final double v = ((i * 0.13) + time * (0.06 + (i % 3) * 0.025)) % 1.0;
       final double x = u * w + sin(time * 1.4 + i) * 16.0;
@@ -2361,9 +2388,10 @@ class WorldGenerator {
     double h,
     double time,
     int seed,
-    bool compact,
-  ) {
-    final int count = compact ? 2 : 5;
+    bool compact, {
+    double detailScale = 1.0,
+  }) {
+    final int count = compact ? 2 : max(2, (5 * detailScale).round());
     final int s = seed.abs() % 500;
     final double scale = compact ? 0.45 : 1.0;
     ctx.save();
@@ -4590,8 +4618,9 @@ class WorldGenerator {
     double w,
     double h,
     double time,
-    int seed,
-  ) {
+    int seed, {
+    double detailScale = 1.0,
+  }) {
     const List<String> colors = [
       'rgba(255, 86, 94, 0.78)',
       'rgba(255, 208, 56, 0.80)',
@@ -4600,8 +4629,9 @@ class WorldGenerator {
       'rgba(196, 116, 255, 0.78)',
     ];
     final int s = seed.abs() % 500;
+    final int balloonCount = max(2, (6 * detailScale).round());
     ctx.save();
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < balloonCount; i++) {
       final double baseU = ((i * 173 + s * 11 + 40) % 920 + 40) / 1000.0;
       final double bob = sin(time * 1.3 + i * 1.9) * 14.0;
       final double sway = cos(time * 0.9 + i * 1.4) * 10.0;

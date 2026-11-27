@@ -61,6 +61,7 @@ class WormWorld extends World {
   late int _width, _height;
   double explosionFlash = 0.0;
   double _skyTime = 0.0;
+  int _frameDebrisEffectCount = 0;
   bool soundEnabled = true;
 
   // Death camera state: smoothly zooms out to reveal the full battlefield,
@@ -261,6 +262,8 @@ class WormWorld extends World {
     assert(byteWorld.byteWorldReady());
 
     // Count the draw FPS before adjusting the duration.
+    performanceGovernor.update(duration, _drawFps.fps(),
+        isCommander: isCommander);
     if (duration >= 0.041 && slowDown) {
       // Slow down the game instead of skipping frames.
       duration = 0.041;
@@ -268,8 +271,13 @@ class WormWorld extends World {
     int frames = advanceFrames(duration);
 
     _spatialGrid.clear();
+    _frameDebrisEffectCount = 0;
     for (int networkId in spriteIndex.spriteIds()) {
-      _spatialGrid.insert(spriteIndex[networkId]!);
+      final Sprite s = spriteIndex[networkId]!;
+      _spatialGrid.insert(s);
+      if (s is TerrainDebrisEffect) {
+        _frameDebrisEffectCount++;
+      }
     }
 
     List<StateUpdate> particles = [];
@@ -303,6 +311,7 @@ class WormWorld extends World {
         activeMap.theme,
         _skyTime,
         seed: activeMap.seed,
+        detailScale: effectiveDetailScale,
       );
     } else {
       _canvas.fillStyle = "rgb(135,206,250)".toJS;
@@ -591,14 +600,14 @@ class WormWorld extends World {
   }
 
   bool shouldDraw(Sprite sprite){
+    double visW = _width / _cameraZoom;
+    double visH = _height / _cameraZoom;
+    double xMin = viewPoint.x;                        //leftest x-value
+    double xMax = viewPoint.x + visW;                 //rightest x-value
+    double yMin = viewPoint.y;                        //highest y-value
+    double yMax = viewPoint.y + visH;                 //lowest y-value
+
     if(sprite.invisibleOutsideCanvas) {
-      double visW = _width / _cameraZoom;
-      double visH = _height / _cameraZoom;
-      double xMin = viewPoint.x;                        //leftest x-value
-      double xMax = viewPoint.x + visW;                 //rightest x-value
-      double yMin = viewPoint.y;                        //highest y-value
-      double yMax = viewPoint.y + visH;                 //lowest y-value
-      
       double spriteX, spriteY, spriteWidth, spriteHeight;
       
       spriteX = sprite.position.x;   //sprite most left x-value
@@ -614,6 +623,30 @@ class WormWorld extends World {
         return false;
       if(spriteY + spriteHeight < yMin)
         return false;
+    } else if (sprite is ExplosionEffect ||
+        sprite is HyperExplosion ||
+        sprite is TerrainDebrisEffect ||
+        sprite is JellybeanPopEffect ||
+        sprite is DartImpactEffect ||
+        sprite is Particles) {
+      // Cull off-screen local visual effects with a generous radius margin so
+      // distant blasts/trails on the 2080x900 arena don't burn Canvas2D draw calls.
+      double margin = 220.0 * effectiveDetailScale.clamp(0.4, 1.0);
+      Vec2 anchor = sprite.position;
+      if (sprite is HyperExplosion) {
+        margin = sprite.maxRadius * 1.35 + 40.0;
+      } else if (sprite is ExplosionEffect) {
+        margin = sprite.blastRadius * 1.5 + 50.0;
+      } else if (sprite is Particles && sprite.follow != null) {
+        anchor = sprite.follow!.position;
+        margin = max(margin, 240.0);
+      }
+      if (anchor.x < xMin - margin ||
+          anchor.x > xMax + margin ||
+          anchor.y < yMin - margin ||
+          anchor.y > yMax + margin) {
+        return false;
+      }
     }
     return true;
   }
@@ -702,7 +735,8 @@ class WormWorld extends World {
       return;
     }
     playSoundAtPosition(location, Sound.EXPLOSION, multiPlay: true);
-    addSprite(ExplosionEffect(location, velocity, radius));
+    addSprite(ExplosionEffect(location, velocity, radius,
+        detailScale: effectiveDetailScale));
   }
 
   void explosionAt({
@@ -732,30 +766,34 @@ class WormWorld extends World {
   /// Defaults to 1.0 before the first second of FPS samples has been collected.
   double _debrisBudgetScaleFromFps() {
     double fps = _drawFps.fps();
-    if (fps <= 0.0) {
-      return 1.0;
-    }
-    if (fps < 25.0) {
-      return 0.0;
-    }
-    if (fps < 35.0) {
-      return 0.35;
-    }
-    if (fps < 48.0) {
-      return 0.65;
-    }
-    return 1.0;
-  }
-
-  int _activeDebrisEffectCount() {
-    int count = 0;
-    for (int id in spriteIndex.spriteIds()) {
-      if (spriteIndex[id] is TerrainDebrisEffect) {
-        count++;
+    final bool commander = isCommander;
+    double instant = 1.0;
+    if (fps > 0.0) {
+      if (commander) {
+        if (fps < 28.0) {
+          instant = 0.0;
+        } else if (fps < 40.0) {
+          instant = 0.25;
+        } else if (fps < 53.0) {
+          instant = 0.55;
+        }
+      } else {
+        if (fps < 25.0) {
+          instant = 0.0;
+        } else if (fps < 35.0) {
+          instant = 0.35;
+        } else if (fps < 48.0) {
+          instant = 0.65;
+        }
       }
     }
-    return count;
+    final double governed = performanceGovernor.tier == QualityTier.low
+        ? 0.0
+        : performanceGovernor.detailScaleForRole(isCommander: commander);
+    return min(instant, governed);
   }
+
+  int _activeDebrisEffectCount() => _frameDebrisEffectCount;
 
   /**
    * Reduce the amount of particles if FPS is too low.
@@ -822,8 +860,14 @@ class WormWorld extends World {
     bool canSpawnDebris =
         radius >= 6.0 && fpsScale > 0.0 && _activeDebrisEffectCount() < maxActive;
     int maxSamples = canSpawnDebris ? (fullExplosion ? 18 : 4) : 0;
+    bool drawScorch = effectiveDetailScale > 0.35;
 
-    dynamic sampled = byteWorld.clearAt(location, radius, maxColorSamples: maxSamples);
+    dynamic sampled = byteWorld.clearAt(
+      location,
+      radius,
+      maxColorSamples: maxSamples,
+      drawScorch: drawScorch,
+    );
     if (canSpawnDebris && sampled is List<String> && sampled.isNotEmpty) {
       TerrainDebrisEffect debris = TerrainDebrisEffect(
         this,
@@ -835,6 +879,7 @@ class WormWorld extends World {
         budgetScale: fpsScale,
       );
       if (!debris.remove) {
+        _frameDebrisEffectCount++;
         addSprite(debris);
       }
     }
@@ -967,6 +1012,10 @@ class WormWorld extends World {
       _canvas.fillStyle = "#ff0000".toJS;
       _canvas.font = '16pt Calibri';
       _canvas.fillText("DrawFps: $_drawFps", 0, 20);
+      _canvas.fillText(
+          "Quality: ${qualityTier.name.toUpperCase()} (${(effectiveDetailScale * 100).round()}%) NetFPS: ${performanceGovernor.targetNetworkFrameRate()}",
+          0,
+          40);
       _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);
       int i = 0;
       for (String connectionDebug in _network.keyFrameDebugData()) {
@@ -989,4 +1038,33 @@ class WormWorld extends World {
   LocalStorage get localStorage => _localStorage;
 
   toString() => "World[${_network.peer.id}] commander ${_network.isCommander()}";
+}
+
+final Expando<PerformanceGovernor> _worldGovernors =
+    Expando<PerformanceGovernor>('WormWorldPerformanceGovernor');
+
+/// Attaches a per-world [PerformanceGovernor] without altering [WormWorld]'s
+/// generated mock interface.
+extension WormWorldPerformance on WormWorld {
+  PerformanceGovernor get performanceGovernor {
+    PerformanceGovernor? gov = _worldGovernors[this];
+    if (gov == null) {
+      gov = PerformanceGovernor();
+      _worldGovernors[this] = gov;
+    }
+    return gov;
+  }
+
+  QualityTier get qualityTier => performanceGovernor.tier;
+
+  double get effectiveDetailScale {
+    double fps = 0.0;
+    bool commander = false;
+    try {
+      fps = drawFps().fps();
+      commander = isCommander;
+    } catch (_) {}
+    return performanceGovernor.effectiveDetailScale(fps,
+        isCommander: commander);
+  }
 }

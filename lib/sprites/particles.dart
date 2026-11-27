@@ -11,6 +11,7 @@ import 'dart:math';
 import 'package:web/web.dart';
 
 class Particles extends MovingSprite {
+  static final Random _drawRng = Random();
   final Set<ParticleEffects_ParticleType> RANDOM_VELOCITY_PARTICLES =
       Set.of([ParticleEffects_ParticleType.CONFETTI, ParticleEffects_ParticleType.BLOOD]);
   late double radius;
@@ -152,12 +153,13 @@ class Particles extends MovingSprite {
   draw(CanvasRenderingContext2D context, bool debug) {
     context.save();
     int dead = 0;
-    Random r = new Random();
+    final Random r = _drawRng;
+    final double lod = world.effectiveDetailScale;
 
     if (particleType == ParticleEffects_ParticleType.COLORFUL) {
       // Realistic rocket exhaust trail (shared by Zooka and Snailgun):
       // young particles glow hot flame at the nozzle, then expand into soft billowing smoke.
-      dead = _drawRocketTrail(context, r);
+      dead = _drawRocketTrail(context, r, lod);
       if (dead == particles.length) {
         this.remove = true;
       }
@@ -168,7 +170,7 @@ class Particles extends MovingSprite {
     if (particleType == ParticleEffects_ParticleType.FIRE) {
       // Scalding coffee spray (Coffee Burn): rich dark-roast espresso stream with
       // caramel crema sheen that cools into soft rising steam wisps.
-      dead = _drawCoffeeStream(context, r);
+      dead = _drawCoffeeStream(context, r, lod);
       if (dead == particles.length) {
         this.remove = true;
       }
@@ -227,9 +229,12 @@ class Particles extends MovingSprite {
     context.restore();
   }
 
-  int _drawRocketTrail(CanvasRenderingContext2D context, Random r) {
+  int _drawRocketTrail(
+      CanvasRenderingContext2D context, Random r, double lod) {
     int dead = 0;
     double maxLife = max(1, this.particleLifeTime).toDouble();
+    final bool useGradients = lod >= 0.85;
+    final bool lowDetail = lod <= 0.35;
 
     // First handle respawns and draw billowing smoke puffs (normal alpha blend).
     context.globalCompositeOperation = "source-over";
@@ -244,6 +249,9 @@ class Particles extends MovingSprite {
           continue;
         }
       }
+      if (lowDetail && i.isOdd) {
+        continue;
+      }
       double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
       if (lifeFrac > 0.85) {
         continue;
@@ -255,22 +263,33 @@ class Particles extends MovingSprite {
         continue;
       }
       int shade = (95 + (115 * ageFrac)).toInt().clamp(90, 215);
-      CanvasGradient grad = context.createRadialGradient(
-          p.location.x, p.location.y, 0, p.location.x, p.location.y, smokeRadius);
-      grad.addColorStop(0.0, "rgba($shade, ${shade - 3}, ${shade - 6}, ${smokeAlpha.toStringAsFixed(2)})");
-      grad.addColorStop(0.55, "rgba($shade, $shade, $shade, ${(smokeAlpha * 0.6).toStringAsFixed(2)})");
-      grad.addColorStop(1.0, "rgba($shade, $shade, $shade, 0)");
-      context.fillStyle = grad;
+      if (useGradients) {
+        CanvasGradient grad = context.createRadialGradient(
+            p.location.x, p.location.y, 0, p.location.x, p.location.y, smokeRadius);
+        grad.addColorStop(0.0, "rgba($shade, ${shade - 3}, ${shade - 6}, ${smokeAlpha.toStringAsFixed(2)})");
+        grad.addColorStop(0.55, "rgba($shade, $shade, $shade, ${(smokeAlpha * 0.6).toStringAsFixed(2)})");
+        grad.addColorStop(1.0, "rgba($shade, $shade, $shade, 0)");
+        context.fillStyle = grad;
+      } else {
+        // Fast flat circle fallback on Medium/Low FPS — avoids allocating CanvasGradient objects!
+        context.fillStyle =
+            "rgba($shade, $shade, $shade, ${(smokeAlpha * 0.65).toStringAsFixed(2)})"
+                .toJS;
+      }
       context.beginPath();
-      context.arc(p.location.x, p.location.y, smokeRadius, 0, pi * 2.0);
+      context.arc(p.location.x, p.location.y,
+          useGradients ? smokeRadius : smokeRadius * 0.78, 0, pi * 2.0);
       context.fill();
     }
 
     // Second pass: hot glowing exhaust flame right behind the rocket nozzle.
-    context.globalCompositeOperation = "lighter";
+    context.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
     for (int i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       if (p.lifeTimeRemaining < 0) {
+        continue;
+      }
+      if (lowDetail && i.isOdd) {
         continue;
       }
       double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
@@ -282,26 +301,37 @@ class Particles extends MovingSprite {
       int gVal = (90 + 165 * flameT).toInt().clamp(0, 255);
       int bVal = (210 * flameT * flameT).toInt().clamp(0, 255);
       double flameAlpha = (0.35 + 0.65 * flameT).clamp(0.0, 1.0);
-      CanvasGradient grad = context.createRadialGradient(
-          p.location.x, p.location.y, 0, p.location.x, p.location.y, flameRadius);
-      grad.addColorStop(0.0, "rgba(255, $gVal, $bVal, ${flameAlpha.toStringAsFixed(2)})");
-      grad.addColorStop(0.5, "rgba(255, ${(gVal * 0.65).toInt()}, 15, ${(flameAlpha * 0.6).toStringAsFixed(2)})");
-      grad.addColorStop(1.0, "rgba(220, 40, 0, 0)");
-      context.fillStyle = grad;
+      if (useGradients) {
+        CanvasGradient grad = context.createRadialGradient(
+            p.location.x, p.location.y, 0, p.location.x, p.location.y, flameRadius);
+        grad.addColorStop(0.0, "rgba(255, $gVal, $bVal, ${flameAlpha.toStringAsFixed(2)})");
+        grad.addColorStop(0.5, "rgba(255, ${(gVal * 0.65).toInt()}, 15, ${(flameAlpha * 0.6).toStringAsFixed(2)})");
+        grad.addColorStop(1.0, "rgba(220, 40, 0, 0)");
+        context.fillStyle = grad;
+      } else {
+        context.fillStyle =
+            "rgba(255, $gVal, $bVal, ${(flameAlpha * 0.78).toStringAsFixed(2)})"
+                .toJS;
+      }
       context.beginPath();
-      context.arc(p.location.x, p.location.y, flameRadius, 0, pi * 2.0);
+      context.arc(p.location.x, p.location.y,
+          useGradients ? flameRadius : flameRadius * 0.80, 0, pi * 2.0);
       context.fill();
     }
 
     return dead;
   }
 
-  int _drawCoffeeStream(CanvasRenderingContext2D context, Random r) {
+  int _drawCoffeeStream(
+      CanvasRenderingContext2D context, Random r, double lod) {
     int dead = 0;
     double maxLife = max(1, this.particleLifeTime).toDouble();
+    final bool useGradients = lod >= 0.85;
+    final bool lowDetail = lod <= 0.35;
     context.globalCompositeOperation = "source-over";
 
-    // Pass 1: Soft rising warm steam wisps around the coffee spray.
+    // Pass 1: Soft rising warm steam wisps around the coffee spray (skipped on LOW FPS,
+    // while still running respawn accounting).
     for (int i = 0; i < particles.length; i++) {
       _Particle p = particles[i];
       if (p.lifeTimeRemaining < 0 || p.radius < 0) {
@@ -312,6 +342,9 @@ class Particles extends MovingSprite {
           dead++;
           continue;
         }
+      }
+      if (lowDetail) {
+        continue;
       }
       double lifeFrac = (p.lifeTimeRemaining / maxLife).clamp(0.0, 1.0);
       double ageFrac = 1.0 - lifeFrac;
@@ -325,14 +358,21 @@ class Particles extends MovingSprite {
       double steamAlpha = 0.26 * steamVisibility;
       double sx = p.location.x;
       double sy = p.location.y - steamRise;
-      CanvasGradient grad =
-          context.createRadialGradient(sx, sy, 0, sx, sy, steamRadius);
-      grad.addColorStop(0.0, "rgba(242, 232, 218, ${steamAlpha.toStringAsFixed(2)})");
-      grad.addColorStop(0.6, "rgba(225, 212, 196, ${(steamAlpha * 0.5).toStringAsFixed(2)})");
-      grad.addColorStop(1.0, "rgba(220, 208, 195, 0)");
-      context.fillStyle = grad;
+      if (useGradients) {
+        CanvasGradient grad =
+            context.createRadialGradient(sx, sy, 0, sx, sy, steamRadius);
+        grad.addColorStop(0.0, "rgba(242, 232, 218, ${steamAlpha.toStringAsFixed(2)})");
+        grad.addColorStop(0.6, "rgba(225, 212, 196, ${(steamAlpha * 0.5).toStringAsFixed(2)})");
+        grad.addColorStop(1.0, "rgba(220, 208, 195, 0)");
+        context.fillStyle = grad;
+      } else {
+        context.fillStyle =
+            "rgba(235, 224, 210, ${(steamAlpha * 0.65).toStringAsFixed(2)})"
+                .toJS;
+      }
       context.beginPath();
-      context.arc(sx, sy, steamRadius, 0, pi * 2.0);
+      context.arc(
+          sx, sy, useGradients ? steamRadius : steamRadius * 0.72, 0, pi * 2.0);
       context.fill();
     }
 

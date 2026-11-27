@@ -1289,15 +1289,19 @@ class MockByteWorld extends _i1.Mock implements _i4.ByteWorld {
       );
 
   @override
-  dynamic clearAt(_i8.Vec2? pos, double? radius, {int? maxColorSamples = 18}) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #clearAt,
-          [pos, radius],
-          {#maxColorSamples: maxColorSamples},
-        ),
-        returnValueForMissingStub: null,
-      );
+  dynamic clearAt(
+    _i8.Vec2? pos,
+    double? radius, {
+    int? maxColorSamples = 18,
+    bool? drawScorch = true,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #clearAt,
+      [pos, radius],
+      {#maxColorSamples: maxColorSamples, #drawScorch: drawScorch},
+    ),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i8.Vec2 randomNotSolidPoint(_i8.Vec2? sizeOffset) =>

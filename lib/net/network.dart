@@ -835,3 +835,54 @@ class Network {
     return clientStatusData;
   }
 }
+
+final Expando<Map<String, PerformanceGovernor>> _remotePeerGovernors =
+    Expando<Map<String, PerformanceGovernor>>('RemotePeerPerformanceGovernors');
+
+/// Bridges [WormWorld.performanceGovernor] (and per-peer governors) into
+/// [ConnectionFrameHandler] so visual detail is lowered first and network FPS
+/// is only reduced once visual quality has already stepped down.
+extension NetworkPerformanceGovernor on Network {
+  double governedSelfFpsForNetwork() {
+    try {
+      return world.performanceGovernor.equivalentDrawFpsForNetwork(
+        minRate: ConnectionFrameHandler.MIN_FRAMERATE,
+        maxRate: ConnectionFrameHandler.MAX_FRAMERATE,
+      );
+    } catch (_) {
+      final double raw = getCurrentFps();
+      return raw > 0.0 ? raw : 60.0;
+    }
+  }
+
+  double governedRemoteFpsForNetwork(
+    String peerId,
+    double reportedPeerFps,
+    double keyFrameStepSeconds,
+  ) {
+    // Before a peer has reported its first 1s FPS sample (`<= 0.0`), keep full
+    // network framerate rather than prematurely throttling to 6 Hz.
+    if (reportedPeerFps <= 0.0) {
+      return 60.0;
+    }
+    Map<String, PerformanceGovernor>? map = _remotePeerGovernors[this];
+    if (map == null) {
+      map = <String, PerformanceGovernor>{};
+      _remotePeerGovernors[this] = map;
+    }
+    final PerformanceGovernor peerGov =
+        map.putIfAbsent(peerId, () => PerformanceGovernor());
+    final bool peerIsCommander =
+        getGameState().gameStateProto.actingCommanderId == peerId;
+    peerGov.update(
+      keyFrameStepSeconds.clamp(0.05, 1.30),
+      reportedPeerFps,
+      isCommander: peerIsCommander,
+      maxDt: 1.50,
+    );
+    return peerGov.equivalentDrawFpsForNetwork(
+      minRate: ConnectionFrameHandler.MIN_FRAMERATE,
+      maxRate: ConnectionFrameHandler.MAX_FRAMERATE,
+    );
+  }
+}

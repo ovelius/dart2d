@@ -1241,8 +1241,10 @@ class RunningCatProjectile extends WorldDamageProjectile {
 /// orientation regardless of whether fired left or right!
 class SnailProjectile extends WorldDamageProjectile {
   static const double TRAIL_CARVE_RADIUS = 13.5;
+  static const double CARVE_STEP_DISTANCE = 5.0;
   int snailVariant = 0;
   double _age = 0.0;
+  Vec2? _lastCarveCenter;
 
   SnailProjectile(
       WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
@@ -1283,6 +1285,20 @@ class SnailProjectile extends WorldDamageProjectile {
   /// True when the snail is flying toward the left hemisphere (cos(angle) < 0),
   /// in which case we flip vertically after rotating so the snail stays upright!
   bool get isFacingLeft => cos(angle) < 0.0;
+
+  @override
+  handleWorldCollide(ByteWorld world, int direction) {
+    final Vec2 cur = centerPoint();
+    if (_lastCarveCenter != null) {
+      final double dx = cur.x - _lastCarveCenter!.x;
+      final double dy = cur.y - _lastCarveCenter!.y;
+      if (dx * dx + dy * dy < CARVE_STEP_DISTANCE * CARVE_STEP_DISTANCE) {
+        return;
+      }
+    }
+    _lastCarveCenter = Vec2.copy(cur);
+    explode();
+  }
 
   @override
   frame(double duration, int frameStep, [Vec2? gravity]) {
@@ -1627,11 +1643,29 @@ class Hyper extends WorldDamageProjectile {
     context.strokeStyle = this.color.toJS;
     context.globalCompositeOperation = "lighter";
     context.lineWidth = 2;
-    for (var i = 0; i < _quality; i++) {
-      var theta = 2 * pi * WorldDamageProjectile.random.nextDouble();
-      var x = r + (r * cos(theta) / 2);
-      var y = r + (r * sin(theta) / 2);
-      drawSeed(context, x, y, r);
+    final double lod = world.effectiveDetailScale;
+    final int arcCount = max(8, (_quality * lod).round());
+    const int fractions = 3;
+    // Batch all lightning segments per alpha tier into 3 stroke() calls total
+    // instead of 120 individual beginPath()/stroke() calls per frame!
+    for (int tier = 0; tier < fractions; tier++) {
+      context.globalAlpha = 1.0 - (tier / fractions);
+      context.beginPath();
+      for (int i = 0; i < arcCount; i++) {
+        final double theta = 2 * pi * WorldDamageProjectile.random.nextDouble();
+        final double tx = r + (r * cos(theta) / 2);
+        final double ty = r + (r * sin(theta) / 2);
+        final double f0 = tier / fractions;
+        final double f1 = (tier + 1) / fractions;
+        final double jx =
+            (tx - r) * f0 + (tx - r) * (1.0 / fractions) * WorldDamageProjectile.random.nextDouble();
+        final double jy =
+            (ty - r) * f0 + (ty - r) * (1.0 / fractions) * WorldDamageProjectile.random.nextDouble();
+        context.moveTo(r + (tx - r) * f0, r + (ty - r) * f0);
+        context.lineTo(r + jx + (tx - r) * (f1 - f0) * 0.25,
+            r + jy + (ty - r) * (f1 - f0) * 0.25);
+      }
+      context.stroke();
     }
     context.restore();
   }
@@ -1851,9 +1885,11 @@ class HyperExplosion extends MovingSprite {
 
     // 3. Crackling jagged neon-red BFG lightning tendrils radiating outward.
     Random rng = WorldDamageProjectile.random;
+    final double lod = world.effectiveDetailScale;
+    final int activeBolts = max(4, (BOLT_COUNT * lod).round());
     double boltReach = currentRadius * 1.18;
-    for (int i = 0; i < BOLT_COUNT; i++) {
-      double baseAngle = (2.0 * pi * i / BOLT_COUNT) + (rng.nextDouble() - 0.5) * 0.35;
+    for (int i = 0; i < activeBolts; i++) {
+      double baseAngle = (2.0 * pi * i / activeBolts) + (rng.nextDouble() - 0.5) * 0.35;
       double reach = boltReach * (0.65 + 0.45 * rng.nextDouble());
       double px = center.x;
       double py = center.y;
@@ -1954,17 +1990,22 @@ class ExplosionEffect extends MovingSprite {
   final List<_ExplosionPuff> _firePuffs = [];
   final List<_ExplosionSpark> _sparks = [];
 
-  ExplosionEffect(Vec2 center, Vec2 baseVelocity, this.blastRadius)
+  ExplosionEffect(Vec2 center, Vec2 baseVelocity, this.blastRadius,
+      {double detailScale = 1.0})
       : super(Vec2.copy(center), Vec2(1.0, 1.0), SpriteType.CUSTOM) {
     this.networkType = NetworkType.LOCAL_ONLY;
     this.collision = false;
     this.invisibleOutsideCanvas = false;
     this.duration = (0.38 + blastRadius / 240.0).clamp(0.38, 0.85);
 
+    final double lod = detailScale.clamp(0.25, 1.0);
     Random rng = WorldDamageProjectile.random;
-    int smokeCount = (5 + (blastRadius / 20).round()).clamp(5, 11);
-    int fireCount = (4 + (blastRadius / 22).round()).clamp(4, 9);
-    int sparkCount = (8 + (blastRadius / 10).round()).clamp(8, 20);
+    int smokeCount =
+        max(2, ((5 + (blastRadius / 20).round()).clamp(5, 11) * lod).round());
+    int fireCount =
+        max(2, ((4 + (blastRadius / 22).round()).clamp(4, 9) * lod).round());
+    int sparkCount =
+        max(3, ((8 + (blastRadius / 10).round()).clamp(8, 20) * lod).round());
 
     for (int i = 0; i < smokeCount; i++) {
       double angle = (2.0 * pi * i / smokeCount) + (rng.nextDouble() - 0.5) * 0.5;

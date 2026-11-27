@@ -32,6 +32,7 @@ class ByteWorld {
   // x line for current bedrock computation.
   int _bedrockLine = -1;
   late Uint8List _collisionBuffer;
+  late Uint8List _bedrockMask;
 
   ByteWorld(
       ImageFactory imageFactory,
@@ -57,6 +58,7 @@ class ByteWorld {
     _bedrocksCanvas = _canvasFactory.createCanvas(_width, _height);
     _bedrockLine = 0;
     _collisionBuffer = new Uint8List(_width * _height);
+    _bedrockMask = new Uint8List(_width * _height);
     // Initialize buffer with current canvas alpha.
     Uint8ClampedList data = canvas!.context2D.getImageData(0, 0, _width, _height).data.toDart;
     for (int i = 0; i < _width * _height; i++) {
@@ -64,6 +66,14 @@ class ByteWorld {
     }
     if (bedrockCanvas != null && _width > 0 && _height > 0) {
       _bedrocksCanvas.context2D.drawImage(bedrockCanvas, 0, 0, _width, _height);
+      final Uint8ClampedList bData =
+          _bedrocksCanvas.context2D.getImageData(0, 0, _width, _height).data.toDart;
+      for (int i = 0; i < _width * _height; i++) {
+        if (bData[i * 4 + 3] > 0) {
+          _bedrockMask[i] = 1;
+          _collisionBuffer[i] = 1;
+        }
+      }
       _bedrockLine = _width + 1;
       _finalizeBedrock();
     }
@@ -162,6 +172,11 @@ class ByteWorld {
         newDataArr[p + 2] = data[p + 2];
         newDataArr[p + 3] = data[p + 3];
       }
+      if (newDataArr[p + 3] > 0) {
+        final int lx = i % computeWidth;
+        final int ly = i ~/ computeWidth;
+        _bedrockMask[ly * _width + (startX + lx)] = 1;
+      }
     }
     bedrockCanvas.context2D.putImageData(newData, startX, 0);
   }
@@ -191,21 +206,40 @@ class ByteWorld {
   }
 
   /**
-   * Check if any pixel inside area is solid.
+   * Check if any pixel inside area is solid using the in-memory [_collisionBuffer]
+   * (zero GPU->CPU `getImageData` readbacks).
    */
   bool isCanvasCollide(int x, int y, [int width = 1, int height = 1]) {
-    Uint8ClampedList data = canvas!.context2D.getImageData(x, y, width, height).data.toDart;
-    for (int i = 0; i < data.length / 4; i++) {
-      // If transparency data is present, we are solid.
-      if (data[i*4 + 3] > 0) {
-        return true;
+    if (_width <= 0 || _height <= 0) return false;
+    final int xStart = max(0, x);
+    final int yStart = max(0, y);
+    final int xEnd = min(_width, x + width);
+    final int yEnd = min(_height, y + height);
+    for (int cy = yStart; cy < yEnd; cy++) {
+      final int row = cy * _width;
+      for (int cx = xStart; cx < xEnd; cx++) {
+        if (_collisionBuffer[row + cx] > 0) {
+          return true;
+        }
       }
     }
-    return  false;
+    return false;
   }
   
   clearAtRect(int x, int y, int width, int height) {
     canvas!.context2D.clearRect(x, y, width, height);
+    final int xStart = max(0, x);
+    final int yStart = max(0, y);
+    final int xEnd = min(_width, x + width);
+    final int yEnd = min(_height, y + height);
+    for (int cy = yStart; cy < yEnd; cy++) {
+      final int row = cy * _width;
+      for (int cx = xStart; cx < xEnd; cx++) {
+        if (_bedrockMask[row + cx] == 0) {
+          _collisionBuffer[row + cx] = 0;
+        }
+      }
+    }
   }
   
   String asDataUrl() {
@@ -363,13 +397,15 @@ class ByteWorld {
    * [maxColorSamples] sampled RGB colors from the destroyed terrain pixels
    * for spawning debris chunks (pass 0 to skip color sampling when FPS-limited).
    */
-  clearAt(Vec2 pos, double radius, {int maxColorSamples = 18}) {
+  clearAt(Vec2 pos, double radius,
+      {int maxColorSamples = 18, bool drawScorch = true}) {
     if (radius <= 0) {
       return <String>[];
     }
     bool useJaggedCrater = radius >= 6.0;
     double maxCraterR = useJaggedCrater ? radius * 1.14 : radius;
-    double scorchPad = useJaggedCrater ? (radius * 0.24).clamp(4.0, 12.0) : 0.0;
+    double scorchPad =
+        (useJaggedCrater && drawScorch) ? (radius * 0.24).clamp(4.0, 12.0) : 0.0;
     double samplePad = maxCraterR + 2.0;
 
     int x1 = max(0, (pos.x - samplePad).floor());
@@ -456,7 +492,10 @@ class ByteWorld {
     // 2. Paint charred soot halo & scorched inner rim onto existing terrain only.
     // (`source-atop` is a no-op on transparent sky pixels, so it stays safe even
     // when color sampling was skipped at low FPS.)
-    if (useJaggedCrater && (hadSolidTerrain || maxColorSamples <= 0) && craterRadii != null) {
+    if (drawScorch &&
+        useJaggedCrater &&
+        (hadSolidTerrain || maxColorSamples <= 0) &&
+        craterRadii != null) {
       ctx.save();
       ctx.globalCompositeOperation = "source-atop";
 
@@ -497,27 +536,95 @@ class ByteWorld {
     ctx.clearRect(x1, y1, boxW, boxH);
     ctx.restore();
 
-    // 4. Re-apply any destroyed or scorched bedrock inside the blast+scorch rect.
+    // 4. Re-apply any destroyed or scorched bedrock inside the blast+scorch rect
+    // directly from [_bedrocksCanvas] (synchronous GPU canvas-to-canvas blit).
     int bx1 = max(0, (pos.x - (radius + scorchPad + 2.0)).floor());
     int by1 = max(0, (pos.y - (radius + scorchPad + 2.0)).floor());
     int bx2 = min(_width, (pos.x + (radius + scorchPad + 2.0)).ceil());
     int by2 = min(_height, (pos.y + (radius + scorchPad + 2.0)).ceil());
     int bW = bx2 - bx1;
     int bH = by2 - by1;
-    if (bW > 0 && bH > 0 && _bedrockImage.width >= bx2 && _bedrockImage.height >= by2) {
-      ctx.drawImage(_bedrockImage, bx1, by1, bW, bH, bx1, by1, bW, bH);
-    } else {
+    if (bW > 0 &&
+        bH > 0 &&
+        _bedrocksCanvas.width >= bx2 &&
+        _bedrocksCanvas.height >= by2) {
+      ctx.drawImage(_bedrocksCanvas, bx1, by1, bW, bH, bx1, by1, bW, bH);
+    } else if (_bedrockImage.width > 0 && _bedrockImage.height > 0) {
       ctx.drawImage(_bedrockImage, 0, 0);
     }
 
-    // 5. Sync collision buffer pixel-for-pixel with the carved canvas & bedrock.
-    Uint8ClampedList afterData = ctx.getImageData(x1, y1, boxW, boxH).data.toDart;
-    for (int y = 0; y < boxH; y++) {
-      int rowOffset = (y1 + y) * _width + x1;
-      int dataRowOffset = y * boxW * 4;
-      for (int x = 0; x < boxW; x++) {
-        _collisionBuffer[rowOffset + x] =
-            afterData[dataRowOffset + x * 4 + 3] > 0 ? 1 : 0;
+    // 5. Update [_collisionBuffer] geometrically in pure Dart using [_bedrockMask]
+    // — zero GPU->CPU `getImageData` pipeline flushes!
+    if (craterRadii == null) {
+      final double rSq = radius * radius;
+      for (int cy = y1; cy < y2; cy++) {
+        final int rowOffset = cy * _width;
+        final double dy = (cy + 0.5) - pos.y;
+        final double dySq = dy * dy;
+        for (int cx = x1; cx < x2; cx++) {
+          final int idx = rowOffset + cx;
+          if (_bedrockMask[idx] > 0) {
+            _collisionBuffer[idx] = 1;
+            continue;
+          }
+          if (_collisionBuffer[idx] == 0) continue;
+          final double dx = (cx + 0.5) - pos.x;
+          if (dx * dx + dySq <= rSq) {
+            _collisionBuffer[idx] = 0;
+          }
+        }
+      }
+    } else {
+      final int segCount = craterRadii.length;
+      final List<double> vx = List<double>.filled(segCount, 0.0);
+      final List<double> vy = List<double>.filled(segCount, 0.0);
+      double minR = double.infinity;
+      double maxR = 0.0;
+      for (int i = 0; i < segCount; i++) {
+        final double r = craterRadii[i];
+        if (r < minR) minR = r;
+        if (r > maxR) maxR = r;
+        final double theta = (2.0 * pi * i) / segCount;
+        vx[i] = cos(theta) * r;
+        vy[i] = sin(theta) * r;
+      }
+      // Inscribed fast-accept circle & circumscribed fast-reject circle.
+      final double innerFastSq = (minR * minR) * 0.95;
+      final double outerFastSq = maxR * maxR;
+      final double invSectorRad = segCount / (2.0 * pi);
+
+      for (int cy = y1; cy < y2; cy++) {
+        final int rowOffset = cy * _width;
+        final double dy = (cy + 0.5) - pos.y;
+        final double dySq = dy * dy;
+        for (int cx = x1; cx < x2; cx++) {
+          final int idx = rowOffset + cx;
+          if (_bedrockMask[idx] > 0) {
+            _collisionBuffer[idx] = 1;
+            continue;
+          }
+          if (_collisionBuffer[idx] == 0) continue;
+          final double dx = (cx + 0.5) - pos.x;
+          final double distSq = dx * dx + dySq;
+          if (distSq <= innerFastSq) {
+            _collisionBuffer[idx] = 0;
+            continue;
+          }
+          if (distSq > outerFastSq) {
+            continue;
+          }
+          double theta = atan2(dy, dx);
+          if (theta < 0.0) theta += 2.0 * pi;
+          final int i0 = (theta * invSectorRad).floor() % segCount;
+          final int i1 = (i0 + 1) % segCount;
+          final double vx0 = vx[i0];
+          final double vy0 = vy[i0];
+          final double cross =
+              (vx[i1] - vx0) * (dy - vy0) - (vy[i1] - vy0) * (dx - vx0);
+          if (cross >= 0.0) {
+            _collisionBuffer[idx] = 0;
+          }
+        }
       }
     }
 

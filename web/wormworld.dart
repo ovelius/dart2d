@@ -75,38 +75,36 @@ void init() {
 
 void startTimer() {
   lastStep = new DateTime.now();
-  new Timer(TIMEOUT, step);
+  _scheduleNextStep(TIMEOUT_MILLIS);
+}
+
+void _scheduleNextStep(int fallbackDelayMillis) {
+  if (!document.hidden) {
+    window.requestAnimationFrame(((num _) {
+      step();
+    }).toJS);
+  } else {
+    new Timer(new Duration(milliseconds: max(1, fallbackDelayMillis)), step);
+  }
 }
 
 void step() {
   DateTime startStep = new DateTime.now();
-  int millis = startStep.millisecondsSinceEpoch - lastStep.millisecondsSinceEpoch;
-  assert(millis >= 0);
-  double secs = millis / 1000.0;
+  int millis =
+      startStep.millisecondsSinceEpoch - lastStep.millisecondsSinceEpoch;
+  double secs = (max(0, millis) / 1000.0).clamp(0.0, 0.1);
 
-
-  //try {
   world.frameDraw(secs);
-  /*
-  } catch (e, s) {
-    log.severe("Main loop crash, reloading", e, s);
-    gaReporter.reportEvent("crash", sanitizeStack(s));
-    if (RELOAD_ON_ERROR) {
-      new Timer(new Duration(seconds: 6), () { window.location.reload(); });
-    }
-    return;
-  }*/
-
 
   lastStep = startStep;
   int frameTimeMillis = new DateTime.now().millisecondsSinceEpoch -
       startStep.millisecondsSinceEpoch;
 
-  int newStepMillis = TIMEOUT_MILLIS - frameTimeMillis;
+  int newStepMillis = max(1, TIMEOUT_MILLIS - frameTimeMillis);
   if (frameTimeMillis > 70) {
-    print("Slow frametime of $millis!");
+    print("Slow frametime of $frameTimeMillis ms!");
   }
-  new Timer(new Duration(milliseconds: newStepMillis), step);
+  _scheduleNextStep(newStepMillis);
 }
 
 String sanitizeStack(StackTrace s) {

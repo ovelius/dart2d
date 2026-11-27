@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:dart2d/net/net.dart';
 import 'gamestate.dart';
 export 'fps_counter.dart';
+export 'performance_governor.dart';
 export 'hud_messages.dart';
 export 'keystate.dart';
 export 'mobile_controls.dart';
