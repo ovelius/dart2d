@@ -1,4 +1,5 @@
 
+import 'dart:math' show sin;
 import 'package:dart2d/sprites/sprite.dart';
 import 'package:dart2d/sprites/sprite_index.dart';
 import 'package:dart2d/phys/vec2.dart';
@@ -25,6 +26,55 @@ class MovingSprite extends Sprite {
 
   // If owned by a player.
   LocalPlayerSprite? owner;
+
+  /// Returns true when [other] is either [owner] itself or another sprite
+  /// owned by the same player (`other.owner?.networkId == owner!.networkId`).
+  bool isOwnedBySamePlayer(MovingSprite other) {
+    if (owner == null) {
+      return false;
+    }
+    final int? myOwnerId = owner!.networkId;
+    if (myOwnerId == null) {
+      return false;
+    }
+    return other.networkId == myOwnerId || other.owner?.networkId == myOwnerId;
+  }
+
+  /// Nudges a freshly spawned projectile up out of a shallow floor/slope step
+  /// (`<= 8px`) when [owner]'s center is in open air and the shot isn't aimed
+  /// steeply downward, preventing ground-hugging shots while moving on slopes
+  /// from immediately colliding with terrain at the owner's feet.
+  void clearShallowGroundStep(
+      dynamic world, LocalPlayerSprite owner, double launchAngle) {
+    try {
+      if (sin(launchAngle) >= 0.35) {
+        return;
+      }
+      final ByteWorld byteWorld = world.byteWorld as ByteWorld;
+      if (!byteWorld.byteWorldReady()) {
+        return;
+      }
+      final Vec2 ownerCenter = owner.centerPoint();
+      if (byteWorld.isSolid(ownerCenter.x.round(), ownerCenter.y.round())) {
+        return;
+      }
+      final int checkX = (position.x + 1.0).toInt();
+      final int checkW =
+          (size.x - 2.0).toInt() > 0 ? (size.x - 2.0).toInt() : 1;
+      final int aboveY = (position.y - 8.0).toInt();
+      if (aboveY >= 0 && byteWorld.isCanvasCollide(checkX, aboveY, checkW, 1)) {
+        // Solid wall directly in front (not a low ground step) — do not lift.
+        return;
+      }
+      for (int lift = 0; lift < 8; lift++) {
+        final int bottomY = (position.y + size.y - 1.0).toInt();
+        if (!byteWorld.isCanvasCollide(checkX, bottomY, checkW, 1)) {
+          break;
+        }
+        position.y -= 1.0;
+      }
+    } catch (_) {}
+  }
 
   MovingSprite.empty(ImageIndex imageIndex): super.empty(imageIndex);
 

@@ -298,10 +298,20 @@ class Powerup extends MovingSprite {
 
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (other is LocalPlayerSprite) {
-      dynamic action = _ACTIONS[_type];
-      action(this, other);
-      if (remove) {
-        other.world.playSoundAtSprite(this, Sound.POWERUP);
+      bool hasWinner = false;
+      try {
+        hasWinner = other.world.network().getGameState().hasWinner() == true;
+      } catch (_) {}
+      final bool canPickup = other.world.network().isCommander() &&
+          other.collision &&
+          !hasWinner &&
+          (_type != PowerUpType.POWERUP || other.inGame());
+      if (canPickup) {
+        dynamic action = _ACTIONS[_type];
+        action(this, other);
+        if (remove) {
+          other.world.playSoundAtSprite(this, Sound.POWERUP);
+        }
       }
     }
     if (direction != null) {

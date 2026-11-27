@@ -56,24 +56,30 @@ void init() {
   final AddEventListenerOptions touchOpts =
       AddEventListenerOptions(passive: false);
 
-  Point<int> toCanvasPoint(Touch t) {
+  Point<int> clientCoordsToCanvasPoint(num clientX, num clientY) {
     final DOMRect rect = canvasElement.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) {
-      return Point<int>(t.clientX.round(), t.clientY.round());
+      return Point<int>(clientX.round(), clientY.round());
     }
     final double scaleX = canvasElement.width / rect.width;
     final double scaleY = canvasElement.height / rect.height;
-    final int x = ((t.clientX - rect.left) * scaleX).round();
-    final int y = ((t.clientY - rect.top) * scaleY).round();
+    final int x = ((clientX - rect.left) * scaleX).round();
+    final int y = ((clientY - rect.top) * scaleY).round();
     return Point<int>(
       x.clamp(0, max(0, canvasElement.width - 1)),
       y.clamp(0, max(0, canvasElement.height - 1)),
     );
   }
 
+  Point<int> toCanvasPoint(Touch t) =>
+      clientCoordsToCanvasPoint(t.clientX, t.clientY);
+
+  int lastTouchMillis = 0;
+
   canvasElement.addEventListener(
       'touchstart',
       ((Event ev) {
+        lastTouchMillis = DateTime.now().millisecondsSinceEpoch;
         final TouchEvent e = ev as TouchEvent;
         e.preventDefault();
         final TouchList touches = e.changedTouches;
@@ -90,6 +96,7 @@ void init() {
   canvasElement.addEventListener(
       'touchmove',
       ((Event ev) {
+        lastTouchMillis = DateTime.now().millisecondsSinceEpoch;
         final TouchEvent e = ev as TouchEvent;
         e.preventDefault();
         final TouchList touches = e.changedTouches;
@@ -104,6 +111,7 @@ void init() {
       touchOpts);
 
   final JSFunction onTouchEndOrCancel = ((Event ev) {
+    lastTouchMillis = DateTime.now().millisecondsSinceEpoch;
     final TouchEvent e = ev as TouchEvent;
     e.preventDefault();
     final TouchList touches = e.changedTouches;
@@ -117,6 +125,26 @@ void init() {
 
   canvasElement.addEventListener('touchend', onTouchEndOrCancel, touchOpts);
   canvasElement.addEventListener('touchcancel', onTouchEndOrCancel, touchOpts);
+
+  // Fallback for pointer/mouse taps on browsers or hybrid touchscreens that
+  // dispatch pointer/click events instead of TouchEvents (guarded by
+  // lastTouchMillis so touch devices never double-fire!).
+  canvasElement.addEventListener(
+      'click',
+      ((Event ev) {
+        final int now = DateTime.now().millisecondsSinceEpoch;
+        if (now - lastTouchMillis < 650) {
+          return;
+        }
+        if (!world.loaderCompleted()) {
+          final MouseEvent m = ev as MouseEvent;
+          final Point<int> pt = clientCoordsToCanvasPoint(m.clientX, m.clientY);
+          final bool wasTouch = controls.isTouchSupported;
+          controls.touchDown(-99, pt.x, pt.y);
+          controls.touchUp(-99);
+          controls.setTouchSupported(wasTouch);
+        }
+      }).toJS);
   window.addEventListener(
       'blur',
       ((Event _) {

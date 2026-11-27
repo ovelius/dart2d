@@ -437,8 +437,13 @@ class WormWorld extends World {
     int max = _configParams.getInt(ConfigParam.MAX_FRAGS);
     if (info.score >= max) {
       _network.getGameState().gameStateProto.winnerPlayerId = info.connectionId;
-      for (PlayerInfoProto info in _network.getGameState().playerInfoList()) {
-        info.inGame = false;
+      for (PlayerInfoProto pInfo in _network.getGameState().playerInfoList()) {
+        pInfo.inGame = false;
+        final Sprite? s = spriteIndex[pInfo.spriteId];
+        if (s is LocalPlayerSprite) {
+          s.collision = false;
+          s.weaponState?.cancelMysteryRoulette();
+        }
       }
       _gaReporter.reportEvent("game_over");
     }

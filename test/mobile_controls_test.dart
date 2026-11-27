@@ -54,6 +54,7 @@ void main() {
         MobileControls.ROPE_BUTTON,
         MobileControls.WEAPON_SELECT_BUTTON,
         MobileControls.SOUND_BUTTON,
+        MobileControls.SCORE_BUTTON,
       ];
 
       for (final Point<int> res in resolutions) {
@@ -113,8 +114,12 @@ void main() {
 
         final Point<int> soundPos =
             controls.buttonLocation(MobileControls.SOUND_BUTTON);
-        expect((soundPos.x - res.x ~/ 2).abs(), lessThanOrEqualTo(2));
+        final Point<int> scorePos =
+            controls.buttonLocation(MobileControls.SCORE_BUTTON);
+        expect(soundPos.x, lessThan(res.x ~/ 2));
+        expect(scorePos.x, greaterThan(res.x ~/ 2));
         expect(soundPos.y, lessThan(res.y * 0.25));
+        expect(scorePos.y, lessThan(res.y * 0.25));
 
         // 4. Left-thumb movement & aiming area must be completely button-free.
         for (double fx = 0.08; fx <= 0.42; fx += 0.08) {
@@ -210,18 +215,23 @@ void main() {
       controls.touchCancel(0);
       expect(controls.buttonIsDown(), isFalse);
 
-      // Portrait mode holds SHIFT (scoreboard) and disables gameplay button hits;
-      // rotating back to landscape releases SHIFT.
+      // Portrait orientation (including iOS/Android Portrait Lock while holding phone
+      // sideways!) MUST keep gameplay buttons active, while SCORE_BUTTON toggles SHIFT!
       FakeScreen.mockOrientationType = 'portrait-primary';
       controls.draw(0.016);
-      expect(keyState.keyIsDown(KeyCodeDart.SHIFT), isTrue);
+      expect(keyState.keyIsDown(KeyCodeDart.SHIFT), isFalse);
       controls.touchDown(3, firePos.x, firePos.y);
-      expect(keyState.keyIsDown(KeyCodeDart.F), isFalse);
+      expect(keyState.keyIsDown(KeyCodeDart.F), isTrue,
+          reason: 'Mobile FIRE button must still work when phone has Portrait Lock enabled');
       controls.touchUp(3);
 
-      FakeScreen.mockOrientationType = 'landscape-primary';
-      controls.draw(0.016);
+      final Point<int> scorePos =
+          controls.buttonLocation(MobileControls.SCORE_BUTTON);
+      controls.touchDown(5, scorePos.x, scorePos.y);
+      expect(keyState.keyIsDown(KeyCodeDart.SHIFT), isTrue);
+      controls.touchUp(5);
       expect(keyState.keyIsDown(KeyCodeDart.SHIFT), isFalse);
+      FakeScreen.mockOrientationType = 'landscape-primary';
 
       // Player leaving inGame (death) releases held touches during draw().
       controls.touchDown(4, firePos.x, firePos.y);
@@ -416,6 +426,50 @@ void main() {
       controls.touchDown(0, 600, 600);
       controls.touchUp(0);
       expect(selector.selectedWorldName, equals(chosenWorld));
+    });
+
+    test('Phone joining an already-active multiplayer game can select player via touch and auto-enables touch controls on first touch', () async {
+      // Simulate initial touchSupported == false to prove first real touchDown auto-enables it!
+      testTouchSupported = false;
+      final WormWorld hostWorld = await createTestWorld('a');
+      hostWorld.startAsServer('hostA');
+      hostWorld.frameDraw(0.6);
+      hostWorld.frameDraw(0.6);
+
+      final WormWorld phoneWorld = await createTestWorld(
+        'b',
+        signalPeerOpen: false,
+        setPlayerImage: false,
+        selectMap: false,
+        completeLoader: false,
+        initByteWorld: false,
+      );
+      final MobileControls phoneControls = getIt<MobileControls>();
+      expect(phoneControls.isTouchSupported, isFalse);
+
+      // Phone connects to Firebase and discovers host 'a' who ALREADY has an active map & commander!
+      await signalOpen(phoneWorld, <String>['a']);
+      for (int i = 0; i < 6; i++) {
+        hostWorld.frameDraw(0.1);
+        phoneWorld.frameDraw(0.1);
+      }
+
+      final PlayerWorldSelector phoneSelector =
+          phoneWorld.loader.playerWorldSelector;
+      expect(phoneWorld.loader.currentState(), equals(LoaderState.PLAYER_SELECT));
+      expect(phoneSelector.playerSelected(), isFalse);
+      // Even though host 'a' is already commander (getServerConnection != null),
+      // touching the PLAY button or character card on PLAYER_SELECT MUST select the player!
+      expect(phoneWorld.network().getServerConnection(), isNotNull);
+
+      // Tap the bottom-center PLAY confirm pill on the 800x800 canvas -> selects character
+      // AND automatically enables isTouchSupported!
+      phoneControls.touchDown(0, 400, 755);
+      phoneControls.touchUp(0);
+      expect(phoneControls.isTouchSupported, isTrue,
+          reason: 'Any touchDown event must auto-enable mobile controls');
+      expect(phoneSelector.playerSelected(), isTrue,
+          reason: 'Must be able to select player on phone even when joining an active game');
     });
   });
 }

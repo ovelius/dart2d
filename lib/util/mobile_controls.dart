@@ -16,6 +16,7 @@ class MobileControls {
   static const int ROPE_BUTTON = 2;
   static const int WEAPON_SELECT_BUTTON = 3;
   static const int SOUND_BUTTON = 4;
+  static const int SCORE_BUTTON = 5;
 
   final Logger log = new Logger('MobileControls');
   static const int BUTTON_SIZE = 50;
@@ -70,8 +71,15 @@ class MobileControls {
     _buttonToKey[FIRE_BUTTON] = KeyCodeDart.F;
     _buttonToKey[ROPE_BUTTON] = KeyCodeDart.S;
     _buttonToKey[WEAPON_SELECT_BUTTON] = KeyCodeDart.E;
+    _buttonToKey[SCORE_BUTTON] = KeyCodeDart.SHIFT;
 
     _layoutButtons();
+  }
+
+  bool get isTouchSupported => _isTouchSupported;
+
+  void setTouchSupported(bool supported) {
+    _isTouchSupported = supported;
   }
 
   int get buttonRadius => _buttonRadius;
@@ -138,10 +146,12 @@ class MobileControls {
           _buttonRadius + 8, max(_buttonRadius + 8, height - _buttonRadius - 8)),
     );
 
-    // Top-center sound mute/unmute pill badge.
-    final int soundY =
-        (edgeMargin + _soundButtonRadius).clamp(_soundButtonRadius + 6, height ~/ 2);
-    final Point<int> soundPos = Point<int>(width ~/ 2, soundY);
+    // Top-center sound mute/unmute & scoreboard pills (non-overlapping pair).
+    final int soundY = (edgeMargin + _soundButtonRadius)
+        .clamp(_soundButtonRadius + 6, height ~/ 2);
+    final int pairOffset = _soundButtonRadius + 10;
+    final Point<int> soundPos = Point<int>(width ~/ 2 - pairOffset, soundY);
+    final Point<int> scorePos = Point<int>(width ~/ 2 + pairOffset, soundY);
 
     _buttons = <Point<int>>[
       jumpPos,
@@ -149,12 +159,14 @@ class MobileControls {
       ropePos,
       weaponPos,
       soundPos,
+      scorePos,
     ];
     _buttonRadii = <int>[
       _buttonRadius,
       fireRadius,
       _buttonRadius,
       max(_buttonRadius, 38),
+      _soundButtonRadius,
       _soundButtonRadius,
     ];
   }
@@ -175,7 +187,9 @@ class MobileControls {
     } catch (_) {
       return false;
     }
-    return !isPortrait();
+    // Never disable controls based on `screen.orientation`: phones with iOS/Android
+    // Portrait Orientation Lock report `portrait-primary` even when held sideways!
+    return true;
   }
 
   int _hitTestButton(int x, int y) {
@@ -227,17 +241,6 @@ class MobileControls {
       }
       return;
     }
-    if (isPortrait()) {
-      // Bring up game table while holding phone in portrait.
-      if (!_localKeyState.keyIsDown(KeyCodeDart.SHIFT)) {
-        _localKeyState.onKeyDown(KeyCodeDart.SHIFT);
-      }
-      return;
-    } else {
-      if (_localKeyState.keyIsDown(KeyCodeDart.SHIFT)) {
-        _localKeyState.onKeyUp(KeyCodeDart.SHIFT);
-      }
-    }
 
     _canvas.save();
 
@@ -265,6 +268,7 @@ class MobileControls {
     );
     _drawWeaponButtonBackdrop();
     _drawSoundButton();
+    _drawScoreButton();
 
     _canvas.restore();
   }
@@ -398,6 +402,31 @@ class MobileControls {
     _canvas.restore();
   }
 
+  void _drawScoreButton() {
+    final Point<int> btn = _buttons[SCORE_BUTTON];
+    final bool pressed = buttonIsDown(SCORE_BUTTON);
+    final double r = _buttonRadii[SCORE_BUTTON].toDouble();
+
+    _canvas.save();
+    _canvas.fillStyle =
+        "rgba(18, 26, 40, ${pressed ? '0.82' : '0.56'})".toJS;
+    _canvas.beginPath();
+    _canvas.arc(btn.x, btn.y, r, 0, pi * 2);
+    _canvas.fill();
+    _canvas.strokeStyle =
+        (pressed ? "#ffe97a" : "rgba(255, 255, 255, 0.45)").toJS;
+    _canvas.lineWidth = pressed ? 2.4 : 1.8;
+    _canvas.stroke();
+
+    final int fontPx = (r * 0.76).round().clamp(14, 22);
+    _canvas.font = '${fontPx}px Arial, sans-serif';
+    _canvas.textAlign = "center";
+    _canvas.textBaseline = "middle";
+    _canvas.fillStyle = (pressed ? "#ffe97a" : "#ffffff").toJS;
+    _canvas.fillText("🏆", btn.x, btn.y + 1);
+    _canvas.restore();
+  }
+
   listenForTouch(dynamic d) {
     _touchListeners.add(d);
   }
@@ -414,6 +443,8 @@ class MobileControls {
   }
 
   void touchDown(int id, int x, int y) {
+    // Receiving any real touch event proves touch is supported on this browser!
+    _isTouchSupported = true;
     _lastInput = new DateTime.now();
     // Clear any stale state from a previous touch with the same identifier.
     _touchDeltas.remove(id);

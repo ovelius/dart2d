@@ -54,9 +54,11 @@ Set<SpriteType> _colorSpriteTypes =
     new Set.from([SpriteType.RECT, SpriteType.CIRCLE, SpriteType.CUSTOM]);
 
 
-SpriteUpdate toSpriteUpdate(MovingSprite sprite, bool keyFrame) {
-  final bool sendFullFrame = keyFrame || sprite.fullFramesOverNetwork > 0;
-  if (!keyFrame && sprite.fullFramesOverNetwork > 0) {
+SpriteUpdate toSpriteUpdate(MovingSprite sprite, bool keyFrame,
+    {bool consumeFullFrame = true}) {
+  final bool sendFullFrame =
+      keyFrame || (consumeFullFrame && sprite.fullFramesOverNetwork > 0);
+  if (!keyFrame && consumeFullFrame && sprite.fullFramesOverNetwork > 0) {
     sprite.fullFramesOverNetwork--;
   }
   keyFrame = sendFullFrame;

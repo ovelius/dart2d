@@ -75,6 +75,7 @@ class WeaponState {
   double _rouletteVisualPhase = 0.0;
   int _lastRouletteStepPlayed = -1;
   int _rouletteNonce = 0;
+  int _completedRouletteNonce = 0;
   BingoTier _rouletteBingoTier = BingoTier.none;
 
   String get selectedWeaponName => weapons[selectedWeaponIndex].name;
@@ -88,8 +89,18 @@ class WeaponState {
   int get rouletteTargetWeaponIndex => _rouletteTargetWeaponIndex;
   int get rouletteDisplayWeaponIndex => _rouletteDisplayWeaponIndex;
   int get rouletteNonce => _rouletteNonce;
+  int get completedRouletteNonce => _completedRouletteNonce;
   double get rouletteSpinRemaining => _rouletteSpinRemaining;
   BingoTier get rouletteBingoTier => _rouletteBingoTier;
+
+  void cancelMysteryRoulette() {
+    _rouletteSpinRemaining = 0.0;
+    _rouletteRevealRemaining = 0.0;
+    _rouletteTargetWeaponIndex = -1;
+    _rouletteDisplayWeaponIndex = -1;
+    _lastRouletteStepPlayed = -1;
+    _rouletteBingoTier = BingoTier.none;
+  }
 
   bool get isSandboxMode {
     if (_remoteSandboxActive) {
@@ -412,6 +423,8 @@ class WeaponState {
     int rouletteBingoIndex = 0,
   }) {
     _remoteSandboxActive = (unlockedMask & _SANDBOX_MASK_BIT) != 0;
+    final bool matchEndedOrOut =
+        !owner.inGame() || world.network().getGameState().hasWinner();
     for (int i = 0; i < weapons.length; i++) {
       final Weapon w = weapons[i];
       if (!w.isMysteryWeapon) {
@@ -419,7 +432,11 @@ class WeaponState {
         continue;
       }
       final bool nowUnlocked = (unlockedMask & (1 << i)) != 0;
-      if (nowUnlocked && !w.unlocked) {
+      final bool pendingRevealForThisWeapon = !matchEndedOrOut &&
+          (rouletteNonce > _rouletteNonce || _rouletteSpinRemaining > 0.0) &&
+          rouletteTarget == i &&
+          rouletteSpinRem > 0.05;
+      if (nowUnlocked && !w.unlocked && !pendingRevealForThisWeapon) {
         w.unlocked = true;
         if (w.shotsLeft <= 0) {
           w.shotsLeft = w.shotsPerClip;
@@ -439,6 +456,13 @@ class WeaponState {
       }
     }
 
+    if (matchEndedOrOut) {
+      if (isRouletteActive) {
+        cancelMysteryRoulette();
+      }
+      return;
+    }
+
     if (rouletteNonce > _rouletteNonce &&
         rouletteTarget >= 0 &&
         rouletteTarget < weapons.length) {
@@ -454,6 +478,22 @@ class WeaponState {
         _updateRouletteStep(playTickSound: false);
       } else {
         // Spin already finished on commander before packet arrived -> award & reveal!
+        _completeMysteryRoulette();
+      }
+    } else if (rouletteNonce == _rouletteNonce &&
+        rouletteNonce > 0 &&
+        rouletteTarget >= 0 &&
+        rouletteTarget < weapons.length) {
+      _rouletteTargetWeaponIndex = rouletteTarget;
+      final int safeBingo =
+          rouletteBingoIndex.clamp(0, BingoTier.values.length - 1);
+      _rouletteBingoTier = BingoTier.values[safeBingo];
+      if (_rouletteSpinRemaining > 0.0 && rouletteSpinRem <= 0.0) {
+        // Commander already finished spinning -> settle client's final tick promptly.
+        _rouletteSpinRemaining = min(_rouletteSpinRemaining, 0.10);
+      } else if (_completedRouletteNonce < rouletteNonce &&
+          _rouletteSpinRemaining <= 0.0 &&
+          rouletteSpinRem <= 0.0) {
         _completeMysteryRoulette();
       }
     }
@@ -479,6 +519,11 @@ class WeaponState {
     final int idx = weapons.indexOf(depletedWeapon);
     if (idx >= 0 && selectedWeaponIndex == idx) {
       selectedWeaponIndex = _fallbackStarterIndex();
+      final Weapon fallback = weapons[selectedWeaponIndex];
+      fallback.untilNextFire = max(
+        fallback.untilNextFire,
+        max(0.45, depletedWeapon.fireDelay),
+      );
       changeTime = 0.85;
     }
   }
@@ -488,7 +533,9 @@ class WeaponState {
     BingoTier? forcedBingoTier,
     double? bingoRollOverride,
   }) {
-    if (isSandboxMode) {
+    if (isSandboxMode ||
+        !owner.inGame() ||
+        world.network().getGameState().hasWinner()) {
       return -1;
     }
     // If a previous spin was still active, grant its pending weapon & bingo
@@ -579,6 +626,7 @@ class WeaponState {
         _rouletteTargetWeaponIndex >= weapons.length) {
       return;
     }
+    _completedRouletteNonce = _rouletteNonce;
     _rouletteDisplayWeaponIndex = _rouletteTargetWeaponIndex;
     _rouletteVisualPhase = ROULETTE_TOTAL_STEPS.toDouble();
     if (_rouletteBingoTier == BingoTier.superBingo) {
@@ -651,7 +699,11 @@ class WeaponState {
       _reloadReadyFlash = max(0.0, _reloadReadyFlash - duration * 3.6);
     }
 
-    if (_rouletteSpinRemaining > 0.0) {
+    if (!owner.inGame() || world.network().getGameState().hasWinner()) {
+      if (isRouletteActive) {
+        cancelMysteryRoulette();
+      }
+    } else if (_rouletteSpinRemaining > 0.0) {
       _rouletteSpinRemaining -= duration;
       if (_rouletteSpinRemaining <= 0.0) {
         _completeMysteryRoulette();
@@ -895,6 +947,9 @@ class WeaponState {
 
 
   drawWeaponHelper(CanvasRenderingContext2D context, Point<int> center, bool drawCurrentWeapon) {
+    if (!owner.inGame() || world.network().getGameState().hasWinner()) {
+      return;
+    }
     HTMLImageElement iconImages = world.imageIndex().getImageByName("weapon_icons.png");
     if (changeTime > 0 && owner.drawWeaponHelpers()) {
       _drawChangeTime(context, iconImages, center);

@@ -765,7 +765,11 @@ class LocalPlayerSprite extends MovingSprite {
 
   frame(double duration, int frames, [Vec2? gravity]) {
     maybeRespawn(duration);
-    final bool nowInGame = inGame();
+    final bool hasWinner = world.network().getGameState().hasWinner() == true;
+    if (hasWinner) {
+      collision = false;
+    }
+    final bool nowInGame = inGame() && !hasWinner;
     if (nowInGame && !_wasInGame) {
       triggerSpawnEffect();
     }
@@ -1147,6 +1151,8 @@ class LocalPlayerSprite extends MovingSprite {
           ..add(weaponState!.rouletteBingoTier.index);
         data.extraFloat.add(weaponState!.rouletteSpinRemaining);
       }
+    } else if (weaponState != null) {
+      data.extraInt.add(weaponState!.completedRouletteNonce);
     }
     return data;
   }
@@ -1169,13 +1175,24 @@ class LocalPlayerSprite extends MovingSprite {
     if (weaponState != null) {
       if (!_ownedByThisWorld()) {
         final int requestedIdx = data.extraInt[0];
-        if (!world.network().isCommander() ||
-            weaponState!.isWeaponAvailable(requestedIdx)) {
+        if (!world.network().isCommander()) {
           weaponState!.selectedWeaponIndex = requestedIdx;
+        } else {
+          final int clientCompletedNonce =
+              data.extraInt.length >= 2 ? data.extraInt[1] : 0;
+          final bool clientCaughtUpWithRoulette =
+              !weaponState!.isRouletteSpinning &&
+              clientCompletedNonce >= weaponState!.completedRouletteNonce;
+          if (clientCaughtUpWithRoulette &&
+              weaponState!.isWeaponAvailable(requestedIdx)) {
+            weaponState!.selectedWeaponIndex = requestedIdx;
+          }
         }
       }
     }
-    if (data.extraInt.length > 1) {
+    if (!world.network().isCommander() &&
+        data.extraInt.length >= 3 &&
+        data.extraFloat.length >= 2) {
       health = data.extraInt[1];
       _shieldPoints = data.extraInt[2];
       _shieldSec = data.extraFloat[1];

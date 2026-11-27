@@ -104,6 +104,8 @@ class PlayerWorldSelector {
   bool _hasRenderedOnce = false;
 
   List<Rectangle<double>>? _mapTileRects = null;
+  List<Rectangle<double>>? _playerCardRects = null;
+  Rectangle<double>? _confirmButtonRect = null;
   List<List<String>> _otherPlayersSelections =
       List.generate(WORLD_THEMES.length, (_) => <String>[]);
 
@@ -142,12 +144,21 @@ class PlayerWorldSelector {
       }
     });
     _keyState.registerListener(KeyCodeDart.UP, () {
-      if (playerSelected()) {
+      _animateX = 0;
+      if (!playerSelected()) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite - 4 + PLAYER_SPRITES.length) %
+                PLAYER_SPRITES.length;
+      } else {
         _moveGridSelection(0, -1);
       }
     });
     _keyState.registerListener(KeyCodeDart.DOWN, () {
-      if (playerSelected()) {
+      _animateX = 0;
+      if (!playerSelected()) {
+        _selectedPlayerSprite =
+            (_selectedPlayerSprite + 4) % PLAYER_SPRITES.length;
+      } else {
         _moveGridSelection(0, 1);
       }
     });
@@ -155,42 +166,58 @@ class PlayerWorldSelector {
     _keyState.registerListener(KeyCodeDart.ENTER, maybeSelectPlayerOrMap);
     _keyState.registerListener(KeyCodeDart.CTRL, maybeSelectPlayerOrMap);
     _mobileControls.listenForTouch((int x, int y) {
-      // Ignore touches once a world has been chosen or we have already joined a
-      // multiplayer GameState!
-      final String? selfId = _network.getPeer().getId();
-      if (_selectedWorldName != null ||
-          (selfId != null && _network.gameState.isInGame(selfId)) ||
-          _network.getServerConnection() != null) {
+      // Ignore lobby selector touches once loading has completed or we are in-game!
+      if (_network.safeLoaderCompleted()) {
         return;
       }
-      if (_spritePositions != null && !playerSelected()) {
-        double scaledWidth = _maxWidth * _scale;
-        for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-          HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
-          double scaledHeight = max(scaledWidth, img.height * _scale);
-          if (_onPointRect(_spritePositions![i], x, y, scaledWidth, scaledHeight)) {
-            if (_selectedPlayerSprite == i) {
-              maybeSelectPlayerOrMap();
-            } else {
-              _selectedPlayerSprite = i;
-              _customMessage = "Touch again to confirm!";
+      final String? selfId = _network.getPeer().getId();
+      if (selfId != null && _network.gameState.isInGame(selfId)) {
+        return;
+      }
+
+      if (!playerSelected()) {
+        // Ensure card layout exists even if a touch arrives on the very first frame.
+        if (_playerCardRects == null) {
+          _partitionSprites();
+        }
+        if (_confirmButtonRect != null &&
+            _rectContains(_confirmButtonRect!, x, y)) {
+          maybeSelectPlayerOrMap();
+          return;
+        }
+        if (_playerCardRects != null) {
+          for (int i = 0; i < _playerCardRects!.length; i++) {
+            if (_rectContains(_playerCardRects![i], x, y)) {
+              if (_selectedPlayerSprite == i) {
+                maybeSelectPlayerOrMap();
+              } else {
+                _selectedPlayerSprite = i;
+                _animateX = 0;
+                _customMessage = "Tap again or press PLAY!";
+              }
+              return;
             }
           }
         }
-      } else if (_mapTileRects != null && playerSelected()) {
-        for (int i = 0; i < _mapTileRects!.length; i++) {
-          final Rectangle<double> rect = _mapTileRects![i];
-          if (x >= rect.left &&
-              x <= rect.right &&
-              y >= rect.top &&
-              y <= rect.bottom) {
-            if (_selectedMap == i) {
-              maybeSelectPlayerOrMap();
-            } else {
-              _selectedMap = i;
-              _customMessage = "Touch again to drop!";
+      } else if (_selectedWorldName == null &&
+          _network.getServerConnection() == null &&
+          !_network.gameState.hasCommander()) {
+        if (_confirmButtonRect != null &&
+            _rectContains(_confirmButtonRect!, x, y)) {
+          maybeSelectPlayerOrMap();
+          return;
+        }
+        if (_mapTileRects != null) {
+          for (int i = 0; i < _mapTileRects!.length; i++) {
+            if (_rectContains(_mapTileRects![i], x, y)) {
+              if (_selectedMap == i) {
+                maybeSelectPlayerOrMap();
+              } else {
+                _selectedMap = i;
+                _customMessage = "Tap again or press DROP IN!";
+              }
+              return;
             }
-            break;
           }
         }
       }
@@ -237,6 +264,10 @@ class PlayerWorldSelector {
         return;
       }
     }
+  }
+
+  bool _rectContains(Rectangle<double> r, int x, int y) {
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
   }
 
   bool _onPoint(Point<int> p, int x, int y, double scaledWidth) {
@@ -434,6 +465,8 @@ class PlayerWorldSelector {
     }
     _selectedWorldName = null;
     _mapTileRects = null;
+    _playerCardRects = null;
+    _confirmButtonRect = null;
     _selectedWorldOwnerId = null;
     _selectedLocally = false;
     _localSelectionWallTime = null;
@@ -456,6 +489,17 @@ class PlayerWorldSelector {
   }
 
   void frame(double duration) {
+    try {
+      final HTMLCanvasElement c = _context.canvas;
+      if (c.width > 0 &&
+          c.height > 0 &&
+          (c.width != _width || c.height != _height)) {
+        _width = c.width;
+        _height = c.height;
+        _spritePositions = null;
+        _playerCardRects = null;
+      }
+    } catch (_) {}
     _animTime += duration.clamp(0.0, 0.1);
     final bool isPlayerSelect = !playerSelected();
     if (!_hasRenderedOnce || _lastFrameWasPlayerSelect != isPlayerSelect) {
@@ -492,7 +536,7 @@ class PlayerWorldSelector {
   }
 
   void _drawPlayerSprites(double duration) {
-    if (_spritePositions == null) {
+    if (_spritePositions == null || _playerCardRects == null) {
       _customMessage = null;
       _partitionSprites();
     }
@@ -500,48 +544,75 @@ class PlayerWorldSelector {
       _context.clearRect(0, 0, _width, _height);
     }
     final double fade = _easedFadeAlpha();
-    final double slideY = (1.0 - fade) * 26.0;
+    final double slideY = (1.0 - fade) * 20.0;
 
     _context.save();
     _context.globalAlpha = fade;
     _context.translate(0, slideY);
 
+    final int titleSize = (min(_width, _height) * 0.056).round().clamp(20, 42);
+    final int headerY = max(26, (_height * 0.085).round());
     drawCenteredText(
         _customMessage == null
             ? "${_localStorage['playerName']} select your player!"
             : _customMessage!,
-        (_height / 2 - _height / 8).toInt(),
-        50);
+        headerY,
+        titleSize);
+
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-      Point<int> position = _spritePositions![i];
-      HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
-      int imgWidth = PLAYER_SPRITE_SIZES[i];
-      int height = img.height;
-      double drawW = imgWidth * _scale;
-      double drawH = height * _scale;
+      final Rectangle<double> card = _playerCardRects![i];
+      final bool selected = _selectedPlayerSprite == i;
+      final HTMLImageElement img = _imageIndex.getImageByName(PLAYER_SPRITES[i]);
+      final int imgWidth = PLAYER_SPRITE_SIZES[i];
+      final int imgHeight = max(1, img.height);
+      final double maxSpriteW = card.width * 0.74;
+      final double maxSpriteH = card.height * 0.74;
+      final double sScale = min(maxSpriteW / imgWidth, maxSpriteH / imgHeight);
+      final double drawW = imgWidth * sScale;
+      final double drawH = imgHeight * sScale;
+      final double cx = card.left + card.width * 0.5;
+      final double cy = card.top + card.height * 0.52;
+
       _context.save();
-      if (_selectedPlayerSprite != i) {
-        _context.globalAlpha = fade * 0.55;
-        _context.drawImage(
-            img, 0, 0, imgWidth, height, position.x, position.y, drawW, drawH);
+      // Cartoon fighter card background + crisp border so touch hitboxes are unmistakable!
+      _context.fillStyle = "rgba(8, 22, 46, 0.36)".toJS;
+      _context.beginPath();
+      _context.roundRect(card.left + 3, card.top + 4, card.width, card.height, 14.0.toJS);
+      _context.fill();
+
+      _context.fillStyle = (selected
+              ? "rgba(28, 72, 138, 0.86)"
+              : "rgba(14, 34, 68, 0.62)")
+          .toJS;
+      _context.beginPath();
+      _context.roundRect(card.left, card.top, card.width, card.height, 14.0.toJS);
+      _context.fill();
+
+      _context.strokeStyle =
+          (selected ? "#ffe44d" : "rgba(255, 255, 255, 0.42)").toJS;
+      _context.lineWidth = selected ? 3.5 : 1.8;
+      _context.stroke();
+
+      if (!selected) {
+        _context.globalAlpha = fade * 0.72;
+        _context.drawImage(img, 0, 0, imgWidth, imgHeight, cx - drawW * 0.5,
+            cy - drawH * 0.5, drawW, drawH);
       } else {
         _frameTime += duration;
         _context.globalAlpha = fade;
-        double cx = position.x + drawW * 0.5;
-        double cy = position.y + drawH * 0.5;
-        double haloR = max(drawW, drawH) * 0.72;
-        CanvasGradient halo =
+        final double haloR = max(drawW, drawH) * 0.68;
+        final CanvasGradient halo =
             _context.createRadialGradient(cx, cy, 4, cx, cy, haloR);
         halo.addColorStop(0.0, "rgba(255, 246, 150, 0.72)");
-        halo.addColorStop(0.6, "rgba(255, 255, 255, 0.26)");
+        halo.addColorStop(0.6, "rgba(255, 255, 255, 0.24)");
         halo.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
         _context.fillStyle = halo;
         _context.beginPath();
         _context.arc(cx, cy, haloR, 0, 2 * pi);
         _context.fill();
 
-        _context.drawImage(img, _animateX, 0, imgWidth, height, position.x,
-            position.y, drawW, drawH);
+        _context.drawImage(img, _animateX, 0, imgWidth, imgHeight,
+            cx - drawW * 0.5, cy - drawH * 0.5, drawW, drawH);
         if (_frameTime > 0.25) {
           _frameTime = 0.0;
           _animateX = _animateX + imgWidth;
@@ -552,6 +623,55 @@ class PlayerWorldSelector {
       }
       _context.restore();
     }
+
+    _drawConfirmActionPill("PLAY ▶", fade);
+    _context.restore();
+  }
+
+  void _drawConfirmActionPill(String label, double fade) {
+    final double btnW = (_width * 0.28).clamp(156.0, 236.0);
+    final double btnH = (_height * 0.105).clamp(38.0, 52.0);
+    final double btnX = (_width - btnW) * 0.5;
+    final double btnY = (_height - btnH - max(10.0, _height * 0.03));
+    _confirmButtonRect = Rectangle<double>(btnX, btnY, btnW, btnH);
+
+    _context.save();
+    _context.globalAlpha = fade;
+    _context.fillStyle = "rgba(8, 20, 38, 0.45)".toJS;
+    _context.beginPath();
+    _context.roundRect(btnX + 2, btnY + 3, btnW, btnH, (btnH * 0.5).toJS);
+    _context.fill();
+
+    final CanvasGradient grad =
+        _context.createLinearGradient(0, btnY, 0, btnY + btnH);
+    grad.addColorStop(0.0, "#5be870");
+    grad.addColorStop(1.0, "#24a844");
+    _context.fillStyle = grad;
+    _context.beginPath();
+    _context.roundRect(btnX, btnY, btnW, btnH, (btnH * 0.5).toJS);
+    _context.fill();
+
+    _context.strokeStyle = "#0e2216".toJS;
+    _context.lineWidth = 3.2;
+    _context.stroke();
+
+    _context.strokeStyle = "#ffe97a".toJS;
+    _context.lineWidth = 1.8;
+    _context.beginPath();
+    _context.roundRect(
+        btnX + 2, btnY + 2, btnW - 4, btnH - 4, ((btnH - 4) * 0.5).toJS);
+    _context.stroke();
+
+    final int fontPx = (btnH * 0.44).round().clamp(15, 22);
+    _context.font = '900 ${fontPx}px "Trebuchet MS", Arial, sans-serif';
+    _context.textAlign = "center";
+    _context.textBaseline = "middle";
+    _context.lineJoin = "round";
+    _context.strokeStyle = "#0d2214".toJS;
+    _context.lineWidth = 3.6;
+    _context.strokeText(label, btnX + btnW * 0.5, btnY + btnH * 0.52);
+    _context.fillStyle = "#ffffff".toJS;
+    _context.fillText(label, btnX + btnW * 0.5, btnY + btnH * 0.52);
     _context.restore();
   }
 
@@ -561,20 +681,38 @@ class PlayerWorldSelector {
 
   void _partitionSprites() {
     _spritePositions = [];
+    _playerCardRects = [];
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
       int imgWidth = PLAYER_SPRITE_SIZES[i];
       if (_maxWidth < imgWidth) {
         _maxWidth = imgWidth;
       }
     }
-    int allSpriteWidth = _maxWidth * PLAYER_SPRITES.length;
-    _scale = ((_width / 4) * 3) / allSpriteWidth;
-    double x = _width / 2 - (allSpriteWidth / 2 * _scale);
-    int y = _height ~/ 2 + _height ~/ 8;
+    const int cols = 4;
+    const int rows = 2;
+    final double topMargin = max(52.0, _height * 0.165);
+    final double bottomReserve = max(62.0, _height * 0.175);
+    final double availH = max(140.0, _height - topMargin - bottomReserve);
+    final double availW = max(240.0, _width * 0.86);
+    final double gapX = min(18.0, availW * 0.028);
+    final double gapY = min(16.0, availH * 0.065);
+    final double cardW =
+        ((availW - gapX * (cols - 1)) / cols).clamp(56.0, 175.0);
+    final double cardH =
+        ((availH - gapY * (rows - 1)) / rows).clamp(54.0, 155.0);
+    final double gridW = cardW * cols + gapX * (cols - 1);
+    final double gridH = cardH * rows + gapY * (rows - 1);
+    final double startX = (_width - gridW) * 0.5;
+    final double startY = topMargin + (availH - gridH) * 0.5;
+    _scale = min(cardW, cardH) / _maxWidth;
 
     for (int i = 0; i < PLAYER_SPRITES.length; i++) {
-      _spritePositions!.add(new Point(x.toInt(), y));
-      x += _maxWidth * _scale;
+      final int col = i % cols;
+      final int row = i ~/ cols;
+      final double left = startX + col * (cardW + gapX);
+      final double top = startY + row * (cardH + gapY);
+      _playerCardRects!.add(Rectangle<double>(left, top, cardW, cardH));
+      _spritePositions!.add(Point<int>(left.round(), top.round()));
     }
   }
 
@@ -642,6 +780,7 @@ class PlayerWorldSelector {
       tileH,
     );
     _drawCenterPlayerTile(centerRect, duration, fade);
+    _drawConfirmActionPill("DROP IN ▶", fade);
 
     _context.restore();
   }

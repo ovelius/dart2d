@@ -544,8 +544,9 @@ class CatLitterBox extends WorldDamageProjectile {
       ownerCenter.x + cos(positionBase.angle) * ownerSize * 0.7,
       ownerCenter.y + sin(positionBase.angle) * ownerSize * 0.7,
     ));
-    this.velocity.x = cos(positionBase.angle) * 100.0 + positionBase.velocity.x;
-    this.velocity.y = sin(positionBase.angle) * 100.0 + positionBase.velocity.y;
+    this.velocity.x = cos(positionBase.angle) * 100.0 + owner.velocity.x * 0.5;
+    this.velocity.y = sin(positionBase.angle) * 100.0 + owner.velocity.y * 0.5;
+    clearShallowGroundStep(world, owner, positionBase.angle);
   }
 
   @override
@@ -1697,7 +1698,7 @@ class Hyper extends WorldDamageProjectile {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (owner != null && other != null && other.networkId != owner!.networkId && other.takesDamage(Mod.HYPER)) {
+    if (owner != null && other != null && !isOwnedBySamePlayer(other) && other.takesDamage(Mod.HYPER)) {
       other.takeDamage(damage, owner!, Mod.HYPER);
       explode();
       return;
@@ -3259,11 +3260,8 @@ class DartProjectile extends WorldDamageProjectile {
       return;
     }
     if (other is WorldDamageProjectile && !other.remove) {
-      // Never intercept our own rapidly-fired darts coming out of the barrel.
-      if (other is DartProjectile &&
-          owner != null &&
-          other.owner != null &&
-          other.owner!.networkId == owner!.networkId) {
+      // Never intercept or detonate any projectile owned by the same player.
+      if (isOwnedBySamePlayer(other)) {
         return;
       }
       if (other is DartProjectile ||
@@ -3575,7 +3573,10 @@ class WorldDamageProjectile extends MovingSprite {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (other != null && owner != null && other.networkId != owner!.networkId && other.takesDamage(mod)) {
+    if (other != null &&
+        owner != null &&
+        !isOwnedBySamePlayer(other) &&
+        other.takesDamage(mod)) {
       other.takeDamage(damage, owner!, mod);
       if (removeOnCollision) {
         explode();
@@ -3692,7 +3693,8 @@ class WorldDamageProjectile extends MovingSprite {
     removeOnCollision = data.extraBool[1];
     int ownerId = data.extraInt[1];
     health = data.extraInt[2];
-    this.owner = world.spriteIndex[ownerId] as LocalPlayerSprite?;
+    this.owner = (world.spriteIndex[ownerId] ??
+        world.spriteIndex.getPendingSprite(ownerId)) as LocalPlayerSprite?;
     if (data.extraFloat.length > 1) {
       this.explodeAfter = data.extraFloat[1];
     }
@@ -3711,10 +3713,17 @@ class WorldDamageProjectile extends MovingSprite {
     Vec2 positionCenter = owner.centerPoint();
     this.setCenter(Vec2(positionCenter.x + cos(positionBase.angle) * ownerSize,
         positionCenter.y + sin(positionBase.angle) * ownerSize));
+    clearShallowGroundStep(world, owner, positionBase.angle);
     this.velocity.x = cos(positionBase.angle);
     this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);
     this.velocity = this.velocity.multiply(500.0);
-    this.velocity = positionBase.velocity + this.velocity;
+    final double forwardCarry = max(
+      0.0,
+      owner.velocity.x * cos(positionBase.angle) +
+          owner.velocity.y * sin(positionBase.angle),
+    ) * 0.35;
+    this.velocity.x += cos(positionBase.angle) * forwardCarry;
+    this.velocity.y += sin(positionBase.angle) * forwardCarry;
   }
 }

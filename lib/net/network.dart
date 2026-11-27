@@ -611,7 +611,27 @@ class Network {
     if (!isCommander()) {
       StateUpdate keyUpdate = StateUpdate();
       keyUpdate.keyState = _localKeyState.toKeyStateProto();
-      peer.sendSingleStateUpdate(keyUpdate);
+      GameStateUpdates? bundleWithPlayer;
+      try {
+        final ConnectionWrapper? serverConn = getServerConnection();
+        final LocalPlayerSprite? selfSprite = world.playerSprite;
+        if (serverConn != null &&
+            serverConn.isValidGameConnection() &&
+            selfSprite != null &&
+            selfSprite.networkId != null &&
+            selfSprite.networkType == NetworkType.LOCAL &&
+            safeLoaderCompleted()) {
+          bundleWithPlayer = GameStateUpdates()
+            ..stateUpdate.add(keyUpdate)
+            ..spriteUpdates.add(
+                toSpriteUpdate(selfSprite, false, consumeFullFrame: false));
+        }
+      } catch (_) {}
+      if (bundleWithPlayer != null) {
+        peer.sendDataWithKeyFramesToAll(bundleWithPlayer);
+      } else {
+        peer.sendSingleStateUpdate(keyUpdate);
+      }
     }
   }
 

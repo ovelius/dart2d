@@ -63,7 +63,12 @@ class KeyState {
   }
 
   void onKeyUp(int keyCode) {
-    keysDown.remove(keyCode);
+    final bool wasDown = keysDown.remove(keyCode) != null;
+    if (wasDown && !remoteState) {
+      try {
+        world.network().maybeSendLocalKeyStateUpdate();
+      } catch (_) {}
+    }
   }
 
   bool keyIsDown(num key, [double strength = MAX_KEY_TRIGGER]) {

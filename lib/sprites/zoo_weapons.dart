@@ -63,13 +63,14 @@ class HedgehogMine extends WorldDamageProjectile {
     this.explodeAfter = MAX_LIFETIME_SECONDS;
 
     final Vec2 ownerCenter = owner.centerPoint();
-    final double offset = owner.size.sum() * 0.45;
+    final double offset = max(owner.size.sum() * 0.48, owner.getRadius() + 4.0);
     this.setCenter(Vec2(
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
+    clearShallowGroundStep(world, owner, positionBase.angle);
     this.velocity = Vec2(
-      cos(positionBase.angle) * 240.0 + owner.velocity.x * 0.5,
+      cos(positionBase.angle) * 240.0 + owner.velocity.x * 0.65,
       sin(positionBase.angle) * 240.0 + owner.velocity.y * 0.5,
     );
   }
@@ -97,6 +98,9 @@ class HedgehogMine extends WorldDamageProjectile {
 
   @override
   void takeDamage(int dmg, LocalPlayerSprite inflictor, Mod attackMod) {
+    if (_age < 0.35 && inflictor.networkId == owner?.networkId) {
+      return;
+    }
     health -= dmg;
     if (health <= 0 && !remove) {
       if (networkType != NetworkType.REMOTE && owner != null) {
@@ -430,6 +434,12 @@ class HedgehogMine extends WorldDamageProjectile {
   }
 
   @override
+  int extraSendFlags() =>
+      (armed && !triggered && velocity.y.abs() < 2.0)
+          ? Sprite.FLAG_NO_GRAVITY
+          : 0;
+
+  @override
   ExtraSpriteData addExtraNetworkData() {
     final ExtraSpriteData data = super.addExtraNetworkData();
     data.extraBool.add(armed);
@@ -689,7 +699,7 @@ class MoleDrillProjectile extends WorldDamageProjectile {
     }
     if (other != null &&
         owner != null &&
-        other.networkId != owner!.networkId &&
+        !isOwnedBySamePlayer(other) &&
         other.takesDamage(Mod.MOLE)) {
       other.takeDamage(damage, owner!, Mod.MOLE);
       explode();
@@ -995,13 +1005,14 @@ class AngryBeehive extends WorldDamageProjectile {
     this.angle = 0.0;
 
     final Vec2 ownerCenter = owner.centerPoint();
-    final double offset = owner.size.sum() * 0.40;
+    final double offset = max(owner.size.sum() * 0.45, owner.getRadius() + 4.0);
     this.setCenter(Vec2(
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
+    clearShallowGroundStep(world, owner, positionBase.angle);
     this.velocity = Vec2(
-      cos(positionBase.angle) * 200.0 + owner.velocity.x * 0.5,
+      cos(positionBase.angle) * 200.0 + owner.velocity.x * 0.6,
       sin(positionBase.angle) * 200.0 + owner.velocity.y * 0.5,
     );
   }
@@ -1017,6 +1028,9 @@ class AngryBeehive extends WorldDamageProjectile {
 
   @override
   void takeDamage(int dmg, LocalPlayerSprite inflictor, Mod attackMod) {
+    if (_age < 0.35 && inflictor.networkId == owner?.networkId) {
+      return;
+    }
     health -= dmg;
     if (health <= 0 && !remove) {
       if (networkType != NetworkType.REMOTE && owner != null) {
@@ -1432,6 +1446,7 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
     this.health = 10;
     this.radius = 0.0;
     this.showCounter = false;
+    this.invisibleOutsideCanvas = false;
     this.explodeAfter = 9.0;
   }
 
@@ -1450,16 +1465,18 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
     this.health = 10;
     this.radius = 0.0;
     this.showCounter = false;
+    this.invisibleOutsideCanvas = false;
     this.explodeAfter = 9.0;
 
     final Vec2 ownerCenter = owner.centerPoint();
-    final double offset = owner.size.sum() * 0.45;
+    final double offset = max(owner.size.sum() * 0.48, owner.getRadius() + 4.0);
     this.setCenter(Vec2(
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
+    clearShallowGroundStep(world, owner, positionBase.angle);
     this.velocity = Vec2(
-      cos(positionBase.angle) * 360.0 + owner.velocity.x * 0.35,
+      cos(positionBase.angle) * 360.0 + owner.velocity.x * 0.5,
       sin(positionBase.angle) * 360.0 + owner.velocity.y * 0.35,
     );
   }
@@ -1477,6 +1494,9 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
   @override
   void takeDamage(int dmg, LocalPlayerSprite inflictor, Mod attackMod) {
     if (strikeConfirmed) return;
+    if (_age < 0.35 && inflictor.networkId == owner?.networkId) {
+      return;
+    }
     health -= dmg;
     if (health <= 0 && !remove) {
       // Destroyed before lock-in — fizzle out WITHOUT summoning the airstrike!
@@ -1495,10 +1515,22 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
   @override
   handleWorldCollide(ByteWorld world, int direction) {
     super.handleWorldCollide(world, direction);
+    final bool hitBelow =
+        (direction & MovingSprite.DIR_BELOW) == MovingSprite.DIR_BELOW;
+    final bool touchesSolid = world.byteWorldReady() &&
+        world.isCanvasCollide(
+          position.x.toInt(),
+          position.y.toInt(),
+          max(1, size.x.toInt()),
+          max(1, size.y.toInt()),
+        );
+    if (!hitBelow && !touchesSolid && position.y - size.y < 0) {
+      // Brushed top open-sky boundary — let gravity arc it back down.
+      return;
+    }
     landed = true;
     velocity.x *= 0.35;
-    if ((direction & MovingSprite.DIR_BELOW) == MovingSprite.DIR_BELOW &&
-        velocity.y.abs() < 20.0) {
+    if (hitBelow && velocity.y.abs() < 20.0) {
       velocity.y = 0.0;
     }
   }
@@ -1529,12 +1561,12 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
       _confirmedAge += duration;
       velocity = Vec2.ZERO;
       gravityAffect = 0.0;
-      if (networkType != NetworkType.REMOTE && !remove) {
-        _activeStrikeRemaining -= duration;
-        if (_activeStrikeRemaining <= 0.0) {
-          remove = true;
-          return;
-        }
+      _activeStrikeRemaining = max(0.0, _activeStrikeRemaining - duration);
+      if (networkType != NetworkType.REMOTE &&
+          !remove &&
+          _activeStrikeRemaining <= 0.0) {
+        remove = true;
+        return;
       }
       super.frame(duration, frameStep, null);
       return;
@@ -1546,7 +1578,9 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
         return;
       }
     }
-    super.frame(duration, frameStep, gravity);
+    final bool settledOnClient =
+        networkType == NetworkType.REMOTE && landed && velocity.y.abs() < 4.0;
+    super.frame(duration, frameStep, settledOnClient ? null : gravity);
   }
 
   @override
@@ -1736,7 +1770,10 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
   }
 
   @override
-  int extraSendFlags() => strikeConfirmed ? Sprite.FLAG_NO_GRAVITY : 0;
+  int extraSendFlags() =>
+      (strikeConfirmed || (landed && velocity.y.abs() < 2.0))
+          ? Sprite.FLAG_NO_GRAVITY
+          : 0;
 
   @override
   ExtraSpriteData addExtraNetworkData() {
