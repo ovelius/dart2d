@@ -1,10 +1,6 @@
-1) TURN support
-2) Chunk helper max size 2 kB..
-9) Work I Safari/iOS.
-
-Gameplay:
- - Blowtorch weapon
- - Space world
- - zoom out when killed, zoom in when re-spawning (hint!)
- - Sounds complete...
- - Random powerups
+1) TURN + ICE restart support
+2) Auto delete messages in the database after some time, short TTL
+3) Collision should not teleport.
+4) Select game with lowest latency?
+5) Work I Safari/iOS.
+6) Shark weapon
