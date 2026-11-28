@@ -40,6 +40,24 @@ class MovingSprite extends Sprite {
     return other.networkId == myOwnerId || other.owner?.networkId == myOwnerId;
   }
 
+  bool get friendlyFireCanHit => false;
+
+  /// Returns true when a projectile owned by this player is allowed to hit
+  /// and damage [other] (enemies, or sprites with [friendlyFireCanHit] like
+  /// [HunterSharkProjectile]).
+  bool shouldDamageTarget(MovingSprite other) {
+    return !isOwnedBySamePlayer(other) || other.friendlyFireCanHit;
+  }
+
+  /// Aligns [angle] with the current [velocity] heading whenever speed exceeds
+  /// sqrt([minSpeedSq]). Shared across directional projectiles (e.g. darts and
+  /// hunter sharks).
+  void alignAngleWithVelocity({double minSpeedSq = 25.0}) {
+    if (velocity.x * velocity.x + velocity.y * velocity.y > minSpeedSq) {
+      angle = velocity.toAngle();
+    }
+  }
+
   /// Nudges a freshly spawned projectile up out of a shallow floor/slope step
   /// (`<= 8px`) when [owner]'s center is in open air and the shot isn't aimed
   /// steeply downward, preventing ground-hugging shots while moving on slopes

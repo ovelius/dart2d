@@ -58,14 +58,14 @@ void main() {
       WormWorld worldA = await createTestWorld("a");
       worldA.viewPoint = new Vec2();
       worldA.startAsServer("a");
-      // Insert player sprite to world.
-      worldA.frameDraw();
-      // Map out sprites in SpartialGrid.
-      worldA.frameDraw();
+      // Finish initial spawn countdown so player is inGame with collision enabled.
+      worldA.frameDraw(1.1);
       LocalPlayerSprite player = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
       player.position = new Vec2();
       player.velocity = new Vec2();
       player.size = new Vec2(42.0, 48.0);
+      // Map out sprites in SpatialGrid with 0.0s duration (no gravity displacement).
+      worldA.frameDraw(0.0);
 
       // 10 damage at 0 distance.
       int damageDone = 10;

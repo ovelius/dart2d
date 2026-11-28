@@ -682,13 +682,20 @@ void main() {
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
-      for (int i = 0; i < 13; i++) {
+      // Pause B's responses (including background P2P resource replies) while A
+      // keeps advancing frames so A observes commander lag.
+      testConnections['a']?.forEach((e) => e.buffer = true);
+      for (int i = 0; i < 22; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT / 5 + 0.01);
       }
 
       // B hasn't responded in a long time.
       expect(worldA.network().hasNetworkProblem(), equals(true));
 
+      testConnections['a']?.forEach((e) {
+        e.buffer = false;
+        e.flushBuffer();
+      });
       worldB.frameDraw(KEY_FRAME_DEFAULT + 0.01);
       worldA.frameDraw(KEY_FRAME_DEFAULT + 0.01);
 
@@ -1107,10 +1114,12 @@ void main() {
       worldC.connectTo("a", "nameC");
       worldD.connectTo("a", "nameD");
 
-      worldA.frameDraw(KEY_FRAME_DEFAULT);
-      worldB.frameDraw(KEY_FRAME_DEFAULT);
-      worldC.frameDraw(KEY_FRAME_DEFAULT);
-      worldD.frameDraw(KEY_FRAME_DEFAULT);
+      for (int i = 0; i < 3; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+        worldC.frameDraw(KEY_FRAME_DEFAULT);
+        worldD.frameDraw(KEY_FRAME_DEFAULT);
+      }
 
       testConnections['a']?.forEach((TestConnection c) {c.close();});
       testConnections['b']?.forEach((TestConnection c) {c.close();});

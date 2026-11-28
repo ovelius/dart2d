@@ -939,7 +939,8 @@ class LoaderAnimation {
     double scale,
     HTMLImageElement sharkImage,
   ) {
-    final double aspect = sharkImage.height / sharkImage.width;
+    final double frameW = _sharkFrameWidth(sharkImage);
+    final double aspect = sharkImage.height / frameW;
     final double revealEase = _easeOutBack(_sharkReveal);
     // Leap arc: rises smoothly from the bottom waterline up to sky center!
     final double leapOffsetY = (1.0 - _easeOutCubic(_sharkReveal)) * (h * 0.52);
@@ -1067,8 +1068,10 @@ class LoaderAnimation {
     ctx.ellipse(0, 6 * scale, heroW * 0.58, heroH * 0.56, 0, 0, 2 * pi);
     ctx.fill();
 
-    // Draw the sunglasses shark!
-    ctx.drawImage(sharkImage, -heroW * 0.5, -heroH * 0.5, heroW, heroH);
+    // Draw the sunglasses shark (frame 0 of spritesheet)!
+    final double srcW = _sharkFrameWidth(sharkImage);
+    ctx.drawImage(sharkImage, 0, 0, srcW, sharkImage.height,
+        -heroW * 0.5, -heroH * 0.5, heroW, heroH);
 
     // Periodic comic star glint sweeping across his sunglasses!
     final double glintCycle = _time % 2.8;
@@ -1149,9 +1152,21 @@ class LoaderAnimation {
       if (facingRight) {
         ctx.scale(-1, 1);
       }
-      ctx.drawImage(sharkImage, -miniW * 0.5, -miniH * 0.5, miniW, miniH);
+      final double srcW = _sharkFrameWidth(sharkImage);
+      ctx.drawImage(sharkImage, 0, 0, srcW, sharkImage.height,
+          -miniW * 0.5, -miniH * 0.5, miniW, miniH);
       ctx.restore();
     }
+  }
+
+  static double _sharkFrameWidth(HTMLImageElement img) {
+    if (img.width >= img.height * 4) {
+      return img.width / 5.0;
+    }
+    if (img.width >= img.height * 3) {
+      return img.width / 4.0;
+    }
+    return img.width.toDouble();
   }
 
   /// Foreground Worms-style grassy island + thin turquoise rising-water strip

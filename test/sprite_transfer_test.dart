@@ -193,6 +193,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -238,6 +239,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -295,6 +297,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -349,6 +352,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -419,6 +423,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -482,6 +487,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -596,6 +602,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -696,6 +703,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -755,6 +763,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 10; i++) {
         worldB.frameDraw(0.1);
@@ -889,6 +898,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 8; i++) {
         worldB.frameDraw(0.1);
@@ -947,6 +957,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 8; i++) {
         worldB.frameDraw(0.1);
@@ -1342,13 +1353,15 @@ void main() {
       LocalPlayerSprite bSelfSprite = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
       LocalPlayerSprite aBSprite = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
       LocalPlayerSprite aSelfSprite = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
-      // Hover in open sky (center of 100x100 arena) so pellets fly unobstructed.
+      // Hover in open sky inside the 100x100 arena so pellets fly unobstructed.
       bSelfSprite.gravityAffect = 0.0;
       aBSprite.gravityAffect = 0.0;
       aSelfSprite.gravityAffect = 0.0;
       aSelfSprite.collision = false;
-      bSelfSprite.position = Vec2(40.0, 50.0);
+      bSelfSprite.position = Vec2(10.0, 50.0);
       bSelfSprite.velocity = Vec2.ZERO;
+      aBSprite.position = Vec2(10.0, 50.0);
+      aBSprite.velocity = Vec2.ZERO;
       aSelfSprite.position = Vec2(5.0, 5.0);
       aSelfSprite.velocity = Vec2.ZERO;
 
@@ -1502,6 +1515,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 8; i++) {
         worldB.frameDraw(0.1);
@@ -1549,6 +1563,7 @@ void main() {
       worldA.startAsServer("playerA");
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
 
       for (int i = 0; i < 6; i++) {
         worldA.frameDraw(KEY_FRAME_DEFAULT);
@@ -1677,6 +1692,15 @@ void main() {
       worldC.network().disableCommandTransferHeuristicForTest = true;
 
       worldA.startAsServer("nameA");
+      // Use a 500x300 arena with a solid floor so parked players at x=10 stay
+      // well clear of powerups at x=250 and x=350 across command transfers.
+      for (final WormWorld w in [worldA, worldB, worldC]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(500, 300));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        w.byteWorld.fillRectAt(Vec2(0.0, 260.0), Vec2(500.0, 40.0), "#444444");
+      }
       worldA.frameDraw(0.1);
       worldB.connectTo("a", "nameB");
       worldC.connectTo("a", "nameC");
@@ -1693,23 +1717,19 @@ void main() {
           final LocalPlayerSprite? ps = w.spriteIndex[pid] as LocalPlayerSprite?;
           if (ps != null) {
             ps.collision = false;
+            ps.gravityAffect = 0.0;
             ps.flags |= Sprite.FLAG_NO_GRAVITY;
-            ps.position = Vec2(2.0, 2.0);
+            ps.position = Vec2(10.0, 20.0);
             ps.velocity = Vec2.ZERO;
           }
         }
       }
 
-      // Build a solid floor at y = 85 so resting powerups sit stably under real physics.
-      for (final WormWorld w in [worldA, worldB, worldC]) {
-        w.byteWorld.fillRectAt(Vec2(0.0, 85.0), Vec2(100.0, 15.0), "#444444");
-      }
-
       // Commander A spawns 2 distinct powerups via PowerupManager / addSprite with custom remaining lifetimes.
-      Powerup shieldA = Powerup(Vec2(20.0, 85.0 - Powerup.SIZE_OFFSET.y), PowerUpType.SHIELD, worldA.imageIndex())
+      Powerup shieldA = Powerup(Vec2(250.0, 260.0 - Powerup.SIZE_OFFSET.y), PowerUpType.SHIELD, worldA.imageIndex())
         ..velocity = Vec2.ZERO
         ..lifeTime = 340;
-      Powerup mysteryA = Powerup(Vec2(60.0, 85.0 - Powerup.SIZE_OFFSET.y), PowerUpType.POWERUP, worldA.imageIndex())
+      Powerup mysteryA = Powerup(Vec2(350.0, 260.0 - Powerup.SIZE_OFFSET.y), PowerUpType.POWERUP, worldA.imageIndex())
         ..velocity = Vec2.ZERO
         ..lifeTime = 290;
       worldA.addSprite(shieldA);
@@ -1819,6 +1839,7 @@ void main() {
 
       // Verify C can now pick up the transferred shield powerup as authoritative commander!
       final LocalPlayerSprite playerC = worldC.spriteIndex[playerId(2)] as LocalPlayerSprite;
+      playerC.info.inGame = true;
       playerC.collision = true;
       shieldOnC.collide(playerC, null, null);
       expect(playerC.shieldPoints, equals(LocalPlayerSprite.MAX_SHIELD));
@@ -1980,6 +2001,9 @@ void main() {
       playerBOnB.flags |= Sprite.FLAG_NO_GRAVITY;
       playerBOnA.setCenter(Vec2(232.0, 150.0));
       playerBOnB.setCenter(Vec2(232.0, 150.0));
+      playerBOnA.velocity = Vec2.ZERO;
+      playerBOnB.velocity = Vec2.ZERO;
+      playerBOnA.collision = true;
       final int initialHealthB = playerBOnA.health;
 
       final int idx = playerA.weaponState!.weapons
@@ -2341,10 +2365,182 @@ void main() {
           reason: "Enemy standing in Pigeon Strike target zone should take bomb damage");
 
       // Verify kill & self-kill messages for all 4 new Mods!
-      for (final Mod m in [Mod.HEDGEHOG, Mod.MOLE, Mod.BEEHIVE, Mod.PIGEON]) {
+      for (final Mod m in [Mod.HEDGEHOG, Mod.MOLE, Mod.BEEHIVE, Mod.PIGEON, Mod.SHARK]) {
         expect(killedMessage("Bob", "Alice", m), isNotEmpty);
         expect(selfKillMessage("Bob", m), isNotEmpty);
       }
+    });
+
+    test('MegaShark_FullE2ELifecycle_CarryChewBiteOtherPlayerKillsAndDeathEffect',
+        () async {
+      throwIfLoggingUnexpected = false;
+      WormWorld worldA = await createTestWorld('a');
+      WormWorld worldB = await createTestWorld('b');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer("nameA");
+      worldA.frameDraw(0.1);
+      worldB.connectTo("a", "nameB");
+      worldB.network().getServerConnection()!.sendClientEnter();
+
+      for (int i = 0; i < 6; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+
+      for (final WormWorld w in [worldA, worldB]) {
+        w.byteWorld.setWorldImage(w.imageIndex().imageFactory.createWithSize(500, 320));
+        while (!w.byteWorld.bedrockComputed()) {
+          w.byteWorld.bedrockStep();
+        }
+        w.byteWorld.fillRectAt(Vec2(0.0, 260.0), Vec2(500.0, 60.0), "#444444");
+        // Solid terrain wall between playerA and playerB for the shark to chew!
+        w.byteWorld.fillRectAt(Vec2(140.0, 120.0), Vec2(90.0, 140.0), "#664422");
+      }
+
+      LocalPlayerSprite playerA = worldA.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnA = worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      LocalPlayerSprite playerBOnB = worldB.spriteIndex[playerId(1)] as LocalPlayerSprite;
+      for (final p in [playerA, playerBOnA, playerBOnB]) {
+        p.collision = true;
+        p.flags |= Sprite.FLAG_NO_GRAVITY;
+        p.velocity = Vec2.ZERO;
+      }
+      playerA.setCenter(Vec2(90.0, 200.0));
+      playerBOnA.setCenter(Vec2(320.0, 200.0));
+      playerBOnB.setCenter(Vec2(320.0, 200.0));
+
+      // 1. Player A unlocks and selects Mega Shark -> carried visible on both A and B.
+      final int sharkIdx = playerA.weaponState!.weapons
+          .indexWhere((w) => w.name == "Mega Shark");
+      expect(sharkIdx, greaterThanOrEqualTo(0));
+      playerA.weaponState!.weapons[sharkIdx].unlocked = true;
+      playerA.weaponState!.weapons[sharkIdx].shotsLeft = 1;
+      playerA.weaponState!.selectedWeaponIndex = sharkIdx;
+      playerA.gun.angle = 0.0;
+
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      expect(playerA.isCarryingReadySharkForDisplay(), isTrue);
+      final LocalPlayerSprite playerAOnB =
+          worldB.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      expect(playerAOnB.isCarryingReadySharkForDisplay(), isTrue);
+
+      // 2. Player A fires -> shark spawns on A and transfers via SpriteConstructor.HUNTER_SHARK to B.
+      playerA.weaponState!.fire();
+      expect(playerA.isCarryingReadySharkForDisplay(), isFalse);
+      for (int i = 0; i < 4; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
+      final HunterSharkProjectile sharkA = worldA.spriteIndex.spriteIds()
+          .map((id) => worldA.spriteIndex[id])
+          .whereType<HunterSharkProjectile>()
+          .single;
+      final HunterSharkProjectile sharkB = worldB.spriteIndex.spriteIds()
+          .map((id) => worldB.spriteIndex[id])
+          .whereType<HunterSharkProjectile>()
+          .single;
+      expect(sharkB.health, equals(LocalPlayerSprite.MAX_HEALTH));
+      FakeCanvas canvas = FakeCanvas();
+      sharkB.draw(canvas.context2D, false);
+
+      // 3. Advance through 50% longer sunglasses intro, check timer syncs to B,
+      //    and move into terrain wall -> chews toward B!
+      for (int i = 0; i < 60 && sharkA.isInSunglassesIntro; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+      }
+      expect(sharkA.isInSunglassesIntro, isFalse);
+      expect(sharkB.age, closeTo(sharkA.age, 0.25));
+      expect(worldA.byteWorld.isSolid(175, 200), isTrue);
+      sharkA.setCenter(Vec2(175.0, 200.0));
+      worldA.frameDraw(0.1);
+      worldB.frameDraw(0.1);
+      expect(sharkA.isChewingTerrain, isTrue);
+      expect(worldA.byteWorld.isSolid(175, 200), isFalse);
+
+      // 4. Shark must get close to playerB center to bite; bites for 80 damage,
+      //    stops for 1.0s (50% slower), and syncs bite animation to worldB!
+      expect(playerBOnA.health, equals(100));
+      sharkA.setCenter(playerBOnA.centerPoint() + Vec2(-30.0, 0.0));
+      sharkA.collide(playerBOnA, null, null);
+      expect(playerBOnA.health, equals(100));
+
+      sharkA.setCenter(playerBOnA.centerPoint() + Vec2(-6.0, 0.0));
+      sharkA.collide(playerBOnA, null, null);
+      expect(playerBOnA.health, equals(20));
+      expect(sharkA.isBiting, isTrue);
+      expect(sharkA.bitePauseRemaining, closeTo(1.00, 0.01));
+
+      worldA.frameDraw(0.05);
+      worldB.frameDraw(0.05);
+      expect(sharkB.isBiting, isTrue);
+      expect(sharkB.age, closeTo(sharkA.age, 0.15));
+
+      // 5. Player B escapes slightly during the 1s bite pause, shoots back with Hyper, and kills the shark!
+      playerBOnA.setCenter(Vec2(400.0, 200.0));
+      final Hyper killShot1 = Hyper.createWithOwner(worldA, playerBOnA, 60, playerBOnA.gun);
+      killShot1.collide(sharkA, null, null);
+      expect(sharkA.health, lessThan(100));
+      expect(sharkA.health, greaterThan(0));
+      expect(sharkA.remove, isFalse);
+
+      final Hyper killShot2 = Hyper.createWithOwner(worldA, playerBOnA, 50, playerBOnA.gun);
+      killShot2.collide(sharkA, null, null);
+      expect(sharkA.health, equals(0));
+      expect(sharkA.remove, isTrue);
+
+      // 6. Advance frames so SharkDeathEffect (SHARK_DEATH) flushes into worldA & transfers to B,
+      //    then step through explosion -> implosion -> floating sunglasses -> expiry!
+      SharkDeathEffect? deathA;
+      SharkDeathEffect? deathB;
+      for (int i = 0; i < 10; i++) {
+        worldA.frameDraw(0.05);
+        worldB.frameDraw(0.05);
+        deathA ??= worldA.spriteIndex.spriteIds()
+            .map((id) => worldA.spriteIndex[id])
+            .whereType<SharkDeathEffect>()
+            .firstOrNull;
+        deathB ??= worldB.spriteIndex.spriteIds()
+            .map((id) => worldB.spriteIndex[id])
+            .whereType<SharkDeathEffect>()
+            .firstOrNull;
+        if (deathA != null && deathB != null) {
+          break;
+        }
+      }
+      expect(deathA, isNotNull);
+      expect(deathB, isNotNull);
+      expect(worldA.spriteIndex[sharkA.networkId!], isNull);
+      expect(worldB.spriteIndex[sharkB.networkId!], isNull);
+      deathA!.draw(canvas.context2D, false);
+      deathB!.draw(canvas.context2D, false);
+
+      // Step into implosion, then falling sunglasses phase!
+      while (!deathA.isInImplosionPhase && deathA.age < SharkDeathEffect.IMPLOSION_END) {
+        deathA.frame(0.05, 1);
+      }
+      expect(deathA.isInImplosionPhase, isTrue);
+      deathA.draw(canvas.context2D, false);
+
+      deathA.frame(0.60, 1);
+      expect(deathA.isFloatingSunglassesPhase, isTrue);
+      final double y1 = deathA.currentSunglassesY();
+      deathA.draw(canvas.context2D, false);
+
+      // Sunglasses keep falling faster without vanishing mid-air until leaving screen bottom!
+      deathA.frame(2.00, 1);
+      expect(deathA.remove, isFalse);
+      expect(deathA.currentSunglassesY(), greaterThan(y1 + 30.0));
+
+      while (!deathA.remove && deathA.age < SharkDeathEffect.MAX_LIFETIME_SECONDS) {
+        deathA.frame(0.50, 1);
+      }
+      expect(deathA.remove, isTrue);
+      expect(deathA.currentSunglassesY(), greaterThan(deathA.bottomExitY()));
     });
   });
 }

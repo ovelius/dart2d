@@ -372,7 +372,8 @@ class ConnectionWrapper {
     if (frameDeltaFromLastSeen >= 0) {
       _network.parseBundle(this, dataMap);
     } else {
-      log.warning("Dropping old data ${frameDeltaFromLastSeen} frames behind!");
+      // This can happen quite a lot.
+      log.fine("Dropping old data ${frameDeltaFromLastSeen} frames behind!");
     }
   }
 

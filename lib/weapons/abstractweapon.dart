@@ -15,11 +15,14 @@ class Weapon {
   int iconIndex = 0;
   bool hasLaserSight = false;
   bool isMysteryWeapon = false;
+  double mysteryWeight = 1.0;
   bool unlocked = true;
 
   Weapon(this.name, this.iconIndex, this.shotsPerClip, this.reloadTime,
       this.fireDelay, this.fire,
-      {this.hasLaserSight = false, this.isMysteryWeapon = false}) {
+      {this.hasLaserSight = false,
+      this.isMysteryWeapon = false,
+      this.mysteryWeight = 1.0}) {
     this.shotsLeft = shotsPerClip;
     this.unlocked = !this.isMysteryWeapon;
   }

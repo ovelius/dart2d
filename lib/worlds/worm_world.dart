@@ -774,7 +774,9 @@ class WormWorld extends World {
       checkNotNull(velocity);
       _spawnExplosionVisuals(location, velocity == null ? Vec2.ZERO : velocity, radius);
     }
-    addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
+    if (damage > 0) {
+      addVelocityFromExplosion(location, damage, radius, !fromNetwork, damagerDoer, mod);
+    }
     if (!fromNetwork) {
       _network.peer.sendSingleStateUpdate(StateUpdate()
         ..byteWorldDestruction = destructionAsNetworkUpdate(

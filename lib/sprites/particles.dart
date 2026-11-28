@@ -461,7 +461,7 @@ class Particles extends MovingSprite {
     }
     if (owner != null) {
       if (other != null && damage != null && other.takesDamage(Mod.COFFEE) &&
-          !isOwnedBySamePlayer(other)) {
+          shouldDamageTarget(other)) {
         other.takeDamage(damage!, owner!, Mod.COFFEE);
         lifeTime = 0;
       } else if (direction != null && direction != 0 && damage != null) {

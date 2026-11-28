@@ -1698,7 +1698,7 @@ class Hyper extends WorldDamageProjectile {
     if (networkType == NetworkType.REMOTE) {
       return;
     }
-    if (owner != null && other != null && !isOwnedBySamePlayer(other) && other.takesDamage(Mod.HYPER)) {
+    if (owner != null && other != null && shouldDamageTarget(other) && other.takesDamage(Mod.HYPER)) {
       other.takeDamage(damage, owner!, Mod.HYPER);
       explode();
       return;
@@ -3241,17 +3241,13 @@ class DartProjectile extends WorldDamageProjectile {
     this.setImage(world.imageIndex().getImageIdByName("dart.png"), 1);
     this.radius = 2.0;
     this.spawn_sound = Sound.DARTGUN;
-    if (velocity.x != 0.0 || velocity.y != 0.0) {
-      this.angle = atan2(velocity.y, velocity.x);
-    }
+    alignAngleWithVelocity(minSpeedSq: 0.0);
   }
 
   @override
   frame(double duration, int frameStep, [Vec2? gravity]) {
     super.frame(duration, frameStep, gravity);
-    if (velocity.x * velocity.x + velocity.y * velocity.y > 25.0) {
-      this.angle = atan2(velocity.y, velocity.x);
-    }
+    alignAngleWithVelocity();
   }
 
   @override
@@ -3260,8 +3256,15 @@ class DartProjectile extends WorldDamageProjectile {
       return;
     }
     if (other is WorldDamageProjectile && !other.remove) {
-      // Never intercept or detonate any projectile owned by the same player.
-      if (isOwnedBySamePlayer(other)) {
+      // Never intercept own projectiles unless destroying own hunter shark.
+      if (!shouldDamageTarget(other)) {
+        return;
+      }
+      if (other is HunterSharkProjectile) {
+        if (owner != null && other.takesDamage(Mod.DARTGUN)) {
+          other.takeDamage(damage, owner!, Mod.DARTGUN);
+          this.remove = true;
+        }
         return;
       }
       if (other is DartProjectile ||
@@ -3575,7 +3578,7 @@ class WorldDamageProjectile extends MovingSprite {
     }
     if (other != null &&
         owner != null &&
-        !isOwnedBySamePlayer(other) &&
+        shouldDamageTarget(other) &&
         other.takesDamage(mod)) {
       other.takeDamage(damage, owner!, mod);
       if (removeOnCollision) {

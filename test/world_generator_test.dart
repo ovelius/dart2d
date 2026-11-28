@@ -282,6 +282,7 @@ void main() {
     test('End-to-end late joiner receives one-time vector skybox and Lunar low gravity over network', () async {
       expectWarningContaining('Duplicate handshake received');
       expectWarningContaining('Commander data update for missing sprite');
+      expectWarningContaining('Dropping old data');
       final String lunarKey = encodeGeneratedMapName(WorldThemeId.lunar, 9001);
 
       WormWorld worldA = await createTestWorld('a');

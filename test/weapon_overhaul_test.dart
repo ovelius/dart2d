@@ -376,92 +376,83 @@ void main() {
           reason: 'Health, shield, and jetpack powerups should still spawn alongside mystery boxes');
     });
 
-    test('Handicap bingo probabilities scale from 5% Extra / 1% Super for leader up to 80% Superbingo at 50% behind, and Extra Bingo requires < max health', () async {
-      // 1. Verify exact probability curve.
-      final BingoProbabilities leaderHurt =
-          WeaponState.computeBingoProbabilitiesFor(
+    test('Superbingo probability scales by deficit and last place player gets full health on mystery pickup unless tied', () async {
+      // 1. Verify Superbingo probability curve (1% for leader -> 80% at 50% behind).
+      final BingoProbabilities leader = WeaponState.computeBingoProbabilitiesFor(
         playerScore: 6,
         leaderScore: 6,
         maxFrags: 10,
-        hasFullHealth: false,
       );
-      expect(leaderHurt.extraBingo, closeTo(0.05, 1e-6));
-      expect(leaderHurt.superBingo, closeTo(0.01, 1e-6));
-
-      final BingoProbabilities leaderFullHp =
-          WeaponState.computeBingoProbabilitiesFor(
-        playerScore: 6,
-        leaderScore: 6,
-        maxFrags: 10,
-        hasFullHealth: true,
-      );
-      expect(leaderFullHp.extraBingo, equals(0.0),
-          reason: 'Extra Bingo must be 0% when player already has full health');
-      expect(leaderFullHp.superBingo, closeTo(0.01, 1e-6));
+      expect(leader.superBingo, closeTo(0.01, 1e-6));
 
       final BingoProbabilities quarterBehind =
           WeaponState.computeBingoProbabilitiesFor(
         playerScore: 4,
         leaderScore: 6,
         maxFrags: 8, // 2/8 = 25% behind
-        hasFullHealth: false,
       );
-      expect(quarterBehind.superBingo, greaterThan(leaderHurt.superBingo));
+      expect(quarterBehind.superBingo, greaterThan(leader.superBingo));
       expect(quarterBehind.superBingo, lessThan(0.80));
-      expect(quarterBehind.extraBingo, greaterThan(leaderHurt.extraBingo));
 
-      final BingoProbabilities halfBehindHurt =
+      final BingoProbabilities halfBehind =
           WeaponState.computeBingoProbabilitiesFor(
         playerScore: 2,
         leaderScore: 7,
         maxFrags: 10, // 5/10 = 50% behind -> 80% Superbingo!
-        hasFullHealth: false,
       );
-      expect(halfBehindHurt.superBingo, closeTo(0.80, 1e-6));
-      expect(halfBehindHurt.extraBingo, greaterThan(leaderHurt.extraBingo));
+      expect(halfBehind.superBingo, closeTo(0.80, 1e-6));
 
-      // 2. Verify Extra Bingo sound, full-health restore (without shield), and full-HP guard.
-      final WormWorld world = await createTestWorld('a');
-      final Sounds sounds = getIt<Sounds>();
-      final FakeSoundFactory soundFactory =
-          getIt<SoundFactory>() as FakeSoundFactory;
-      sounds.preloadSounds();
-      await soundFactory.loadAllAudio();
-      soundFactory.resetPlayedSounds();
+      // 2. Verify solo / tied players do NOT get full health, while strict last place DOES.
+      final WormWorld soloWorld = await createTestWorld('solo');
+      soloWorld.startAsServer('solo');
+      soloWorld.frameDraw(0.6);
+      soloWorld.frameDraw(0.6);
+      final LocalPlayerSprite soloPlayer =
+          soloWorld.spriteIndex[playerId(0)] as LocalPlayerSprite;
+      soloPlayer.health = 35;
+      expect(soloPlayer.weaponState!.isStrictlyLastPlace(), isFalse);
+      soloPlayer.weaponState!.triggerMysteryRoulette(bingoRollOverride: 0.99);
+      expect(soloPlayer.health, equals(35));
 
-      world.startAsServer('a');
-      world.frameDraw(0.6);
-      world.frameDraw(0.6);
+      final WormWorld worldA = await createTestWorld('la');
+      final WormWorld worldB = await createTestWorld('lb');
+      worldA.network().disableCommandTransferHeuristicForTest = true;
+      worldB.network().disableCommandTransferHeuristicForTest = true;
+      worldA.startAsServer('nameA');
+      worldA.frameDraw(0.1);
+      worldB.connectTo('la', 'nameB');
+      worldB.network().getServerConnection()!.sendClientEnter();
+      for (int i = 0; i < 8; i++) {
+        worldA.frameDraw(KEY_FRAME_DEFAULT);
+        worldB.frameDraw(KEY_FRAME_DEFAULT);
+      }
 
-      final LocalPlayerSprite player =
-          world.spriteIndex[playerId(0)] as LocalPlayerSprite;
-      final WeaponState ws = player.weaponState!;
+      final LocalPlayerSprite playerBOnA =
+          worldA.spriteIndex[playerId(1)] as LocalPlayerSprite;
+
+      // Tied game [4, 4] -> not strictly last place -> no full-health restore!
+      worldA.network().getGameState().playerInfoByConnectionId('la')!.score = 4;
+      worldA.network().getGameState().playerInfoByConnectionId('lb')!.score = 4;
+      playerBOnA.health = 40;
+      playerBOnA.shieldPoints = 0;
+      expect(playerBOnA.weaponState!.isStrictlyLastPlace(), isFalse);
+      playerBOnA.weaponState!.triggerMysteryRoulette(bingoRollOverride: 0.99);
+      expect(playerBOnA.health, equals(40));
+
+      // Strictly last place ([4, 2]) -> picking up mystery restores full health immediately (without shield)!
+      worldA.network().getGameState().playerInfoByConnectionId('lb')!.score = 2;
+      playerBOnA.health = 35;
+      playerBOnA.shieldPoints = 0;
+      expect(playerBOnA.weaponState!.isStrictlyLastPlace(), isTrue);
+      playerBOnA.weaponState!.triggerMysteryRoulette(bingoRollOverride: 0.99);
+      expect(playerBOnA.weaponState!.rouletteBingoTier, equals(BingoTier.none));
+      expect(playerBOnA.health, equals(LocalPlayerSprite.MAX_HEALTH));
+      expect(playerBOnA.shieldPoints, equals(0),
+          reason: 'Last-place mercy heal restores full health only, not shield');
       final FakeCanvas canvas = FakeCanvas();
-
-      // At full health (100 HP), rolling inside the Extra Bingo band (0.03) must NOT grant Extra Bingo.
-      expect(player.health, equals(LocalPlayerSprite.MAX_HEALTH));
-      ws.triggerMysteryRoulette(bingoRollOverride: 0.03);
-      expect(ws.rouletteBingoTier, equals(BingoTier.none));
-      ws.think(2.0);
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-
-      // Damage player to 35 HP (0 shield) -> rolling 0.03 (between 0.01 Super and 0.06 Extra)
-      // triggers Extra Bingo, plays Sound.EXTRA_BINGO, and restores full health!
-      soundFactory.resetPlayedSounds();
-      player.health = 35;
-      player.shieldPoints = 0;
-      ws.triggerMysteryRoulette(bingoRollOverride: 0.03);
-      expect(ws.rouletteBingoTier, equals(BingoTier.extraBingo));
-
-      ws.think(2.0);
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-      expect(soundFactory.getTotalPlayOuts(Sound.EXTRA_BINGO), equals(1));
-      expect(player.health, equals(LocalPlayerSprite.MAX_HEALTH));
-      expect(player.shieldPoints, equals(0),
-          reason: 'Extra Bingo restores full health only, not shield');
-      expect(player.bingoEffectTier, equals(1));
-      ws.drawWeaponHelper(canvas.context2D, const Point<int>(700, 80), true);
-      player.draw(canvas.context2D, false);
+      playerBOnA.weaponState!
+          .drawWeaponHelper(canvas.context2D, const Point<int>(700, 80), true);
+      playerBOnA.draw(canvas.context2D, false);
     });
 
     test('Trailing player 50% behind leader rolls Superbingo (80% chance) and syncs full shield + full health + jackpot aura over network', () async {

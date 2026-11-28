@@ -936,10 +936,14 @@ class Network {
     }
     if (keyFrame) {
       ClientStatusData clientData = _createClientStatusData();
-      _handleClientStatusData(peer.id!, clientData);
-      if (!isCommander()) {
-        updates.stateUpdate.add(StateUpdate()
-          ..clientStatusData = clientData);
+      if (isCommander()) {
+        _handleClientStatusData(peer.id!, clientData);
+      } else {
+        final String commanderId = gameState.gameStateProto.actingCommanderId;
+        if (recipientId == null || recipientId == commanderId) {
+          updates.stateUpdate.add(StateUpdate()
+            ..clientStatusData = clientData);
+        }
       }
     }
   }

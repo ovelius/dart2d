@@ -35,7 +35,9 @@ enum SpriteConstructor {
   PIGEON_FLARE,
   BOMBER_PIGEON,
   PIGEON_BOMB,
-  CHICKEN
+  CHICKEN,
+  HUNTER_SHARK,
+  SHARK_DEATH
 }
 
 /**
@@ -128,6 +130,12 @@ class SpriteIndex {
     SpriteConstructor.CHICKEN:
         (WormWorld world, int spriteId, String connectionId) =>
             new ChickenProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.HUNTER_SHARK:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new HunterSharkProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.SHARK_DEATH:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new SharkDeathEffect(world, 0.0, 0.0),
   };
 
   static MovingSprite? fromWorldByIndex(WormWorld world, int spriteId,

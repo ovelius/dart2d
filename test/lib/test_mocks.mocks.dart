@@ -4187,6 +4187,15 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
+  bool get friendlyFireCanHit =>
+      (super.noSuchMethod(
+            Invocation.getter(#friendlyFireCanHit),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i8.Vec2 get position =>
       (super.noSuchMethod(
             Invocation.getter(#position),
@@ -4461,12 +4470,6 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
           as bool);
 
   @override
-  void applyExtraBingoBonus() => super.noSuchMethod(
-    Invocation.method(#applyExtraBingoBonus, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   void applySuperBingoBonus() => super.noSuchMethod(
     Invocation.method(#applySuperBingoBonus, []),
     returnValueForMissingStub: null,
@@ -4679,6 +4682,15 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
   );
 
   @override
+  bool isCarryingReadySharkForDisplay() =>
+      (super.noSuchMethod(
+            Invocation.method(#isCarryingReadySharkForDisplay, []),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i10.SpriteConstructor remoteRepresentation() =>
       (super.noSuchMethod(
             Invocation.method(#remoteRepresentation, []),
@@ -4695,6 +4707,24 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  bool shouldDamageTarget(_i10.MovingSprite? other) =>
+      (super.noSuchMethod(
+            Invocation.method(#shouldDamageTarget, [other]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  void alignAngleWithVelocity({double? minSpeedSq = 25.0}) =>
+      super.noSuchMethod(
+        Invocation.method(#alignAngleWithVelocity, [], {
+          #minSpeedSq: minSpeedSq,
+        }),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void clearShallowGroundStep(

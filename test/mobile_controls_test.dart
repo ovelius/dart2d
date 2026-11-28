@@ -324,6 +324,7 @@ void main() {
       controls.touchDown(4, firePos.x, firePos.y);
       expect(weaponState.selectedWeaponIndex, equals(cycledWeapon),
           reason: 'Tapping FIRE while weapon wheel is open must not hijack weapon selection');
+      world.frameDraw(0.11);
       world.frameDraw(0.02);
       expect(weaponState.getSelectedWeapon().shotsLeft, lessThan(shotsBefore),
           reason: 'Holding FIRE button should fire the equipped weapon');

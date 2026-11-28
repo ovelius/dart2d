@@ -69,6 +69,7 @@ void main() {
   });
 
   test('TestConnectionActivatesTurn', () {
+    testConnection.setFakeRemoteDescription();
     expect(connection.isActiveConnection(), isFalse);
     fakeClock.testTime = fakeClock.testTime.add(ConnectionStats.ICE_RESTART_TIME);
     fakeClock.testTime = fakeClock.testTime.add(Duration(milliseconds: 1));

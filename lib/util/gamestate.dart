@@ -17,7 +17,7 @@ import '../net/state_updates.dart';
 class GameState {
   // Major changes to the game mechanics or protocol must 
   // bump this number.
-  static const int PROTOCOL_VERSION = 1;
+  static const int PROTOCOL_VERSION = 2;
   static const MAX_PLAYERS = 4;
   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;

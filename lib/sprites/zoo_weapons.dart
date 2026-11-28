@@ -699,7 +699,7 @@ class MoleDrillProjectile extends WorldDamageProjectile {
     }
     if (other != null &&
         owner != null &&
-        !isOwnedBySamePlayer(other) &&
+        shouldDamageTarget(other) &&
         other.takesDamage(Mod.MOLE)) {
       other.takeDamage(damage, owner!, Mod.MOLE);
       explode();
@@ -2443,5 +2443,514 @@ class ChickenProjectile extends WorldDamageProjectile {
   @override
   SpriteConstructor remoteRepresentation() {
     return SpriteConstructor.CHICKEN;
+  }
+}
+
+// ============================================================================
+// 5. MEGA SHARK (ULTIMATE SUNGLASSES LAND-HUNTING SHARK)
+// ============================================================================
+
+/// Ultimate powerup weapon projectile: a massive sunglasses shark that first
+/// strikes a pose putting on its black wayfarers with a bright sunflare, then
+/// hunts down the nearest hostile player at 2/3 player speed, chews straight
+/// through terrain at half speed toward locked targets, and stops for 0.5s to
+/// deliver an animated 80-damage chomp!
+class HunterSharkProjectile extends WorldDamageProjectile {
+  static const int SPRITE_FRAMES = 5;
+  static const int BARE_EYES_FRAME = 1;
+  static const double SHARK_WIDTH = 56.0;
+  static const double SHARK_HEIGHT = 42.0;
+  static const int BITE_DAMAGE = 80;
+  static const double BITE_RANGE = 18.0;
+  static const double LIFETIME_SECONDS = 60.0;
+  static const double GLASSES_DROP_DURATION = 1.275;
+  static const double SUNFLARE_DURATION = 0.75;
+  static const double INTRO_DURATION =
+      GLASSES_DROP_DURATION + SUNFLARE_DURATION;
+
+  /// 2/3 of LocalPlayerSprite.MAX_WALK_SPEED (150.0 -> 100.0).
+  static const double SWIM_SPEED = 100.0;
+
+  /// Half of swim speed while chewing through solid terrain.
+  static const double CHEW_SPEED = SWIM_SPEED * 0.5;
+  static const double TURN_RATE = 5.4;
+  static const double BITE_PAUSE_SECONDS = 1.00;
+  static const double BITE_ANIM_SECONDS = 1.00;
+  static const double CHEW_CARVE_INTERVAL = 0.14;
+  static const double CHEW_CARVE_RADIUS = 22.0;
+
+  static double frameWidthForImage(HTMLImageElement img) {
+    if (img.width >= img.height * 4) {
+      return img.width / 5.0;
+    }
+    if (img.width >= img.height * 3) {
+      return img.width / 4.0;
+    }
+    return img.width.toDouble();
+  }
+
+  double _age = 0.0;
+  double _bitePauseRemaining = 0.0;
+  double _biteAnimRemaining = 0.0;
+  double _chewCarveCooldown = 0.0;
+  bool _chewingTerrain = false;
+  bool _facingLeft = true;
+  bool _patrolInitialized = false;
+  bool _sunflareSoundPlayed = false;
+  bool _removedWithPoof = false;
+
+  bool get isInSunglassesIntro => _age < INTRO_DURATION;
+  double get sunglassesProgress =>
+      (_age / GLASSES_DROP_DURATION).clamp(0.0, 1.0);
+  double get sunflareProgress => _age < GLASSES_DROP_DURATION
+      ? 0.0
+      : ((_age - GLASSES_DROP_DURATION) / SUNFLARE_DURATION).clamp(0.0, 1.0);
+  bool get isChewingTerrain => _chewingTerrain;
+  bool get isBiting => _biteAnimRemaining > 0.0;
+  double get bitePauseRemaining => _bitePauseRemaining;
+  double get age => _age;
+
+  HunterSharkProjectile(
+      WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, world.imageIndex().getImageIdByName("shark.png"),
+            imageIndex) {
+    _configureDefaults(world);
+  }
+
+  HunterSharkProjectile.createWithOwner(
+      WormWorld world, LocalPlayerSprite owner, MovingSprite positionBase)
+      : super(world, 0.0, 0.0, world.imageIndex().getImageIdByName("shark.png"),
+            world.imageIndex()) {
+    this.world = world;
+    this.owner = owner;
+    _configureDefaults(world);
+    this._facingLeft = cos(positionBase.angle) < 0.0;
+    this.angle = _facingLeft ? pi : 0.0;
+    final Vec2 ownerCenter = owner.centerPoint();
+    // Spawn on owner's shoulder where it was mounted.
+    this.setCenter(Vec2(ownerCenter.x, owner.position.y + 4.0));
+    this.velocity = Vec2(0.0, 0.0);
+    this.fullFramesOverNetwork = 4;
+  }
+
+  void _configureDefaults(WormWorld world) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = Vec2(SHARK_WIDTH, SHARK_HEIGHT);
+    this.mod = Mod.SHARK;
+    this.damage = BITE_DAMAGE;
+    this.radius = 0.0;
+    this.gravityAffect = 0.0;
+    this.flags |= Sprite.FLAG_NO_GRAVITY;
+    this.bounche = 1.0;
+    this.health = LocalPlayerSprite.MAX_HEALTH;
+    this.showCounter = false;
+    this.removeOnCollision = false;
+    this.explodeAfter = LIFETIME_SECONDS;
+    this.worldCollide = true;
+    this.removeOutOfBounds = false;
+    this.collision = true;
+    if (world.imageIndex().imagesIndexed()) {
+      setImage(world.imageIndex().getImageIdByName("shark.png"), 1);
+    }
+  }
+
+  LocalPlayerSprite? nearestHostileTarget() {
+    final Vec2 myCenter = centerPoint();
+    LocalPlayerSprite? best;
+    double bestDistSq = double.infinity;
+    for (int id in world.spriteIndex.spriteIds()) {
+      final Sprite? s = world.spriteIndex[id];
+      if (s is LocalPlayerSprite &&
+          s.inGame() &&
+          s.health > 0 &&
+          s.networkId != owner?.networkId) {
+        final Vec2 diff = s.centerPoint() - myCenter;
+        final double dSq = diff.x * diff.x + diff.y * diff.y;
+        if (dSq < bestDistSq) {
+          bestDistSq = dSq;
+          best = s;
+        }
+      }
+    }
+    return best;
+  }
+
+  bool _overlapsWorld(ByteWorld byteWorld) {
+    return byteWorld.isCanvasCollide(
+      (position.x + 4).toInt(),
+      (position.y + 4).toInt(),
+      max(1, (size.x - 8).toInt()),
+      max(1, (size.y - 8).toInt()),
+    );
+  }
+
+  @override
+  bool get friendlyFireCanHit => true;
+
+  @override
+  void takeDamage(int dmg, LocalPlayerSprite inflictor, Mod attackMod) {
+    // Only ignore self-bite damage; all weapon projectiles (including owner's) destroy it!
+    if (attackMod == Mod.SHARK && inflictor.networkId == owner?.networkId) {
+      return;
+    }
+    health -= dmg;
+    fullFramesOverNetwork = 2;
+    if (health <= 0 && !remove) {
+      health = 0;
+      explode();
+    }
+  }
+
+  @override
+  explode() {
+    if (_removedWithPoof) return;
+    _removedWithPoof = true;
+    if (!world.network().isCommander() && networkType == NetworkType.REMOTE) {
+      remove = true;
+      return;
+    }
+    final Vec2 c = centerPoint();
+    final SharkDeathEffect deathEffect =
+        SharkDeathEffect(world, c.x, c.y, facingLeft: _facingLeft);
+    deathEffect.spawn_sound = Sound.EXPLOSION;
+    world.addSprite(deathEffect);
+    remove = true;
+  }
+
+  @override
+  collide(MovingSprite? other, ByteWorld? byteWorld, int? direction) {
+    if (remove) {
+      return;
+    }
+    if (isInSunglassesIntro) {
+      velocity = Vec2(0.0, 0.0);
+      return;
+    }
+    if (networkType != NetworkType.REMOTE &&
+        other is LocalPlayerSprite &&
+        other.inGame() &&
+        owner != null &&
+        !isOwnedBySamePlayer(other) &&
+        other.takesDamage(Mod.SHARK) &&
+        _bitePauseRemaining <= 0.0) {
+      final Vec2 myCenter = centerPoint();
+      final Vec2 targetCenter = other.centerPoint();
+      final double dx = targetCenter.x - myCenter.x;
+      final double dy = targetCenter.y - myCenter.y;
+      if (dx * dx + dy * dy > BITE_RANGE * BITE_RANGE) {
+        return;
+      }
+      other.takeDamage(BITE_DAMAGE, owner!, Mod.SHARK);
+      _bitePauseRemaining = BITE_PAUSE_SECONDS;
+      _biteAnimRemaining = BITE_ANIM_SECONDS;
+      velocity = Vec2(0.0, 0.0);
+      _chewingTerrain = false;
+      fullFramesOverNetwork = 6;
+      world.playSoundAtSprite(this, Sound.WHIP);
+      final Particles biteSparks = Particles(
+        world,
+        null,
+        other.centerPoint(),
+        Vec2(0.0, -30.0),
+        radius: 14.0,
+        count: 10,
+        lifeTime: 18,
+        shrinkPerStep: 0.85,
+        particleType: ParticleEffects_ParticleType.BLOOD,
+      );
+      biteSparks.sendToNetwork = true;
+      world.addSprite(biteSparks);
+      return;
+    }
+    if (byteWorld != null &&
+        direction != null &&
+        !_chewingTerrain &&
+        nearestHostileTarget() == null) {
+      // No target locked: collide with environment and bounce cleanly on both commander and client!
+      super.handleWorldCollide(byteWorld, direction);
+      if ((direction & MovingSprite.DIR_BELOW) == MovingSprite.DIR_BELOW &&
+          velocity.y > 0) {
+        velocity.y = -velocity.y * bounche;
+      }
+      if ((direction & MovingSprite.DIR_ABOVE) == MovingSprite.DIR_ABOVE &&
+          velocity.y < 0) {
+        velocity.y = -velocity.y * bounche;
+      }
+      int pushGuard = 0;
+      while (pushGuard++ < 6 && _overlapsWorld(byteWorld)) {
+        if ((direction & MovingSprite.DIR_BELOW) != 0) position.y -= 1.0;
+        if ((direction & MovingSprite.DIR_ABOVE) != 0) position.y += 1.0;
+        if ((direction & MovingSprite.DIR_LEFT) != 0) position.x += 1.0;
+        if ((direction & MovingSprite.DIR_RIGHT) != 0) position.x -= 1.0;
+      }
+      if (velocity.x.abs() > 1.0) {
+        _facingLeft = velocity.x < 0.0;
+      }
+    }
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    final double prevAge = _age;
+    _age += duration;
+    gravityAffect = 0.0;
+    if (!_sunflareSoundPlayed &&
+        prevAge < GLASSES_DROP_DURATION &&
+        _age >= GLASSES_DROP_DURATION) {
+      _sunflareSoundPlayed = true;
+      world.playSoundAtSprite(this, Sound.POWERUP);
+    }
+    if (_biteAnimRemaining > 0.0) {
+      _biteAnimRemaining = max(0.0, _biteAnimRemaining - duration);
+    }
+
+    if (networkType != NetworkType.REMOTE && !remove) {
+      if (_age >= LIFETIME_SECONDS || (explodeAfter != null && explodeAfter! <= 0)) {
+        explode();
+        return;
+      }
+      if (_bitePauseRemaining > 0.0) {
+        _bitePauseRemaining = max(0.0, _bitePauseRemaining - duration);
+      }
+
+      if (isInSunglassesIntro || _bitePauseRemaining > 0.0) {
+        velocity = Vec2(0.0, 0.0);
+        _chewingTerrain = false;
+      } else {
+        final LocalPlayerSprite? target = nearestHostileTarget();
+        final bool inTerrain = _overlapsWorld(world.byteWorld);
+        if (target != null) {
+          _patrolInitialized = false;
+          _chewingTerrain = inTerrain;
+          // Preserve explosion-gained speed until biting a player or chewing terrain.
+          final double targetSpeed =
+              _chewingTerrain ? CHEW_SPEED : max(SWIM_SPEED, velocity.sum());
+          final Vec2 toTarget = target.centerPoint() - centerPoint();
+          final double desiredAngle = atan2(toTarget.y, toTarget.x);
+          double curAngle = (velocity.x * velocity.x + velocity.y * velocity.y > 4.0)
+              ? atan2(velocity.y, velocity.x)
+              : desiredAngle;
+          double diff = desiredAngle - curAngle;
+          while (diff > pi) diff -= 2.0 * pi;
+          while (diff < -pi) diff += 2.0 * pi;
+          final double maxTurn = TURN_RATE * duration;
+          curAngle += diff.clamp(-maxTurn, maxTurn);
+          final double wave = _chewingTerrain ? 0.0 : sin(_age * 7.5) * 0.25 * duration;
+          curAngle += wave;
+          velocity = Vec2(cos(curAngle) * targetSpeed, sin(curAngle) * targetSpeed);
+          angle = curAngle;
+          if (velocity.x.abs() > 2.0) {
+            _facingLeft = velocity.x < 0.0;
+          } else if (toTarget.x.abs() > 1.0) {
+            _facingLeft = toTarget.x < 0.0;
+          }
+
+          if (_chewingTerrain) {
+            _chewCarveCooldown -= duration;
+            if (_chewCarveCooldown <= 0.0) {
+              _chewCarveCooldown = CHEW_CARVE_INTERVAL;
+              final Vec2 mouthPos = centerPoint() +
+                  Vec2(cos(curAngle) * (SHARK_WIDTH * 0.24),
+                      sin(curAngle) * (SHARK_HEIGHT * 0.24));
+              world.explosionAt(
+                location: mouthPos,
+                velocity: velocity.multiply(-0.25),
+                addParticles: false,
+                damage: 0,
+                radius: CHEW_CARVE_RADIUS,
+                damagerDoer: owner,
+                mod: Mod.SHARK,
+              );
+            }
+          }
+        } else {
+          // Patrol with real velocity so world bounce collisions hold without slowing explosion boosts!
+          _chewingTerrain = false;
+          if (!_patrolInitialized ||
+              velocity.sum() < 10.0) {
+            final double dirX = _facingLeft ? -1.0 : 1.0;
+            velocity = Vec2(dirX * (SWIM_SPEED * 0.55), 14.0);
+            _patrolInitialized = true;
+          }
+          _facingLeft = velocity.x < 0.0;
+          alignAngleWithVelocity();
+        }
+      }
+    } else {
+      if (velocity.x.abs() > 2.0) {
+        _facingLeft = velocity.x < 0.0;
+      }
+      alignAngleWithVelocity();
+    }
+
+    super.frame(duration, frameStep, null);
+    if (!isInSunglassesIntro && _bitePauseRemaining <= 0.0) {
+      alignAngleWithVelocity();
+    }
+  }
+
+  @override
+  int extraSendFlags() => Sprite.FLAG_NO_GRAVITY;
+
+  @override
+  ExtraSpriteData addExtraNetworkData() {
+    explodeAfter ??= max(0.0, LIFETIME_SECONDS - _age);
+    final ExtraSpriteData data = super.addExtraNetworkData();
+    final int stateFlags = (isInSunglassesIntro ? 1 : 0) |
+        (_chewingTerrain ? 2 : 0) |
+        (isBiting ? 4 : 0) |
+        (_facingLeft ? 8 : 0);
+    // super pushes [damage, ownerId, health] in extraInt and [radius, explodeAfter] in extraFloat.
+    data.extraInt.add(stateFlags);
+    data.extraFloat.add(_age);
+    data.extraFloat.add(_biteAnimRemaining);
+    return data;
+  }
+
+  @override
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    super.parseExtraNetworkData(data);
+    if (data.extraInt.length >= 4) {
+      final int stateFlags = data.extraInt[3];
+      _chewingTerrain = (stateFlags & 2) != 0;
+      _facingLeft = (stateFlags & 8) != 0;
+    }
+    if (data.extraFloat.length >= 4) {
+      _age = data.extraFloat[2];
+      _biteAnimRemaining = data.extraFloat[3];
+    }
+  }
+
+  int activeSpriteFrameIndex() => _activeSpriteFrameIndex();
+
+  int _activeSpriteFrameIndex() {
+    if (isInSunglassesIntro && sunglassesProgress < 1.0) {
+      return 1; // Bare fierce eyes before sunglasses land!
+    }
+    if (_biteAnimRemaining > 0.0) {
+      final double u =
+          (1.0 - _biteAnimRemaining / BITE_ANIM_SECONDS).clamp(0.0, 1.0);
+      if (u < 0.28) return 2; // Jaws wide open
+      if (u < 0.52) return 3; // Half-closed bite
+      if (u < 0.82) return 4; // Jaws chomped shut
+      return 3; // Half-closed release
+    }
+    if (_chewingTerrain) {
+      const List<int> chewCycle = <int>[2, 3, 4, 3];
+      return chewCycle[((_age * 12.0).floor()) % chewCycle.length];
+    }
+    return 0; // Cool swimming with sunglasses!
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 c = centerPoint();
+    final double t = _age;
+    final bool inIntro = isInSunglassesIntro;
+    final double dropT = sunglassesProgress;
+    final double flareT = sunflareProgress;
+
+    final double bobY = inIntro ? 0.0 : sin(t * 8.0) * 2.0;
+    final double tilt = inIntro
+        ? sin(dropT * pi) * -0.06
+        : (_chewingTerrain ? sin(t * 22.0) * 0.10 : sin(t * 6.5) * 0.05);
+
+    context.save();
+    context.translate(c.x, c.y + bobY);
+    if (_facingLeft) {
+      context.rotate(angle - pi + tilt);
+    } else {
+      context.rotate(angle - tilt);
+      context.scale(-1.0, 1.0);
+    }
+
+    // 1. Draw the isolated animation frame from the 5-frame shark.png spritesheet!
+    final int frameIdx = _activeSpriteFrameIndex();
+    final ImageIndex imgIdx = world.imageIndex();
+    if (imageId >= 0 && imageId < imgIdx.images.length) {
+      final HTMLImageElement sharkImg = imgIdx.getImageById(imageId);
+      if (sharkImg.width > 0 && sharkImg.height > 0) {
+        final double frameW = frameWidthForImage(sharkImg);
+        final bool isSheet = sharkImg.width >= sharkImg.height * 3;
+        final double sx = isSheet ? frameIdx * frameW : 0.0;
+        context.drawImage(
+          sharkImg,
+          sx,
+          0,
+          frameW,
+          sharkImg.height,
+          -SHARK_WIDTH * 0.5,
+          -SHARK_HEIGHT * 0.5,
+          SHARK_WIDTH,
+          SHARK_HEIGHT,
+        );
+      }
+    }
+
+    // 2. Slide sunglasses down onto Frame 1 during the put-on intro!
+    if (inIntro && dropT < 1.0) {
+      context.save();
+      final double easeDrop = 1.0 - pow(1.0 - dropT, 2.2).toDouble();
+      final double glassesY = -28.0 + easeDrop * 22.5;
+      context.translate(-11.0, glassesY);
+      context.fillStyle = "#12161f".toJS;
+      context.strokeStyle = "#080b10".toJS;
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.roundRect(-14.5, -4.5, 12.0, 8.8, 2.2.toJS);
+      context.roundRect(0.5, -4.5, 13.0, 9.2, 2.2.toJS);
+      context.fill();
+      context.stroke();
+      context.fillRect(-3.0, -3.5, 4.0, 2.6);
+      context.fillStyle = "#f2c14e".toJS;
+      context.fillRect(-13.8, -3.5, 1.6, 1.1);
+      context.fillRect(11.4, -3.5, 1.6, 1.1);
+      context.restore();
+    }
+
+    // 3. Distinct golden-white sunflare when sunglasses snap onto the face!
+    if (flareT > 0.0 && flareT < 1.0) {
+      final double fAlpha = sin(flareT * pi).clamp(0.0, 1.0);
+      final double fRadius = 10.0 + sin(flareT * pi) * 16.0;
+      context.save();
+      context.translate(-6.0, -6.5);
+      context.globalAlpha = fAlpha;
+      final CanvasGradient g =
+          context.createRadialGradient(0, 0, 1.0, 0, 0, fRadius * 1.3);
+      g.addColorStop(0.0, "rgba(255, 255, 240, 1.0)");
+      g.addColorStop(0.45, "rgba(255, 232, 92, 0.85)");
+      g.addColorStop(1.0, "rgba(255, 196, 48, 0.0)");
+      context.fillStyle = g;
+      context.beginPath();
+      context.arc(0, 0, fRadius * 1.3, 0, pi * 2.0);
+      context.fill();
+
+      context.rotate(flareT * 0.9);
+      context.fillStyle = "#ffffff".toJS;
+      context.beginPath();
+      for (int i = 0; i < 8; i++) {
+        final double a = i * pi / 4.0;
+        final double r = i.isEven ? fRadius * 1.45 : fRadius * 0.24;
+        if (i == 0) {
+          context.moveTo(cos(a) * r, sin(a) * r);
+        } else {
+          context.lineTo(cos(a) * r, sin(a) * r);
+        }
+      }
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    context.restore();
+
+    if (debug) {
+      super.draw(context, true);
+    }
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.HUNTER_SHARK;
   }
 }

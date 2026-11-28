@@ -20,6 +20,7 @@ enum Mod {
   MOLE,
   BEEHIVE,
   PIGEON,
+  SHARK,
   UNKNOWN,
 }
 
@@ -85,9 +86,9 @@ Map<Mod, List<KillMessageBuilder>> _killedMessages = {
     (killed, killer) => "$killed was way too slow for $killer's snails!",
   ],
   Mod.SHOTGUN: [
-    (killed, killer) => "$killed got blasted by $killer's monkey shotgun!",
-    (killed, killer) => "$killer gave $killed a whole bucket of pellets!",
-    (killed, killer) => "$killed walked right into $killer's shotgun scatter!",
+    (killed, killer) => "$killed got clucked out by $killer's Chicken shooter!",
+    (killed, killer) => "$killer unleashed a furious flock of chickens on $killed!",
+    (killed, killer) => "$killed was pecked to pieces by $killer's Chicken shooter!",
   ],
   Mod.HEDGEHOG: [
     (killed, killer) => "$killed stepped right on $killer's snoozing hedgehog!",
@@ -109,6 +110,11 @@ Map<Mod, List<KillMessageBuilder>> _killedMessages = {
     (killed, killer) => "$killer called a Pigeon Strike right on $killed's head!",
     (killed, killer) => "$killed forgot to bring an umbrella for $killer's pigeons!",
   ],
+  Mod.SHARK: [
+    (killed, killer) => "$killed got chomped by $killer's Mega Shark!",
+    (killed, killer) => "$killer's sunglasses shark made lunch out of $killed!",
+    (killed, killer) => "$killed couldn't escape $killer's land shark!",
+  ],
   Mod.UNKNOWN: [
     (killed, killer) => "$killed went poof thanks to $killer!",
     (killed, killer) => "$killed met a cartoon end courtesy of $killer!",
@@ -128,6 +134,7 @@ Map<Mod, String Function(String player)> _selfKillMessages = {
   Mod.MOLE: (p) => "$p tunneled into their own Turbo Mole blast!",
   Mod.BEEHIVE: (p) => "$p got stung by their own Angry Beehive!",
   Mod.PIGEON: (p) => "$p stood right under their own Pigeon Strike!",
+  Mod.SHARK: (p) => "$p got mistaken for bait by their own Mega Shark!",
 };
 
 final List<String Function(String player)> _genericSelfKillMessages = [

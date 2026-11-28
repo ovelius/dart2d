@@ -83,6 +83,8 @@ class LocalPlayerSprite extends MovingSprite {
   double _bingoEffectDuration = 1.6;
   int _bingoEffectTier = 0;
   bool _wasInGame = false;
+  bool _wasCollisionAuthority = false;
+  bool? _remoteCarryingReadyShark;
   late StickySprite _shield;
 
   PlayerInfoProto? get killer => _killer;
@@ -91,15 +93,6 @@ class LocalPlayerSprite extends MovingSprite {
   double get spawnEffectRemaining => _spawnEffectRemaining;
   double get bingoEffectRemaining => _bingoEffectRemaining;
   int get bingoEffectTier => _bingoEffectTier;
-
-  void applyExtraBingoBonus() {
-    if (inGame() && health < MAX_HEALTH) {
-      health = MAX_HEALTH;
-    }
-    _bingoEffectTier = 1;
-    _bingoEffectDuration = 1.6;
-    _bingoEffectRemaining = 1.6;
-  }
 
   void applySuperBingoBonus() {
     if (inGame()) {
@@ -126,7 +119,9 @@ class LocalPlayerSprite extends MovingSprite {
     this.world = world;
     this.info = info;
     this._wasInGame = info.inGame == true;
-    this.collision = this._wasInGame;
+    this._wasCollisionAuthority =
+        world.network().isCommander() || _ownedByThisWorld();
+    this.collision = this._wasInGame && this._wasCollisionAuthority;
     this._mobileControls = mobileControls;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
@@ -558,9 +553,11 @@ class LocalPlayerSprite extends MovingSprite {
     if (_spawnEffectRemaining > 0.0) {
       _applySpawnPopTransform(context);
     }
-    context.save();
-    gun.draw(context, debug);
-    context.restore();
+    if (!isCarryingReadySharkForDisplay()) {
+      context.save();
+      gun.draw(context, debug);
+      context.restore();
+    }
     if (_shieldSec > 0) {
       context.save();
       super.draw(context, debug);
@@ -577,6 +574,9 @@ class LocalPlayerSprite extends MovingSprite {
     }
     if (_bingoEffectRemaining > 0.0) {
       _drawBingoAuraEffect(context);
+    }
+    if (isCarryingReadySharkForDisplay()) {
+      _drawCarriedShark(context);
     }
     context.save();
     drawHealthBar(context);
@@ -651,8 +651,8 @@ class LocalPlayerSprite extends MovingSprite {
     }
 
     // 3. Floating world-space comic callout above remote players so opponents see it too!
-    if (!_ownedByThisWorld()) {
-      final String badge = isSuper ? "⚡ SUPERBINGO! ⚡" : "★ EXTRA BINGO! ★";
+    if (!_ownedByThisWorld() && isSuper) {
+      const String badge = "⚡ SUPERBINGO! ⚡";
       context.font = '900 12px "Trebuchet MS", Arial, sans-serif';
       context.textAlign = "center";
       context.textBaseline = "middle";
@@ -660,7 +660,7 @@ class LocalPlayerSprite extends MovingSprite {
       context.lineWidth = 3.2;
       final double labelY = position.y - 18.0 - t * 16.0;
       context.strokeText(badge, c.x, labelY);
-      context.fillStyle = (isSuper ? "#fff066" : "#7dff9e").toJS;
+      context.fillStyle = "#fff066".toJS;
       context.fillText(badge, c.x, labelY);
     }
 
@@ -840,16 +840,24 @@ class LocalPlayerSprite extends MovingSprite {
 
   frame(double duration, int frames, [Vec2? gravity]) {
     maybeRespawn(duration);
+    final bool hasCollisionAuthority =
+        world.network().isCommander() || _ownedByThisWorld();
     final bool nowInGame =
         inGame() && !world.network().getGameState().hasWinner();
-    if (nowInGame && !_wasInGame) {
-      collision = true;
-      if (health <= 0) {
-        health = MAX_HEALTH;
+    if (nowInGame &&
+        (!_wasInGame || (hasCollisionAuthority && !_wasCollisionAuthority))) {
+      if (hasCollisionAuthority) {
+        collision = true;
       }
-      triggerSpawnEffect();
+      if (!_wasInGame) {
+        if (health <= 0) {
+          health = MAX_HEALTH;
+        }
+        triggerSpawnEffect();
+      }
     }
     _wasInGame = nowInGame;
+    _wasCollisionAuthority = hasCollisionAuthority;
     if (_spawnEffectRemaining > 0.0) {
       _spawnEffectRemaining = max(0.0, _spawnEffectRemaining - duration);
     }
@@ -1216,7 +1224,8 @@ class LocalPlayerSprite extends MovingSprite {
   ExtraSpriteData addExtraNetworkData() {
     ExtraSpriteData data = ExtraSpriteData()
       ..extraFloat.add(gun.angle)
-      ..extraInt.add(weaponState!.selectedWeaponIndex);
+      ..extraInt.add(weaponState!.selectedWeaponIndex)
+      ..extraBool.add(weaponState?.isCarryingReadyShark() ?? false);
     if (world.network().isCommander()) {
       data.extraInt
         ..add(health)
@@ -1240,6 +1249,9 @@ class LocalPlayerSprite extends MovingSprite {
 
   void parseExtraNetworkData(ExtraSpriteData data) {
     gun.angle = data.extraFloat[0];
+    if (data.extraBool.isNotEmpty) {
+      _remoteCarryingReadyShark = data.extraBool[0];
+    }
     if (weaponState != null &&
         data.extraInt.length >= 6 &&
         data.extraFloat.length >= 4 &&
@@ -1281,6 +1293,57 @@ class LocalPlayerSprite extends MovingSprite {
         _jetPackSec = data.extraFloat[2];
       }
     }
+  }
+
+  bool isCarryingReadySharkForDisplay() {
+    if (_ownedByThisWorld()) {
+      return weaponState?.isCarryingReadyShark() ?? false;
+    }
+    if (_remoteCarryingReadyShark != null) {
+      return _remoteCarryingReadyShark!;
+    }
+    return weaponState?.isCarryingReadyShark() ?? false;
+  }
+
+  void _drawCarriedShark(CanvasRenderingContext2D context) {
+    final Vec2 c = centerPoint();
+    final bool facingLeft = cos(gun.angle) < 0.0;
+    const double sharkW = 46.0;
+    const double sharkH = 34.0;
+    final double rawTilt = atan2(sin(gun.angle), cos(gun.angle).abs());
+    final double aimTilt = (rawTilt * 0.25).clamp(-0.28, 0.28);
+
+    context.save();
+    // Mounted directly on the player's shoulder (no floating gap, no gun visible).
+    context.translate(c.x + (facingLeft ? -2.0 : 2.0), position.y + 4.0);
+    if (!facingLeft) {
+      context.scale(-1.0, 1.0);
+    }
+    context.rotate(-aimTilt);
+    final ImageIndex imgIdx = world.imageIndex();
+    final int? sharkId = imgIdx.imageByName["shark.png"];
+    if (sharkId != null && sharkId >= 0 && sharkId < imgIdx.images.length) {
+      final HTMLImageElement sharkImg = imgIdx.getImageById(sharkId);
+      if (sharkImg.width > 0 && sharkImg.height > 0) {
+        final double srcW = HunterSharkProjectile.frameWidthForImage(sharkImg);
+        final bool isSheet = sharkImg.width >= sharkImg.height * 3;
+        // Before firing, draw the bare-eyes frame without sunglasses; the shark puts them on after launch.
+        final double sx =
+            isSheet ? HunterSharkProjectile.BARE_EYES_FRAME * srcW : 0.0;
+        context.drawImage(
+          sharkImg,
+          sx,
+          0,
+          srcW,
+          sharkImg.height,
+          -sharkW * 0.5,
+          -sharkH * 0.55,
+          sharkW,
+          sharkH,
+        );
+      }
+    }
+    context.restore();
   }
 
   int get shieldPoints => _shieldPoints;
@@ -1346,7 +1409,7 @@ class PlayerGunSprite extends StickySprite {
 
     final double kick = sin(_recoil * pi * 0.5) * 4.5;
     const double forwardVisualShift = 4.0;
-    try {
+    if (imageId >= 0 && imageId < _gunImageIndex.images.length) {
       final HTMLImageElement image = _gunImageIndex.getImageById(imageId);
       final num srcW = frameWidth > 0 ? frameWidth : image.width;
       final num srcH = image.height;
@@ -1363,7 +1426,7 @@ class PlayerGunSprite extends StickySprite {
           size.y,
         );
       }
-    } catch (_) {}
+    }
 
     context.restore();
     if (debug) {

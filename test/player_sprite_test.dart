@@ -25,6 +25,12 @@ void main() {
     logOutputForTest();
     mockNetwork = new MockNetwork();
     mockCommanderNetwork = new MockNetwork();
+    MockPeerWrapper mockPeer = new MockPeerWrapper();
+    when(mockPeer.getId()).thenReturn("b");
+    MockPeerWrapper mockCommanderPeer = new MockPeerWrapper();
+    when(mockCommanderPeer.getId()).thenReturn("a");
+    when(mockNetwork.peer).thenReturn(mockPeer);
+    when(mockCommanderNetwork.peer).thenReturn(mockCommanderPeer);
 
     MockGameState gameState = MockGameState();
     when(gameState.getKeyStateFor(any)).thenReturn(KeyState.remote());
@@ -78,6 +84,8 @@ void main() {
   });
 
   test("Test health powerup", () {
+    commanderSprite.info.inGame = true;
+    otherSprite.info.inGame = true;
     when(mockImageIndex.getImageIdByName("health02.png")).thenReturn(3);
     commanderSprite.takeDamage(99, otherSprite, Mod.UNKNOWN);
     Powerup p = new Powerup(Vec2.ONE, PowerUpType.HEALTH, mockImageIndex);
@@ -86,6 +94,8 @@ void main() {
   });
 
   test("Test shield powerup", () {
+    commanderSprite.info.inGame = true;
+    otherSprite.info.inGame = true;
     when(mockImageIndex.getImageIdByName("shieldi02.png")).thenReturn(3);
     commanderSprite.takeDamage(99, otherSprite, Mod.UNKNOWN);
     Powerup p = new Powerup(Vec2.ONE, PowerUpType.SHIELD, mockImageIndex);

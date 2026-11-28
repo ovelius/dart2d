@@ -1086,3 +1086,218 @@ class KillScorePopup extends MovingSprite {
     context.restore();
   }
 }
+
+/// Dramatic cartoon death effect for [HunterSharkProjectile]:
+/// 1. Explosion (0..0.36s): expanding comic shockwave + rays + seafoam droplets.
+/// 2. Implosion (0.36..0.86s): vortex rings and streaks collapsing inward to a pinch.
+/// 3. Falling sunglasses (0.86s onward): the shark's black gold-riveted wayfarers
+///    sway downward until they exit through the bottom of the screen/world.
+class SharkDeathEffect extends MovingSprite {
+  static const double EXPLOSION_END = 0.36;
+  static const double IMPLOSION_END = 0.86;
+  static const double SUNGLASSES_FALL_SPEED = 20.0;
+  static const double MAX_LIFETIME_SECONDS = 60.0;
+  static const double BOTTOM_EXIT_MARGIN = 28.0;
+
+  final WormWorld world;
+  double _age = 0.0;
+  bool facingLeft;
+
+  double get age => _age;
+  bool get isInExplosionPhase => _age < EXPLOSION_END;
+  bool get isInImplosionPhase =>
+      _age >= EXPLOSION_END && _age < IMPLOSION_END;
+  bool get isFloatingSunglassesPhase => !remove && _age >= IMPLOSION_END;
+
+  SharkDeathEffect(this.world, double x, double y, {this.facingLeft = true})
+      : super(Vec2(x, y), Vec2(42.0, 42.0), SpriteType.CUSTOM) {
+    this.collision = false;
+    this.gravityAffect = 0.0;
+    this.flags |= Sprite.FLAG_NO_GRAVITY;
+    this.invisibleOutsideCanvas = false;
+    this.fullFramesOverNetwork = 3;
+  }
+
+  double bottomExitY() {
+    final double viewHeight = world.height().toDouble();
+    final double viewBottom =
+        world.viewPoint.y + (viewHeight > 0.0 ? viewHeight : 0.0);
+    final double worldBottom = world.byteWorld.height > 0
+        ? world.byteWorld.height.toDouble()
+        : (viewBottom > 0.0 ? viewBottom : 600.0);
+    return max(viewBottom, worldBottom) + BOTTOM_EXIT_MARGIN;
+  }
+
+  double currentSunglassesY() {
+    if (_age < IMPLOSION_END) {
+      return position.y;
+    }
+    final double floatAge = _age - IMPLOSION_END;
+    final double driftY =
+        floatAge * SUNGLASSES_FALL_SPEED - sin(floatAge * 2.4).abs() * 4.0 - 4.0;
+    return position.y + driftY;
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    velocity = Vec2(0.0, 0.0);
+    if (networkType != NetworkType.REMOTE &&
+        (_age >= MAX_LIFETIME_SECONDS ||
+            (_age >= IMPLOSION_END && currentSunglassesY() > bottomExitY()))) {
+      remove = true;
+    }
+  }
+
+  @override
+  int extraSendFlags() => Sprite.FLAG_NO_GRAVITY;
+
+  @override
+  ExtraSpriteData addExtraNetworkData() {
+    final ExtraSpriteData data = ExtraSpriteData()
+      ..extraFloat.add(_age)
+      ..extraBool.add(facingLeft);
+    return data;
+  }
+
+  @override
+  void parseExtraNetworkData(ExtraSpriteData data) {
+    if (data.extraFloat.isNotEmpty) {
+      _age = data.extraFloat[0];
+    }
+    if (data.extraBool.isNotEmpty) {
+      facingLeft = data.extraBool[0];
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    if (remove || _age >= MAX_LIFETIME_SECONDS) {
+      return;
+    }
+    final Vec2 c = position;
+    context.save();
+
+    if (isInExplosionPhase) {
+      final double t = (_age / EXPLOSION_END).clamp(0.0, 1.0);
+      final double ease = 1.0 - pow(1.0 - t, 2.2).toDouble();
+      final double alpha = (1.0 - t * 0.45).clamp(0.0, 1.0);
+      final double ringR = 10.0 + ease * 58.0;
+
+      // Bright ocean-gold blast flash + expanding shockwave ring.
+      final CanvasGradient g =
+          context.createRadialGradient(c.x, c.y, 2.0, c.x, c.y, ringR);
+      g.addColorStop(0.0, "rgba(255, 250, 220, ${alpha * 0.9})");
+      g.addColorStop(0.45, "rgba(255, 196, 64, ${alpha * 0.65})");
+      g.addColorStop(0.85, "rgba(64, 224, 255, ${alpha * 0.35})");
+      g.addColorStop(1.0, "rgba(64, 224, 255, 0.0)");
+      context.fillStyle = g;
+      context.beginPath();
+      context.arc(c.x, c.y, ringR, 0, pi * 2.0);
+      context.fill();
+
+      context.strokeStyle = "rgba(255, 240, 140, $alpha)".toJS;
+      context.lineWidth = 3.6 * (1.0 - t * 0.5) + 1.0;
+      context.beginPath();
+      context.arc(c.x, c.y, ringR, 0, pi * 2.0);
+      context.stroke();
+
+      // Outward comic rays & spray droplets.
+      for (int i = 0; i < 10; i++) {
+        final double a = (i / 10.0) * pi * 2.0 + 0.15;
+        final double d0 = 8.0 + ease * 24.0;
+        final double d1 = d0 + 18.0 * (1.0 - t * 0.3);
+        context.strokeStyle = (i.isEven ? "#ffe866" : "#66f2ff").toJS;
+        context.lineWidth = 2.2;
+        context.beginPath();
+        context.moveTo(c.x + cos(a) * d0, c.y + sin(a) * d0);
+        context.lineTo(c.x + cos(a) * d1, c.y + sin(a) * d1);
+        context.stroke();
+      }
+    } else if (isInImplosionPhase) {
+      final double t =
+          ((_age - EXPLOSION_END) / (IMPLOSION_END - EXPLOSION_END))
+              .clamp(0.0, 1.0);
+      final double collapse = 1.0 - pow(t, 1.6).toDouble();
+      final double outerR = max(2.0, 64.0 * collapse);
+
+      // Collapsing vortex suction ring + inward streaks!
+      context.strokeStyle =
+          "rgba(96, 236, 255, ${(0.35 + t * 0.55).clamp(0.0, 1.0)})".toJS;
+      context.lineWidth = 2.0 + t * 2.8;
+      context.beginPath();
+      context.arc(c.x, c.y, outerR, 0, pi * 2.0);
+      context.stroke();
+
+      for (int i = 0; i < 8; i++) {
+        final double a = (i / 8.0) * pi * 2.0 + t * 3.8;
+        final double rOuter = outerR + 8.0 * collapse;
+        final double rInner = max(1.0, outerR * 0.35);
+        context.strokeStyle = (i.isEven ? "#ffffff" : "#40d9ff").toJS;
+        context.lineWidth = 2.0;
+        context.beginPath();
+        context.moveTo(c.x + cos(a) * rOuter, c.y + sin(a) * rOuter);
+        context.lineTo(c.x + cos(a + 0.35) * rInner, c.y + sin(a + 0.35) * rInner);
+        context.stroke();
+      }
+
+      // Pinch flash right as the implosion completes!
+      if (t > 0.78) {
+        final double pinchT = (t - 0.78) / 0.22;
+        context.fillStyle = "rgba(255, 255, 255, ${1.0 - pinchT * 0.3})".toJS;
+        context.beginPath();
+        context.arc(c.x, c.y, 12.0 * (1.0 - pinchT) + 3.0, 0, pi * 2.0);
+        context.fill();
+      }
+    } else {
+      // Phase 3: The shark's sunglasses sway and fall down until leaving the bottom.
+      final double floatAge = _age - IMPLOSION_END;
+      final double swayX = sin(floatAge * 3.6) * 14.0;
+      final double glassesY = currentSunglassesY();
+      if (glassesY > bottomExitY()) {
+        context.restore();
+        return;
+      }
+      final double rockRot = sin(floatAge * 3.6 + 0.4) * 0.24;
+
+      context.translate(c.x + swayX, glassesY);
+      if (!facingLeft) {
+        context.scale(-1.0, 1.0);
+      }
+      context.rotate(rockRot);
+
+      // Iconic thick black wayfarer sunglasses with gold rivets + sheen!
+      context.fillStyle = "#12161f".toJS;
+      context.strokeStyle = "#080b10".toJS;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.roundRect(-14.0, -5.0, 12.5, 9.2, 2.4.toJS);
+      context.roundRect(1.5, -5.0, 13.5, 9.6, 2.4.toJS);
+      context.fill();
+      context.stroke();
+      // Bridge + temple arm
+      context.fillRect(-2.5, -4.0, 5.0, 2.8);
+      context.fillRect(14.0, -4.2, 7.0, 2.4);
+      // Gold corner rivets
+      context.fillStyle = "#f2c14e".toJS;
+      context.fillRect(-13.2, -3.8, 1.8, 1.2);
+      context.fillRect(12.2, -3.8, 1.8, 1.2);
+      // Glossy diagonal lens sheen
+      context.strokeStyle = "rgba(255, 255, 255, 0.45)".toJS;
+      context.lineWidth = 1.6;
+      context.beginPath();
+      context.moveTo(-10.5, 1.8);
+      context.lineTo(-5.5, -2.8);
+      context.moveTo(5.0, 1.8);
+      context.lineTo(10.0, -2.8);
+      context.stroke();
+    }
+
+    context.restore();
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.SHARK_DEATH;
+  }
+}

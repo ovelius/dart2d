@@ -16,16 +16,13 @@ import '../util/mobile_controls.dart';
 
 enum BingoTier {
   none,
-  extraBingo,
   superBingo,
 }
 
 class BingoProbabilities {
-  final double extraBingo;
   final double superBingo;
 
   const BingoProbabilities({
-    required this.extraBingo,
     required this.superBingo,
   });
 }
@@ -36,22 +33,21 @@ class WeaponState {
   static const double WEAPON_SWITCH_FIRE_DELAY = 0.10;
   static const double ROULETTE_SPIN_DURATION = 1.85;
   static const double ROULETTE_REVEAL_DURATION = 1.50;
-  static const double EXTRA_BINGO_REVEAL_DURATION = 2.00;
   static const double SUPER_BINGO_REVEAL_DURATION = 2.35;
   static const int ROULETTE_TOTAL_STEPS = 16;
   static const int _SANDBOX_MASK_BIT = 1 << 20;
 
-  // Handicap Bingo probability tuning:
-  // - Leader (0% behind): 5% Extra Bingo (if hurt), 1% Superbingo.
-  // - 50% of maxFrags behind leader: 80% Superbingo, 15% Extra Bingo (if hurt).
-  static const double LEADER_EXTRA_BINGO_PROB = 0.05;
+  // Handicap Superbingo probability tuning:
+  // - Leader (0% behind): 1% Superbingo.
+  // - 50% of maxFrags behind leader: 80% Superbingo.
   static const double LEADER_SUPER_BINGO_PROB = 0.01;
   static const double HALF_DEFICIT_SUPER_BINGO_PROB = 0.80;
-  static const double HALF_DEFICIT_EXTRA_BINGO_PROB = 0.15;
 
   static const int ICON_TILE_SIZE = 68;
   static const int ICON_SIZE_HALF = ICON_TILE_SIZE ~/ 2;
   static const int WHEEL_SIZE = 172;
+  static const int SHARK_ICON_INDEX = 14;
+  static const double SHARK_MYSTERY_WEIGHT = 0.35;
   WormWorld world;
   LocalPlayerSprite owner;
   Sprite gun;
@@ -283,7 +279,22 @@ class WeaponState {
       sprite.spawn_sound = Sound.DARTGUN;
       weaponState.world.addSprite(sprite);
     }, isMysteryWeapon: true),
+    new Weapon("Mega Shark", SHARK_ICON_INDEX, 1, 8.0, 1.0,
+        (WeaponState weaponState) {
+      HunterSharkProjectile sprite = new HunterSharkProjectile.createWithOwner(
+          weaponState.world, weaponState.owner, weaponState.owner.gun);
+      sprite.spawn_sound = Sound.SPAWN;
+      weaponState.world.addSprite(sprite);
+    }, isMysteryWeapon: true, mysteryWeight: SHARK_MYSTERY_WEIGHT),
   ];
+
+  bool isCarryingReadyShark() {
+    final Weapon w = getSelectedWeapon();
+    return w.name == "Mega Shark" &&
+        w.shotsLeft > 0 &&
+        !w.reloading() &&
+        !isRouletteActive;
+  }
   
   bool isWeaponAvailable(int index) {
     if (index < 0 || index >= weapons.length) {
@@ -330,36 +341,49 @@ class WeaponState {
     required int playerScore,
     required int leaderScore,
     required int maxFrags,
-    required bool hasFullHealth,
   }) {
     final int safeMaxFrags = max(1, maxFrags);
     final int fragsBehind = max(0, leaderScore - playerScore);
     final double deficitRatio = fragsBehind / safeMaxFrags;
 
     double superProb;
-    double extraProb;
     if (deficitRatio <= 0.5) {
       final double t = (deficitRatio / 0.5).clamp(0.0, 1.0);
       superProb = LEADER_SUPER_BINGO_PROB +
           (HALF_DEFICIT_SUPER_BINGO_PROB - LEADER_SUPER_BINGO_PROB) * t;
-      extraProb = LEADER_EXTRA_BINGO_PROB +
-          (HALF_DEFICIT_EXTRA_BINGO_PROB - LEADER_EXTRA_BINGO_PROB) * t;
     } else {
       final double overT = ((deficitRatio - 0.5) / 0.5).clamp(0.0, 1.0);
       superProb = HALF_DEFICIT_SUPER_BINGO_PROB + 0.10 * overT;
-      extraProb = HALF_DEFICIT_EXTRA_BINGO_PROB;
-    }
-    superProb = superProb.clamp(0.0, 1.0);
-    if (hasFullHealth) {
-      // Extra Bingo is only eligible when the player doesn't have full health.
-      extraProb = 0.0;
-    } else {
-      extraProb = extraProb.clamp(0.0, max(0.0, 1.0 - superProb));
     }
     return BingoProbabilities(
-      extraBingo: extraProb,
-      superBingo: superProb,
+      superBingo: superProb.clamp(0.0, 1.0),
     );
+  }
+
+  /// Returns true when [owner] strictly holds the lowest score in a 2+ player
+  /// match (so neither an all-way tie nor a bottom tie).
+  bool isStrictlyLastPlace() {
+    final List<PlayerInfoProto> players =
+        world.network().getGameState().playerInfoList();
+    if (players.length < 2) {
+      return false;
+    }
+    final int myScore = owner.info.score;
+    int minScore = players.first.score;
+    int maxScore = players.first.score;
+    int minCount = 0;
+    for (final PlayerInfoProto p in players) {
+      if (p.score < minScore) {
+        minScore = p.score;
+        minCount = 1;
+      } else if (p.score == minScore) {
+        minCount++;
+      }
+      if (p.score > maxScore) {
+        maxScore = p.score;
+      }
+    }
+    return minScore < maxScore && myScore == minScore && minCount == 1;
   }
 
   BingoProbabilities currentBingoProbabilities() {
@@ -387,7 +411,6 @@ class WeaponState {
       playerScore: owner.info.score,
       leaderScore: leaderScore,
       maxFrags: maxFrags,
-      hasFullHealth: owner.health >= LocalPlayerSprite.MAX_HEALTH,
     );
   }
 
@@ -396,9 +419,6 @@ class WeaponState {
     final double r = (rollOverride ?? random.nextDouble()).clamp(0.0, 0.999999);
     if (r < probs.superBingo) {
       return BingoTier.superBingo;
-    }
-    if (probs.extraBingo > 0.0 && r < probs.superBingo + probs.extraBingo) {
-      return BingoTier.extraBingo;
     }
     return BingoTier.none;
   }
@@ -552,14 +572,15 @@ class WeaponState {
             forcedWeaponIndex < weapons.length &&
             weapons[forcedWeaponIndex].isMysteryWeapon)
         ? forcedWeaponIndex
-        : pool[random.nextInt(pool.length)];
+        : _pickWeightedMysteryIndex(pool);
 
-    BingoTier rolledTier = forcedBingoTier ?? rollBingoTier(bingoRollOverride);
-    if (rolledTier == BingoTier.extraBingo &&
-        owner.health >= LocalPlayerSprite.MAX_HEALTH) {
-      // Enforce rule: Extra Bingo only applies if player doesn't have full health.
-      rolledTier = BingoTier.none;
+    // Always restore full health when the strictly last-place player picks up a mystery powerup.
+    if (isStrictlyLastPlace() && owner.health < LocalPlayerSprite.MAX_HEALTH) {
+      owner.health = LocalPlayerSprite.MAX_HEALTH;
     }
+
+    final BingoTier rolledTier =
+        forcedBingoTier ?? rollBingoTier(bingoRollOverride);
 
     _rouletteNonce++;
     _rouletteTargetWeaponIndex = winnerIdx;
@@ -571,10 +592,23 @@ class WeaponState {
     return winnerIdx;
   }
 
+  int _pickWeightedMysteryIndex(List<int> pool) {
+    double totalWeight = 0.0;
+    for (final int idx in pool) {
+      totalWeight += max(0.01, weapons[idx].mysteryWeight);
+    }
+    double roll = random.nextDouble() * totalWeight;
+    for (final int idx in pool) {
+      roll -= max(0.01, weapons[idx].mysteryWeight);
+      if (roll <= 0.0) {
+        return idx;
+      }
+    }
+    return pool.last;
+  }
+
   void _applyBingoRewardToOwner(BingoTier tier) {
-    if (tier == BingoTier.extraBingo) {
-      owner.applyExtraBingoBonus();
-    } else if (tier == BingoTier.superBingo) {
+    if (tier == BingoTier.superBingo) {
       owner.applySuperBingoBonus();
     }
   }
@@ -619,8 +653,6 @@ class WeaponState {
     _rouletteVisualPhase = ROULETTE_TOTAL_STEPS.toDouble();
     if (_rouletteBingoTier == BingoTier.superBingo) {
       _rouletteRevealTotalDuration = SUPER_BINGO_REVEAL_DURATION;
-    } else if (_rouletteBingoTier == BingoTier.extraBingo) {
-      _rouletteRevealTotalDuration = EXTRA_BINGO_REVEAL_DURATION;
     } else {
       _rouletteRevealTotalDuration = ROULETTE_REVEAL_DURATION;
     }
@@ -641,9 +673,7 @@ class WeaponState {
 
     final Sound landingSound = _rouletteBingoTier == BingoTier.superBingo
         ? Sound.SUPER_BINGO
-        : (_rouletteBingoTier == BingoTier.extraBingo
-            ? Sound.EXTRA_BINGO
-            : Sound.ROULETTE_WIN);
+        : Sound.ROULETTE_WIN;
 
     try {
       if (owner.drawWeaponHelpers()) {
@@ -861,6 +891,10 @@ class WeaponState {
   _drawIconImageAt(CanvasRenderingContext2D context,
       HTMLImageElement iconImages, int index, num x, num y,
       [int tileSize = ICON_TILE_SIZE]) {
+    if (index == SHARK_ICON_INDEX) {
+      _drawSharkWeaponIcon(context, x.toDouble(), y.toDouble(), tileSize.toDouble());
+      return;
+    }
     if ((index + 1) * 128 <= iconImages.width && iconImages.height >= 128) {
       context.drawImage(iconImages,
           index * 128, 0, 128, 128,
@@ -874,6 +908,48 @@ class WeaponState {
       context.fill();
       context.restore();
     }
+  }
+
+  void _drawSharkWeaponIcon(
+      CanvasRenderingContext2D context, double x, double y, double size) {
+    final double cx = x + size * 0.5;
+    final double cy = y + size * 0.5;
+    final double r = size * 0.44;
+    context.save();
+    final CanvasGradient bg =
+        context.createRadialGradient(cx, cy - r * 0.25, 2.0, cx, cy, r);
+    bg.addColorStop(0.0, "#66e8ff");
+    bg.addColorStop(1.0, "#0e4d78");
+    context.fillStyle = bg;
+    context.strokeStyle = "#ffe97a".toJS;
+    context.lineWidth = max(1.5, size * 0.045);
+    context.beginPath();
+    context.arc(cx, cy, r, 0.0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    final imgIdx = world.imageIndex();
+    final int? sharkId = imgIdx.imageByName["shark.png"];
+    if (sharkId != null && sharkId >= 0 && sharkId < imgIdx.images.length) {
+      final HTMLImageElement sharkImg = imgIdx.getImageById(sharkId);
+      if (sharkImg.width > 0 && sharkImg.height > 0) {
+        final double srcW = HunterSharkProjectile.frameWidthForImage(sharkImg);
+        final double drawW = size * 0.84;
+        final double drawH = drawW * (sharkImg.height / srcW);
+        context.drawImage(
+          sharkImg,
+          0,
+          0,
+          srcW,
+          sharkImg.height,
+          cx - drawW * 0.5,
+          cy - drawH * 0.5,
+          drawW,
+          drawH,
+        );
+      }
+    }
+    context.restore();
   }
 
   _drawChangeTime(CanvasRenderingContext2D context,
@@ -1079,7 +1155,6 @@ class WeaponState {
     final bool revealing = isRouletteRevealing;
     final BingoTier bingo = revealing ? _rouletteBingoTier : BingoTier.none;
     final bool isSuper = bingo == BingoTier.superBingo;
-    final bool isExtra = bingo == BingoTier.extraBingo;
     double scale = 1.0;
     double alpha = 1.0;
     if (revealing) {
@@ -1087,7 +1162,7 @@ class WeaponState {
           _rouletteRevealTotalDuration - _rouletteRevealRemaining;
       if (elapsed < 0.42) {
         final double u = (elapsed / 0.42).clamp(0.0, 1.0);
-        final double popAmp = isSuper ? 0.48 : (isExtra ? 0.38 : 0.32);
+        final double popAmp = isSuper ? 0.48 : 0.32;
         scale = 1.0 + popAmp * sin(u * pi);
       } else if (isSuper) {
         scale = 1.06 + 0.05 * sin(_laserTime * 14.0);
@@ -1142,10 +1217,6 @@ class WeaponState {
           "rgba(116, 255, 148, 0.48)",
         ];
         rayFill = rainbowRays[i % rainbowRays.length];
-      } else if (isExtra) {
-        rayFill = i.isEven
-            ? "rgba(104, 255, 156, 0.48)"
-            : "rgba(255, 236, 102, 0.36)";
       } else if (revealing) {
         rayFill = i.isEven
             ? "rgba(255, 232, 92, 0.45)"
@@ -1261,13 +1332,13 @@ class WeaponState {
         -halfBox + 2.0, -halfBox + 2.0, boxSize - 4.0, boxSize - 4.0, 16.0.toJS);
     context.stroke();
 
-    // 5. Celebratory sparkle stars on winner reveal (extra lush for Bingo & Superbingo)!
+    // 5. Celebratory sparkle stars on winner reveal (extra lush for Superbingo)!
     if (revealing) {
       final double elapsed =
           _rouletteRevealTotalDuration - _rouletteRevealRemaining;
       final double burstT =
           (elapsed / _rouletteRevealTotalDuration).clamp(0.0, 1.0);
-      final int starCount = isSuper ? 14 : (isExtra ? 10 : 8);
+      final int starCount = isSuper ? 14 : 8;
       for (int i = 0; i < starCount; i++) {
         final double a = (i / starCount) * pi * 2 + burstT * (isSuper ? 2.0 : 1.2);
         final double dist =
@@ -1281,9 +1352,7 @@ class WeaponState {
         context.rotate(burstT * 4.5);
         final String starColor = isSuper
             ? (const <String>["#ffe96b", "#7df9ff", "#ff85f2", "#7dff9b"])[i % 4]
-            : (isExtra
-                ? (i.isEven ? "#6dff9c" : "#ffe96b")
-                : (i.isEven ? "#ffe96b" : "#7df9ff"));
+            : (i.isEven ? "#ffe96b" : "#7df9ff");
         context.fillStyle = starColor.toJS;
         context.beginPath();
         for (int p = 0; p < 8; p++) {
@@ -1308,22 +1377,16 @@ class WeaponState {
 
     final String topHeader = isSuper
         ? "⚡ SUPERBINGO! ⚡"
-        : (isExtra
-            ? "★ EXTRA BINGO! ★"
-            : (revealing ? "★ WINNER! ★" : "★ MYSTERY SPIN ★"));
+        : (revealing ? "★ WINNER! ★" : "★ MYSTERY SPIN ★");
     context.font = isSuper
         ? '900 18px "Trebuchet MS", Arial, sans-serif'
-        : (isExtra
-            ? '900 15px "Trebuchet MS", Arial, sans-serif'
-            : '900 13px "Trebuchet MS", Arial, sans-serif');
+        : '900 13px "Trebuchet MS", Arial, sans-serif';
     context.strokeStyle = "#120c24".toJS;
     context.lineWidth = isSuper ? 4.6 : 3.8;
     context.strokeText(topHeader, 0, -halfBox - 15.0);
     context.fillStyle = (isSuper
             ? "#fff066"
-            : (isExtra
-                ? "#7dff9e"
-                : (revealing ? "#ffe96b" : "#9ef4ff")))
+            : (revealing ? "#ffe96b" : "#9ef4ff"))
         .toJS;
     context.fillText(topHeader, 0, -halfBox - 15.0);
 
@@ -1355,15 +1418,13 @@ class WeaponState {
       context.fillStyle = "#ff9ef5".toJS;
       context.fillText(subText, 0, halfBox + 36.0);
 
-      if (isSuper || isExtra) {
-        final String bonusCallout = isSuper
-            ? "+ FULL SHIELD & FULL HEALTH!"
-            : "+ FULL HEALTH RESTORED!";
+      if (isSuper) {
+        const String bonusCallout = "+ FULL SHIELD & FULL HEALTH!";
         context.font = '900 14px "Trebuchet MS", Arial, sans-serif';
         context.strokeStyle = "#101824".toJS;
         context.lineWidth = 3.8;
         context.strokeText(bonusCallout, 0, halfBox + 55.0);
-        context.fillStyle = (isSuper ? "#7df9ff" : "#7dff9e").toJS;
+        context.fillStyle = "#7df9ff".toJS;
         context.fillText(bonusCallout, 0, halfBox + 55.0);
       }
     }
@@ -1626,6 +1687,8 @@ class WeaponState {
         return const WeaponBallisticsProfile(launchSpeed: 200.0, gravityAffect: 1.0);
       case "Cat litter box":
         return const WeaponBallisticsProfile(launchSpeed: 100.0, gravityAffect: 1.0);
+      case "Mega Shark":
+        return const WeaponBallisticsProfile(launchSpeed: 120.0, gravityAffect: 0.0);
       default:
         return const WeaponBallisticsProfile(launchSpeed: 350.0, gravityAffect: 0.5);
     }
@@ -1757,13 +1820,17 @@ class WeaponState {
 
   draw(CanvasRenderingContext2D context) {
     context.save();
-    if (getSelectedWeapon().hasLaserSight) {
-      _drawLaserSight(context);
-    } else if (owner.drawWeaponHelpers()) {
-      _drawTrajectoryGuide(context);
+    if (!isCarryingReadyShark()) {
+      if (getSelectedWeapon().hasLaserSight) {
+        _drawLaserSight(context);
+      } else if (owner.drawWeaponHelpers()) {
+        _drawTrajectoryGuide(context);
+      }
     }
     if (owner.drawWeaponHelpers()) {
-      _drawMagazineIndicator(context);
+      if (!isCarryingReadyShark()) {
+        _drawMagazineIndicator(context);
+      }
       if (reloading()) {
         _drawReloadIndicator(context);
       }

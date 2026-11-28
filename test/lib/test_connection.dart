@@ -38,7 +38,12 @@ class TestConnection {
   int dataReceivedCount = 0;
   int setConfigurations = 0;
   RTCConfiguration? configuration = null;
+  RTCSessionDescription? remoteDescription = null;
   var recentDataRecevied = null;
+
+  void setFakeRemoteDescription() {
+    remoteDescription = JSObject() as RTCSessionDescription;
+  }
 
   @override
   bool operator ==(Object other) {

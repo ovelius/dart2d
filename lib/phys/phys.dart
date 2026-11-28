@@ -49,6 +49,9 @@ const DISTANCE_DAMAGE_FACTOR = 5.0;
 
 int velocityForSingleSprite(
   MovingSprite sprite, Vec2 location, double radius, int radiusDamage) {
+  if (radiusDamage <= 0) {
+    return 0;
+  }
   Vec2 angle = sprite.centerPoint() - location;
   double distance = angle.sum() - sprite.getRadius();
   if (distance < 0.0) {
