@@ -33,6 +33,7 @@ class BingoProbabilities {
 class WeaponState {
   static Random random = new Random();
   static const double SHOW_WEAPON_NAME_TIME = 1.3;
+  static const double WEAPON_SWITCH_FIRE_DELAY = 0.10;
   static const double ROULETTE_SPIN_DURATION = 1.85;
   static const double ROULETTE_REVEAL_DURATION = 1.50;
   static const double EXTRA_BINGO_REVEAL_DURATION = 2.00;
@@ -127,18 +128,13 @@ class WeaponState {
         if (mobileControls!.isButtonTouch(x, y)) {
           return;
         }
-        final Point<int> wheelCenter = _clampedWheelCenter(
+        final int? tappedIdx = weaponIndexAtScreenPoint(
+          Point<int>(x, y),
           mobileControls!.buttonLocation(MobileControls.WEAPON_SELECT_BUTTON),
         );
-        final double wheelR = _effectiveWheelRadius();
-        final int dx = wheelCenter.x - x;
-        final int dy = wheelCenter.y - y;
-        final double dist = sqrt(dx * dx + dy * dy);
-        // Only select a weapon on direct tap if the tap actually landed on the
-        // open radial weapon wheel!
-        if (dist >= wheelR * 0.38 &&
-            dist <= wheelR + ICON_SIZE_HALF + 16.0) {
-          weaponStateSelector(Point(dx, dy));
+        if (tappedIdx != null) {
+          _selectWeaponIndex(tappedIdx);
+          changeTime = 0.0;
         }
       }
     });
@@ -164,22 +160,14 @@ class WeaponState {
       sprite.radius = 50.0;
       weaponState.world.addSprite(sprite);
     }),
-    new Weapon("Shotgun", 0, 4, 2.0, .8, (WeaponState weaponState) {
+    new Weapon("Chicken shooter", 0, 6, 2.0, 1.0, (WeaponState weaponState) {
       weaponState.world.playSoundAtSprite(weaponState.owner, Sound.SHOTGUN);
       for (int i = 0; i < 8; i++) {
-        WorldDamageProjectile sprite = new WorldDamageProjectile.createWithOwner(weaponState.world, weaponState.owner, 7, positionBase:weaponState.owner.gun);
-        sprite.mod = Mod.SHOTGUN;
-        sprite.particlesOnExplode = false;
-        sprite.spriteType = SpriteType.CIRCLE;
-        sprite.owner = weaponState.owner;
+        ChickenProjectile sprite = new ChickenProjectile.createWithOwner(
+            weaponState.world, weaponState.owner, 7, weaponState.owner.gun);
         double sum = sprite.velocity.sum();
         sprite.velocity.x = sprite.velocity.x + random.nextDouble() * sum / 4;
         sprite.velocity.y = sprite.velocity.y + random.nextDouble() * sum / 4;
-
-        sprite.gravityAffect = 0.5;
-        
-        sprite.size = new Vec2(2.0, 2.0);
-        sprite.radius = 8.0;
         weaponState.world.addSprite(sprite);
       }
     }),
@@ -225,7 +213,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }, hasLaserSight: true, isMysteryWeapon: true),
-    new Weapon("Cat litter box", 5, 1, 5.0, 0.01, (WeaponState weaponState) {
+    new Weapon("Cat litter box", 5, 2, 5.0, 0.01, (WeaponState weaponState) {
       CatLitterBox sprite = new CatLitterBox.createWithOwner(
           weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
       sprite.spawn_sound = Sound.SWOSH;
@@ -647,6 +635,7 @@ class WeaponState {
       _lastStarterWeaponIndex = selectedWeaponIndex;
     }
     selectedWeaponIndex = _rouletteTargetWeaponIndex;
+    changeTime = SHOW_WEAPON_NAME_TIME;
 
     _applyBingoRewardToOwner(_rouletteBingoTier);
 
@@ -665,15 +654,23 @@ class WeaponState {
     } catch (_) {}
   }
 
+  void _selectWeaponIndex(int idx) {
+    if (idx != selectedWeaponIndex) {
+      selectedWeaponIndex = idx;
+      final Weapon w = weapons[selectedWeaponIndex];
+      w.untilNextFire = max(w.untilNextFire, WEAPON_SWITCH_FIRE_DELAY);
+    }
+    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
+      _lastStarterWeaponIndex = selectedWeaponIndex;
+    }
+  }
+
   nextWeapon() {
     final List<int> avail = availableWeaponIndices();
     if (avail.isEmpty) return;
     final int pos = avail.indexOf(selectedWeaponIndex);
-    selectedWeaponIndex =
-        pos < 0 ? avail.first : avail[(pos + 1) % avail.length];
-    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
-      _lastStarterWeaponIndex = selectedWeaponIndex;
-    }
+    _selectWeaponIndex(
+        pos < 0 ? avail.first : avail[(pos + 1) % avail.length]);
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
 
@@ -681,10 +678,7 @@ class WeaponState {
     final List<int> avail = availableWeaponIndices();
     if (avail.isEmpty) return;
     final int pos = avail.indexOf(selectedWeaponIndex);
-    selectedWeaponIndex = pos <= 0 ? avail.last : avail[pos - 1];
-    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
-      _lastStarterWeaponIndex = selectedWeaponIndex;
-    }
+    _selectWeaponIndex(pos <= 0 ? avail.last : avail[pos - 1]);
     changeTime = SHOW_WEAPON_NAME_TIME;
   }
 
@@ -790,24 +784,93 @@ class WeaponState {
       }
       currentAngle += angleStep;
     }
-    selectedWeaponIndex = closestWeapon;
-    if (!weapons[selectedWeaponIndex].isMysteryWeapon) {
-      _lastStarterWeaponIndex = selectedWeaponIndex;
+    _selectWeaponIndex(closestWeapon);
+  }
+
+  static const int GRID_TILE_SIZE = 68;
+  static const int GRID_GAP = 8;
+  static const int GRID_PAD = 10;
+
+  List<int> _gridWeaponIndices() {
+    return availableWeaponIndices();
+  }
+
+  _WeaponGridLayout _computeGridLayout(Point<int> buttonCenter, int count) {
+    final int cols = min(3, max(1, count));
+    final int rows = (count / cols).ceil();
+    final int panelW =
+        GRID_PAD * 2 + cols * GRID_TILE_SIZE + (cols - 1) * GRID_GAP;
+    final int panelH =
+        GRID_PAD * 2 + rows * GRID_TILE_SIZE + (rows - 1) * GRID_GAP;
+    final int vw = _viewportWidth();
+    final int vh = _viewportHeight();
+
+    // Anchor just to the left of the weapon button, aligned near its top.
+    int left = buttonCenter.x - ICON_SIZE_HALF - panelW - 8;
+    int top = buttonCenter.y - ICON_SIZE_HALF;
+    if (vw > panelW + 16) {
+      left = left.clamp(8, vw - panelW - 8);
+    } else {
+      left = max(0, (vw - panelW) ~/ 2);
+    }
+    if (vh > panelH + 16) {
+      top = top.clamp(8, vh - panelH - 8);
+    } else {
+      top = max(0, (vh - panelH) ~/ 2);
+    }
+    return _WeaponGridLayout(
+      left: left.toDouble(),
+      top: top.toDouble(),
+      width: panelW.toDouble(),
+      height: panelH.toDouble(),
+      cols: cols,
+      rows: rows,
+    );
+  }
+
+  int? weaponIndexAtScreenPoint(Point<int> pt, Point<int> buttonCenter) {
+    final List<int> gridWeapons = _gridWeaponIndices();
+    if (gridWeapons.isEmpty) {
+      return null;
+    }
+    final _WeaponGridLayout layout =
+        _computeGridLayout(buttonCenter, gridWeapons.length);
+    for (int i = 0; i < gridWeapons.length; i++) {
+      final int col = i % layout.cols;
+      final int row = i ~/ layout.cols;
+      final double tx = layout.left + GRID_PAD + col * (GRID_TILE_SIZE + GRID_GAP);
+      final double ty = layout.top + GRID_PAD + row * (GRID_TILE_SIZE + GRID_GAP);
+      if (pt.x >= tx - 4 &&
+          pt.x <= tx + GRID_TILE_SIZE + 4 &&
+          pt.y >= ty - 4 &&
+          pt.y <= ty + GRID_TILE_SIZE + 4) {
+        return gridWeapons[i];
+      }
+    }
+    return null;
+  }
+
+  void selectWeaponAtScreenPoint(Point<int> pt, Point<int> buttonCenter) {
+    changeTime = SHOW_WEAPON_NAME_TIME;
+    final int? idx = weaponIndexAtScreenPoint(pt, buttonCenter);
+    if (idx != null) {
+      _selectWeaponIndex(idx);
     }
   }
 
   _drawIconImageAt(CanvasRenderingContext2D context,
-      HTMLImageElement iconImages, int index, num x, num y) {
+      HTMLImageElement iconImages, int index, num x, num y,
+      [int tileSize = ICON_TILE_SIZE]) {
     if ((index + 1) * 128 <= iconImages.width && iconImages.height >= 128) {
       context.drawImage(iconImages,
           index * 128, 0, 128, 128,
           x, y,
-          ICON_TILE_SIZE, ICON_TILE_SIZE);
+          tileSize, tileSize);
     } else {
       context.save();
       context.fillStyle = "#424b54".toJS;
       context.beginPath();
-      context.roundRect(x, y, ICON_TILE_SIZE, ICON_TILE_SIZE, 12.0.toJS);
+      context.roundRect(x, y, tileSize, tileSize, 10.0.toJS);
       context.fill();
       context.restore();
     }
@@ -815,48 +878,78 @@ class WeaponState {
 
   _drawChangeTime(CanvasRenderingContext2D context,
       HTMLImageElement iconImages, Point<int> buttonCenter) {
-    final List<int> avail = availableWeaponIndices();
-    if (avail.isEmpty) {
-      return;
-    }
-    final Point<int> center = _clampedWheelCenter(buttonCenter);
-    final double wheelR = _effectiveWheelRadius();
-    final double angleStep = (pi * 2) / avail.length;
+    final List<int> gridWeapons = _gridWeaponIndices();
     context.save();
-    int baseX = center.x - ICON_SIZE_HALF;
-    int baseY = center.y - ICON_SIZE_HALF;
+    if (gridWeapons.isNotEmpty) {
+      final _WeaponGridLayout layout =
+          _computeGridLayout(buttonCenter, gridWeapons.length);
 
-    double currentAngle = 0.0;
+      // Compact dark-glass grid panel.
+      context.fillStyle = "rgba(14, 20, 32, 0.88)".toJS;
+      context.strokeStyle = "rgba(255, 233, 122, 0.65)".toJS;
+      context.lineWidth = 2.0;
+      context.beginPath();
+      context.roundRect(
+          layout.left, layout.top, layout.width, layout.height, 14.0.toJS);
+      context.fill();
+      context.stroke();
 
-    for (final int weaponIdx in avail) {
-      final double x = sin(currentAngle) * wheelR;
-      final double y = cos(currentAngle) * wheelR;
-      final double tileX = baseX + x;
-      final double tileY = baseY + y;
-      final bool isSelected = selectedWeaponIndex == weaponIdx;
-      context.globalAlpha = isSelected ? 1.0 : 0.55;
-      _drawIconImageAt(
-          context, iconImages, weapons[weaponIdx].iconIndex, tileX, tileY);
-      _drawWheelClipBadge(
-          context, weapons[weaponIdx], tileX, tileY, isSelected);
-      currentAngle += angleStep;
+      for (int i = 0; i < gridWeapons.length; i++) {
+        final int weaponIdx = gridWeapons[i];
+        final bool isSelected = weaponIdx == selectedWeaponIndex;
+        final int col = i % layout.cols;
+        final int row = i ~/ layout.cols;
+        final double tileX =
+            layout.left + GRID_PAD + col * (GRID_TILE_SIZE + GRID_GAP);
+        final double tileY =
+            layout.top + GRID_PAD + row * (GRID_TILE_SIZE + GRID_GAP);
+
+        context.fillStyle = (isSelected
+                ? "rgba(72, 92, 132, 0.96)"
+                : "rgba(34, 46, 68, 0.85)")
+            .toJS;
+        context.beginPath();
+        context.roundRect(
+            tileX, tileY, GRID_TILE_SIZE, GRID_TILE_SIZE, 10.0.toJS);
+        context.fill();
+        if (isSelected) {
+          context.strokeStyle = "#ffe97a".toJS;
+          context.lineWidth = 2.4;
+          context.stroke();
+        }
+
+        _drawIconImageAt(
+          context,
+          iconImages,
+          weapons[weaponIdx].iconIndex,
+          tileX,
+          tileY,
+          GRID_TILE_SIZE,
+        );
+        _drawWheelClipBadge(
+          context,
+          weapons[weaponIdx],
+          tileX,
+          tileY,
+          isSelected,
+          tileSize: GRID_TILE_SIZE,
+        );
+      }
+
+      // Draw the currently selected weapon's name cleanly below the grid.
+      context.font = 'bold 16px "Trebuchet MS", Arial, sans-serif';
+      final String selectedWeaponName = weapons[selectedWeaponIndex].name;
+      final TextMetrics metrics = context.measureText(selectedWeaponName);
+      final double textX =
+          layout.left + (layout.width - metrics.width) * 0.5;
+      final double textY = layout.top + layout.height + 18.0;
+      context.lineJoin = "round";
+      context.strokeStyle = "#161b24".toJS;
+      context.lineWidth = 4.0;
+      context.strokeText(selectedWeaponName, textX, textY);
+      context.fillStyle = "#ffe97a".toJS;
+      context.fillText(selectedWeaponName, textX, textY);
     }
-    // Draw the weapon name in bold cartoon outlined style.
-    context.font = 'bold 20px "Trebuchet MS", Arial, sans-serif';
-    String selectedWeaponName = weapons[selectedWeaponIndex].name;
-    TextMetrics metrics = context.measureText(selectedWeaponName);
-    context.globalAlpha = 1.0;
-    num textY = center.y - WeaponState.ICON_SIZE_HALF;
-    if (textY < 0) {
-      textY = center.y + WeaponState.ICON_SIZE_HALF;
-    }
-    double textX = center.x - metrics.width / 2;
-    context.lineJoin = "round";
-    context.strokeStyle = "#161b24".toJS;
-    context.lineWidth = 4.5;
-    context.strokeText(selectedWeaponName, textX, textY);
-    context.fillStyle = "#ffe97a".toJS;
-    context.fillText(selectedWeaponName, textX, textY);
     context.restore();
   }
 
@@ -867,8 +960,9 @@ class WeaponState {
     Weapon weapon,
     double tileX,
     double tileY,
-    bool isSelected,
-  ) {
+    bool isSelected, {
+    int tileSize = ICON_TILE_SIZE,
+  }) {
     final int maxShots = weapon.shotsPerClip;
     if (maxShots <= 0) return;
 
@@ -887,12 +981,12 @@ class WeaponState {
 
     context.save();
     context.globalAlpha = isSelected ? 1.0 : 0.86;
-    context.font = 'bold 11px "Trebuchet MS", Arial, sans-serif';
+    context.font = 'bold 10px "Trebuchet MS", Arial, sans-serif';
     final double textW = context.measureText(label).width;
-    final double pillW = max(36.0, min(ICON_TILE_SIZE - 4.0, textW + 14.0));
-    const double pillH = 19.0;
-    final double pillX = tileX + (ICON_TILE_SIZE - pillW) * 0.5;
-    final double pillY = tileY + ICON_TILE_SIZE - pillH - 2.0;
+    final double pillW = max(32.0, min(tileSize - 4.0, textW + 12.0));
+    const double pillH = 17.0;
+    final double pillX = tileX + (tileSize - pillW) * 0.5;
+    final double pillY = tileY + tileSize - pillH - 2.0;
     const double radius = 6.5;
 
     // Dark cartoon capsule background.
@@ -1514,6 +1608,7 @@ class WeaponState {
         return const WeaponBallisticsProfile(launchSpeed: 435.0, gravityAffect: 0.10);
       case "Dart gun":
         return const WeaponBallisticsProfile(launchSpeed: 530.0, gravityAffect: 0.30);
+      case "Chicken shooter":
       case "Shotgun":
         return const WeaponBallisticsProfile(launchSpeed: 540.0, gravityAffect: 0.50);
       case "Brick builder":
@@ -1672,7 +1767,57 @@ class WeaponState {
       if (reloading()) {
         _drawReloadIndicator(context);
       }
+      if (changeTime > 0) {
+        _drawSelectedWeaponBelowPlayer(context);
+      }
     }
+    context.restore();
+  }
+
+  void _drawSelectedWeaponBelowPlayer(CanvasRenderingContext2D context) {
+    final Weapon weapon = getSelectedWeapon();
+    final Vec2 center = owner.centerPoint();
+    final double alpha = (changeTime / 0.25).clamp(0.0, 1.0);
+    const int iconSize = 22;
+    const double padX = 8.0;
+    const double gap = 6.0;
+    const double pillH = 28.0;
+
+    context.save();
+    context.globalAlpha = alpha * 0.94;
+    context.font = 'bold 12px "Trebuchet MS", Arial, sans-serif';
+    final double textW = context.measureText(weapon.name).width;
+    final double pillW = padX * 2 + iconSize + gap + textW;
+    final double pillX = center.x - pillW * 0.5;
+    final double pillY = owner.position.y + owner.size.y + 28.0;
+
+    context.fillStyle = "rgba(14, 20, 32, 0.90)".toJS;
+    context.strokeStyle = "#ffe97a".toJS;
+    context.lineWidth = 1.6;
+    context.beginPath();
+    context.roundRect(pillX, pillY, pillW, pillH, (pillH * 0.5).toJS);
+    context.fill();
+    context.stroke();
+
+    final HTMLImageElement iconImages =
+        world.imageIndex().getImageByName("weapon_icons.png");
+    _drawIconImageAt(
+      context,
+      iconImages,
+      weapon.iconIndex,
+      pillX + padX,
+      pillY + (pillH - iconSize) * 0.5,
+      iconSize,
+    );
+
+    context.textAlign = "left";
+    context.textBaseline = "middle";
+    context.fillStyle = "#ffe97a".toJS;
+    context.fillText(
+      weapon.name,
+      pillX + padX + iconSize + gap,
+      pillY + pillH * 0.52,
+    );
     context.restore();
   }
 
@@ -1913,6 +2058,24 @@ class WeaponState {
 
   bool reloading() => weapons[selectedWeaponIndex].reloading();
   int reloadPercent() => weapons[selectedWeaponIndex].reloadPercent();
+}
+
+class _WeaponGridLayout {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final int cols;
+  final int rows;
+
+  const _WeaponGridLayout({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.cols,
+    required this.rows,
+  });
 }
 
 class LaserSightTrace {

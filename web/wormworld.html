@@ -151,6 +151,8 @@
         });
       });
 
+      // TODO: Add here we delete our messages refernce after disconnect.
+      // Similar to userStatusDatabaseRef.onDisconnect() above.
       firebase.database().ref('/messages/' + selfId).on('child_added', (data) => {
         messageCallback(JSON.stringify(data.val()));
         data.ref.remove();

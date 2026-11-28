@@ -25,7 +25,7 @@ const Map<String, int> IMAGE_CRC32_HASHES = <String, int>{
   'snails.png': 0xF1369D86,
   'soda.png': 0xF15F3ADF,
   'turtle96.png': 0x2D6ACCF7,
-  'weapon_icons.png': 0x4A9E0072,
+  'weapon_icons.png': 0x3ABA6740,
   'world_castle.png': 0x4EE90138,
   'world_castle_mini.png': 0x3A3A3A77,
   'world_city.png': 0x05F8FE35,

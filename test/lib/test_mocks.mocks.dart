@@ -678,6 +678,26 @@ class MockNetwork extends _i1.Mock implements _i13.Network {
   );
 
   @override
+  bool get skipWorldSpriteBundleOnKeyUpdateForTest =>
+      (super.noSuchMethod(
+            Invocation.getter(#skipWorldSpriteBundleOnKeyUpdateForTest),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  set skipWorldSpriteBundleOnKeyUpdateForTest(
+    bool? _skipWorldSpriteBundleOnKeyUpdateForTest,
+  ) => super.noSuchMethod(
+    Invocation.setter(
+      #skipWorldSpriteBundleOnKeyUpdateForTest,
+      _skipWorldSpriteBundleOnKeyUpdateForTest,
+    ),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i3.ConnectionFactory get connectionFactory =>
       (super.noSuchMethod(
             Invocation.getter(#connectionFactory),
@@ -4492,6 +4512,25 @@ class MockLocalPlayerSprite extends _i1.Mock implements _i10.LocalPlayerSprite {
             returnValueForMissingStub: _i10.SpriteConstructor.DO_NOT_CREATE,
           )
           as _i10.SpriteConstructor);
+
+  @override
+  bool isOwnedBySamePlayer(_i10.MovingSprite? other) =>
+      (super.noSuchMethod(
+            Invocation.method(#isOwnedBySamePlayer, [other]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  void clearShallowGroundStep(
+    dynamic world,
+    _i10.LocalPlayerSprite? owner,
+    double? launchAngle,
+  ) => super.noSuchMethod(
+    Invocation.method(#clearShallowGroundStep, [world, owner, launchAngle]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void setImage(int? imageId, int? frames) => super.noSuchMethod(

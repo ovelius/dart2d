@@ -52,7 +52,7 @@ void main() {
         starterNames,
         unorderedEquals(<String>[
           'Brick builder',
-          'Shotgun',
+          'Chicken shooter',
           'Dart gun',
           'Zooka',
         ]),

@@ -298,15 +298,9 @@ class Powerup extends MovingSprite {
 
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (other is LocalPlayerSprite) {
-      bool hasWinner = false;
-      try {
-        hasWinner = other.world.network().getGameState().hasWinner() == true;
-      } catch (_) {}
-      final bool canPickup = other.world.network().isCommander() &&
-          other.collision &&
-          !hasWinner &&
-          (_type != PowerUpType.POWERUP || other.inGame());
-      if (canPickup) {
+      if (other.world.network().isCommander() &&
+          other.inGame() &&
+          !other.world.network().getGameState().hasWinner()) {
         dynamic action = _ACTIONS[_type];
         action(this, other);
         if (remove) {

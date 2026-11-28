@@ -34,7 +34,8 @@ enum SpriteConstructor {
   HOMING_BEE,
   PIGEON_FLARE,
   BOMBER_PIGEON,
-  PIGEON_BOMB
+  PIGEON_BOMB,
+  CHICKEN
 }
 
 /**
@@ -124,6 +125,9 @@ class SpriteIndex {
     SpriteConstructor.PIGEON_BOMB:
         (WormWorld world, int spriteId, String connectionId) =>
             new PigeonDroppingBomb(world, 0.0, 0.0, 0, world.imageIndex()),
+    SpriteConstructor.CHICKEN:
+        (WormWorld world, int spriteId, String connectionId) =>
+            new ChickenProjectile(world, 0.0, 0.0, 0, world.imageIndex()),
   };
 
   static MovingSprite? fromWorldByIndex(WormWorld world, int spriteId,

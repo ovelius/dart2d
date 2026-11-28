@@ -41,6 +41,7 @@ class Network {
   // Used in tests that step frames manually with large durations (e.g. KEY_FRAME_DEFAULT),
   // which would otherwise look like a low framerate and trigger unexpected commander handoffs.
   bool disableCommandTransferHeuristicForTest = false;
+  bool skipWorldSpriteBundleOnKeyUpdateForTest = false;
 
   Network(
       this._gaReporter,
@@ -612,7 +613,13 @@ class Network {
       StateUpdate keyUpdate = StateUpdate();
       keyUpdate.keyState = _localKeyState.toKeyStateProto();
       GameStateUpdates? bundleWithPlayer;
-      try {
+      // Bundle our local player sprite with immediate key-state changes (such as
+      // pressing/releasing Fire or movement keys) so the commander receives our
+      // up-to-date gun.angle, position, velocity, and selectedWeaponIndex in the
+      // same packet rather than acting on stale keyframe data.
+      // `consumeFullFrame: false` ensures this out-of-band input packet does not
+      // decrement `fullFramesOverNetwork` before the regular tick broadcasts to all peers.
+      if (!skipWorldSpriteBundleOnKeyUpdateForTest) {
         final ConnectionWrapper? serverConn = getServerConnection();
         final LocalPlayerSprite? selfSprite = world.playerSprite;
         if (serverConn != null &&
@@ -626,7 +633,7 @@ class Network {
             ..spriteUpdates.add(
                 toSpriteUpdate(selfSprite, false, consumeFullFrame: false));
         }
-      } catch (_) {}
+      }
       if (bundleWithPlayer != null) {
         peer.sendDataWithKeyFramesToAll(bundleWithPlayer);
       } else {

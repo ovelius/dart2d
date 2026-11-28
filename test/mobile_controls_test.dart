@@ -335,35 +335,41 @@ void main() {
       expect(weaponState.selectedWeaponIndex, equals(cycledWeapon));
       controls.touchUp(5);
 
-      // 6. Tapping directly on a radial weapon wheel icon selects that weapon.
-      final List<int> availWeapons = weaponState.availableWeaponIndices();
-      final double wheelR = min(
-        WeaponState.WHEEL_SIZE.toDouble(),
-        min(controls.width, controls.height) * 0.34,
-      ).clamp(92.0, WeaponState.WHEEL_SIZE.toDouble());
-      final int margin = (wheelR + WeaponState.ICON_SIZE_HALF + 8.0).ceil();
-      final Point<int> wheelCenter = Point<int>(
-        weaponBtn.x.clamp(margin, controls.width - margin),
-        weaponBtn.y.clamp(margin, controls.height - margin),
-      );
-      const int targetSlot = 2;
-      final int targetIdx = availWeapons[targetSlot];
-      final double targetAngle = (pi * 2 / availWeapons.length) * targetSlot;
-      final int iconTapX = (wheelCenter.x + sin(targetAngle) * wheelR).round();
-      final int iconTapY = (wheelCenter.y + cos(targetAngle) * wheelR).round();
-      expect(controls.isButtonTouch(iconTapX, iconTapY), isFalse);
-      controls.touchDown(6, iconTapX, iconTapY);
+      // 6. Tapping directly on a compact grid weapon tile selects that weapon
+      //    without shifting the static grid slots.
+      final List<int> gridWeapons = weaponState.availableWeaponIndices();
+      expect(gridWeapons, hasLength(4));
+      // First tile in the 3-column grid sits to the left of weaponBtn.
+      final int panelW = WeaponState.GRID_PAD * 2 +
+          3 * WeaponState.GRID_TILE_SIZE +
+          2 * WeaponState.GRID_GAP;
+      final int panelH = WeaponState.GRID_PAD * 2 +
+          2 * WeaponState.GRID_TILE_SIZE +
+          WeaponState.GRID_GAP;
+      final int gridLeft =
+          (weaponBtn.x - WeaponState.ICON_SIZE_HALF - panelW - 8)
+              .clamp(8, controls.width - panelW - 8);
+      final int gridTop = (weaponBtn.y - WeaponState.ICON_SIZE_HALF)
+          .clamp(8, controls.height - panelH - 8);
+      final int tile0X =
+          gridLeft + WeaponState.GRID_PAD + WeaponState.GRID_TILE_SIZE ~/ 2;
+      final int tile0Y =
+          gridTop + WeaponState.GRID_PAD + WeaponState.GRID_TILE_SIZE ~/ 2;
+      expect(controls.isButtonTouch(tile0X, tile0Y), isFalse);
+      controls.touchDown(6, tile0X, tile0Y);
       controls.touchUp(6);
-      expect(weaponState.selectedWeaponIndex, equals(targetIdx));
+      expect(weaponState.selectedWeaponIndex, equals(gridWeapons[0]));
 
-      // 7. Holding WEAPON_SELECT and dragging >= 18px selects via radial drag.
+      // 7. Holding WEAPON_SELECT and dragging onto a static grid tile selects it.
       controls.touchDown(7, weaponBtn.x, weaponBtn.y);
-      // Drag straight up on screen -> delta = start - current = (0, +80),
-      // which matches angle pi (bottom of sin/cos wheel) rather than tap-cycled index.
-      controls.touchMove(7, weaponBtn.x, weaponBtn.y - 80);
+      final int tile1X = gridLeft +
+          WeaponState.GRID_PAD +
+          WeaponState.GRID_TILE_SIZE +
+          WeaponState.GRID_GAP +
+          WeaponState.GRID_TILE_SIZE ~/ 2;
+      controls.touchMove(7, tile1X, tile0Y);
       player.checkControlKeys(0.02);
-      final int expectedDragIdx = availWeapons[(availWeapons.length / 2).round()];
-      expect(weaponState.selectedWeaponIndex, equals(expectedDragIdx));
+      expect(weaponState.selectedWeaponIndex, equals(gridWeapons[1]));
       controls.touchUp(7);
     });
 

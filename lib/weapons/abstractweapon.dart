@@ -49,7 +49,7 @@ class Weapon {
     if (shotsLeft <= 0 && untilReload < 0) {
       if (!isMysteryWeapon || allowAutoReload) {
         shotsLeft = shotsPerClip;
-        untilNextFire = 0.0;
+        untilNextFire = 0.10;
       }
     }
   }

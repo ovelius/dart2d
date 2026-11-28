@@ -265,15 +265,21 @@ class Loader {
         this._currentMessage = "ERROR: ${_peerWrapper.getLastError()}";
         return;
       }
-      setState(LoaderState.WEB_RTC_INIT);
+      setState(LoaderState.WEB_RTC_INIT, "Connecting to signaling server...");
       return;
     }
     if (!_peerWrapper.hasReceivedActiveIds()) {
-      setState(LoaderState.WAITING_FOR_PEER_DATA);
+      setState(LoaderState.WAITING_FOR_PEER_DATA, "Connected! Checking who is online...");
       return;
     }
+    final int onlineCount = (_peerWrapper.activeIds?.length ?? 1) - 1;
+    final String peerLabel = onlineCount <= 0
+        ? "No other peers online yet"
+        : "$onlineCount ${onlineCount == 1 ? 'peer' : 'peers'} online";
     if (!_network.hasOpenConnection() && !_peerWrapper.connectionsExhausted()) {
-      setState(LoaderState.CONNECTING_TO_PEER);
+      final int tryingCount = _peerWrapper.connections.length;
+      setState(LoaderState.CONNECTING_TO_PEER,
+          "$peerLabel · Connecting ($tryingCount/$onlineCount)...");
       return;
     }
     if (!_imageIndex.finishedLoadingImages()) {

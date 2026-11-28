@@ -66,6 +66,16 @@ class WorldListener {
         return;
       }
       info.inGame = true;
+      final Sprite? playerSprite = _world.spriteIndex[info.spriteId] ??
+          _world.spriteIndex.getPendingSprite(info.spriteId);
+      // `playerSprite` is `Sprite?` (may be null if not yet spawned or another
+      // sprite type), so narrow to `LocalPlayerSprite` before resetting health,
+      // shield, and collision when the client enters the game.
+      if (playerSprite is LocalPlayerSprite) {
+        playerSprite.health = LocalPlayerSprite.MAX_HEALTH;
+        playerSprite.shieldPoints = 0;
+        playerSprite.collision = true;
+      }
       game.markAsUrgent();
     });
 
@@ -162,6 +172,7 @@ class WorldListener {
       reply.challengeReply = CommanderGameReply_ChallengeReply.REJECT_ENDED;
       connection.sendSingleUpdate(updateReply);
       // Mark as closed.
+      // TODO: We should not close connection here but rather allow the player to join next game.
       connection.close("Game over");
       return;
     }

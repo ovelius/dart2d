@@ -3,6 +3,9 @@ library imageindex;
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/crc32.dart';
+// NOTE: Whenever you add, remove, or modify images in `web/img/`, run:
+//   dart run tool/generate_image_hashes.dart
+// to update `lib/res/image_hashes.dart`.
 import 'package:dart2d/res/image_hashes.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:dart2d/worlds/world_data.dart';

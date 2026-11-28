@@ -190,7 +190,7 @@ void main() {
 
     // Discreet magazine indicator renders for both small-clip pips and large-clip bar.
     WeaponState ws = commanderSprite.weaponState!;
-    ws.selectedWeaponIndex = ws.weapons.indexWhere((w) => w.name == "Shotgun");
+    ws.selectedWeaponIndex = ws.weapons.indexWhere((w) => w.name == "Chicken shooter");
     ws.getSelectedWeapon().shotsLeft = 2;
     ws.draw(canvas.context2D);
 

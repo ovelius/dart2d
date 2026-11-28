@@ -126,6 +126,7 @@ class LocalPlayerSprite extends MovingSprite {
     this.world = world;
     this.info = info;
     this._wasInGame = info.inGame == true;
+    this.collision = this._wasInGame;
     this._mobileControls = mobileControls;
     this.size = DEFAULT_PLAYER_SIZE;
     this.gun = _createGun(imageIndex);
@@ -318,13 +319,11 @@ class LocalPlayerSprite extends MovingSprite {
 
   void triggerSpawnEffect() {
     _spawnEffectRemaining = SPAWN_EFFECT_DURATION;
-    try {
-      if (_ownedByThisWorld()) {
-        world.playSound(Sound.SPAWN, volume: 0.90, multiPlay: true);
-      } else {
-        world.playSoundAtSprite(this, Sound.SPAWN, multiPlay: true);
-      }
-    } catch (_) {}
+    if (_ownedByThisWorld()) {
+      world.playSound(Sound.SPAWN, volume: 0.90, multiPlay: true);
+    } else {
+      world.playSoundAtSprite(this, Sound.SPAWN, multiPlay: true);
+    }
   }
 
   void _drawSpawnEffectBackdrop(CanvasRenderingContext2D context) {
@@ -765,12 +764,13 @@ class LocalPlayerSprite extends MovingSprite {
 
   frame(double duration, int frames, [Vec2? gravity]) {
     maybeRespawn(duration);
-    final bool hasWinner = world.network().getGameState().hasWinner() == true;
-    if (hasWinner) {
-      collision = false;
-    }
-    final bool nowInGame = inGame() && !hasWinner;
+    final bool nowInGame =
+        inGame() && !world.network().getGameState().hasWinner();
     if (nowInGame && !_wasInGame) {
+      collision = true;
+      if (health <= 0) {
+        health = MAX_HEALTH;
+      }
       triggerSpawnEffect();
     }
     _wasInGame = nowInGame;
@@ -872,7 +872,12 @@ class LocalPlayerSprite extends MovingSprite {
             .getTouchDeltaForButton(MobileControls.WEAPON_SELECT_BUTTON);
         if (delta != null &&
             (delta.x * delta.x + delta.y * delta.y) >= 18 * 18) {
-          weaponState?.weaponStateSelector(delta);
+          final Point<int> btnCenter = _mobileControls!
+              .buttonLocation(MobileControls.WEAPON_SELECT_BUTTON);
+          weaponState?.selectWeaponAtScreenPoint(
+            Point<int>(btnCenter.x - delta.x, btnCenter.y - delta.y),
+            btnCenter,
+          );
         }
       }
     }

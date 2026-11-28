@@ -48,7 +48,7 @@ class Rope extends MovingSprite {
 
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (other != null) {
-      if (isOwnedBySamePlayer(other) || other is Rope) {
+      if (other.networkId == owner?.networkId || other is Rope) {
         return;
       }
       if (networkType != NetworkType.LOCAL) {

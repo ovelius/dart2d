@@ -624,7 +624,65 @@ class PlayerWorldSelector {
       _context.restore();
     }
 
+    _drawActiveGameInfoBanner(fade);
     _drawConfirmActionPill("PLAY ▶", fade);
+    _context.restore();
+  }
+
+  void _drawActiveGameInfoBanner(double fade) {
+    final List<PlayerInfoProto> players =
+        _network.getGameState().playerInfoList();
+    final String? rawMap = _selectedWorldName ??
+        (_network.getGameState().gameStateProto.mapName.isNotEmpty
+            ? _network.getGameState().gameStateProto.mapName
+            : null);
+    if ((rawMap == null || rawMap.isEmpty) && players.isEmpty) {
+      return;
+    }
+
+    final List<String> parts = <String>[];
+    if (rawMap != null && rawMap.isNotEmpty) {
+      final ParsedGeneratedMap? parsed = parseGeneratedMapName(rawMap);
+      final String mapLabel = parsed?.theme.name ?? rawMap;
+      parts.add("World: $mapLabel");
+    }
+    if (players.isNotEmpty) {
+      final String names = players
+          .map((PlayerInfoProto p) => p.name)
+          .where((String n) => n.isNotEmpty)
+          .join(", ");
+      if (names.isNotEmpty) {
+        parts.add("Players (${players.length}): $names");
+      }
+    }
+    if (parts.isEmpty) {
+      return;
+    }
+
+    final String bannerText = parts.join("  ·  ");
+    _context.save();
+    _context.globalAlpha = fade;
+    final int fontPx = (_height * 0.032).round().clamp(12, 16);
+    _context.font = 'bold ${fontPx}px "Trebuchet MS", Arial, sans-serif';
+    _context.textAlign = "center";
+    _context.textBaseline = "middle";
+    final double textW = _context.measureText(bannerText).width;
+    final double pillW = min(_width - 24.0, textW + 26.0);
+    final double pillH = (fontPx + 12).toDouble();
+    final double pillX = (_width - pillW) * 0.5;
+    final double pillY =
+        _height - max(10.0, _height * 0.03) - (_height * 0.105).clamp(38.0, 52.0) - pillH - 8.0;
+
+    _context.fillStyle = "rgba(12, 24, 46, 0.84)".toJS;
+    _context.strokeStyle = "rgba(255, 233, 122, 0.65)".toJS;
+    _context.lineWidth = 1.6;
+    _context.beginPath();
+    _context.roundRect(pillX, pillY, pillW, pillH, (pillH * 0.5).toJS);
+    _context.fill();
+    _context.stroke();
+
+    _context.fillStyle = "#ffe97a".toJS;
+    _context.fillText(bannerText, _width * 0.5, pillY + pillH * 0.52);
     _context.restore();
   }
 

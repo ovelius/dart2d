@@ -68,7 +68,7 @@ class HedgehogMine extends WorldDamageProjectile {
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
-    clearShallowGroundStep(world, owner, positionBase.angle);
+    clearShallowGroundStep(world.byteWorld, owner, positionBase.angle);
     this.velocity = Vec2(
       cos(positionBase.angle) * 240.0 + owner.velocity.x * 0.65,
       sin(positionBase.angle) * 240.0 + owner.velocity.y * 0.5,
@@ -1010,7 +1010,7 @@ class AngryBeehive extends WorldDamageProjectile {
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
-    clearShallowGroundStep(world, owner, positionBase.angle);
+    clearShallowGroundStep(world.byteWorld, owner, positionBase.angle);
     this.velocity = Vec2(
       cos(positionBase.angle) * 200.0 + owner.velocity.x * 0.6,
       sin(positionBase.angle) * 200.0 + owner.velocity.y * 0.5,
@@ -1474,7 +1474,7 @@ class PigeonStrikeFlare extends WorldDamageProjectile {
       ownerCenter.x + cos(positionBase.angle) * offset,
       ownerCenter.y + sin(positionBase.angle) * offset,
     ));
-    clearShallowGroundStep(world, owner, positionBase.angle);
+    clearShallowGroundStep(world.byteWorld, owner, positionBase.angle);
     this.velocity = Vec2(
       cos(positionBase.angle) * 360.0 + owner.velocity.x * 0.5,
       sin(positionBase.angle) * 360.0 + owner.velocity.y * 0.35,
@@ -2346,5 +2346,102 @@ class PigeonSplatEffect extends MovingSprite {
     }
 
     context.restore();
+  }
+}
+
+/// Tiny flapping cartoon chicken projectile fired by the "Chicken shooter".
+class ChickenProjectile extends WorldDamageProjectile {
+  double _age = 0.0;
+
+  ChickenProjectile(
+      WormWorld world, double x, double y, int imageId, ImageIndex imageIndex)
+      : super(world, x, y, imageId, imageIndex) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.size = new Vec2(12.0, 10.0);
+    this.mod = Mod.SHOTGUN;
+    this.gravityAffect = 0.5;
+    this.radius = 8.0;
+    this.particlesOnExplode = false;
+    this.showCounter = false;
+  }
+
+  ChickenProjectile.createWithOwner(
+      WormWorld world, LocalPlayerSprite owner, int damage, MovingSprite positionBase)
+      : super.createWithOwner(world, owner, damage,
+            positionBase: positionBase, size: new Vec2(12.0, 10.0)) {
+    this.spriteType = SpriteType.CUSTOM;
+    this.mod = Mod.SHOTGUN;
+    this.gravityAffect = 0.5;
+    this.radius = 8.0;
+    this.particlesOnExplode = false;
+    this.showCounter = false;
+    this.angle = positionBase.angle;
+  }
+
+  @override
+  frame(double duration, int frameStep, [Vec2? gravity]) {
+    _age += duration;
+    super.frame(duration, frameStep, gravity);
+    if (velocity.x * velocity.x + velocity.y * velocity.y > 16.0) {
+      angle = atan2(velocity.y, velocity.x);
+    }
+  }
+
+  @override
+  draw(CanvasRenderingContext2D context, bool debug) {
+    final Vec2 c = centerPoint();
+    final bool facingLeft = cos(angle) < 0.0;
+    final double flap = sin(_age * 36.0) * 2.2;
+
+    context.save();
+    context.translate(c.x, c.y);
+    if (facingLeft) {
+      context.scale(-1.0, 1.0);
+    }
+
+    // Little red comb on top of head.
+    context.fillStyle = "#e63232".toJS;
+    context.beginPath();
+    context.arc(2.2, -4.8, 1.6, 0, pi * 2.0);
+    context.arc(0.4, -4.4, 1.3, 0, pi * 2.0);
+    context.fill();
+
+    // Plump tiny white-cream chicken body.
+    context.fillStyle = "#fff9e6".toJS;
+    context.strokeStyle = "#1c1814".toJS;
+    context.lineWidth = 1.3;
+    context.beginPath();
+    context.ellipse(-0.5, 0.5, 4.8, 3.6, 0, 0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    // Flapping tiny wing.
+    context.fillStyle = "#f2e4c2".toJS;
+    context.beginPath();
+    context.ellipse(-1.2, 0.2 + flap * 0.4, 2.4, 1.5, -0.3, 0, pi * 2.0);
+    context.fill();
+    context.stroke();
+
+    // Orange triangle beak.
+    context.fillStyle = "#ff9914".toJS;
+    context.beginPath();
+    context.moveTo(4.0, -1.2);
+    context.lineTo(6.8, -0.2);
+    context.lineTo(4.0, 0.8);
+    context.closePath();
+    context.fill();
+
+    // Tiny black eye.
+    context.fillStyle = "#141414".toJS;
+    context.beginPath();
+    context.arc(2.8, -1.2, 0.9, 0, pi * 2.0);
+    context.fill();
+
+    context.restore();
+  }
+
+  @override
+  SpriteConstructor remoteRepresentation() {
+    return SpriteConstructor.CHICKEN;
   }
 }

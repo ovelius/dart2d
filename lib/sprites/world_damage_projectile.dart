@@ -546,7 +546,7 @@ class CatLitterBox extends WorldDamageProjectile {
     ));
     this.velocity.x = cos(positionBase.angle) * 100.0 + owner.velocity.x * 0.5;
     this.velocity.y = sin(positionBase.angle) * 100.0 + owner.velocity.y * 0.5;
-    clearShallowGroundStep(world, owner, positionBase.angle);
+    clearShallowGroundStep(world.byteWorld, owner, positionBase.angle);
   }
 
   @override
@@ -3713,7 +3713,7 @@ class WorldDamageProjectile extends MovingSprite {
     Vec2 positionCenter = owner.centerPoint();
     this.setCenter(Vec2(positionCenter.x + cos(positionBase.angle) * ownerSize,
         positionCenter.y + sin(positionBase.angle) * ownerSize));
-    clearShallowGroundStep(world, owner, positionBase.angle);
+    clearShallowGroundStep(world.byteWorld, owner, positionBase.angle);
     this.velocity.x = cos(positionBase.angle);
     this.angle = positionBase.angle;
     this.velocity.y = sin(positionBase.angle);
