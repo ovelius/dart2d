@@ -1047,19 +1047,23 @@ class WormWorld extends World {
 
   void drawFpsCounters() {
     if (localKeyState.debug) {
-      var font = _canvas.font;
-      _canvas.fillStyle = "#ff0000".toJS;
-      _canvas.font = '16pt Calibri';
-      _canvas.fillText("DrawFps: $_drawFps", 0, 20);
-      _canvas.fillText(
-          "Quality: ${qualityTier.name.toUpperCase()} (${(effectiveDetailScale * 100).round()}%) NetFPS: ${performanceGovernor.targetNetworkFrameRate()}",
-          0,
-          40);
-      _canvas.fillText("Sprites: ${spriteIndex.count()}", 0, 60);
-      int i = 0;
-      for (String connectionDebug in _network.keyFrameDebugData()) {
-        _canvas.fillText(connectionDebug, 0, 80 + i *20);
-        i++;
+      final font = _canvas.font;
+      final List<String> lines = [
+        "DrawFps: $_drawFps",
+        "Quality: ${qualityTier.name.toUpperCase()} (${(effectiveDetailScale * 100).round()}%) NetFPS: ${performanceGovernor.targetNetworkFrameRate()}",
+        "Sprites: ${spriteIndex.count()}",
+        ..._network.keyFrameDebugData(),
+      ];
+      _canvas.font = 'bold 14pt Calibri';
+      _canvas.strokeStyle = "#000000".toJS;
+      _canvas.lineWidth = 3;
+      _canvas.fillStyle = "#ffeb3b".toJS;
+      const double lineHeight = 20.0;
+      final double startY = _height - 10.0 - (lines.length - 1) * lineHeight;
+      for (int i = 0; i < lines.length; i++) {
+        final double y = startY + i * lineHeight;
+        _canvas.strokeText(lines[i], 8, y);
+        _canvas.fillText(lines[i], 8, y);
       }
       _canvas.font = font;
     }

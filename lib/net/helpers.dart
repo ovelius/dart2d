@@ -30,7 +30,7 @@ class PacketListenerBindings {
 
 class ConnectionStats {
   // How long until connection attempt times out.
-  static const Duration OPEN_TIMEOUT = const Duration(seconds: 8);
+  static const Duration OPEN_TIMEOUT = const Duration(seconds: 6);
   static const Duration TURN_CANDIDATE_EXTENSION = const Duration(seconds: 4);
   // When we should attempt to restart with ICE.
   static const Duration ICE_RESTART_TIME = const Duration(seconds: 5);

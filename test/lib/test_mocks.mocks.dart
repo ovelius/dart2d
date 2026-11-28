@@ -2694,6 +2694,15 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as String);
 
   @override
+  bool get isTurnConnection =>
+      (super.noSuchMethod(
+            Invocation.getter(#isTurnConnection),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   int currentKeyFrame() =>
       (super.noSuchMethod(
             Invocation.method(#currentKeyFrame, []),

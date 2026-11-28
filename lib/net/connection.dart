@@ -610,6 +610,11 @@ class ConnectionWrapper {
   Duration expectedLatency() => _connectionStats.latency;
   String get localCandidateType => _connectionStats.localCandidateType;
   String get remoteCandidateType => _connectionStats.remoteCandidateType;
+  /// Returns true if either leg uses a TURN relay candidate.
+  /// See WebRTC Stats spec:
+  /// https://www.w3.org/TR/webrtc-stats/#dom-rtcicecandidatetype-relay
+  bool get isTurnConnection =>
+      localCandidateType == 'relay' || remoteCandidateType == 'relay';
 
   ReliableHelper reliableHelper() => _reliableHelper;
 
@@ -617,7 +622,7 @@ class ConnectionWrapper {
 
   int currentFrameRate() => _connectionFrameHandler.currentFrameRate();
 
-  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${expectedLatency().inMilliseconds}  GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
+  toString() => "Connection to ${id} FR:${_connectionFrameHandler.currentFrameRate()} ms:${expectedLatency().inMilliseconds} cand:${localCandidateType}/${remoteCandidateType} GC: ${isValidGameConnection()} pi/Po ${_initialPingSent}/${_initialPongReceived}";
 
   String stats() => _connectionStats.stats();
 

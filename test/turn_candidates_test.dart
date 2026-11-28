@@ -50,12 +50,12 @@ void main() {
       final Clock fakeClock = Clock(() => now);
       final ConnectionStats stats = ConnectionStats(fakeClock);
 
-      // At +9s: timed out without TURN candidate, not timed out with TURN candidate.
-      now = now.add(const Duration(seconds: 9));
+      // At +7s: timed out without TURN candidate, not timed out with TURN candidate.
+      now = now.add(const Duration(seconds: 7));
       expect(stats.OpenTimeout(turnCandidateGathered: false), isTrue);
       expect(stats.OpenTimeout(turnCandidateGathered: true), isFalse);
 
-      // At +13s: timed out even with 4s TURN extension (8s + 4s = 12s).
+      // At +11s: timed out even with 4s TURN extension (6s + 4s = 10s).
       now = now.add(const Duration(seconds: 4));
       expect(stats.OpenTimeout(turnCandidateGathered: true), isTrue);
     });
@@ -82,6 +82,14 @@ void main() {
         conn,
         StateUpdate()..negotiation = candidatesMsg,
       );
+    });
+    test('ConnectionWrapper.isTurnConnection defaults to false', () async {
+      final WormWorld world = await createTestWorld('t3');
+      await createTestWorld('t4');
+      world.network().peer.connectTo('t4');
+      final ConnectionWrapper conn = world.network().peer.connections['t4']!;
+
+      expect(conn.isTurnConnection, isFalse);
     });
   });
 }

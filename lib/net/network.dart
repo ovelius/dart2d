@@ -788,8 +788,9 @@ class Network {
     for (ConnectionWrapper connection in peer.connections.values) {
       debugStrings.add(
           "${connection.id} FR:${connection.currentFrameRate()} "
-              "ms:${connection.expectedLatency().inMilliseconds} by: "
-              "${connection.stats()} frames: ${connection.frameStats()}");
+              "ms:${connection.expectedLatency().inMilliseconds} "
+              "cand:${connection.localCandidateType}/${connection.remoteCandidateType} "
+              "by: ${connection.stats()} frames: ${connection.frameStats()}");
     }
     return debugStrings;
   }

@@ -164,6 +164,14 @@ class TestConnectionWrapper extends ConnectionWrapper {
   int sendCount = 0;
   GameStateUpdates? lastDataSent = null;
   List<GameStateUpdates> dataSent = [];
+  String testLocalCandidateType = '';
+  String testRemoteCandidateType = '';
+
+  @override
+  String get localCandidateType => testLocalCandidateType;
+
+  @override
+  String get remoteCandidateType => testRemoteCandidateType;
 
   TestConnectionWrapper(this.id, MockNetwork mockNetwork, Clock clock) : super(mockNetwork, MockHudMessages(), id,
       MockPacketListenerBindings(), ConfigParams({}), ConnectionFrameHandler(ConfigParams({})), clock);

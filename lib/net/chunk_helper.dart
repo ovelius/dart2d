@@ -288,6 +288,14 @@ class ChunkHelper {
     List<ConnectionWrapper> eligibleConnections = connections.values
         .where((c) => !isPeerDenylisted(index, c.id))
         .toList();
+    // Prefer direct (non-TURN) peers for P2P resource loading to avoid
+    // unnecessary relay bandwidth/latency; fall back to TURN only when no
+    // direct path is available.
+    final List<ConnectionWrapper> directConnections =
+        eligibleConnections.where((c) => !c.isTurnConnection).toList();
+    if (directConnections.isNotEmpty) {
+      eligibleConnections = directConnections;
+    }
     if (eligibleConnections.isEmpty) {
       if (connections.isNotEmpty &&
           allowServerFallback &&

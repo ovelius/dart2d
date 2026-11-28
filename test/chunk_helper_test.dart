@@ -479,6 +479,61 @@ void main() {
       expect(helper.getImageBuffer().containsKey(requestedIndex), isFalse);
       expect(helper.pinnedPeerForImage(requestedIndex), isNull);
     });
+
+    test('Prefers direct connection over local or remote TURN connection', () {
+      int requestedIndex = 6;
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+
+      // connection1 has local relay; connection2 is direct (host/srflx).
+      connection1.testLocalCandidateType = 'relay';
+      connection1.testRemoteCandidateType = 'srflx';
+      connection2.testLocalCandidateType = 'host';
+      connection2.testRemoteCandidateType = 'srflx';
+
+      Map<String, ConnectionWrapper> connections = {
+        connection1.id: connection1,
+        connection2.id: connection2,
+      };
+      for (int i = 0; i < 10; i++) {
+        helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
+          ..setChunkSizeForTest(4);
+        helper.requestNetworkData(connections, 0.01);
+        expect(helper.pinnedPeerForImage(requestedIndex), equals(connection2.id));
+      }
+
+      // Now test remote relay on connection2 vs direct on connection1.
+      connection1.testLocalCandidateType = 'srflx';
+      connection1.testRemoteCandidateType = 'host';
+      connection2.testLocalCandidateType = 'host';
+      connection2.testRemoteCandidateType = 'relay';
+      for (int i = 0; i < 10; i++) {
+        helper = new ChunkHelper(imageIndex, byteWorld, packetListenerBindings)
+          ..setChunkSizeForTest(4);
+        helper.requestNetworkData(connections, 0.01);
+        expect(helper.pinnedPeerForImage(requestedIndex), equals(connection1.id));
+      }
+    });
+
+    test('Falls back to TURN connection when no direct peer is available', () {
+      int requestedIndex = 6;
+      when(imageIndex.imageIsLoading(requestedIndex)).thenReturn(false);
+      when(imageIndex.orderedImageIds()).thenReturn([requestedIndex]);
+
+      connection1.testLocalCandidateType = 'relay';
+      connection1.testRemoteCandidateType = 'host';
+      connection2.testLocalCandidateType = 'host';
+      connection2.testRemoteCandidateType = 'relay';
+
+      Map<String, ConnectionWrapper> connections = {
+        connection1.id: connection1,
+        connection2.id: connection2,
+      };
+      helper.requestNetworkData(connections, 0.01);
+      expect(helper.pinnedPeerForImage(requestedIndex),
+          anyOf(equals(connection1.id), equals(connection2.id)));
+      expect(connection1.sendCount + connection2.sendCount, equals(1));
+    });
   });
 
 }
