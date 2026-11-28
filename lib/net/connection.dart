@@ -20,7 +20,7 @@ import 'helpers.dart';
 List<RTCIceServer> _getIceWithTurn() => [RTCIceServer(urls:'stun:turn.goog'.toJS),
   // These are free tier credentials from https://www.expressturn.com/#dashboard
   // anyone can sign up an get these, don't bother to steal them.
-  RTCIceServer(urls: "turn:relay1.expressturn.com".toJS,
+  RTCIceServer(urls: "turn:free.expressturn.com".toJS,
       username: "efT66RHD29KTGKVBBS", credential:"up2bRVNNAV1euOlX")];
 
 RTCConfiguration _getRtcConfigurationWithTurn() {
