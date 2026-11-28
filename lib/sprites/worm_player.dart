@@ -247,8 +247,14 @@ class LocalPlayerSprite extends MovingSprite {
     return true;
   }
 
+  static const int _MAX_PUSH_OUT_PIXELS = 8;
+
   collide(MovingSprite? other, ByteWorld? world, int? direction) {
     if (world != null && direction != null) {
+      final double origX = position.x;
+      final double origY = position.y;
+      bool hitPushLimit = false;
+
       if (direction & MovingSprite.DIR_BELOW == MovingSprite.DIR_BELOW) {
         onGround = true;
         if (velocity.y.abs() > 1.0) {
@@ -259,43 +265,65 @@ class LocalPlayerSprite extends MovingSprite {
         if (direction != MovingSprite.DIR_BELOW) {
           // Go back right a bit.
           if (direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
-            while (world.isCanvasCollide(
-                position.x.toInt(), position.y.toInt(),
-                // Allow a few pixels of incline...
-                1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
+            int steps = 0;
+            while (steps < _MAX_PUSH_OUT_PIXELS &&
+                world.isCanvasCollide(
+                    position.x.toInt(), position.y.toInt(),
+                    // Allow a few pixels of incline...
+                    1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
               position.x++;
+              steps++;
             }
+            if (steps >= _MAX_PUSH_OUT_PIXELS) hitPushLimit = true;
             direction -= MovingSprite.DIR_LEFT;
           }
           // Go back left a bit.
           if (direction & MovingSprite.DIR_RIGHT == MovingSprite.DIR_RIGHT) {
-            while (world.isCanvasCollide(
-                position.x.toInt() + size.x
-                .toInt(), position.y.toInt(),
-                // Allow a few pixels of incline...
-                1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
+            int steps = 0;
+            while (steps < _MAX_PUSH_OUT_PIXELS &&
+                world.isCanvasCollide(
+                    position.x.toInt() + size.x.toInt(), position.y.toInt(),
+                    // Allow a few pixels of incline...
+                    1, size.y.toInt() - WALKABLE_HILL_PIXEL_HEIGHT)) {
               position.x--;
+              steps++;
             }
+            if (steps >= _MAX_PUSH_OUT_PIXELS) hitPushLimit = true;
             direction -= MovingSprite.DIR_RIGHT;
           }
         }
         // Check one more time, but y -1.
-        while (world.isCanvasCollide(
-            (position.x + 1).toInt(), (position.y + size.y - 1.0).toInt(), (size.x - 1).toInt(), 1)) {
+        int steps = 0;
+        while (steps < _MAX_PUSH_OUT_PIXELS &&
+            world.isCanvasCollide(
+                (position.x + 1).toInt(), (position.y + size.y - 1.0).toInt(), (size.x - 1).toInt(), 1)) {
           position.y--;
+          steps++;
         }
+        if (steps >= _MAX_PUSH_OUT_PIXELS) hitPushLimit = true;
       }
       if (direction & MovingSprite.DIR_ABOVE == MovingSprite.DIR_ABOVE) {
         if (velocity.y < 0) {
           velocity.y = -velocity.y * BOUCHYNESS;
         }
         // Check one more time, but more above..
-        while (world.isCanvasCollide(
-            (position.x + 2).toInt(),
-            (position.y - 1).toInt(),
-               (size.x - 4).toInt(), 1)) {
+        int steps = 0;
+        while (steps < _MAX_PUSH_OUT_PIXELS &&
+            world.isCanvasCollide(
+                (position.x + 2).toInt(),
+                (position.y - 1).toInt(),
+                (size.x - 4).toInt(), 1)) {
           position.y++;
+          steps++;
         }
+        if (steps >= _MAX_PUSH_OUT_PIXELS) hitPushLimit = true;
+      }
+
+      if (hitPushLimit) {
+        position.x = origX;
+        position.y = origY;
+        _moveToClosestNonSolid(world);
+        return;
       }
 
       if (direction & MovingSprite.DIR_LEFT == MovingSprite.DIR_LEFT) {
@@ -309,6 +337,54 @@ class LocalPlayerSprite extends MovingSprite {
           velocity.x = -velocity.x * BOUCHYNESS;
           position.x--;
         }
+      }
+    }
+  }
+
+  /// Searches outward in expanding rings from the current position for the
+  /// closest non-solid area that fits the player's bounding box.
+  void _moveToClosestNonSolid(ByteWorld world) {
+    final int w = size.x.toInt();
+    final int h = size.y.toInt();
+    final int startX = position.x.round();
+    final int startY = position.y.round();
+    const int maxRadius = 64;
+    for (int r = 1; r <= maxRadius; r += 2) {
+      double bestDistSq = double.infinity;
+      int? bestX;
+      int? bestY;
+      for (int dx = -r; dx <= r; dx += 2) {
+        for (final int dy in [-r, r]) {
+          final int nx = startX + dx;
+          final int ny = startY + dy;
+          if (!world.isCanvasCollide(nx, ny, w, h)) {
+            final double d = (dx * dx + dy * dy).toDouble();
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              bestX = nx;
+              bestY = ny;
+            }
+          }
+        }
+      }
+      for (int dy = -r + 2; dy <= r - 2; dy += 2) {
+        for (final int dx in [-r, r]) {
+          final int nx = startX + dx;
+          final int ny = startY + dy;
+          if (!world.isCanvasCollide(nx, ny, w, h)) {
+            final double d = (dx * dx + dy * dy).toDouble();
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              bestX = nx;
+              bestY = ny;
+            }
+          }
+        }
+      }
+      if (bestX != null && bestY != null) {
+        position.x = bestX.toDouble();
+        position.y = bestY.toDouble();
+        return;
       }
     }
   }

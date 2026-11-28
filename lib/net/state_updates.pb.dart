@@ -1557,6 +1557,7 @@ class GameStateProto extends $pb.GeneratedMessage {
     $core.String? mapName,
     $core.String? actingCommanderId,
     $core.String? winnerPlayerId,
+    $core.int? protocolVersion,
   }) {
     final $result = create();
     if (startedAtEpochMillis != null) {
@@ -1574,6 +1575,9 @@ class GameStateProto extends $pb.GeneratedMessage {
     if (winnerPlayerId != null) {
       $result.winnerPlayerId = winnerPlayerId;
     }
+    if (protocolVersion != null) {
+      $result.protocolVersion = protocolVersion;
+    }
     return $result;
   }
   GameStateProto._() : super();
@@ -1586,6 +1590,7 @@ class GameStateProto extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'mapName')
     ..aOS(4, _omitFieldNames ? '' : 'actingCommanderId')
     ..aOS(5, _omitFieldNames ? '' : 'winnerPlayerId')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'protocolVersion', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -1652,6 +1657,16 @@ class GameStateProto extends $pb.GeneratedMessage {
   $core.bool hasWinnerPlayerId() => $_has(4);
   @$pb.TagNumber(5)
   void clearWinnerPlayerId() => clearField(5);
+
+  /// Protocol version of the acting commander.
+  @$pb.TagNumber(6)
+  $core.int get protocolVersion => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set protocolVersion($core.int v) { $_setSignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasProtocolVersion() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearProtocolVersion() => clearField(6);
 }
 
 class PlayerInfoProto extends $pb.GeneratedMessage {

@@ -15,6 +15,9 @@ import '../net/state_updates.dart';
 
 @Singleton(scope: 'world')
 class GameState {
+  // Major changes to the game mechanics or protocol must 
+  // bump this number.
+  static const int PROTOCOL_VERSION = 1;
   static const MAX_PLAYERS = 4;
   final Logger log = new Logger('GameState');
   static final int ID_OFFSET_FOR_NEW_CLIENT = 1000;
@@ -23,7 +26,8 @@ class GameState {
   PacketListenerBindings _packetListenerBindings;
   SpriteIndex _spriteIndex;
 
-  GameStateProto _gameStateProto = GameStateProto();
+  GameStateProto _gameStateProto = GameStateProto()
+    ..protocolVersion = PROTOCOL_VERSION;
   GameStateProto get gameStateProto => _gameStateProto;
   Map<String, PlayerInfoProto> _playerInfoById = {};
   Map<String, PlayerInfoProto> _removedPlayers = {};

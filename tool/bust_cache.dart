@@ -1,16 +1,17 @@
 import 'dart:io';
 
-/// Appends a content-hash query parameter (`?v=<hash>`) to `wormworld.dart.js`
-/// in `build/wormworld.html` so browsers fetch the new JS bundle on deploy.
+/// Appends `?v=<PROTOCOL_VERSION>` to `wormworld.dart.js` in
+/// `build/wormworld.html`, reading `PROTOCOL_VERSION` from
+/// `lib/util/gamestate.dart`.
 ///
 /// Usage: `dart run tool/bust_cache.dart [build_dir]`
 void main(List<String> args) {
   final String buildDir = args.isNotEmpty ? args[0] : 'build';
-  final File jsFile = File('$buildDir/wormworld.dart.js');
+  final File gameStateFile = File('lib/util/gamestate.dart');
   final File htmlFile = File('$buildDir/wormworld.html');
 
-  if (!jsFile.existsSync()) {
-    stderr.writeln('Error: ${jsFile.path} not found. Run build_runner first.');
+  if (!gameStateFile.existsSync()) {
+    stderr.writeln('Error: ${gameStateFile.path} not found.');
     exit(1);
   }
   if (!htmlFile.existsSync()) {
@@ -18,25 +19,26 @@ void main(List<String> args) {
     exit(1);
   }
 
-  final String hash = _fnv1a32Hex(jsFile.readAsBytesSync());
+  final RegExp versionRegex =
+      RegExp(r'static\s+const\s+int\s+PROTOCOL_VERSION\s*=\s*(\d+)\s*;');
+  final Match? match =
+      versionRegex.firstMatch(gameStateFile.readAsStringSync());
+  if (match == null) {
+    stderr.writeln(
+        'Error: PROTOCOL_VERSION not found in ${gameStateFile.path}.');
+    exit(1);
+  }
+  final String version = match.group(1)!;
+
   final String html = htmlFile.readAsStringSync();
-  final RegExp pattern = RegExp(r'wormworld\.dart\.js(?:\?v=[0-9a-f]+)?');
+  final RegExp pattern = RegExp(r'wormworld\.dart\.js(?:\?v=[^\s"]+)?');
 
   if (!pattern.hasMatch(html)) {
     stderr.writeln('Error: wormworld.dart.js reference not found in ${htmlFile.path}.');
     exit(1);
   }
 
-  final String updated = html.replaceAll(pattern, 'wormworld.dart.js?v=$hash');
+  final String updated = html.replaceAll(pattern, 'wormworld.dart.js?v=$version');
   htmlFile.writeAsStringSync(updated);
-  stdout.writeln('Updated ${htmlFile.path} -> wormworld.dart.js?v=$hash');
-}
-
-String _fnv1a32Hex(List<int> bytes) {
-  int hash = 0x811c9dc5;
-  for (final int b in bytes) {
-    hash ^= b;
-    hash = (hash * 0x01000193) & 0xffffffff;
-  }
-  return hash.toRadixString(16).padLeft(8, '0');
+  stdout.writeln('Updated ${htmlFile.path} -> wormworld.dart.js?v=$version');
 }

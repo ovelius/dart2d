@@ -213,7 +213,7 @@ class WeaponState {
       weaponState.world.addSprite(sprite);
       weaponState.world.addSprite(p);
     }, hasLaserSight: true, isMysteryWeapon: true),
-    new Weapon("Cat litter box", 5, 2, 5.0, 0.01, (WeaponState weaponState) {
+    new Weapon("Cat litter box", 5, 2, 5.0, 1.0, (WeaponState weaponState) {
       CatLitterBox sprite = new CatLitterBox.createWithOwner(
           weaponState.world, weaponState.owner, 100, weaponState.owner.gun);
       sprite.spawn_sound = Sound.SWOSH;

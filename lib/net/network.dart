@@ -9,6 +9,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/worlds/worlds.dart';
 import 'package:dart2d/util/util.dart';
 import 'package:logging/logging.dart' show Logger;
+import 'package:web/web.dart' as web;
 
 import 'helpers.dart';
 
@@ -424,8 +425,19 @@ class Network {
     return null;
   }
 
+  void Function(int remoteVersion) onProtocolVersionMismatch = (_) {
+    web.window.location.reload();
+  };
+
   _handleGameState(ConnectionWrapper connection, StateUpdate stateUpdate) {
     GameStateProto newGameState = stateUpdate.gameState;
+    if (newGameState.hasProtocolVersion() &&
+        newGameState.protocolVersion > GameState.PROTOCOL_VERSION) {
+      log.warning(
+          "Remote protocol version ${newGameState.protocolVersion} > local ${GameState.PROTOCOL_VERSION}; reloading.");
+      onProtocolVersionMismatch(newGameState.protocolVersion);
+      return;
+    }
     CommanderTieBreakOutcome tieBreakOutcome = CommanderTieBreakOutcome.none;
     try {
       tieBreakOutcome = world.loader.playerWorldSelector

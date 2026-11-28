@@ -197,6 +197,8 @@ message GameStateProto {
   optional string acting_commander_id = 4;
   // If non empty we have a winner.
   optional string winner_player_id = 5;
+  // Protocol version of the acting commander.
+  optional int32 protocol_version = 6;
 }
 
 message PlayerInfoProto {

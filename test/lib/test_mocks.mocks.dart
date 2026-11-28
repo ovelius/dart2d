@@ -698,6 +698,23 @@ class MockNetwork extends _i1.Mock implements _i13.Network {
   );
 
   @override
+  void Function(int) get onProtocolVersionMismatch =>
+      (super.noSuchMethod(
+            Invocation.getter(#onProtocolVersionMismatch),
+            returnValue: (int remoteVersion) {},
+            returnValueForMissingStub: (int remoteVersion) {},
+          )
+          as void Function(int));
+
+  @override
+  set onProtocolVersionMismatch(
+    void Function(int)? _onProtocolVersionMismatch,
+  ) => super.noSuchMethod(
+    Invocation.setter(#onProtocolVersionMismatch, _onProtocolVersionMismatch),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i3.ConnectionFactory get connectionFactory =>
       (super.noSuchMethod(
             Invocation.getter(#connectionFactory),
