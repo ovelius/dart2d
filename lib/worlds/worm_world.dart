@@ -52,6 +52,7 @@ class WormWorld extends World {
   PacketListenerBindings get packetListenerBindings => _packetListenerBindings;
   late CanvasRenderingContext2D _canvas;
   late Sounds _sounds;
+  late ChunkHelper _chunkHelper;
   Vec2 viewPoint = new Vec2();
   Vec2 halfWorld = new Vec2();
   ByteWorld byteWorld;
@@ -116,6 +117,7 @@ class WormWorld extends World {
     });
     this.hudMessages = hudMessages;
     this._network.world = this;
+    this._chunkHelper = chunkHelper;
     this._powerupManager.mysteryPowerupEnabled =
         !this._configParams.getBool(ConfigParam.SANDBOX);
     worldListener.setWorld(this);
@@ -269,6 +271,8 @@ class WormWorld extends World {
       clearScreen();
       restart = false;
     }
+
+    _tickBackgroundSounds(duration);
 
     assert(byteWorld.byteWorldReady());
 
@@ -1066,6 +1070,22 @@ class WormWorld extends World {
         _canvas.fillText(lines[i], 8, y);
       }
       _canvas.font = font;
+    }
+  }
+
+  /// Loads sounds in the background after entering the game, preferring P2P
+  /// peers when connected and falling back to server preloading when solo.
+  void _tickBackgroundSounds(double duration) {
+    if (_sounds.finishedLoadingSounds()) {
+      return;
+    }
+    final Map<String, ConnectionWrapper> connections =
+        _network.safeActiveConnections();
+    if (connections.isNotEmpty) {
+      _sounds.ensureIndexedForNetwork();
+      _chunkHelper.requestSoundNetworkData(connections, duration);
+    } else {
+      _sounds.preloadSounds();
     }
   }
 

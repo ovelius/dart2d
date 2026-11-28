@@ -6,6 +6,8 @@ import 'package:dart2d/worlds/byteworld.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logging/logging.dart' show Logger, Level, LogRecord;
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/res/resources.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'dart:math';
 import 'dart:async';
 
@@ -24,6 +26,7 @@ class ChunkHelper {
   ImageIndex _imageIndex;
   ByteWorld _byteWorld;
   PacketListenerBindings _packetListenerBindings;
+  Sounds? _sounds;
 
   DataCounter counter = new DataCounter(3);
   int _chunkSize = DEFAULT_CHUNK_SIZE;
@@ -52,7 +55,11 @@ class ChunkHelper {
   // Caching from Connection -> ByteWorld data.
   Map<String, String> _byteWorldDataUrlCache = new Map();
 
-  ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings) {
+  late final NetworkResourceStore _imageStore;
+
+  ChunkHelper(this._imageIndex, this._byteWorld, this._packetListenerBindings,
+      [this._sounds]) {
+    _imageStore = _ImageResourceAdapter(_imageIndex);
     _packetListenerBindings.bindHandler(StateUpdate_Update.resourceRequest,
         (ConnectionWrapper connection, StateUpdate resourceRequest) {
       replyWithImageData(resourceRequest.resourceRequest, connection);
@@ -80,7 +87,10 @@ class ChunkHelper {
    * Send a reply with the requested image data.
    */
   void replyWithImageData(ResourceRequest request, ConnectionWrapper connection) {
-    String data = _getData(request.resourceIndex, connection);
+    String? data = _getData(request.resourceIndex, connection);
+    if (data == null) {
+      return;
+    }
     int end = request.hasEndByte() ? request.endByte
         : request.startByte + _chunkSize;
     end = min(end, data.length);
@@ -110,7 +120,19 @@ class ChunkHelper {
     }
   }
 
-  String _getData(int index, var connection) {
+  NetworkResourceStore _storeForIndex(int index) {
+    if (index >= Sounds.SOUND_INDEX_OFFSET && _sounds != null) {
+      return _sounds!;
+    }
+    return _imageStore;
+  }
+
+  bool _isFallbackAllowedFromServer(int index) {
+    return index >= Sounds.SOUND_INDEX_OFFSET ||
+        index > ImageIndex.WORLD_IMAGE_INDEX;
+  }
+
+  String? _getData(int index, var connection) {
     // Cached in byteworld cache.
     if (index == ImageIndex.WORLD_IMAGE_INDEX) {
       if (_byteWorldDataUrlCache.containsKey(connection.id)) {
@@ -128,13 +150,19 @@ class ChunkHelper {
       _byteWorldDataUrlCache[connection.id] = data;
       return data;
     } else {
-      if (_imageIndex.imageIsLoaded(index)) {
-        data = _imageIndex.getImageDataUrl(index);
+      final NetworkResourceStore store = _storeForIndex(index);
+      if (store.resourceIsLoaded(index)) {
+        data = store.getResourceDataUrl(index);
+      } else if (index >= Sounds.SOUND_INDEX_OFFSET) {
+        // Sounds load in the background after entering the game, so a peer
+        // may receive a request before finishing its own sound load.
+        store.addSingleResourceByIndex(index);
+        return null;
       } else {
         // TODO do something smarter here, like load from server?
-        _imageIndex.loadImagesFromServer();
+        store.loadAllFromServer();
         throw new StateError(
-            "Can not return data for $index, it's not loaded! Loaded is: ${_imageIndex.loadedImages}");
+            "Can not return data for $index, it's not loaded!");
       }
     }
     _dataUrlCache[index] = data;
@@ -185,7 +213,7 @@ class ChunkHelper {
     if (_imageBuffer[index]!.length > size) {
       log.warning(
           "Dropping oversized image transfer for ${index} from ${connection.id}.");
-      if (index > ImageIndex.WORLD_IMAGE_INDEX) {
+      if (_isFallbackAllowedFromServer(index)) {
         _denylistPeerForImage(index, connection.id);
       }
       _resetImageTransfer(index);
@@ -197,15 +225,16 @@ class ChunkHelper {
       String completedData = _imageBuffer[index]!;
       String peerId = connection.id;
       _resetImageTransfer(index);
-      if (!_imageIndex.verifyImageDataHash(index, completedData)) {
+      final NetworkResourceStore store = _storeForIndex(index);
+      if (!store.verifyResourceDataHash(index, completedData)) {
         log.warning(
             "Dropping corrupted image ${index} from peer ${peerId}: CRC32 mismatch.");
         _denylistPeerForImage(index, peerId);
         _failures[peerId] = (_failures[peerId] ?? 0) + 1;
         return;
       }
-      _imageIndex.addFromImageData(index, completedData, true);
-      log.info("Image complete ${index} :)");
+      store.addFromResourceData(index, completedData, true);
+      log.info("Resource complete ${index} :)");
     }
   }
 
@@ -223,11 +252,12 @@ class ChunkHelper {
   }
 
   void _fallbackToServer(int index) {
-    String imageName = _imageIndex.imageNameFromIndex(index);
+    final NetworkResourceStore store = _storeForIndex(index);
+    final String resourceName = store.resourceNameFromIndex(index);
     log.warning(
-        "All peers denylisted for image ${imageName} (${index}), falling back to server.");
+        "All peers denylisted for resource ${resourceName} (${index}), falling back to server.");
     _resetImageTransfer(index);
-    _imageIndex.addSingleImage(imageName);
+    store.addSingleResourceByIndex(index);
   }
 
   bool isPeerDenylisted(int index, String peerId) {
@@ -251,6 +281,15 @@ class ChunkHelper {
         allowServerFallback: allowServerFallback);
   }
 
+  void requestSoundNetworkData(
+      Map<String, ConnectionWrapper> connections, double secondsDuration,
+      {bool allowServerFallback = true}) {
+    if (_sounds == null) return;
+    requestSpecificNetworkData(
+        connections, secondsDuration, _sounds!.orderedResourceIds(),
+        allowServerFallback: allowServerFallback);
+  }
+
   void requestSpecificNetworkData(Map<String, ConnectionWrapper> connections,
       double secondsDuration, Iterable<int> IdsToFetch,
       {bool allowServerFallback = true}) {
@@ -263,7 +302,8 @@ class ChunkHelper {
       if (requestedImages > 2) {
         continue;
       }
-      if (!_imageIndex.imageIsLoading(index)) {
+      final NetworkResourceStore store = _storeForIndex(index);
+      if (!store.resourceIsLoading(index)) {
         if (_maybeRequestImageLoad(index, connections, secondsDuration,
             allowServerFallback: allowServerFallback)) {
           requestedImages++;
@@ -299,7 +339,7 @@ class ChunkHelper {
     if (eligibleConnections.isEmpty) {
       if (connections.isNotEmpty &&
           allowServerFallback &&
-          index > ImageIndex.WORLD_IMAGE_INDEX) {
+          _isFallbackAllowedFromServer(index)) {
         _fallbackToServer(index);
       }
       return false;
@@ -366,8 +406,8 @@ class ChunkHelper {
       }
       return _requestImageDataFromPeer(index, connection);
     }
-    // return true if image is not loaded. False otherwise.
-    return !_imageIndex.imageIsLoaded(index);
+    // return true if resource is not loaded. False otherwise.
+    return !_storeForIndex(index).resourceIsLoaded(index);
   }
 
   void _trackFailingConnection(int index) {
@@ -419,7 +459,7 @@ class ChunkHelper {
 
   double getCompleteRatio(int index) {
     if (!_imageSizes.containsKey(index)) {
-      if (_imageIndex.imageIsLoaded(index)) {
+      if (_storeForIndex(index).resourceIsLoaded(index)) {
         return 1.0;
       } else {
         return 0.0;
@@ -443,6 +483,48 @@ class ChunkHelper {
   void resetTransferForIndex(int index) {
     _resetImageTransfer(index);
   }
+}
+
+class _ImageResourceAdapter implements NetworkResourceStore {
+  final ImageIndex _images;
+  _ImageResourceAdapter(this._images);
+
+  @override
+  bool resourceIsLoaded(int index) => _images.imageIsLoaded(index);
+
+  @override
+  bool resourceIsLoading(int index) => _images.imageIsLoading(index);
+
+  @override
+  String getResourceDataUrl(int index) => _images.getImageDataUrl(index);
+
+  @override
+  bool verifyResourceDataHash(int index, String data) =>
+      _images.verifyImageDataHash(index, data);
+
+  @override
+  Future addFromResourceData(int index, String data, bool allowCaching) =>
+      _images.addFromImageData(index, data, allowCaching);
+
+  @override
+  Future addSingleResourceByIndex(int index) =>
+      _images.addSingleImage(_images.imageNameFromIndex(index));
+
+  @override
+  String resourceNameFromIndex(int index) => _images.imageNameFromIndex(index);
+
+  @override
+  List<int> orderedResourceIds() => _images.orderedImageIds();
+
+  @override
+  void ensureIndexedForNetwork() {
+    if (!_images.imagesIndexed()) {
+      _images.loadImagesFromNetwork();
+    }
+  }
+
+  @override
+  void loadAllFromServer() => _images.loadImagesFromServer();
 }
 
 class DataCounter {

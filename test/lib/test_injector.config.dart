@@ -123,8 +123,11 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.CanvasFactory>(),
             ));
         gh.singleton<_i988.LocalStorage>(() => _i47.TestLocalStorage());
-        gh.singleton<_i254.Sounds>(
-            () => _i254.Sounds(gh<_i988.SoundFactory>()));
+        gh.singleton<_i254.Sounds>(() => _i254.Sounds(
+              gh<_i988.SoundFactory>(),
+              gh<_i988.LocalStorage>(),
+              gh<_i559.ConfigParams>(),
+            ));
         gh.singleton<_i106.HudMessages>(() => _i106.HudMessages(
               gh<_i906.KeyState>(),
               gh<_i207.PacketListenerBindings>(),
@@ -139,15 +142,16 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i988.CanvasFactory>(),
               gh<_i988.ImageFactory>(),
             ));
-        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
-              gh<_i883.ImageIndex>(),
-              gh<_i401.ByteWorld>(),
-              gh<_i835.PacketListenerBindings>(),
-            ));
         gh.singleton<_i745.PowerupManager>(() => _i745.PowerupManager(
               gh<_i899.SpriteIndex>(),
               gh<_i883.ImageIndex>(),
               gh<_i401.ByteWorld>(),
+            ));
+        gh.singleton<_i600.ChunkHelper>(() => _i600.ChunkHelper(
+              gh<_i883.ImageIndex>(),
+              gh<_i401.ByteWorld>(),
+              gh<_i835.PacketListenerBindings>(),
+              gh<_i254.Sounds>(),
             ));
         gh.singleton<_i64.Network>(() => _i64.Network(
               gh<_i988.GaReporter>(),

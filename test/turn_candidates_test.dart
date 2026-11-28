@@ -90,6 +90,8 @@ void main() {
       final ConnectionWrapper conn = world.network().peer.connections['t4']!;
 
       expect(conn.isTurnConnection, isFalse);
+      final List<String> debug = world.network().keyFrameDebugData();
+      expect(debug.any((line) => line.contains('cand:/')), isTrue);
     });
   });
 }

@@ -3,6 +3,7 @@ library imageindex;
 import 'dart:async';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/crc32.dart';
+import 'package:dart2d/res/resources.dart';
 // NOTE: Whenever you add, remove, or modify images in `web/img/`, run:
 //   dart run tool/generate_image_hashes.dart
 // to update `lib/res/image_hashes.dart`.
@@ -58,7 +59,7 @@ List<String> IMAGE_SOURCES = new List.from(PLAYER_SOURCES)..addAll(GAME_SOURCES)
 const String EMPTY_IMAGE_DATA_STRING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC";
 
 @Singleton(scope: 'world')
-class ImageIndex {
+class ImageIndex implements NetworkResourceStore {
   final Logger log = new Logger('ImageIndex');
   static const int WORLD_IMAGE_INDEX = 1;
   static const String WORLD_NAME = "world";
@@ -508,4 +509,41 @@ class ImageIndex {
       _localStorage["t$key"] = (new DateTime.now().millisecondsSinceEpoch).toString();
     }
   }
+
+  @override
+  bool resourceIsLoaded(int index) => imageIsLoaded(index);
+
+  @override
+  bool resourceIsLoading(int index) => imageIsLoading(index);
+
+  @override
+  String getResourceDataUrl(int index) => getImageDataUrl(index);
+
+  @override
+  bool verifyResourceDataHash(int index, String data) =>
+      verifyImageDataHash(index, data);
+
+  @override
+  Future addFromResourceData(int index, String data, bool allowCaching) =>
+      addFromImageData(index, data, allowCaching);
+
+  @override
+  Future addSingleResourceByIndex(int index) =>
+      addSingleImage(imageNameFromIndex(index));
+
+  @override
+  String resourceNameFromIndex(int index) => imageNameFromIndex(index);
+
+  @override
+  List<int> orderedResourceIds() => orderedImageIds();
+
+  @override
+  void ensureIndexedForNetwork() {
+    if (!imagesIndexed()) {
+      loadImagesFromNetwork();
+    }
+  }
+
+  @override
+  void loadAllFromServer() => loadImagesFromServer();
 }

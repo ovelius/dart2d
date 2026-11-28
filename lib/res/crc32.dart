@@ -33,12 +33,22 @@ int crc32Bytes(List<int> bytes) {
 /// Decodes a `data:image/png;base64,...` string and returns the CRC32 of its
 /// raw PNG bytes, or `null` if the prefix or base64 payload is invalid.
 int? crc32FromPngDataUrl(String dataUrl) {
-  if (!dataUrl.startsWith(PNG_DATA_URL_PREFIX)) {
+  return crc32FromDataUrl(dataUrl, PNG_DATA_URL_PREFIX);
+}
+
+/// Decodes a base64 `data:` URL starting with [requiredPrefix] and returns the
+/// CRC32 of its raw bytes, or `null` if invalid.
+int? crc32FromDataUrl(String dataUrl, [String requiredPrefix = 'data:']) {
+  if (!dataUrl.startsWith(requiredPrefix)) {
+    return null;
+  }
+  final int marker = dataUrl.indexOf(';base64,');
+  if (marker < 0) {
     return null;
   }
   try {
     final Uint8List bytes =
-        base64Decode(dataUrl.substring(PNG_DATA_URL_PREFIX.length));
+        base64Decode(dataUrl.substring(marker + ';base64,'.length));
     return crc32Bytes(bytes);
   } on FormatException {
     return null;

@@ -570,6 +570,110 @@ class MockImageIndex extends _i1.Mock implements _i14.ImageIndex {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  bool resourceIsLoaded(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#resourceIsLoaded, [index]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool resourceIsLoading(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#resourceIsLoading, [index]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  String getResourceDataUrl(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#getResourceDataUrl, [index]),
+            returnValue: _i17.dummyValue<String>(
+              this,
+              Invocation.method(#getResourceDataUrl, [index]),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<String>(
+              this,
+              Invocation.method(#getResourceDataUrl, [index]),
+            ),
+          )
+          as String);
+
+  @override
+  bool verifyResourceDataHash(int? index, String? data) =>
+      (super.noSuchMethod(
+            Invocation.method(#verifyResourceDataHash, [index, data]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i18.Future<dynamic> addFromResourceData(
+    int? index,
+    String? data,
+    bool? allowCaching,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#addFromResourceData, [
+              index,
+              data,
+              allowCaching,
+            ]),
+            returnValue: _i18.Future<dynamic>.value(),
+            returnValueForMissingStub: _i18.Future<dynamic>.value(),
+          )
+          as _i18.Future<dynamic>);
+
+  @override
+  _i18.Future<dynamic> addSingleResourceByIndex(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#addSingleResourceByIndex, [index]),
+            returnValue: _i18.Future<dynamic>.value(),
+            returnValueForMissingStub: _i18.Future<dynamic>.value(),
+          )
+          as _i18.Future<dynamic>);
+
+  @override
+  String resourceNameFromIndex(int? index) =>
+      (super.noSuchMethod(
+            Invocation.method(#resourceNameFromIndex, [index]),
+            returnValue: _i17.dummyValue<String>(
+              this,
+              Invocation.method(#resourceNameFromIndex, [index]),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<String>(
+              this,
+              Invocation.method(#resourceNameFromIndex, [index]),
+            ),
+          )
+          as String);
+
+  @override
+  List<int> orderedResourceIds() =>
+      (super.noSuchMethod(
+            Invocation.method(#orderedResourceIds, []),
+            returnValue: <int>[],
+            returnValueForMissingStub: <int>[],
+          )
+          as List<int>);
+
+  @override
+  void ensureIndexedForNetwork() => super.noSuchMethod(
+    Invocation.method(#ensureIndexedForNetwork, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void loadAllFromServer() => super.noSuchMethod(
+    Invocation.method(#loadAllFromServer, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [Network].
@@ -3667,6 +3771,20 @@ class MockChunkHelper extends _i1.Mock implements _i13.ChunkHelper {
   }) => super.noSuchMethod(
     Invocation.method(
       #requestNetworkData,
+      [connections, secondsDuration],
+      {#allowServerFallback: allowServerFallback},
+    ),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void requestSoundNetworkData(
+    Map<String, _i9.ConnectionWrapper>? connections,
+    double? secondsDuration, {
+    bool? allowServerFallback = true,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #requestSoundNetworkData,
       [connections, secondsDuration],
       {#allowServerFallback: allowServerFallback},
     ),

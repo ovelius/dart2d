@@ -7,6 +7,7 @@ import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/net/connection.dart';
 import 'package:dart2d/net/negotiator.dart';
 import 'package:dart2d/net/state_updates.pb.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'package:logging/logging.dart';
 import 'package:uuid/uuid.dart';
 import 'package:injectable/injectable.dart';
@@ -139,6 +140,31 @@ class HtmlImageFactory implements ImageFactory {
 
 @Injectable(as: SoundFactory)
 class HtmlSoundFactory implements SoundFactory {
+  @override
+  bool get supportsRawFetch => true;
+
+  @override
+  Future<String?> fetchSoundDataUrl(String url, Sound s) async {
+    try {
+      final Response response = await window.fetch(url.toJS).toDart;
+      if (!response.ok) {
+        return null;
+      }
+      final JSArrayBuffer buffer = await response.arrayBuffer().toDart;
+      final Uint8List bytes = buffer.toDart.asUint8List();
+      final String mime = _audioMimeType(s.url);
+      return "data:$mime;base64,${base64Encode(bytes)}";
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _audioMimeType(String filename) {
+    if (filename.endsWith('.mp3')) return 'audio/mpeg';
+    if (filename.endsWith('.wav')) return 'audio/wav';
+    return 'audio/ogg';
+  }
+
   @override
   HTMLAudioElement createWithSrc(String src, _) {
     HTMLAudioElement audioElement = HTMLAudioElement();

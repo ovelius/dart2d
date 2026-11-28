@@ -61,6 +61,8 @@ abstract class ImageFactory {
 abstract class SoundFactory {
   HTMLAudioElement clone(HTMLAudioElement other, Sound s);
   HTMLAudioElement createWithSrc(String src, Sound s);
+  bool get supportsRawFetch => false;
+  Future<String?> fetchSoundDataUrl(String url, Sound s) async => null;
 }
 
 abstract class GaReporter {

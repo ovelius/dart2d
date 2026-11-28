@@ -10,6 +10,7 @@ import 'fake_canvas.dart';
 import 'package:dart2d/bindings/annotations.dart';
 import 'package:dart2d/res/crc32.dart';
 import 'package:dart2d/res/imageindex.dart';
+import 'package:dart2d/res/sounds.dart';
 import 'test_injector.dart';
 import 'test_mocks.mocks.dart';
 import 'test_peer.dart';
@@ -85,6 +86,12 @@ Future<WormWorld> createTestWorld(String id,  {
     final int emptyImageHash = crc32FromPngDataUrl(EMPTY_IMAGE_DATA_STRING)!;
     imageIndex.expectedImageHashes = {
       for (String name in IMAGE_SOURCES) name: emptyImageHash,
+    };
+    final Sounds sounds = getIt<Sounds>();
+    final int testSoundHash = crc32FromDataUrl(TEST_SOUND, 'data:audio/')!;
+    sounds.expectedSoundHashes = {
+      for (Sound s in Sound.values)
+        if (s != Sound.SILENCE) s.url: testSoundHash,
     };
 
     if (signalPeerOpen) {
