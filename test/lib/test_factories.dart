@@ -103,6 +103,12 @@ class TestConnectionFactory extends ConnectionFactory {
     negotiator.onIceCandidate("candidate1");
     negotiator.onIceCandidate(null);
   }
+  static final List<String> addedIceCandidates = [];
+
+  addIceCandidate(dynamic connection, String candidate) {
+    addedIceCandidates.add(candidate);
+  }
+
   /**
    * Handle receiving that answer.
    */

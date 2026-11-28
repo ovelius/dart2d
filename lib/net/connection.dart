@@ -216,9 +216,16 @@ class ConnectionWrapper {
 
   void collectRtcStats() {
     _network.connectionFactory.getStats(rtcConnection()).then((String statsJson) {
-      Map<String, num> stats = new Map.from(jsonDecode(statsJson));
+      Map<String, dynamic> stats = new Map.from(jsonDecode(statsJson));
       // {bytesReceived: 1303458, bytesSent: 426002, currentRoundTripTime: 0, packetsReceived: 3014, packetsSent: 2800}
-      sampleLatency(Duration(milliseconds: (1000.0 * stats["currentRoundTripTime"]!).toInt()));
+      final num? rtt = stats["currentRoundTripTime"] as num?;
+      if (rtt != null) {
+        sampleLatency(Duration(milliseconds: (1000.0 * rtt).toInt()));
+      }
+      _connectionStats.localCandidateType =
+          (stats["localCandidateType"] as String?) ?? '';
+      _connectionStats.remoteCandidateType =
+          (stats["remoteCandidateType"] as String?) ?? '';
     });
   }
 
@@ -380,6 +387,7 @@ class ConnectionWrapper {
       localInit.sdp = desc!.sdp;
       localInit.type = desc.type;
       _rtcConnection!.setLocalDescription(localInit);
+      negotiator.sdpReceived(desc.sdp, desc.type);
     });
     _usesTurn = true;
   }
@@ -573,10 +581,13 @@ class ConnectionWrapper {
     }
     // Timed out waiting to become open.
     if (!_opened) {
-      if (_connectionStats.OpenTimeout()) {
+      if (_connectionStats.OpenTimeout(
+          turnCandidateGathered: negotiator.turnCandidateGathered)) {
         return true;
         // Try to save ourselves with TURN.
-      } else if (_connectionStats.isIceRestartTime() && !_usesTurn) {
+      } else if (_connectionStats.isIceRestartTime() &&
+          !_usesTurn &&
+          _rtcConnection?.remoteDescription != null) {
         restartIceWithTurn();
       }
     }
@@ -597,6 +608,8 @@ class ConnectionWrapper {
   }
 
   Duration expectedLatency() => _connectionStats.latency;
+  String get localCandidateType => _connectionStats.localCandidateType;
+  String get remoteCandidateType => _connectionStats.remoteCandidateType;
 
   ReliableHelper reliableHelper() => _reliableHelper;
 

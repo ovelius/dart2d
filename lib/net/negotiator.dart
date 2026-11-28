@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dart2d/net/state_updates.pb.dart';
@@ -25,6 +26,10 @@ class Negotiator {
   dynamic _onNegotiationComplete;
   dynamic _onIceRestartComplete;
   bool _negotiationCompletedFired = false;
+  bool _turnCandidateGathered = false;
+  Timer? _turnRestartTimer;
+
+  bool get turnCandidateGathered => _turnCandidateGathered;
 
   onNegotiationComplete(dynamic f) {
     _onNegotiationComplete = f;
@@ -37,21 +42,39 @@ class Negotiator {
   void onIceCandidate(String? candidate) {
     if (candidate != null) {
       _iceCandidates.add(candidate);
+      if (_iceState == IceState.RESTARTING &&
+          _isTurnCandidate(candidate) &&
+          !_turnCandidateGathered) {
+        _turnCandidateGathered = true;
+        _turnRestartTimer?.cancel();
+        _turnRestartTimer = Timer(const Duration(milliseconds: 200), () {
+          if (_iceState == IceState.RESTARTING) {
+            _iceState = IceState.RESTARTING_COMPLETED;
+            _onIceRestartComplete(candidateProto());
+          }
+        });
+      }
     } else {
       if (_iceState == IceState.GATHERING) {
         _iceState = IceState.GATHER_COMPLETED;
         _checkCompleted();
       }
       if (_iceState == IceState.RESTARTING) {
+        _turnRestartTimer?.cancel();
         _iceState = IceState.RESTARTING_COMPLETED;
         _onIceRestartComplete(candidateProto());
       }
     }
   }
 
+  static bool _isTurnCandidate(String candidate) =>
+      candidate.contains(' typ relay');
+
   void restartingIce() {
+    _turnRestartTimer?.cancel();
     _iceState = IceState.RESTARTING;
     _iceCandidates.clear();
+    _turnCandidateGathered = false;
   }
 
   void _checkCompleted() {

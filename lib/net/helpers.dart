@@ -31,6 +31,7 @@ class PacketListenerBindings {
 class ConnectionStats {
   // How long until connection attempt times out.
   static const Duration OPEN_TIMEOUT = const Duration(seconds: 8);
+  static const Duration TURN_CANDIDATE_EXTENSION = const Duration(seconds: 4);
   // When we should attempt to restart with ICE.
   static const Duration ICE_RESTART_TIME = const Duration(seconds: 5);
   // How long we don't have a response before we close the connection.
@@ -40,6 +41,8 @@ class ConnectionStats {
   int txBytes = 0;
   // The monitored latency of the connection.
   Duration latency = OPEN_TIMEOUT;
+  String localCandidateType = '';
+  String remoteCandidateType = '';
 
   Clock _clock;
   late DateTime _attemptOpenTime;
@@ -62,8 +65,11 @@ class ConnectionStats {
     _openTime = _clock.now();
   }
 
-  bool OpenTimeout() {
-    return _attemptOpenTime.add(ConnectionStats.OPEN_TIMEOUT).isBefore(_clock.now());
+  bool OpenTimeout({bool turnCandidateGathered = false}) {
+    final Duration timeout = turnCandidateGathered
+        ? ConnectionStats.OPEN_TIMEOUT + ConnectionStats.TURN_CANDIDATE_EXTENSION
+        : ConnectionStats.OPEN_TIMEOUT;
+    return _attemptOpenTime.add(timeout).isBefore(_clock.now());
   }
 
   bool isIceRestartTime() {
