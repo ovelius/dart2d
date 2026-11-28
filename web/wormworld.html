@@ -315,21 +315,36 @@
       let data = {
         bytesReceived: 0,
         bytesSent: 0, currentRoundTripTime: 0,
-        packetsReceived: 0, packetsSent: 0
+        packetsReceived: 0, packetsSent: 0,
+        localCandidateType: "",
+        remoteCandidateType: ""
       };
+      let candidatesById = {};
+      let localCandidateId = null;
+      let remoteCandidateId = null;
 
       let iter = stats.values();
       let result = iter.next();
       while (!result.done) {
         let stat = result.value;
-        if (stat.type == "candidate-pair" && (stat.nominated == true || stat.state == "succeeded")) {
+        if (stat.type == "local-candidate" || stat.type == "remote-candidate") {
+          candidatesById[stat.id] = stat.candidateType || "";
+        } else if (stat.type == "candidate-pair" && (stat.nominated == true || stat.state == "succeeded")) {
           for (key in data) {
             if (stat[key] !== undefined) {
               data[key] = stat[key];
             }
           }
+          localCandidateId = stat.localCandidateId || null;
+          remoteCandidateId = stat.remoteCandidateId || null;
         }
         result = iter.next();
+      }
+      if (localCandidateId && candidatesById[localCandidateId]) {
+        data.localCandidateType = candidatesById[localCandidateId];
+      }
+      if (remoteCandidateId && candidatesById[remoteCandidateId]) {
+        data.remoteCandidateType = candidatesById[remoteCandidateId];
       }
       return JSON.stringify(data);
     }

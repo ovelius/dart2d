@@ -2664,6 +2664,36 @@ class MockConnectionWrapper extends _i1.Mock implements _i9.ConnectionWrapper {
           as _i15.Negotiator);
 
   @override
+  String get localCandidateType =>
+      (super.noSuchMethod(
+            Invocation.getter(#localCandidateType),
+            returnValue: _i17.dummyValue<String>(
+              this,
+              Invocation.getter(#localCandidateType),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<String>(
+              this,
+              Invocation.getter(#localCandidateType),
+            ),
+          )
+          as String);
+
+  @override
+  String get remoteCandidateType =>
+      (super.noSuchMethod(
+            Invocation.getter(#remoteCandidateType),
+            returnValue: _i17.dummyValue<String>(
+              this,
+              Invocation.getter(#remoteCandidateType),
+            ),
+            returnValueForMissingStub: _i17.dummyValue<String>(
+              this,
+              Invocation.getter(#remoteCandidateType),
+            ),
+          )
+          as String);
+
+  @override
   int currentKeyFrame() =>
       (super.noSuchMethod(
             Invocation.method(#currentKeyFrame, []),

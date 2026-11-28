@@ -116,13 +116,19 @@ void drawPlayerStats(
   for (int i = 0; i < infoList.length; i++) {
     PlayerInfoProto info = infoList[i];
     Sprite? sprite = spriteIndex[info.spriteId];
-    int latency = connections.containsKey(info.connectionId) ? connections[info.connectionId]!.expectedLatency().inMilliseconds : 0;
+    final ConnectionWrapper? conn = connections[info.connectionId];
+    int latency = conn != null ? conn.expectedLatency().inMilliseconds : 0;
+    final String candInfo = (conn != null &&
+            (conn.localCandidateType.isNotEmpty ||
+                conn.remoteCandidateType.isNotEmpty))
+        ? " [${conn.localCandidateType}/${conn.remoteCandidateType}]"
+        : "";
     String text;
     if (netIssue && gameState.gameStateProto.actingCommanderId == info.connectionId) {
       Random r = new Random();
       text = "${info.score} ${info.name} ${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"}${r.nextBool() ? "?" : "!"} ms *";
     } else {
-      text = "${info.score}  ${info.name}  ${latency} ms${gameState.gameStateProto.actingCommanderId == info.connectionId ? " *" : ""}";
+      text = "${info.score}  ${info.name}  ${latency} ms${candInfo}${gameState.gameStateProto.actingCommanderId == info.connectionId ? " *" : ""}";
     }
     double iconW = sprite != null ? sprite.size.x * spriteScale : defaultIconW;
     double rowH = sprite != null ? sprite.size.y * spriteScale : defaultRowH;
